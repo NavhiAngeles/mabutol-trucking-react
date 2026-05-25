@@ -1,0 +1,98 @@
+@import url("./shipment.css");
+
+/* Customer table */
+
+.customer-table-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+  margin-top: 20px;
+}
+
+.customer-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.customer-table th {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 600;
+
+  padding: 14px;
+
+  border-bottom: 1px solid #E5E7EB;
+
+  text-align: left;
+}
+
+.customer-table td {
+  padding: 16px 14px;
+
+  border-bottom: 1px solid #F3F4F6;
+
+  font-size: 14px;
+  color: #374151;
+}
+
+/* Status */
+
+.status.active {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.status.suspended {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+/* ================= REPORTS SUBMENU ================= */
+
+.menu-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.submenu {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  margin-left: 18px;
+  margin-top: 6px;
+}
+
+.hidden {
+  display: none;
+}
+
+.submenu-item {
+  display: block;
+
+  padding: 8px 12px;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-size: 13px;
+  color: #6B7280;
+
+  transition: 0.2s;
+}
+
+.submenu-item:hover {
+  background: #E5E7EB;
+}
+
+.submenu-item.active {
+  background: #DBEAFE;
+  color: #1D4ED8;
+  font-weight: 600;
+}
