@@ -159,19 +159,19 @@ DIAMOND CHART
   margin-right: 8px;
 }
 
-.blue {
+.dot.blue {
   background: #0F172A;
 }
 
-.gray {
+.dot.gray {
   background: #94A3B8;
 }
 
-.yellow {
+.dot.yellow {
   background: #F59E0B;
 }
 
-.red {
+.dot.red {
   background: #DC2626;
 }
 
