@@ -1,0 +1,280 @@
+
+
+/* =========================
+HEADER
+========================= */
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 24px;
+}
+
+.header-row h2 {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.header-row p {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+/* =========================
+BUTTONS
+========================= */
+
+.report-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 10px 16px;
+
+  border-radius: 8px;
+
+  border: none;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #0F172A;
+  color: white;
+}
+
+.secondary-btn {
+  background: #E2E8F0;
+}
+
+/* =========================
+FILTERS
+========================= */
+
+.filters {
+  display: flex;
+  gap: 10px;
+
+  margin-bottom: 24px;
+}
+
+.filter {
+  padding: 8px 14px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #E5E7EB;
+
+  cursor: pointer;
+}
+
+.filter.active {
+  background: #0F172A;
+  color: white;
+}
+
+/* =========================
+ANALYTICS GRID
+========================= */
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+
+  gap: 20px;
+
+  margin-top: 24px;
+}
+
+.chart-card {
+  background: white;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  padding: 20px;
+}
+
+.card-header {
+  margin-bottom: 20px;
+}
+
+/* =========================
+DIAMOND CHART
+========================= */
+
+.diamond-chart {
+  width: 180px;
+  height: 180px;
+
+  margin: 30px auto;
+
+  border: 10px solid #0F172A;
+
+  transform: rotate(45deg);
+
+  border-radius: 18px;
+
+  position: relative;
+}
+
+.diamond-inner {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  transform:
+    translate(-50%, -50%)
+    rotate(-45deg);
+
+  text-align: center;
+}
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin-top: 24px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  display: inline-block;
+
+  margin-right: 8px;
+}
+
+.blue {
+  background: #0F172A;
+}
+
+.gray {
+  background: #94A3B8;
+}
+
+.yellow {
+  background: #F59E0B;
+}
+
+.red {
+  background: #DC2626;
+}
+
+/* =========================
+TREND CHART
+========================= */
+
+.trend-chart {
+  height: 340px;
+
+  background: #F8FAFC;
+
+  border-radius: 12px;
+
+  position: relative;
+
+  overflow: hidden;
+}
+
+.trend-line {
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+
+  background:
+    linear-gradient(
+      transparent 49%,
+      rgba(239,68,68,.3) 50%,
+      transparent 51%
+    );
+}
+
+/* =========================
+TABLE
+========================= */
+
+.table-card {
+  margin-top: 24px;
+
+  background: white;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px 20px;
+
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.report-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.report-table th,
+.report-table td {
+  padding: 16px 20px;
+
+  text-align: left;
+
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.report-table th {
+  background: #F8FAFC;
+
+  font-size: 13px;
+
+  color: #64748B;
+}
+
+.status {
+  padding: 6px 10px;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.status.completed {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.status.delayed {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.status.active {
+  background: #DBEAFE;
+  color: #1E40AF;
+}

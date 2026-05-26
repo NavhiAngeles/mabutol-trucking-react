@@ -6,8 +6,9 @@ import Shipment from "../pages/Shipment/shipment";
 import Fleet from "../pages/Fleet/fleet";
 import Customer from "../pages/Customer/customer";
 import Compliance from "../pages/Compliance/compliance";
-
-import Overview from "../pages/Report/Overview/Overview";
+// Reports
+import Overview from "../pages/Report/Overview/overview";
+import ShipmentReport from "../pages/Report/ShipmentReport/shipmentReport";
 
 function AppRouter() {
   return (
@@ -20,6 +21,7 @@ function AppRouter() {
         <Route path="/customer" element={<Customer />} />
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/Report/overview" element={<Overview />} />
+        <Route path="/Report/shipmentReport" element={<ShipmentReport />} />
       </Routes>
     </BrowserRouter>
   );
