@@ -1,0 +1,249 @@
+
+
+/* =========================
+HEADER
+========================= */
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 24px;
+}
+
+.header-row h2 {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.header-row p {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+/* =========================
+BUTTONS
+========================= */
+
+.report-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 10px 16px;
+
+  border-radius: 8px;
+
+  border: none;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #0F172A;
+  color: white;
+}
+
+.secondary-btn {
+  background: #E2E8F0;
+}
+
+/* =========================
+FILTERS
+========================= */
+
+.filters {
+  display: flex;
+  gap: 10px;
+
+  margin-bottom: 24px;
+}
+
+.filter {
+  padding: 8px 14px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: #E5E7EB;
+
+  cursor: pointer;
+}
+
+.filter.active {
+  background: #0F172A;
+  color: white;
+}
+
+/* =========================
+GRID
+========================= */
+
+.analytics-grid {
+  display: grid;
+
+  grid-template-columns: 2fr 1fr;
+
+  gap: 20px;
+
+  margin-top: 24px;
+}
+
+.bottom-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 2fr;
+
+  gap: 20px;
+
+  margin-top: 24px;
+}
+
+/* =========================
+CARDS
+========================= */
+
+.chart-card,
+.info-card {
+  background: white;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 20px;
+}
+
+/* =========================
+CHART PLACEHOLDER
+========================= */
+
+.chart-placeholder {
+  height: 320px;
+
+  background: #F8FAFC;
+
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #64748B;
+}
+
+/* =========================
+BAR CHART
+========================= */
+
+.bar-chart {
+  height: 320px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+}
+
+.bar-group {
+  display: flex;
+  gap: 6px;
+}
+
+.bar {
+  width: 28px;
+
+  border-radius: 6px 6px 0 0;
+}
+
+.fuel {
+  height: 160px;
+  background: #0F172A;
+}
+
+.maintenance {
+  height: 220px;
+  background: #64748B;
+}
+
+.short {
+  height: 120px;
+}
+
+.tall {
+  height: 260px;
+}
+
+.taller {
+  height: 280px;
+}
+
+/* =========================
+CUSTOMERS
+========================= */
+
+.customer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.customer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* =========================
+TABLE
+========================= */
+
+.report-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.report-table th,
+.report-table td {
+  padding: 14px 12px;
+
+  border-bottom: 1px solid #F1F5F9;
+
+  text-align: left;
+}
+
+.report-table th {
+  background: #F8FAFC;
+
+  color: #64748B;
+
+  font-size: 13px;
+}
+
+/* =========================
+MISC
+========================= */
+
+.more-btn,
+.view-btn {
+  background: none;
+  border: none;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}

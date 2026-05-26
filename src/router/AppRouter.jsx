@@ -10,6 +10,7 @@ import Compliance from "../pages/Compliance/compliance";
 import Overview from "../pages/Report/Overview/overview";
 import ShipmentReport from "../pages/Report/ShipmentReport/shipmentReport";
 import DriverReport from "../pages/Report/DriverReport/driverReport";
+import RevenueReport from "../pages/Report/RevenueReport/revenueReport";
 
 function AppRouter() {
   return (
@@ -24,6 +25,7 @@ function AppRouter() {
         <Route path="/Report/overview" element={<Overview />} />
         <Route path="/Report/shipmentReport" element={<ShipmentReport />} />
         <Route path="/Report/driverReport" element={<DriverReport />} />
+        <Route path="/Report/revenueReport" element={<RevenueReport />} />
       </Routes>
     </BrowserRouter>
   );
