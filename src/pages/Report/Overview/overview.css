@@ -1,0 +1,148 @@
+
+
+/* =========================
+REPORT HEADER
+========================= */
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 24px;
+}
+
+.header-row h2 {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.header-row p {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+/* =========================
+BUTTONS
+========================= */
+
+.report-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 10px 16px;
+
+  border-radius: 8px;
+
+  border: none;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #0F172A;
+  color: white;
+}
+
+.secondary-btn {
+  background: #E2E8F0;
+}
+
+/* =========================
+FILTERS
+========================= */
+
+.filters {
+  display: flex;
+  gap: 10px;
+
+  margin-bottom: 24px;
+}
+
+.filter {
+  padding: 8px 14px;
+
+  border: none;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  background: #E5E7EB;
+}
+
+.filter.active {
+  background: #0F172A;
+  color: white;
+}
+
+/* =========================
+ANALYTICS GRID
+========================= */
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 20px;
+
+  margin-top: 24px;
+}
+
+.chart-card {
+  background: white;
+
+  padding: 20px;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+}
+
+.card-header {
+  margin-bottom: 18px;
+}
+
+.chart-placeholder {
+  height: 260px;
+
+  border-radius: 12px;
+
+  background: #F3F4F6;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  color: #9CA3AF;
+}
+
+/* =========================
+BOTTOM GRID
+========================= */
+
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 20px;
+
+  margin-top: 24px;
+}
+
+.info-card {
+  background: white;
+
+  padding: 20px;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  min-height: 180px;
+}
