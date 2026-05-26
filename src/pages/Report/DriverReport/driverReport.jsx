@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./driverReport.css";
 
 export default function DriverReport() {
   const navigate = useNavigate();
+  const [settingsSubmenuHidden, setSettingsSubmenuHidden] = useState(true);
 
   return (
     <div className="dashboard">
@@ -82,11 +84,57 @@ export default function DriverReport() {
             </div>
           </div>
 
-          <div
-            className="menu-item"
-            onClick={() => navigate("/settings/account")}
-          >
-            Settings
+          {/* Settings Dropdown */}
+          <div className="menu-group">
+            <div
+              className="menu-item"
+              id="settingsToggle"
+              onClick={() => setSettingsSubmenuHidden(!settingsSubmenuHidden)}
+            >
+              Settings
+            </div>
+
+            <div
+              className={`submenu ${settingsSubmenuHidden ? "hidden" : ""}`}
+              id="settingsSubmenu"
+            >
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/account")}
+              >
+                Account
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/notifications")}
+              >
+                Notifications
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/pricing")}
+              >
+                Pricing
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/complianceThresholds")}
+              >
+                Compliance Thresholds
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/userManagement")}
+              >
+                User Management
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/security")}
+              >
+                Security
+              </div>
+            </div>
           </div>
         </nav>
 

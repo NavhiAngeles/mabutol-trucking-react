@@ -5,6 +5,7 @@ import "./dashboard.css";
 export default function Dashboard() {
   const navigate = useNavigate();
   const [reportsSubmenuHidden, setReportsSubmenuHidden] = useState(true);
+  const [settingsSubmenuHidden, setSettingsSubmenuHidden] = useState(true);
 
   return (
     <div className="dashboard">
@@ -12,7 +13,7 @@ export default function Dashboard() {
       <aside className="sidebar">
         <div className="sidebar-top">
           <h2>Mabutol Tracking</h2>
-          <p>NUEVA ECIJA LOGISTICS</p>
+          <p>NUEVA ECIJA GISTICS</p>
         </div>
 
         <nav className="menu">
@@ -47,6 +48,7 @@ export default function Dashboard() {
             Compliance
           </div>
 
+          {/* Reports Dropdown */}
           <div className="menu-group">
             <div
               className="menu-item"
@@ -66,21 +68,18 @@ export default function Dashboard() {
               >
                 Overview
               </div>
-
               <div
                 className="submenu-item"
                 onClick={() => navigate("/report/shipmentReport")}
               >
                 Shipments
               </div>
-
               <div
                 className="submenu-item"
                 onClick={() => navigate("/report/driverReport")}
               >
                 Drivers
               </div>
-
               <div
                 className="submenu-item"
                 onClick={() => navigate("/report/revenueReport")}
@@ -90,11 +89,57 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div
-            className="menu-item"
-            onClick={() => navigate("/settings/account")}
-          >
-            Settings
+          {/* Settings Dropdown */}
+          <div className="menu-group">
+            <div
+              className="menu-item"
+              id="settingsToggle"
+              onClick={() => setSettingsSubmenuHidden(!settingsSubmenuHidden)}
+            >
+              Settings
+            </div>
+
+            <div
+              className={`submenu ${settingsSubmenuHidden ? "hidden" : ""}`}
+              id="settingsSubmenu"
+            >
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/account")}
+              >
+                Account
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/notifications")}
+              >
+                Notifications
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/pricing")}
+              >
+                Pricing
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/complianceThresholds")}
+              >
+                Compliance Thresholds
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/userManagement")}
+              >
+                User Management
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/settings/security")}
+              >
+                Security
+              </div>
+            </div>
           </div>
         </nav>
 
