@@ -11,6 +11,8 @@ import Overview from "../pages/Report/Overview/overview";
 import ShipmentReport from "../pages/Report/ShipmentReport/shipmentReport";
 import DriverReport from "../pages/Report/DriverReport/driverReport";
 import RevenueReport from "../pages/Report/RevenueReport/revenueReport";
+// Settings
+import Account from "../pages/Settings/Account/account";
 
 function AppRouter() {
   return (
@@ -26,6 +28,7 @@ function AppRouter() {
         <Route path="/Report/shipmentReport" element={<ShipmentReport />} />
         <Route path="/Report/driverReport" element={<DriverReport />} />
         <Route path="/Report/revenueReport" element={<RevenueReport />} />
+        <Route path="/Settings/account" element={<Account />} />
       </Routes>
     </BrowserRouter>
   );
