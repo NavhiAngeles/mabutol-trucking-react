@@ -15,6 +15,7 @@ import RevenueReport from "../pages/Report/RevenueReport/revenueReport";
 import Account from "../pages/Settings/Account/account";
 import Notifications from "../pages/Settings/Notification/notification";
 import Pricing from "../pages/Settings/Pricing/pricing";
+import ComplianceThresholds from "../pages/Settings/ComplianceThreshold/complianceThreshold";
 
 function AppRouter() {
   return (
@@ -33,6 +34,7 @@ function AppRouter() {
         <Route path="/Settings/account" element={<Account />} />
         <Route path="/Settings/notification" element={<Notifications />} />
         <Route path="/Settings/pricing" element={<Pricing />} />
+        <Route path="/settings/complianceThreshold" element={<ComplianceThresholds />} />
       </Routes>
     </BrowserRouter>
   );

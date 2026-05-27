@@ -1,0 +1,118 @@
+
+/* =========================
+HEADER
+========================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #6B7280;
+}
+
+/* =========================
+CARD
+========================= */
+
+.settings-card {
+  background: white;
+
+  border: 1px solid #E5E7EB;
+
+  border-radius: 14px;
+
+  padding: 28px;
+}
+
+.intro-text {
+  color: #64748B;
+
+  margin-bottom: 28px;
+
+  line-height: 1.7;
+}
+
+/* =========================
+SECTION
+========================= */
+
+.section-block {
+  margin-top: 32px;
+
+  border-top: 1px solid #E5E7EB;
+
+  padding-top: 24px;
+}
+
+.section-title {
+  font-size: 14px;
+
+  font-weight: 700;
+
+  color: #0F172A;
+
+  margin-bottom: 20px;
+}
+
+/* =========================
+ROWS
+========================= */
+
+.threshold-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px 0;
+
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.threshold-info {
+  flex: 1;
+}
+
+/* =========================
+INPUTS
+========================= */
+
+.threshold-inputs {
+  display: flex;
+  gap: 28px;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-wrap label {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.input-wrap input {
+  width: 70px;
+
+  padding: 10px;
+
+  border: 1px solid #CBD5E1;
+
+  border-radius: 8px;
+
+  background: #F8FAFC;
+
+  text-align: center;
+}
+
+.input-wrap span {
+  font-size: 13px;
+  color: #64748B;
+}
