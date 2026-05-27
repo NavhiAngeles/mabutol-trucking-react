@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./account.css";
 
 export default function Account() {
   const navigate = useNavigate();
-
+  const [reportsSubmenuHidden, setReportsSubmenuHidden] = useState(true);
   return (
     <div className="dashboard">
       {/* Sidebar */}
@@ -51,6 +52,47 @@ export default function Account() {
             Reports
           </div>
 
+          {/* Reports Dropdown */}
+          <div className="menu-group">
+            <div
+              className="menu-item"
+              id="reportsToggle"
+              onClick={() => setReportsSubmenuHidden(!reportsSubmenuHidden)}
+            >
+              Reports
+            </div>
+
+            <div
+              className={`submenu ${reportsSubmenuHidden ? "hidden" : ""}`}
+              id="reportsSubmenu"
+            >
+              <div
+                className="submenu-item active"
+                onClick={() => navigate("/report/overview")}
+              >
+                Overview
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/report/shipmentReport")}
+              >
+                Shipments
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/report/driverReport")}
+              >
+                Drivers
+              </div>
+              <div
+                className="submenu-item"
+                onClick={() => navigate("/report/revenueReport")}
+              >
+                Revenue
+              </div>
+            </div>
+          </div>
+          
           {/* Settings */}
           <div className="menu-group">
             <div className="menu-item active">
