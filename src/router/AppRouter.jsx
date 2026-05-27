@@ -13,6 +13,7 @@ import DriverReport from "../pages/Report/DriverReport/driverReport";
 import RevenueReport from "../pages/Report/RevenueReport/revenueReport";
 // Settings
 import Account from "../pages/Settings/Account/account";
+import Notifications from "../pages/Settings/Notification/notification";
 
 function AppRouter() {
   return (
@@ -29,6 +30,7 @@ function AppRouter() {
         <Route path="/Report/driverReport" element={<DriverReport />} />
         <Route path="/Report/revenueReport" element={<RevenueReport />} />
         <Route path="/Settings/account" element={<Account />} />
+        <Route path="/Settings/notification" element={<Notifications />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,0 +1,143 @@
+
+
+/* =========================
+HEADER
+========================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #6B7280;
+}
+
+/* =========================
+GRID
+========================= */
+
+.notification-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 2fr;
+
+  gap: 24px;
+}
+
+.wide {
+  grid-column: span 1;
+}
+
+/* =========================
+CARDS
+========================= */
+
+.settings-card {
+  background: white;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  padding: 24px;
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+
+.card-header h3 {
+  font-size: 22px;
+}
+
+/* =========================
+TOGGLES
+========================= */
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 16px 0;
+
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.toggle-row p {
+  color: #6B7280;
+  margin-top: 4px;
+}
+
+.toggle {
+  width: 54px;
+  height: 28px;
+
+  border-radius: 20px;
+
+  background: #CBD5E1;
+
+  position: relative;
+
+  cursor: pointer;
+}
+
+.toggle.active {
+  background: #0F172A;
+}
+
+.toggle-circle {
+  width: 22px;
+  height: 22px;
+
+  background: white;
+
+  border-radius: 50%;
+
+  position: absolute;
+
+  top: 3px;
+  left: 3px;
+}
+
+.toggle.active .toggle-circle {
+  left: 29px;
+}
+
+/* =========================
+ALERT ROWS
+========================= */
+
+.alert-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px;
+
+  background: #F8FAFC;
+
+  border-radius: 10px;
+
+  margin-bottom: 16px;
+}
+
+.alert-row p {
+  color: #64748B;
+  margin-top: 4px;
+}
+
+.alert-options {
+  display: flex;
+  gap: 16px;
+}
+
+.alert-options label {
+  font-size: 13px;
+  font-weight: 600;
+}
