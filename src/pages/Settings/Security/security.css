@@ -1,0 +1,212 @@
+
+
+/* =========================
+HEADER
+========================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #6B7280;
+}
+
+/* =========================
+CARDS
+========================= */
+
+.settings-card {
+  background: white;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  padding: 24px;
+
+  margin-bottom: 24px;
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+
+.card-header h3 {
+  font-size: 24px;
+}
+
+/* =========================
+SECURITY ROW
+========================= */
+
+.security-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px 0;
+
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.security-row p {
+  color: #64748B;
+  margin-top: 6px;
+}
+
+/* =========================
+BUTTONS
+========================= */
+
+.primary-btn {
+  padding: 12px 16px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #0F172A;
+
+  color: white;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.danger-btn,
+.revoke-btn {
+  border: none;
+
+  background: none;
+
+  color: #DC2626;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+/* =========================
+TOGGLE
+========================= */
+
+.toggle {
+  width: 54px;
+  height: 28px;
+
+  border-radius: 20px;
+
+  background: #CBD5E1;
+
+  position: relative;
+}
+
+.toggle.active {
+  background: #0F172A;
+}
+
+.toggle-circle {
+  width: 22px;
+  height: 22px;
+
+  background: white;
+
+  border-radius: 50%;
+
+  position: absolute;
+
+  top: 3px;
+  left: 29px;
+}
+
+/* =========================
+TABLE
+========================= */
+
+.session-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.session-table th,
+.session-table td {
+  padding: 16px;
+
+  border-bottom: 1px solid #F1F5F9;
+
+  text-align: left;
+}
+
+.session-table th {
+  background: #F8FAFC;
+
+  color: #64748B;
+
+  font-size: 13px;
+}
+
+/* =========================
+STATUS
+========================= */
+
+.status.current {
+  display: inline-flex;
+
+  padding: 6px 12px;
+
+  background: #DCFCE7;
+
+  color: #166534;
+
+  border-radius: 20px;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.inactive {
+  color: #6B7280;
+}
+
+/* =========================
+ACTIVITY
+========================= */
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 18px;
+
+  border-radius: 10px;
+}
+
+.activity-item.success {
+  background: #F0FDF4;
+}
+
+.activity-item.failed {
+  background: #FEF2F2;
+}
+
+.activity-item p {
+  color: #64748B;
+  margin-top: 4px;
+}
