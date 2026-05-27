@@ -81,7 +81,7 @@ export default function Notifications() {
 
               <div
                 className="submenu-item"
-                onClick={() => navigate("/settings/complianceThresholds")}
+                onClick={() => navigate("/settings/complianceThreshold")}
               >
                 Compliance Thresholds
               </div>

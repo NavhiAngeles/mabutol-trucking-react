@@ -14,6 +14,7 @@ import RevenueReport from "../pages/Report/RevenueReport/revenueReport";
 // Settings
 import Account from "../pages/Settings/Account/account";
 import Notifications from "../pages/Settings/Notification/notification";
+import Pricing from "../pages/Settings/Pricing/pricing";
 
 function AppRouter() {
   return (
@@ -31,6 +32,7 @@ function AppRouter() {
         <Route path="/Report/revenueReport" element={<RevenueReport />} />
         <Route path="/Settings/account" element={<Account />} />
         <Route path="/Settings/notification" element={<Notifications />} />
+        <Route path="/Settings/pricing" element={<Pricing />} />
       </Routes>
     </BrowserRouter>
   );

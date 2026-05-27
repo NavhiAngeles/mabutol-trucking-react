@@ -1,0 +1,149 @@
+
+
+/* =========================
+NOTICE
+========================= */
+
+.notice-box {
+  background: #FEE2E2;
+
+  border-left: 4px solid #F97316;
+
+  padding: 16px 20px;
+
+  border-radius: 10px;
+
+  margin-bottom: 24px;
+}
+
+.notice-box p {
+  margin-top: 6px;
+  color: #7C2D12;
+}
+
+/* =========================
+HEADER
+========================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: #6B7280;
+}
+
+/* =========================
+GRID
+========================= */
+
+.pricing-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 24px;
+}
+
+.left-column,
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* =========================
+CARDS
+========================= */
+
+.settings-card {
+  background: white;
+
+  border-radius: 14px;
+
+  border: 1px solid #E5E7EB;
+
+  padding: 24px;
+}
+
+.card-header {
+  margin-bottom: 16px;
+}
+
+.card-header h3 {
+  font-size: 22px;
+}
+
+.card-desc {
+  color: #6B7280;
+  margin-bottom: 24px;
+}
+
+/* =========================
+FORMS
+========================= */
+
+.form-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-size: 12px;
+
+  color: #64748B;
+
+  font-weight: 600;
+}
+
+.input-group input,
+.pricing-table input {
+  padding: 10px 12px;
+
+  border: 1px solid #CBD5E1;
+
+  border-radius: 8px;
+
+  background: #F8FAFC;
+}
+
+/* =========================
+TABLES
+========================= */
+
+.pricing-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.pricing-table th,
+.pricing-table td {
+  padding: 14px 12px;
+
+  border-bottom: 1px solid #F1F5F9;
+
+  text-align: left;
+}
+
+.pricing-table th {
+  background: #F8FAFC;
+
+  color: #64748B;
+
+  font-size: 13px;
+}
