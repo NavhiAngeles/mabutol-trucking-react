@@ -106,7 +106,7 @@ export default function DriverReport() {
               </div>
               <div
                 className="submenu-item"
-                onClick={() => navigate("/settings/notifications")}
+                onClick={() => navigate("/settings/notification")}
               >
                 Notifications
               </div>
@@ -118,7 +118,7 @@ export default function DriverReport() {
               </div>
               <div
                 className="submenu-item"
-                onClick={() => navigate("/settings/complianceThresholds")}
+                onClick={() => navigate("/settings/complianceThreshold")}
               >
                 Compliance Thresholds
               </div>
