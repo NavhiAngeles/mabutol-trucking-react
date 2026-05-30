@@ -1,4 +1,4 @@
-import MainLayout from "../../layouts/MainLayout";
+import MainLayout from "../../layouts/mainLayout";
 import "./fleet.css";
 
 export default function Fleet() {
