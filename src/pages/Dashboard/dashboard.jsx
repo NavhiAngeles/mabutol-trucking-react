@@ -1,156 +1,10 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [reportsSubmenuHidden, setReportsSubmenuHidden] = useState(true);
-  const [settingsSubmenuHidden, setSettingsSubmenuHidden] = useState(true);
 
   return (
-    <div className="dashboard">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <h2>Mabutol Tracking</h2>
-          <p>NUEVA ECIJA GISTICS</p>
-        </div>
-
-        <nav className="menu">
-          <div
-            className="menu-item active"
-            onClick={() => navigate("/dashboard")}
-          >
-            Dashboard
-          </div>
-          <div
-            className="menu-item"
-            onClick={() => navigate("/shipment")}
-          >
-            Shipments
-          </div>
-          <div
-            className="menu-item"
-            onClick={() => navigate("/fleet")}
-          >
-            Fleet Management
-          </div>
-          <div
-            className="menu-item"
-            onClick={() => navigate("/customer")}
-          >
-            Customers
-          </div>
-          <div
-            className="menu-item"
-            onClick={() => navigate("/compliance")}
-          >
-            Compliance
-          </div>
-
-          {/* Reports Dropdown */}
-          <div className="menu-group">
-            <div
-              className="menu-item"
-              id="reportsToggle"
-              onClick={() => setReportsSubmenuHidden(!reportsSubmenuHidden)}
-            >
-              Reports
-            </div>
-
-            <div
-              className={`submenu ${reportsSubmenuHidden ? "hidden" : ""}`}
-              id="reportsSubmenu"
-            >
-              <div
-                className="submenu-item active"
-                onClick={() => navigate("/report/overview")}
-              >
-                Overview
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/report/shipmentReport")}
-              >
-                Shipments
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/report/driverReport")}
-              >
-                Drivers
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/report/revenueReport")}
-              >
-                Revenue
-              </div>
-            </div>
-          </div>
-
-          {/* Settings Dropdown */}
-          <div className="menu-group">
-            <div
-              className="menu-item"
-              id="settingsToggle"
-              onClick={() => setSettingsSubmenuHidden(!settingsSubmenuHidden)}
-            >
-              Settings
-            </div>
-
-            <div
-              className={`submenu ${settingsSubmenuHidden ? "hidden" : ""}`}
-              id="settingsSubmenu"
-            >
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/settings/account")}
-              >
-                Account
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/settings/notification")}
-              >
-                Notifications
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/settings/pricing")}
-              >
-                Pricing
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/settings/complianceThreshold")}
-              >
-                Compliance Thresholds
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/settings/userManagement")}
-              >
-                User Management
-              </div>
-              <div
-                className="submenu-item"
-                onClick={() => navigate("/settings/security")}
-              >
-                Security
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        <div className="sidebar-bottom">
-          <span>Help Center</span>
-          <span>Log Out</span>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="main">
+      <MainLayout>
         {/* Topbar */}
         <header className="topbar">
           <h1>Dashboard</h1>
@@ -257,7 +111,6 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
-      </main>
-    </div>
+      </MainLayout>
   );
 }
