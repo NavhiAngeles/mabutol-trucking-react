@@ -32,9 +32,7 @@ export default function Sidebar() {
         <div className="menu-item" onClick={() => navigate("/customer")}>
           Customers
         </div>
-        <div className="menu-item" onClick={() => navigate("/compliance")}>
-          Compliance
-        </div>
+       
 
         {/* Reports Dropdown */}
         <div className="menu-group">
