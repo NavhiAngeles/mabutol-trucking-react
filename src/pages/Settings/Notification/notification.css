@@ -1,5 +1,3 @@
-
-
 /* =========================
 HEADER
 ========================= */
@@ -23,9 +21,7 @@ GRID
 
 .notification-grid {
   display: grid;
-
   grid-template-columns: 1fr 2fr;
-
   gap: 24px;
 }
 
@@ -39,11 +35,8 @@ CARDS
 
 .settings-card {
   background: white;
-
   border-radius: 14px;
-
   border: 1px solid #E5E7EB;
-
   padding: 24px;
 }
 
@@ -56,16 +49,14 @@ CARDS
 }
 
 /* =========================
-TOGGLES
+TOGGLES (Fixed State Layout Positions)
 ========================= */
 
 .toggle-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   padding: 16px 0;
-
   border-bottom: 1px solid #F1F5F9;
 }
 
@@ -77,53 +68,50 @@ TOGGLES
 .toggle {
   width: 54px;
   height: 28px;
-
   border-radius: 20px;
-
-  background: #CBD5E1;
-
   position: relative;
-
   cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .toggle.active {
   background: #0F172A;
 }
 
+.toggle.inactive {
+  background: #CBD5E1;
+}
+
 .toggle-circle {
   width: 22px;
   height: 22px;
-
   background: white;
-
   border-radius: 50%;
-
   position: absolute;
-
   top: 3px;
-  left: 3px;
+  transition: left 0.2s ease-in-out;
 }
 
 .toggle.active .toggle-circle {
   left: 29px;
 }
 
+.toggle.inactive .toggle-circle {
+  left: 3px;
+}
+
 /* =========================
-ALERT ROWS
+ALERT ROWS & VISIBLE CHECKBOX INTERACTIONS
 ========================= */
 
 .alert-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
   padding: 18px;
-
   background: #F8FAFC;
-
   border-radius: 10px;
-
   margin-bottom: 16px;
 }
 
@@ -137,7 +125,33 @@ ALERT ROWS
   gap: 16px;
 }
 
-.alert-options label {
+/* The wrapper handles click pointer events explicitly */
+.checkbox-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* High visibility click tracking when hovering option items */
+.checkbox-container:hover {
+  background-color: #E2E8F0;
+}
+
+/* Forces browsers to display custom dark theme checked mark boxes */
+.checkbox-container input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #0F172A; /* Bold matching color when check is active */
+  position: relative;
+  z-index: 2;
+  pointer-events: auto; /* Guarantees the mouse event registration stays on top */
 }
