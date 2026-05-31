@@ -28,95 +28,68 @@ export default function Login() {
       return;
     }
 
-    alert("Login successful (demo only).");
+    alert("Login successful.");
     navigate("/dashboard");
   }
 
   return (
     <div className="login-page">
-      <div className="overlay"></div>
-
       <main className="container">
+        {/* Branding */}
         <div className="branding">
-          <div className="logo"></div>
-
-          <h1>Mabutol Tracking</h1>
-
-          <p className="subtitle">
-            MABUTOL TRACKING & LOGISTICS
-          </p>
+          <div className="logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </div>
+          <h1>TANAW</h1>
         </div>
 
+        {/* Auth Card */}
         <section className="card">
           <header className="card-header">
-            <h2>Secure Access</h2>
-
-            <p>
-              Authenticate to manage fleet operations.
-            </p>
+            <h2>Login</h2>
+            <p>Authenticate to manage fleet operations.</p>
           </header>
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="email">
-                CORPORATE EMAIL
-              </label>
-
-              <input
-                type="email"
-                id="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <label htmlFor="email">EMAIL ADDRESS</label>
+              <div className="input-wrapper">
+                <span className="input-icon">@</span>
+                <input
+                  type="email"
+                  id="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="form-group">
-              <div className="label-row">
-                <label htmlFor="password">
-                  SECURITY KEY
-                </label>
-
-                <a href="#" className="forgot">
-                  Forgot Access?
-                </a>
+              <label htmlFor="password">PASSWORD</label>
+              <div className="input-wrapper">
+                <span className="input-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </span>
+                <input
+                  type="password"
+                  id="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
-
-              <input
-                type="password"
-                id="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
             </div>
 
-            <button
-              type="submit"
-              className="btn-primary"
-            >
+            <button type="submit" className="btn-primary">
               Sign In →
             </button>
-
-            <div className="divider">
-              <span>OR IDENTIFY PROVIDER</span>
-            </div>
-
-            <div className="oauth">
-              <button
-                type="button"
-                className="btn-oauth"
-              >
-                Google
-              </button>
-
-              <button
-                type="button"
-                className="btn-oauth"
-              >
-                Azure AD
-              </button>
-            </div>
           </form>
         </section>
       </main>
