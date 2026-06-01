@@ -1,5 +1,6 @@
 /* Step 1 Cargo % Vehicle */
 
+/* --- SCREEN LAYOUT CORE FRAMEWORK --- */
 .drawer-overlay {
   position: fixed;
   top: 0;
@@ -8,10 +9,13 @@
   height: 100vh;
   background: rgba(15, 23, 42, 0.4); 
   backdrop-filter: blur(4px);
-  z-index: 999999; 
+  z-index: 99999; 
   display: flex;
   justify-content: flex-end;
-  pointer-events: auto;
+  
+  /* FIX: Prevents the hidden/idle overlay container from blocking page actions */
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  pointer-events: auto; /* Restores normal click capture when rendering */
 }
 
 .drawer-container {
@@ -22,6 +26,9 @@
   display: flex;
   box-shadow: -10px 0 25px -5px rgba(0, 0, 0, 0.1);
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* FIX: Ensures internal forms and map view layers accept user interactions */
+  pointer-events: auto; 
 }
 
 @keyframes slideInRight {
@@ -1121,4 +1128,98 @@
 
 .btn-alert-dismiss:hover {
   background: #1E293B;
+}
+
+/* --- SCROLL CONTAINER LAYOUT MATRIX STUCTURE --- */
+
+/* Force the left panel to have a fixed height matching the viewport */
+.drawer-form-panel {
+  width: 400px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  border-right: 1px solid #E2E8F0;
+  position: relative;
+}
+
+/* Fixed non-scrollable header area */
+.drawer-fixed-header-block {
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #F1F5F9;
+  background: #FFFFFF;
+  flex-shrink: 0;
+}
+
+/* The scrollable body wrapper containing your setup cards */
+.drawer-form-body-scrollable {
+  flex: 1;
+  overflow-y: auto; /* Activates natural clean system scrolling track */
+  padding: 20px 24px;
+}
+
+/* Custom padding configuration box */
+.step-scroll-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 40px; /* Padding to ensure the content doesn't get hidden behind the footer */
+}
+
+/* Fixed non-scrollable bottom action panel wrapper */
+.drawer-footer-wrapper-fixed {
+  flex-shrink: 0;
+  border-top: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.04); /* Soft shadow above footer buttons */
+  z-index: 10;
+}
+
+/* --- DRIVER PROFILE ALIGNMENTS --- */
+.green-dot-text {
+  color: #10B981;
+  font-weight: 600;
+}
+.green-check-text {
+  color: #059669;
+  font-weight: 500;
+}
+
+/* --- FINANCIAL PANELS ADDITIONAL CUSTOM SHAPES --- */
+.profit-panel-white {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+}
+
+.border-none { border: none !important; }
+.no-margin { margin: 0 !important; padding: 0 !important; }
+
+.border-dashed {
+  border-top: 1px dashed #CBD5E1 !important;
+  padding-top: 12px !important;
+}
+
+.total-price-text-sm {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.profit-final-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1E3A8A;
+}
+
+.total-profit-highlight {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1E40AF;
+}
+
+.profit-disclaimer-text {
+  font-size: 11px;
+  color: #64748B;
+  line-height: 1.4;
+  margin-top: 4px;
 }
