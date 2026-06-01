@@ -1,6 +1,6 @@
-/*=================================
-SHIPMENT CSS - Refined from image_a37d83.png
-=================================*/
+/*=============================================================================
+  MAIN DASHBOARD VIEW STYLING SHEET - SYNCED TO THE EXACT LAYOUT OF THE DESIGN
+=============================================================================*/
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -11,118 +11,13 @@ SHIPMENT CSS - Refined from image_a37d83.png
   font-family: 'Inter', sans-serif;
 }
 
-.dashboard {
-  display: flex;
-  min-height: 100vh;
-  background: #F8FAFC; /* Softer light gray background */
+.content {
+  padding: 32px 40px;
+  background: #F8FAFC;
+  min-height: calc(100vh - 70px);
 }
 
-/* Sidebar Styling */
-.sidebar {
-  width: 260px;
-  background: #FFFFFF;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  border-right: 1px solid #E2E8F0;
-}
-
-.sidebar-top .brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 32px;
-}
-
-.brand-icon {
-  background: #0F172A;
-  color: white;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-}
-
-.sidebar-top h2 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #0F172A;
-  letter-spacing: 0.5px;
-}
-
-.sidebar-top p {
-  font-size: 11px;
-  color: #94A3B8;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.menu {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #64748B;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.menu-item:hover {
-  background: #F1F5F9;
-  color: #0F172A;
-}
-
-.menu-item.active {
-  background: #EFF6FF;
-  font-weight: 600;
-  color: #1E40AF;
-}
-
-.sidebar-bottom {
-  border-top: 1px solid #E2E8F0;
-  padding-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sidebar-bottom span {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #64748B;
-  cursor: pointer;
-  padding: 8px 12px;
-}
-
-/* Main Canvas */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin-left: 260px;
-}
-
-/* Topbar Global Search */
+/* --- TOP GLOBAL HEADER --- */
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -130,20 +25,37 @@ SHIPMENT CSS - Refined from image_a37d83.png
   padding: 16px 40px;
   background: #FFFFFF;
   border-bottom: 1px solid #E2E8F0;
+  height: 70px;
 }
 
 .search-container {
   position: relative;
-  width: 400px;
+  width: 320px;
 }
 
-.topbar input {
+.topbar-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  font-size: 16px;
+}
+
+#shipmentSearch {
   width: 100%;
-  padding: 10px 16px 10px 40px;
-  border-radius: 8px;
+  padding: 10px 16px 10px 42px;
+  border-radius: 6px;
   border: 1px solid #E2E8F0;
   background: #F8FAFC;
   font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+#shipmentSearch:focus {
+  border-color: #3B82F6;
+  background: #FFFFFF;
 }
 
 .topbar-right {
@@ -158,32 +70,36 @@ SHIPMENT CSS - Refined from image_a37d83.png
   font-size: 20px;
   color: #64748B;
   cursor: pointer;
+  position: relative;
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
-  background: #D1D5DB;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   overflow: hidden;
+  border: 2px solid #E2E8F0;
 }
 
-/* Content Header */
-.content {
-  padding: 32px 40px;
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
+/* --- SUB-HEADER ACTION ROW --- */
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .header h2 {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: #0F172A;
+  letter-spacing: -0.5px;
 }
 
 .header p {
@@ -194,19 +110,26 @@ SHIPMENT CSS - Refined from image_a37d83.png
 
 .btn-primary {
   background: #0F172A;
-  color: white;
+  color: #FFFFFF;
   padding: 12px 20px;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   border: none;
-  cursor: pointer;
+  cursor: pointer !important;
   display: flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: 0.3px;
+  transition: background 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Stats Cards Section */
+.btn-primary:hover {
+  background: #1E293B;
+}
+
+/* --- STATS GRID OVERVIEW --- */
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -219,62 +142,55 @@ SHIPMENT CSS - Refined from image_a37d83.png
   padding: 20px;
   border-radius: 8px;
   border: 1px solid #E2E8F0;
-  position: relative;
+  display: flex;
+  flex-direction: column;
 }
-
-/* Bottom line accents from the image */
-.stat-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  border-radius: 0 0 8px 8px;
-}
-.stat-card.completed::after { background: #10B981; }
-.stat-card.ontime::after { background: #10B981; }
-.stat-card.late::after { background: #EF4444; }
-.stat-card.trips::after { background: #1E3A8A; }
 
 .stat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .stat-header h4 {
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 600;
   color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.stat-icon { font-size: 18px; }
-.stat-card.completed .stat-icon { color: #10B981; }
-.stat-card.ontime .stat-icon { color: #10B981; }
-.stat-card.late .stat-icon { color: #EF4444; }
-.stat-card.trips .stat-icon { color: #1E3A8A; }
+.stat-icon {
+  font-size: 20px;
+  color: #94A3B8;
+}
 
 .stat-card h2 {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #0F172A;
   margin-bottom: 4px;
 }
 
 .stat-card p {
-  font-size: 13px;
-  color: #64748B;
+  font-size: 12px;
+  color: #94A3B8;
+  font-weight: 500;
 }
 
-/* View Switcher Tabs */
+/* Dynamic status modifications */
+.text-transit { color: #10B981 !important; }
+.text-loading { color: #3B82F6 !important; }
+.text-delayed { color: #EF4444 !important; }
+.text-danger-accent { color: #EF4444 !important; font-weight: 600 !important; }
+
+/* --- VIEW SUB-NAVIGATION TABS --- */
 .view-tabs {
   display: flex;
   gap: 24px;
   border-bottom: 1px solid #E2E8F0;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .tab {
@@ -287,14 +203,11 @@ SHIPMENT CSS - Refined from image_a37d83.png
   align-items: center;
   gap: 8px;
   border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
 }
 
-.tab .badge {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #F1F5F9;
-  color: #64748B;
+.tab:hover {
+  color: #334155;
 }
 
 .tab.active {
@@ -302,57 +215,85 @@ SHIPMENT CSS - Refined from image_a37d83.png
   border-bottom-color: #0F172A;
 }
 
-.tab.active .badge {
-  background: #E2E8F0;
-  color: #0F172A;
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #F1F5F9;
+  color: #475569;
 }
 
-/* Filters and Search Bar Container */
+.badge-danger { background: #FEE2E2; color: #EF4444; }
+.badge-warning { background: #FEF3C7; color: #D97706; }
+
+/* --- CONTROLS TOOLBAR --- */
 .table-controls {
   display: flex;
   gap: 12px;
   margin-bottom: 20px;
+  background: #F1F5F9;
+  padding: 8px;
+  border-radius: 8px;
+  align-items: center;
 }
 
-.search-wrapper {
+.table-controls .search-wrapper {
   position: relative;
   flex: 1;
 }
 
+.table-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94A3B8;
+  font-size: 16px;
+}
+
 .table-search {
   width: 100%;
-  padding: 12px 16px 12px 44px;
+  padding: 10px 16px 10px 42px;
   border-radius: 6px;
   border: 1px solid #E2E8F0;
   background: #FFFFFF;
   font-size: 14px;
+  outline: none;
 }
 
 .control-btn {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 6px;
-  padding: 0 16px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #334155;
+  color: #475569;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-/* Table Card Base Layout */
+.control-btn:hover {
+  background: #F8FAFC;
+}
+
+/* --- REGISTRY REGULAR DATA TABLES --- */
 .shipment-table-card {
   background: #FFFFFF;
   border-radius: 8px;
   border: 1px solid #E2E8F0;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .shipment-table {
   width: 100%;
   border-collapse: collapse;
+  text-align: left;
 }
 
 .shipment-table th {
@@ -360,11 +301,10 @@ SHIPMENT CSS - Refined from image_a37d83.png
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #64748B;
+  color: #475569;
   font-weight: 600;
   padding: 14px 20px;
   border-bottom: 1px solid #E2E8F0;
-  text-align: left;
 }
 
 .shipment-table td {
@@ -372,87 +312,127 @@ SHIPMENT CSS - Refined from image_a37d83.png
   border-bottom: 1px solid #F1F5F9;
   font-size: 14px;
   color: #0F172A;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
-/* Complex cell items styling */
+.shipment-table tbody tr:hover {
+  background: #FAFAFA;
+}
+
+/* Row typography rules */
 .cell-bold {
   font-weight: 700;
-  color: #1E3A8A; /* Navy link tone from image */
+  color: #1E3A8A;
 }
 
 .cell-sub {
   font-size: 11px;
   color: #94A3B8;
   text-transform: uppercase;
-  margin-top: 4px;
-  font-weight: 500;
+  margin-top: 2px;
+  font-weight: 600;
 }
 
-.customer-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.text-dark-bold {
+  font-weight: 600;
+  color: #1E293B;
 }
 
-.customer-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  background: #EFF6FF;
-  color: #1E40AF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.route-arrow {
-  color: #94A3B8;
-  margin: 0 4px;
-}
-
-/* Status Badges */
+/* Custom Table Status Pills */
 .status {
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  text-align: center;
-  line-height: 1.2;
+  letter-spacing: 0.3px;
+}
+
+.status.transit-pill {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.status.loading-pill {
+  background: #F1F5F9;
+  color: #475569;
 }
 
 .status.transit {
-  background: #DCFCE7;
-  color: #15803D;
+  background: #D1FAE5;
+  color: #065F46;
 }
 
-.status.delayed {
-  background: #FEE2E2;
-  color: #B91C1C;
+.status-sub-indicator {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 2px;
 }
 
-.status-time {
-  font-size: 9px;
-  font-weight: 500;
-  display: block;
-}
+.text-success-green { color: #10B981; }
+.text-muted-gray { color: #94A3B8; }
 
 .action-btn {
   background: none;
   border: none;
   color: #94A3B8;
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   padding: 4px;
+  border-radius: 4px;
 }
 
-/* Explicit layout variations */
-.text-danger { color: #EF4444 !important; font-weight: 600; }
-.text-dark-bold { color: #0F172A; font-weight: 600; }
+.action-btn:hover {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+/* --- TABLE PAGINATION FOOTER --- */
+.table-pagination-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: #FFFFFF;
+  border-top: 1px solid #E2E8F0;
+}
+
+.pagination-summary {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.pagination-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-nav-btn, .page-number-btn {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.page-number-btn.active {
+  background: #0F172A;
+  color: #FFFFFF;
+  border-color: #0F172A;
+}
+
+.page-nav-btn:hover, .page-number-btn:not(.active):hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
