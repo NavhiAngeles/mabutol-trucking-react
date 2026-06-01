@@ -5,6 +5,10 @@
 /* Main Content Wrapper Container adjustments */
 .main {
   background-color: #F8FAFC !important; /* Soft premium slate tint */
+  margin-left: 260px; /* Push content clear of the fixed 260px sidebar */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .content {
