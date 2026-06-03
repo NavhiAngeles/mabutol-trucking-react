@@ -1,14 +1,5 @@
-/* 
-This file combines updated Fleet.jsx and fleet.css.
-Note (from provided design doc): "This is our figma design and this opens when he click '+ register driver'." 
-Note (from provided design doc): "In the '+add vehicle' this shows when he click"
-*/
-
-/////////////////////////
-// Fleet.jsx (updated) //
-/////////////////////////
-
-import { useState, useRef, useEffect } from "react";
+﻿// fleet.jsx
+import { useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./fleet.css";
 
@@ -21,80 +12,25 @@ export default function Fleet() {
   // Multi-step Modal States
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
   const [driverStep, setDriverStep] = useState(1); // 1: Info, 2: Documents, 3: Success
+  
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
-  const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Success
+  const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Assign Driver, 4: Success
 
   // Form Field States
   const [driverForm, setDriverForm] = useState({
-    fullName: "",
-    contactNumber: "",
-    dateHired: "",
-    assignVehicle: "",
-    emergencyContact: "",
-    licenseNumber: "",
-    licenseExpiry: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
+    fullName: "", contactNumber: "", dateHired: "", assignVehicle: "", 
+    emergencyContact: "", licenseNumber: "", licenseExpiry: "", 
+    email: "", password: "", confirmPassword: ""
   });
-
+  
   const [vehicleForm, setVehicleForm] = useState({
-    plateNumber: "",
-    model: "",
-    type: "",
-    capacity: "",
-    cargoCompatibility: ""
+    plateNumber: "", modelYear: "", model: "", type: "", capacity: "", cargoCompatibility: ['general', 'fragile'], assignedDriver: ""
   });
-
-  // Maintenance schedule data (new/updated)
-  const [maintenanceSchedules, setMaintenanceSchedules] = useState([
-    {
-      id: 1,
-      plate: "ABC 1234",
-      vehicle: "Isuzu Forward",
-      category: "Engine Oil Replacement & Brake Check Calibration",
-      date: "2026-06-12",
-      workshop: "Manila North Logistics Hub Center",
-      urgency: "ROUTINE",
-      createdAt: "2026-05-20T09:00:00"
-    },
-    {
-      id: 2,
-      plate: "XJ-772-L",
-      vehicle: "2019 Isuzu Giga",
-      category: "Transmission Box Diagnostic Overhaul",
-      date: "2026-06-05",
-      workshop: "Bulacan Central Fleet Yard",
-      urgency: "URGENT",
-      createdAt: "2026-05-18T14:30:00"
-    }
-  ]);
-
-  // History & Add Schedule Modals
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isAddScheduleOpen, setIsAddScheduleOpen] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({
-    plate: "",
-    vehicle: "",
-    category: "",
-    date: "",
-    workshop: "",
-    urgency: "ROUTINE"
-  });
-
-  // Refs for focusing inputs (for "register driver" behavior like Figma)
-  const driverFirstInputRef = useRef(null);
-  const addScheduleFirstRef = useRef(null);
 
   // Handler functions for cleaning state resets on open
   const handleRegisterDriverClick = () => {
-    // Matches Figma: reset to step 1, open modal, focus first input
     setDriverStep(1);
     setIsDriverModalOpen(true);
-    // small timeout to ensure modal rendered before focus
-    setTimeout(() => {
-      driverFirstInputRef.current?.focus();
-    }, 50);
   };
 
   const handleAddVehicleClick = () => {
@@ -105,82 +41,18 @@ export default function Fleet() {
   const handleDriverInputChange = (e, field) => {
     setDriverForm({ ...driverForm, [field]: e.target.value });
   };
+const handleCargoToggle = (id) => {
+    const currentCargo = vehicleForm.cargoCompatibility || [];
+    const updatedCargo = currentCargo.includes(id)
+      ? currentCargo.filter(item => item !== id)
+      : [...currentCargo, id];
 
+    setVehicleForm({ ...vehicleForm, cargoCompatibility: updatedCargo });
+  }; 
   const handleVehicleInputChange = (e, field) => {
     setVehicleForm({ ...vehicleForm, [field]: e.target.value });
   };
 
-  // Maintenance schedule functions
-  const openHistory = () => {
-    setIsHistoryOpen(true);
-  };
-
-  const openAddSchedule = () => {
-    setNewSchedule({
-      plate: "",
-      vehicle: "",
-      category: "",
-      date: "",
-      workshop: "",
-      urgency: "ROUTINE"
-    });
-    setIsAddScheduleOpen(true);
-    setTimeout(() => {
-      addScheduleFirstRef.current?.focus();
-    }, 50);
-  };
-
-  const saveNewSchedule = () => {
-    if (!newSchedule.plate || !newSchedule.date) {
-      // minimal validation
-      alert("Please provide at least plate and date.");
-      return;
-    }
-    const id = maintenanceSchedules.length ? Math.max(...maintenanceSchedules.map(s => s.id)) + 1 : 1;
-    setMaintenanceSchedules([
-      ...maintenanceSchedules,
-      { ...newSchedule, id, createdAt: new Date().toISOString() }
-    ]);
-    setIsAddScheduleOpen(false);
-    setMaintenanceView("list");
-  };
-
-  const exportMaintenanceCSV = () => {
-    if (!maintenanceSchedules.length) {
-      alert("No maintenance schedules to export.");
-      return;
-    }
-    const headers = ["ID", "Plate", "Vehicle", "Category", "Date", "Workshop", "Urgency", "CreatedAt"];
-    const rows = maintenanceSchedules.map(s => [
-      s.id,
-      s.plate,
-      s.vehicle,
-      s.category,
-      s.date,
-      s.workshop,
-      s.urgency,
-      s.createdAt
-    ]);
-    const csvContent = [headers, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `maintenance_schedules_${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  // Small helper to format date for display
-  const formatDateDisplay = (iso) => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  };
-
-  // JSX render
   return (
     <MainLayout>
       {/* Dynamic Topbar Header Context */}
@@ -197,7 +69,6 @@ export default function Fleet() {
             onChange={(e) => console.log("Searching fleet panel:", e.target.value)}
           />
         </div>
-
         <div className="topbar-right">
           <button className="icon-btn" aria-label="Notifications">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -205,14 +76,12 @@ export default function Fleet() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
           </button>
-
           <button className="icon-btn" aria-label="Settings">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
           </button>
-
           <div className="avatar">
             <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile View" />
           </div>
@@ -221,19 +90,18 @@ export default function Fleet() {
 
       {/* Primary Scrolling Content Frame */}
       <section className="content scrollable-panel">
+        
         {/* HEADER ACTIONS BLOCK */}
         <div className="header-actions-row">
           <div className="header-titles">
             <h2>Fleet Management Overview</h2>
             <p className="subtitle">MANAGE YOUR FLEET, DRIVERS, COMPLIANCE DOCUMENTS, AND MAINTENANCE SCHEDULES.</p>
           </div>
-
           <div className="action-buttons-group">
             <button className="btn-secondary" onClick={handleRegisterDriverClick}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
               <span>+ Register Driver</span>
             </button>
-
             <button className="btn-primary" onClick={handleAddVehicleClick}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
               <span>+ Add Vehicle</span>
@@ -251,7 +119,6 @@ export default function Fleet() {
             <h2>36</h2>
             <p className="growth-indicator positive"><span className="arrow">↗</span> <strong>+2%</strong> vs last month</p>
           </div>
-
           <div className="metric-card border-green">
             <div className="metric-header">
               <h4>AVAILABLE</h4>
@@ -260,16 +127,14 @@ export default function Fleet() {
             <h2>18</h2>
             <p className="growth-indicator target">50% of total fleet</p>
           </div>
-
           <div className="metric-card border-red">
             <div className="metric-header">
               <h4>IN MAINTENANCE</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             </div>
             <h2>4</h2>
-            <p className="growth-indicator maintenance">Currently under maintenance</p>
+            <p className="growth-indicator ">Currently under maintenance</p>
           </div>
-
           <div className="metric-card border-blue-accent">
             <div className="metric-header">
               <h4>IN TRANSIT</h4>
@@ -288,17 +153,14 @@ export default function Fleet() {
               {vehicleTab === "details" ? "REGISTERED FLEET VEHICLES AND OPERATIONAL STATUS." : "REGISTERED FLEET VEHICLES AND COMPLIANCE DOCUMENT STATUS."}
             </p>
           </div>
-
           <div className="tab-pill-box">
-            <button
-              className={`tab-pill ${vehicleTab === "details" ? "active" : ""}`}
-              onClick={() => setVehicleTab("details")}
-              type="button"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              Details
+          <button
+            className={`tab-pill ${vehicleTab === "compliance" ? "active" : ""}`}
+            onClick={() => setVehicleTab("details")}
+            type="button"
+            > <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+             Details
             </button>
-
             <button
               className={`tab-pill ${vehicleTab === "compliance" ? "active" : ""}`}
               onClick={() => setVehicleTab("compliance")}
@@ -317,7 +179,6 @@ export default function Fleet() {
                 <input type="text" className="inner-search" placeholder="Search by plate, vehicle type..." />
               </div>
             </div>
-
             <table className="premium-table">
               <thead>
                 <tr>
@@ -348,7 +209,6 @@ export default function Fleet() {
                 <input type="text" className="inner-search" placeholder="Search compliance by plate..." />
               </div>
             </div>
-
             <table className="premium-table">
               <thead>
                 <tr>
@@ -382,16 +242,14 @@ export default function Fleet() {
               {driverTab === "details" ? "REGISTERED DRIVERS AND SYSTEM ROSTERS." : "DETAILED COMPLIANCE METRICS AND EXPIRY TRACKING."}
             </p>
           </div>
-
           <div className="tab-pill-box">
             <button
               className={`tab-pill ${driverTab === "details" ? "active" : ""}`}
               onClick={() => setDriverTab("details")}
               type="button"
-            >
+            > <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight: '4px'}}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               Details
             </button>
-
             <button
               className={`tab-pill ${driverTab === "compliance" ? "active" : ""}`}
               onClick={() => setDriverTab("compliance")}
@@ -442,7 +300,7 @@ export default function Fleet() {
                 <td><span className="doc-pill doc-success">Valid</span></td>
                 <td><span className="doc-pill doc-success">Valid</span></td>
                 <td><span className="doc-pill doc-warning">Pending Renewal</span></td>
-                <td><span className="status-pill status-active">● Compliant</span></td>
+                <td><span className="status-pill status-active">On Route</span></td>
               </tr>
             </tbody>
           </table>
@@ -454,7 +312,6 @@ export default function Fleet() {
             <h3>Maintenance Schedule</h3>
             <p className="section-subtitle">MONITOR PREVENTIVE SERVICE RUNS AND CRITICAL MECHANICAL REPAIRS.</p>
           </div>
-
           <div className="tab-pill-box">
             <button
               className={`tab-pill ${maintenanceView === "list" ? "active" : ""}`}
@@ -463,7 +320,6 @@ export default function Fleet() {
             >
               List View
             </button>
-
             <button
               className={`tab-pill ${maintenanceView === "calendar" ? "active" : ""}`}
               onClick={() => setMaintenanceView("calendar")}
@@ -479,47 +335,50 @@ export default function Fleet() {
             <thead>
               <tr>
                 <th>VEHICLE</th>
-                <th>SERVICE CATEGORY</th>
-                <th>SCHEDULED DATE</th>
+                <th>LAST SCHEDULED SERVICE</th>
+                <th>NEXT SCHEDULED SERVICE</th>
                 <th>ASSIGNED WORKSHOP</th>
-                <th>URGENCY STATUS</th>
+                <th>STATUS</th>
                 <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
-              {maintenanceSchedules.map(s => (
-                <tr key={s.id}>
-                  <td><strong>{s.plate}</strong><br/><span className="subtext">{s.vehicle}</span></td>
-                  <td>{s.category}</td>
-                  <td>{formatDateDisplay(s.date)}</td>
-                  <td>{s.workshop}</td>
-                  <td><span className={`status-pill ${s.urgency === "URGENT" ? "status-warning" : "status-active"}`}>{s.urgency}</span></td>
-                  <td><button className="action-dot-btn">⋮</button></td>
-                </tr>
-              ))}
+              <tr>
+                <td><strong>ABC 1234</strong><br/><span className="subtext">Isuzu Forward</span></td>
+                <td>May 05, 2026</td>
+                <td>June 12, 2026</td>
+                <td>Manila North Logistics Hub Center</td>
+                <td><span className="status-pill status-active">● ON SCHEDULE</span></td>
+                <td><button className="action-dot-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td><strong>XJ-772-L</strong><br/><span className="subtext">2019 Isuzu Giga</span></td>
+                <td>June 05, 2026</td>
+                <td>June 25, 2026</td>
+                <td>Bulacan Central Fleet Yard</td>
+                <td><span className="status-pill status-warning">● DUE SOON</span></td>
+                <td><button className="action-dot-btn">⋮</button></td>
+              </tr>
+              <tr>
+                <td><strong>XD-999-I</strong><br/><span className="subtext">2019 Isuzu Giga</span></td>
+                <td>June 01, 2026</td>
+                <td>June 30, 2026</td>
+                <td>Manila North Logistics Hub Center</td>
+                <td><span className="status-pill status-danger">● ON MAINTENANCE</span></td>
+                <td><button className="action-dot-btn">⋮</button></td>
+              </tr>
             </tbody>
           </table>
         ) : (
           <div className="calendar-mock-container">
             <div className="calendar-header-mock">
               <h4>June 2026</h4>
-
-              <div className="calendar-actions">
-                <div className="calendar-nav-mock">
-                  <button type="button">&lt;</button>
-                  <button type="button">Today</button>
-                  <button type="button">&gt;</button>
-                </div>
-
-                {/* NEW: three buttons beside calendar view per Figma */}
-                <div className="calendar-action-buttons">
-                  <button className="btn-secondary small" onClick={openHistory}>View History</button>
-                  <button className="btn-primary small" onClick={openAddSchedule}>Add Schedule</button>
-                  <button className="btn-secondary small" onClick={exportMaintenanceCSV}>Export CSV</button>
-                </div>
+              <div className="calendar-nav-mock">
+                <button type="button">&lt;</button>
+                <button type="button">Today</button>
+                <button type="button">&gt;</button>
               </div>
             </div>
-
             <div className="calendar-grid-mock">
               <div className="calendar-day-header">Sun</div>
               <div className="calendar-day-header">Mon</div>
@@ -528,18 +387,16 @@ export default function Fleet() {
               <div className="calendar-day-header">Thu</div>
               <div className="calendar-day-header">Fri</div>
               <div className="calendar-day-header">Sat</div>
-
+              
               {/* Row 1 Mock Days */}
               <div className="calendar-day text-muted">31</div>
               <div className="calendar-day">1</div>
               <div className="calendar-day">2</div>
               <div className="calendar-day">3</div>
               <div className="calendar-day">4</div>
-              <div className="calendar-day event-urgent">
-                5<div className="day-event-tag">XJ-772-L Repair</div>
-              </div>
+              <div className="calendar-day">5</div>
               <div className="calendar-day">6</div>
-
+              
               {/* Row 2 Mock Days */}
               <div className="calendar-day">7</div>
               <div className="calendar-day">8</div>
@@ -547,9 +404,40 @@ export default function Fleet() {
               <div className="calendar-day">10</div>
               <div className="calendar-day">11</div>
               <div className="calendar-day event-routine">
-                12<div className="day-event-tag">ABC 1234 Oil</div>
+                12<div className="day-event-tag">ON SCHEDULE</div>
               </div>
               <div className="calendar-day">13</div>
+
+              {/* Row 3 Mock Days */}
+              <div className="calendar-day">14</div>
+              <div className="calendar-day">15</div>
+              <div className="calendar-day">16</div>
+              <div className="calendar-day">17</div>
+              <div className="calendar-day">18</div>
+              <div className="calendar-day">19</div>
+              <div className="calendar-day">20</div>
+              
+              {/* Row 4 Mock Days */}
+              <div className="calendar-day">21</div>
+              <div className="calendar-day">22</div>
+              <div className="calendar-day">23</div>
+              <div className="calendar-day">24</div>
+              <div className="calendar-day event-urgent">
+                25<div className="day-event-tag">DUE SOON</div>
+              </div>
+              <div className="calendar-day">26</div>
+              <div className="calendar-day">27</div>
+
+              {/* Row 5 Mock Days */}
+              <div className="calendar-day">28</div>
+              <div className="calendar-day">29</div>
+              <div className="calendar-day event-danger">
+                30<div className="day-event-tag">ON MAINTENANCE</div>
+              </div>
+              <div className="calendar-day">31</div>
+              <div className="calendar-day text-muted">1</div>
+              <div className="calendar-day text-muted">2</div>
+              <div className="calendar-day text-muted">3</div>
             </div>
           </div>
         )}
@@ -571,6 +459,7 @@ export default function Fleet() {
               <button className="close-modal-btn" onClick={() => setIsDriverModalOpen(false)}>×</button>
             </div>
 
+            {/* Steps Progress Metrics Indicator */}
             <div className="modal-steps-indicator">
               <span className={`step-badge ${driverStep === 1 ? "active" : ""}`}>1 Driver Info</span>
               <span className="step-line"></span>
@@ -579,24 +468,22 @@ export default function Fleet() {
               <span className={`step-badge ${driverStep === 3 ? "active" : ""}`}>3 Completed</span>
             </div>
 
+            {/* Modal Form Body Segment Switcher */}
             <div className="modal-body">
               {driverStep === 1 && (
                 <div className="form-grid">
                   <div className="form-group">
                     <label>FULL NAME *</label>
-                    <input ref={driverFirstInputRef} type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
+                    <input type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
                   </div>
-
                   <div className="form-group">
                     <label>CONTACT NUMBER *</label>
                     <input type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
                   </div>
-
                   <div className="form-group">
                     <label>DATE HIRED *</label>
                     <input type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
                   </div>
-
                   <div className="form-group">
                     <label>ASSIGN VEHICLE</label>
                     <select value={driverForm.assignVehicle} onChange={(e) => handleDriverInputChange(e, 'assignVehicle')}>
@@ -604,19 +491,16 @@ export default function Fleet() {
                       <option value="xj772l">Isuzu Giga (XJ-772-L)</option>
                     </select>
                   </div>
-
                   <div className="form-group full-width">
                     <label>EMERGENCY CONTACT NUMBER</label>
                     <input type="text" placeholder="09XX XXX XXXX" value={driverForm.emergencyContact} onChange={(e) => handleDriverInputChange(e, 'emergencyContact')} />
                   </div>
-
+                  
                   <div className="form-divider-title">License Information</div>
-
                   <div className="form-group">
                     <label>LICENSE NUMBER <span className="auto-fill-hint">⚡ Auto-fill ready</span></label>
                     <input type="text" placeholder="N01-23-45678" value={driverForm.licenseNumber} onChange={(e) => handleDriverInputChange(e, 'licenseNumber')} />
                   </div>
-
                   <div className="form-group">
                     <label>LICENSE EXPIRY <span className="auto-fill-hint">⚡ Auto-fill ready</span></label>
                     <input type="date" value={driverForm.licenseExpiry} onChange={(e) => handleDriverInputChange(e, 'licenseExpiry')} />
@@ -624,22 +508,18 @@ export default function Fleet() {
 
                   <div className="form-section-box">
                     <h4>Driver Mobile Application Account</h4>
-
                     <div className="form-group full-width">
                       <label>EMAIL ADDRESS *</label>
                       <input type="email" placeholder="driver@tanawlogistics.com" value={driverForm.email} onChange={(e) => handleDriverInputChange(e, 'email')} />
                     </div>
-
                     <div className="form-group">
                       <label>TEMPORARY PASSWORD *</label>
                       <input type="password" placeholder="........" value={driverForm.password} onChange={(e) => handleDriverInputChange(e, 'password')} />
                     </div>
-
                     <div className="form-group">
                       <label>CONFIRM PASSWORD *</label>
                       <input type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
                     </div>
-
                     <p className="notice-text">ℹ System configuration enforces forced password update sequences on initial platform access.</p>
                   </div>
                 </div>
@@ -648,7 +528,7 @@ export default function Fleet() {
               {driverStep === 2 && (
                 <div className="documents-upload-container">
                   <p className="info-banner">⚡ Document scanner extracts validation sequences and expiry bounds immediately on upload.</p>
-
+                  
                   <div className="avatar-upload-zone">
                     <div className="avatar-placeholder-box">📷</div>
                     <p>Driver Profile Identification Photo<br/><span className="subtext">PNG, JPG format up to 2MB allowed limits</span></p>
@@ -686,7 +566,6 @@ export default function Fleet() {
                   <div className="success-icon-circle">✓</div>
                   <h2>Driver Registered Successfully</h2>
                   <span className="system-id-badge">SYSTEM GEN ID: DRV-1043</span>
-
                   <div className="status-box">
                     <p>Status: <span className="text-success">ACTIVE & READY FOR DISPATCH</span></p>
                     <p className="subtext">Account credentials and compliance tracking configurations have been successfully integrated into active scheduling trees.</p>
@@ -695,16 +574,15 @@ export default function Fleet() {
               )}
             </div>
 
+            {/* Modal Actions Footer Grouping */}
             <div className="modal-footer">
               {driverStep < 3 ? (
                 <>
                   <button className="btn-link" onClick={() => setIsDriverModalOpen(false)}>CANCEL</button>
-
                   <div className="footer-right-buttons">
                     {driverStep === 2 && (
                       <button className="btn-secondary" onClick={() => setDriverStep(3)}>UPLOAD LATER</button>
                     )}
-
                     <button className="btn-primary" onClick={() => setDriverStep(driverStep + 1)}>
                       {driverStep === 2 ? "SUBMIT ROSTER" : "NEXT STEP →"}
                     </button>
@@ -752,185 +630,183 @@ export default function Fleet() {
                     <label>PLATE NUMBER *</label>
                     <input type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
                   </div>
-
                   <div className="form-group">
-                    <label>MODEL / BRAND MANUFACTURER *</label>
+                    <label>MODEL YEAR *</label>
+                    <input type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
+                  </div>
+                  <div className="form-group">
+                    <label>MODEL *</label>
                     <input type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
                   </div>
-
                   <div className="form-group">
-                    <label>VEHICLE TYPE CATEGORY *</label>
+                    <label>VEHICLE TYPE *</label>
                     <select value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
                       <option value="">Select type...</option>
                       <option value="heavy">Heavy Freight Truck (10w)</option>
                       <option value="medium">Medium Closed Van (6w)</option>
                     </select>
                   </div>
-
                   <div className="form-group">
-                    <label>MAX NET CAPACITY WEIGHT (KG) *</label>
+                    <label>MAX CARGO WEIGHT (KG) *</label>
                     <input type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
                   </div>
+
+                  {/* ================= CARGO COMPATIBILITY INJECTED HERE ================= */}
+                  <div className="form-group full-width">
+                    <label className="cargo-title-label">CARGO COMPATIBILITY</label>
+                    <div className="cargo-options-grid">
+                      {[
+                        { id: 'general', label: 'General' },
+                        { id: 'bulk', label: 'Bulk' },
+                        { id: 'cold_chain', label: 'Cold Chain' },
+                        { id: 'fragile', label: 'Fragile' },
+                        { id: 'hazardous', label: 'Hazardous' },
+                        { id: 'flatbed', label: 'Flatbed' }
+                      ].map((option) => {
+                        const isSelected = vehicleForm.cargoCompatibility?.includes(option.id);
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={`cargo-option-btn ${isSelected ? 'selected' : ''}`}
+                            onClick={() => handleCargoToggle(option.id)}
+                          >
+                            {isSelected && (
+                              <svg 
+                                className="checkmark-icon" 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="3" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            )}
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* ================================================================== */}
+
                 </div>
               )}
 
               {vehicleStep === 2 && (
-                <div className="documents-upload-container">
-                  <p className="info-banner">⚡ OR/CR and Active Insurance lines are mandatory validation components.</p>
+                <div className="compliance-documents-view">
+                  {/* Form Grid for Document Text Fields */}
+                  <div className="form-grid" style={{ marginBottom: "24px" }}>
+                    <div className="form-group">
+                      <label>OR NUMBER <span className="required">*</span></label>
+                      <input 
+                        type="text" 
+                        placeholder="Enter Official Receipt Number" 
+                        value={vehicleForm.orNumber || ""} 
+                        onChange={(e) => setVehicleForm({...vehicleForm, orNumber: e.target.value})}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>CR NUMBER <span className="required">*</span></label>
+                      <input 
+                        type="text" 
+                        placeholder="Enter Certificate of Registration Number" 
+                        value={vehicleForm.crNumber || ""} 
+                        onChange={(e) => setVehicleForm({...vehicleForm, crNumber: e.target.value})}
+                      />
+                    </div>
+                  </div>
 
-                  <div className="upload-cards-grid">
-                    <div className="upload-card required">
-                      <h4>OFFICIAL RECEIPT / CERTIFICATE OF REGISTRATION (OR/CR) *</h4>
-                      <div className="dropzone-box"><p>Drag & drop or Click to attach active LTO verification records</p></div>
+                  {/* Section Title for File Uploads */}
+                  <label className="cargo-title-label" style={{ marginBottom: "12px" }}>
+                    Upload Official Compliance Digital Files
+                  </label>
+
+                  {/* File Upload Grid Area */}
+                  <div className="form-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
+                    {/* Upload Box 1: OR File */}
+                    <div className="file-upload-dropzone">
+                      <div className="upload-icon-container">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </div>
+                      <div className="upload-text-content">
+                        <p className="upload-main-text">
+                          <span>Click to upload</span> or drag and drop
+                        </p>
+                        <p className="upload-sub-text">Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)</p>
+                      </div>
+                      <input type="file" className="hidden-file-input" onChange={(e) => console.log('OR uploaded', e.target.files[0])} />
                     </div>
 
-                    <div className="upload-card required">
-                      <h4>COMPREHENSIVE MOTOR VEHICLE INSURANCE POLICIES *</h4>
-                      <div className="dropzone-box"><p>Drag & drop or Click to attach proof files</p></div>
+                    {/* Upload Box 2: CR File */}
+                    <div className="file-upload-dropzone">
+                      <div className="upload-icon-container">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </div>
+                      <div className="upload-text-content">
+                        <p className="upload-main-text">
+                          <span>Click to upload</span> or drag and drop
+                        </p>
+                        <p className="upload-sub-text">Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)</p>
+                      </div>
+                      <input type="file" className="hidden-file-input" onChange={(e) => console.log('CR uploaded', e.target.files[0])} />
                     </div>
                   </div>
                 </div>
               )}
 
-              {vehicleStep === 3 && (
-                <div className="success-modal-view">
-                  <div className="success-icon-circle">✓</div>
-                  <h2>Vehicle Added Successfully</h2>
-
-                  <div className="status-box">
-                    <p className="subtext">Asset catalog entry updated. Parameters and logistics compliance profiles are verified and compiled safely inside backend storage nodes.</p>
-                  </div>
-                </div>
-              )}
+              {vehicleStep === 4 && (
+  <div className="form-step-view">
+    <p className="modal-subtitle" style={{ marginBottom: '20px', textTransform: 'none', color: '#64748B' }}>
+      Assign a primary driver to quickly manage operational accountability and deployment tracking.
+    </p>
+    <div className="form-group full-width">
+      <label className="field-label-bold">Primary Driver Assignment <span className="optional-text">(Optional)</span></label>
+      <select 
+        className="form-select-custom"
+        value={vehicleForm.assignedDriver}
+        onChange={(e) => setVehicleForm({...vehicleForm, assignedDriver: e.target.value})}
+      >
+        <option value="" disabled hidden>Select a registered driver for this vehicle...</option>
+        <option value="driver_1">John Doe - Licensed Professional</option>
+        <option value="driver_2">Jane Smith - Heavy Truck Specialist</option>
+      </select>
+    </div>
+  </div>
+)}
             </div>
 
             <div className="modal-footer">
-              {vehicleStep < 3 ? (
-                <>
-                  <button className="btn-link" onClick={() => setIsVehicleModalOpen(false)}>CANCEL</button>
-
-                  <div className="footer-right-buttons">
-                    {vehicleStep === 2 && (
-                      <button className="btn-secondary" onClick={() => setVehicleStep(3)}>UPLOAD LATER</button>
-                    )}
-
-                    <button className="btn-primary" onClick={() => setVehicleStep(vehicleStep + 1)}>
-                      {vehicleStep === 2 ? "SAVE INVENTORY" : "NEXT STEP →"}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <button className="btn-primary" onClick={() => setIsVehicleModalOpen(false)}>Complete Registration Process</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= MAINTENANCE HISTORY MODAL ================= */}
-      {isHistoryOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-window">
-            <div className="modal-header">
-              <div>
-                <h3>Maintenance History</h3>
-                <p className="modal-subtitle">All past and scheduled maintenance entries.</p>
-              </div>
-              <button className="close-modal-btn" onClick={() => setIsHistoryOpen(false)}>×</button>
-            </div>
-
-            <div className="modal-body">
-              <table className="premium-table">
-                <thead>
-                  <tr>
-                    <th>DATE</th>
-                    <th>PLATE</th>
-                    <th>VEHICLE</th>
-                    <th>CATEGORY</th>
-                    <th>WORKSHOP</th>
-                    <th>URGENCY</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {maintenanceSchedules.map(s => (
-                    <tr key={s.id}>
-                      <td>{formatDateDisplay(s.date)}</td>
-                      <td>{s.plate}</td>
-                      <td>{s.vehicle}</td>
-                      <td>{s.category}</td>
-                      <td>{s.workshop}</td>
-                      <td><span className={`status-pill ${s.urgency === "URGENT" ? "status-warning" : "status-active"}`}>{s.urgency}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-link" onClick={() => setIsHistoryOpen(false)}>CLOSE</button>
-              <div className="footer-right-buttons">
-                <button className="btn-secondary" onClick={() => { exportMaintenanceCSV(); }}>Export CSV</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ================= ADD SCHEDULE MODAL ================= */}
-      {isAddScheduleOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-window">
-            <div className="modal-header">
-              <div>
-                <h3>Add Maintenance Schedule</h3>
-                <p className="modal-subtitle">Create a new maintenance entry for the fleet.</p>
-              </div>
-              <button className="close-modal-btn" onClick={() => setIsAddScheduleOpen(false)}>×</button>
-            </div>
-
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>PLATE NUMBER *</label>
-                  <input ref={addScheduleFirstRef} type="text" value={newSchedule.plate} onChange={(e) => setNewSchedule({ ...newSchedule, plate: e.target.value })} />
-                </div>
-
-                <div className="form-group">
-                  <label>VEHICLE</label>
-                  <input type="text" value={newSchedule.vehicle} onChange={(e) => setNewSchedule({ ...newSchedule, vehicle: e.target.value })} />
-                </div>
-
-                <div className="form-group">
-                  <label>SERVICE CATEGORY</label>
-                  <input type="text" value={newSchedule.category} onChange={(e) => setNewSchedule({ ...newSchedule, category: e.target.value })} />
-                </div>
-
-                <div className="form-group">
-                  <label>SCHEDULED DATE *</label>
-                  <input type="date" value={newSchedule.date} onChange={(e) => setNewSchedule({ ...newSchedule, date: e.target.value })} />
-                </div>
-
-                <div className="form-group">
-                  <label>ASSIGNED WORKSHOP</label>
-                  <input type="text" value={newSchedule.workshop} onChange={(e) => setNewSchedule({ ...newSchedule, workshop: e.target.value })} />
-                </div>
-
-                <div className="form-group">
-                  <label>URGENCY</label>
-                  <select value={newSchedule.urgency} onChange={(e) => setNewSchedule({ ...newSchedule, urgency: e.target.value })}>
-                    <option value="ROUTINE">ROUTINE</option>
-                    <option value="URGENT">URGENT</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-link" onClick={() => setIsAddScheduleOpen(false)}>CANCEL</button>
-              <div className="footer-right-buttons">
-                <button className="btn-primary" onClick={saveNewSchedule}>SAVE SCHEDULE</button>
-              </div>
-            </div>
+  {vehicleStep < 4 ? (
+    <>
+      <button className="btn-link" onClick={() => setIsVehicleModalOpen(false)}>CANCEL</button>
+      <div className="footer-right-buttons">
+        {vehicleStep === 2 && (
+          <button className="btn-secondary" onClick={() => setVehicleStep(3)}>UPLOAD LATER</button>
+        )}
+        {vehicleStep === 3 && (
+          <button className="btn-secondary" onClick={() => setVehicleStep(4)}>ASSIGN LATER</button>
+        )}
+        <button className="btn-primary" onClick={() => setVehicleStep(vehicleStep + 1)}>
+          {vehicleStep === 3 ? "SAVE INVENTORY →" : "NEXT STEP →"}
+        </button>
+      </div>
+    </>
+  ) : (
+    <button className="btn-primary" onClick={() => setIsVehicleModalOpen(false)}>Complete Registration Process</button>
+  )}
+</div>
           </div>
         </div>
       )}

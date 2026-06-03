@@ -271,6 +271,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 .status-transit { background-color: #EFF6FF; color: #1D4ED8; }
 .status-active { background-color: #ECFDF5; color: #047857; }
 .status-warning { background-color: #FFFBEB; color: #B45309; }
+.status-danger { background-color: #FEE2E2; color: #DC2626; }
 
 .doc-pill {
   display: inline-block;
@@ -298,6 +299,234 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   font-size: 16px;
   cursor: pointer;
   color: #94A3B8;
+}
+
+
+/* Vehicle compliance view */
+.compliance-filter-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 138px 172px 52px;
+  gap: 10px;
+  align-items: center;
+  background-color: #F1F5FB;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.compliance-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.compliance-search-icon {
+  position: absolute;
+  left: 18px;
+  color: #4B5563;
+  pointer-events: none;
+}
+
+.compliance-search-input {
+  width: 100%;
+  height: 54px;
+  padding: 0 18px 0 60px;
+  background-color: #FFFFFF;
+  border: 1px solid #BFC7D5;
+  border-radius: 4px;
+  color: #111827;
+  font-size: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.compliance-filter-btn,
+.compliance-icon-btn {
+  height: 52px;
+  background-color: #FFFFFF;
+  border: 1px solid #BFC7D5;
+  border-radius: 4px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.compliance-date-btn {
+  justify-content: space-between;
+  padding: 0 18px;
+}
+
+.compliance-icon-btn {
+  width: 52px;
+  color: #0F172A;
+}
+
+.compliance-table {
+  border: none;
+  border-radius: 0;
+  background-color: #F7F8FD;
+}
+
+.compliance-table th {
+  background-color: #EEF2FC;
+  color: #404653;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  line-height: 1.35;
+  padding: 20px 26px;
+}
+
+.compliance-table td {
+  background-color: #F7F8FD;
+  border-bottom: 1px solid #D7E1F5;
+  color: #111827;
+  font-size: 15px;
+  padding: 26px;
+  vertical-align: middle;
+}
+
+.compliance-row-accent td:first-child {
+  border-left: 4px solid #F59E0B;
+}
+
+.compliance-vehicle-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 190px;
+}
+
+.compliance-vehicle-cell strong {
+  display: block;
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.compliance-vehicle-cell .subtext {
+  display: block;
+  color: #4B5563;
+  font-size: 13px;
+}
+
+.vehicle-icon-tile {
+  width: 50px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #E6EEFB;
+  color: #3F4754;
+}
+
+.compliance-mark {
+  width: 30px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.compliance-valid {
+  background-color: #CFF7E2;
+  color: #008A61;
+}
+
+.compliance-warning {
+  background-color: #FEF0BF;
+  color: #B45309;
+}
+
+.compliance-missing {
+  background-color: #FFD7D2;
+  color: #DC2626;
+}
+
+.compliance-review {
+  background-color: #DCEBFF;
+  color: #0B3B70;
+  font-size: 15px;
+}
+
+.overall-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104px;
+  min-height: 44px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.overall-action {
+  background-color: #FFF1C5;
+  color: #A34500;
+}
+
+.overall-noncompliant {
+  background-color: #FFDAD4;
+  color: #A80000;
+}
+
+.overall-compliant {
+  background-color: #CFF7E2;
+  color: #047857;
+}
+
+.overall-review {
+  background-color: #E6EEFB;
+  color: #0B3B70;
+}
+
+.maintenance-date {
+  display: block;
+  color: #111827;
+  font-size: 16px;
+  margin-bottom: 3px;
+}
+
+.maintenance-note {
+  display: block;
+  color: #4B5563;
+  font-size: 12px;
+}
+
+.overdue-note {
+  color: #DC2626;
+  font-weight: 700;
+}
+
+.overdue-note::before {
+  content: "!";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  margin-right: 5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 9px;
+}
+
+.compliance-actions-btn {
+  color: #394150;
+  font-size: 28px;
+  line-height: 1;
 }
 
 /* ==========================================================================
@@ -423,6 +652,10 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
 
 .calendar-day.event-routine { background-color: #F0FDF4; }
 .calendar-day.event-routine .day-event-tag { background-color: #DCFCE7; color: #15803D; border-left: 3px solid #16A34A; }
+
+.calendar-day.event-danger { background-color: #fdf0f0; }
+.calendar-day.event-danger .day-event-tag { background-color: #fcdcdc; color: #ac1a1a; border-left: 3px solid #DC2626; }
+
 
 /* ==========================================================================
 
@@ -595,4 +828,156 @@ MODAL STRUCTURAL CONFIGURATIONS
   .form-grid { grid-template-columns: 1fr; }
   .metric-card h2 { font-size: 22px; }
   .calendar-action-buttons { flex-direction: column; gap: 6px; }
+}
+
+/* Cargo Compatibility Form Integration */
+.cargo-title-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #475569;
+  margin-bottom: 8px;
+  display: block;
+  text-transform: uppercase;
+}
+
+.cargo-options-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.cargo-option-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 4px;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+}
+
+.cargo-option-btn:hover {
+  background-color: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+.cargo-option-btn.selected {
+  background-color: #EFF6FF;
+  border: 1px solid #042544;
+  color: #042544;
+  font-weight: 600;
+}
+
+.checkmark-icon {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  color: #042544;
+}
+
+/* Document Upload UI Styles */
+.file-upload-dropzone {
+  position: relative;
+  border: 1px dashed #CBD5E1;
+  border-radius: 6px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-color: #FAFAFA;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.file-upload-dropzone:hover {
+  border-color: #0F172A;
+  background-color: #F8FAFC;
+}
+
+.upload-icon-container {
+  background-color: #F1F5F9;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.upload-text-content .upload-main-text {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 4px 0;
+}
+
+.upload-text-content .upload-main-text span {
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.upload-text-content .upload-sub-text {
+  font-size: 11px;
+  color: #94A3B8;
+  margin: 0;
+}
+
+.hidden-file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Custom Assign Driver Form UI Styling */
+.field-label-bold {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0F172A;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.optional-text {
+  color: #94A3B8;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.form-select-custom {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.form-select-custom:focus {
+  border-color: #042544;
+  box-shadow: 0 0 0 2px rgba(4, 37, 68, 0.1);
 }
