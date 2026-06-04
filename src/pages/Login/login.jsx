@@ -7,30 +7,32 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [success, setSuccess] = useState(false);
 
   function validateEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
   function handleSubmit(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
 
-    if (!trimmedEmail || !trimmedPassword) {
-      alert("Please fill in all fields.");
-      return;
-    }
-
-    if (!validateEmail(trimmedEmail)) {
-      alert("Enter a valid corporate email.");
-      return;
-    }
-
-    alert("Login successful.");
-    navigate("/dashboard");
+  if (!trimmedEmail || !trimmedPassword) {
+    return;
   }
+
+  if (!validateEmail(trimmedEmail)) {
+    return;
+  }
+
+  setSuccess(true);
+
+  setTimeout(() => {
+    navigate("/dashboard");
+  }, 2000);
+}
 
   return (
     <div className="login-page">
@@ -44,6 +46,18 @@ export default function Login() {
             </svg>
           </div>
           <h1>TANAW</h1>
+          {success && (
+            <div className="tanaw-toast">
+              <div className="toast-check">
+                ✓
+            </div>
+
+            <div className="toast-content">
+              <h4>Login Successful</h4>
+              <p>Redirecting to dashboard...</p>
+            </div>
+          </div>
+          )}
         </div>
 
         {/* Auth Card */}
