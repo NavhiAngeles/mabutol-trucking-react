@@ -421,7 +421,7 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
                 <div className="meta-row"><span className="meta-lbl">ASSIGNED DRIVER</span><strong className="meta-val">Ramon Cruz</strong></div>
                 <div className="meta-row"><span className="meta-lbl">NET VALUE</span><strong className="meta-val">₱3,280.00</strong></div>
               </div>
-              <button className="btn-alert-dismiss" onClick={handleCloseAll}>Go back to Dashboard Overview</button>
+              <button className="btn-alert-dismiss" onClick={handleCloseAll}>Go back to Shipment Overview</button>
             </div>
           </div>
         )}
