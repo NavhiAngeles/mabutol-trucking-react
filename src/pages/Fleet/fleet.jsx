@@ -12,6 +12,7 @@ export default function Fleet() {
   // Multi-step Modal States
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
   const [driverStep, setDriverStep] = useState(1); // 1: Info, 2: Documents, 3: Success
+  const [showVehicleSuccess, setShowVehicleSuccess] = useState(false);
   
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Assign Driver, 4: Success
@@ -461,12 +462,16 @@ const handleCargoToggle = (id) => {
 
             {/* Steps Progress Metrics Indicator */}
             <div className="modal-steps-indicator">
-              <span className={`step-badge ${driverStep === 1 ? "active" : ""}`}>1 Driver Info</span>
-              <span className="step-line"></span>
-              <span className={`step-badge ${driverStep === 2 ? "active" : ""}`}>2 Documents</span>
-              <span className="step-line"></span>
-              <span className={`step-badge ${driverStep === 3 ? "active" : ""}`}>3 Completed</span>
-            </div>
+  <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>
+    1 Vehicle Info
+  </span>
+
+  <span className="step-line"></span>
+
+  <span className={`step-badge ${vehicleStep === 2 ? "active" : ""}`}>
+    2 Documents
+  </span>
+</div>
 
             {/* Modal Form Body Segment Switcher */}
             <div className="modal-body">
@@ -576,25 +581,115 @@ const handleCargoToggle = (id) => {
 
             {/* Modal Actions Footer Grouping */}
             <div className="modal-footer">
-              {driverStep < 3 ? (
-                <>
-                  <button className="btn-link" onClick={() => setIsDriverModalOpen(false)}>CANCEL</button>
-                  <div className="footer-right-buttons">
-                    {driverStep === 2 && (
-                      <button className="btn-secondary" onClick={() => setDriverStep(3)}>UPLOAD LATER</button>
-                    )}
-                    <button className="btn-primary" onClick={() => setDriverStep(driverStep + 1)}>
-                      {driverStep === 2 ? "SUBMIT ROSTER" : "NEXT STEP →"}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="success-actions-layout">
-                  <button className="btn-primary" onClick={() => setIsDriverModalOpen(false)}>View Driver Profile</button>
-                  <button className="btn-secondary" onClick={() => { setDriverStep(1); setDriverForm({ fullName: "", contactNumber: "", dateHired: "", assignVehicle: "", emergencyContact: "", licenseNumber: "", licenseExpiry: "", email: "", password: "", confirmPassword: "" }); }}>Register Another Driver</button>
-                </div>
-              )}
-            </div>
+  {vehicleStep === 1 && (
+    <>
+      <button
+        className="btn-link"
+        onClick={() => setIsVehicleModalOpen(false)}
+      >
+        CANCEL
+      </button>
+
+      <div className="footer-right-buttons">
+        <button
+          className="btn-primary"
+          onClick={() => setVehicleStep(2)}
+        >
+          NEXT STEP →
+        </button>
+      </div>
+    </>
+  )}
+
+  {vehicleStep === 2 && (
+    <>
+      <button
+        className="btn-link"
+        onClick={() => setVehicleStep(1)}
+      >
+        ← BACK
+      </button>
+
+      <div className="footer-right-buttons">
+        <button
+          className="btn-secondary"
+        >
+          Upload Later
+        </button>
+
+        <button
+          className="btn-primary"
+          onClick={() => {
+            setShowVehicleSuccess(true);
+          }}
+        >
+          Complete Registration ✓
+        </button>
+      </div>
+    </>
+  )}
+</div>
+{showVehicleSuccess && (
+  <div className="modal-backdrop">
+    <div className="vehicle-success-modal">
+
+      <div className="success-icon">
+        ✓
+      </div>
+
+      <h2>
+        Vehicle Registered
+        <br />
+        Successfully
+      </h2>
+
+      <div className="vehicle-id">
+        SYSTEM ID:
+        <strong> TRK-1043</strong>
+      </div>
+
+      <div className="success-status-box">
+        <p>
+          Status:
+          <strong> READY FOR DISPATCH</strong>
+        </p>
+
+        <p>
+          The credentials and compliance
+          documentation for the new vehicle
+          have been verified and integrated
+          into the Vehicle Directory.
+        </p>
+      </div>
+
+      <button className="btn-primary success-full-btn">
+        View Vehicle Information
+      </button>
+
+      <button
+        className="btn-secondary success-full-btn"
+        onClick={() => {
+          setShowVehicleSuccess(false);
+          setVehicleStep(1);
+        }}
+      >
+        Register Another Vehicle
+      </button>
+
+      <button
+        className="success-close"
+        onClick={() => {
+          setShowVehicleSuccess(false);
+          setIsVehicleModalOpen(false);
+          setVehicleStep(1);
+        }}
+      >
+        ✕
+      </button>
+
+    </div>
+  </div>
+)}
           </div>
         </div>
       )}
@@ -616,12 +711,16 @@ const handleCargoToggle = (id) => {
             </div>
 
             <div className="modal-steps-indicator">
-              <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>1 Vehicle Info</span>
-              <span className="step-line"></span>
-              <span className={`step-badge ${vehicleStep === 2 ? "active" : ""}`}>2 Compliance Docs</span>
-              <span className="step-line"></span>
-              <span className={`step-badge ${vehicleStep === 3 ? "active" : ""}`}>3 Completed</span>
-            </div>
+  <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>
+    1 Vehicle Info
+  </span>
+
+  <span className="step-line"></span>
+
+  <span className={`step-badge ${vehicleStep === 2 ? "active" : ""}`}>
+    2 Documents
+  </span>
+</div>
 
             <div className="modal-body">
               {vehicleStep === 1 && (
@@ -766,47 +865,119 @@ const handleCargoToggle = (id) => {
                 </div>
               )}
 
-              {vehicleStep === 4 && (
-  <div className="form-step-view">
-    <p className="modal-subtitle" style={{ marginBottom: '20px', textTransform: 'none', color: '#64748B' }}>
-      Assign a primary driver to quickly manage operational accountability and deployment tracking.
-    </p>
-    <div className="form-group full-width">
-      <label className="field-label-bold">Primary Driver Assignment <span className="optional-text">(Optional)</span></label>
-      <select 
-        className="form-select-custom"
-        value={vehicleForm.assignedDriver}
-        onChange={(e) => setVehicleForm({...vehicleForm, assignedDriver: e.target.value})}
-      >
-        <option value="" disabled hidden>Select a registered driver for this vehicle...</option>
-        <option value="driver_1">John Doe - Licensed Professional</option>
-        <option value="driver_2">Jane Smith - Heavy Truck Specialist</option>
-      </select>
-    </div>
-  </div>
-)}
+              
             </div>
 
             <div className="modal-footer">
-  {vehicleStep < 4 ? (
+  {vehicleStep === 1 && (
     <>
-      <button className="btn-link" onClick={() => setIsVehicleModalOpen(false)}>CANCEL</button>
+      <button
+        className="btn-link"
+        onClick={() => setIsVehicleModalOpen(false)}
+      >
+        CANCEL
+      </button>
+
       <div className="footer-right-buttons">
-        {vehicleStep === 2 && (
-          <button className="btn-secondary" onClick={() => setVehicleStep(3)}>UPLOAD LATER</button>
-        )}
-        {vehicleStep === 3 && (
-          <button className="btn-secondary" onClick={() => setVehicleStep(4)}>ASSIGN LATER</button>
-        )}
-        <button className="btn-primary" onClick={() => setVehicleStep(vehicleStep + 1)}>
-          {vehicleStep === 3 ? "SAVE INVENTORY →" : "NEXT STEP →"}
+        <button
+          className="btn-primary"
+          onClick={() => setVehicleStep(2)}
+        >
+          NEXT STEP →
         </button>
       </div>
     </>
-  ) : (
-    <button className="btn-primary" onClick={() => setIsVehicleModalOpen(false)}>Complete Registration Process</button>
+  )}
+
+  {vehicleStep === 2 && (
+    <>
+      <button
+        className="btn-link"
+        onClick={() => setVehicleStep(1)}
+      >
+        ← BACK
+      </button>
+
+      <div className="footer-right-buttons">
+        <button
+          className="btn-secondary"
+        >
+          Upload Later
+        </button>
+
+        <button
+          className="btn-primary"
+          onClick={() => {
+            setShowVehicleSuccess(true);
+          }}
+        >
+          Complete Registration ✓
+        </button>
+      </div>
+    </>
   )}
 </div>
+{showVehicleSuccess && (
+  <div className="modal-backdrop">
+    <div className="vehicle-success-modal">
+
+      <div className="success-icon">
+        ✓
+      </div>
+
+      <h2>
+        Vehicle Registered
+        <br />
+        Successfully
+      </h2>
+
+      <div className="vehicle-id">
+        SYSTEM ID:
+        <strong> TRK-1043</strong>
+      </div>
+
+      <div className="success-status-box">
+        <p>
+          Status:
+          <strong> READY FOR DISPATCH</strong>
+        </p>
+
+        <p>
+          The credentials and compliance
+          documentation for the new vehicle
+          have been verified and integrated
+          into the Vehicle Directory.
+        </p>
+      </div>
+
+      <button className="btn-primary success-full-btn">
+        View Vehicle Information
+      </button>
+
+      <button
+        className="btn-secondary success-full-btn"
+        onClick={() => {
+          setShowVehicleSuccess(false);
+          setVehicleStep(1);
+        }}
+      >
+        Register Another Vehicle
+      </button>
+
+      <button
+        className="success-close"
+        onClick={() => {
+          setShowVehicleSuccess(false);
+          setIsVehicleModalOpen(false);
+          setVehicleStep(1);
+        }}
+      >
+        ✕
+      </button>
+
+    </div>
+  </div>
+)}
           </div>
         </div>
       )}

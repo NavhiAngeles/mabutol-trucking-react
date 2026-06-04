@@ -981,3 +981,100 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-color: #042544;
   box-shadow: 0 0 0 2px rgba(4, 37, 68, 0.1);
 }
+
+.vehicle-success-modal {
+  width: 450px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+
+  text-align: center;
+
+  box-shadow:
+    0 20px 40px rgba(0,0,0,.18);
+
+  position: relative;
+
+  border-bottom: 5px solid #22c55e;
+}
+
+.success-icon {
+  width: 74px;
+  height: 74px;
+
+  margin: 0 auto 24px;
+
+  border-radius: 18px;
+
+  background: #ecfdf5;
+
+  color: #16a34a;
+
+  font-size: 42px;
+  font-weight: 700;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vehicle-success-modal h2 {
+  margin: 0;
+
+  color: #022343;
+
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.vehicle-id {
+  margin-top: 14px;
+
+  display: inline-block;
+
+  background: #eff6ff;
+
+  padding: 8px 14px;
+
+  border-radius: 6px;
+
+  font-size: 13px;
+
+  color: #334155;
+}
+
+.success-status-box {
+  margin-top: 24px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e2e8f0;
+
+  padding: 18px;
+
+  border-radius: 8px;
+
+  text-align: left;
+}
+
+.success-status-box strong {
+  color: #16a34a;
+}
+
+.success-full-btn {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.success-close {
+  margin-top: 18px;
+
+  border: none;
+  background: none;
+
+  cursor: pointer;
+
+  font-size: 22px;
+
+  color: #94a3b8;
+}
