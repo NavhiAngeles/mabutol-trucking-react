@@ -20,6 +20,14 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 .content {
   padding: 32px 40px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  pointer-events: auto;
+  position: relative;
+}
+
+.scrollable-panel {
+  pointer-events: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .header-actions-row {
@@ -27,6 +35,9 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .header-titles h2 {
@@ -48,6 +59,9 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 .action-buttons-group {
   display: flex;
   gap: 12px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
 }
 
 .btn-primary, .btn-secondary {
@@ -60,6 +74,9 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease-in-out;
+  pointer-events: auto;
+  position: relative;
+  z-index: 11;
 }
 
 .btn-primary {
@@ -806,7 +823,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 .success-actions-layout { display: flex; width: 100%; gap: 12px; justify-content: center; }
 
 /* Global Topbar Overrides */
-.topbar { background-color: #FFFFFF !important; padding: 12px 40px !important; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; }
+.topbar { background-color: #FFFFFF !important; padding: 12px 40px !important; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; position: relative; z-index: 5; pointer-events: auto; }
 
 .topbar-right { display: flex; align-items: center; gap: 16px; }
 
