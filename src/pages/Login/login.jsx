@@ -8,31 +8,44 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState({ email: "", password: "" });
 
   function validateEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
   function handleSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  const trimmedEmail = email.trim();
-  const trimmedPassword = password.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
 
-  if (!trimmedEmail || !trimmedPassword) {
-    return;
+    const newErrors = { email: "", password: "" };
+    let hasError = false;
+
+    if (!trimmedEmail) {
+      newErrors.email = "Email is required.";
+      hasError = true;
+    } else if (!validateEmail(trimmedEmail)) {
+      newErrors.email = "Please enter a valid email address.";
+      hasError = true;
+    }
+
+    if (!trimmedPassword) {
+      newErrors.password = "Password is required.";
+      hasError = true;
+    }
+
+    setErrors(newErrors);
+
+    if (hasError) return;
+
+    setSuccess(true);
+
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 2000);
   }
-
-  if (!validateEmail(trimmedEmail)) {
-    return;
-  }
-
-  setSuccess(true);
-
-  setTimeout(() => {
-    navigate("/dashboard");
-  }, 2000);
-}
 
   return (
     <div className="login-page">
@@ -77,9 +90,20 @@ export default function Login() {
                   id="email"
                   placeholder="name@company.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
+                  }}
                 />
               </div>
+              {errors.email && (
+                <p className="field-error">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             <div className="form-group">
@@ -96,9 +120,20 @@ export default function Login() {
                   id="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) setErrors((prev) => ({ ...prev, password: "" }));
+                  }}
                 />
               </div>
+              {errors.password && (
+                <p className="field-error">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {errors.password}
+                </p>
+              )}
             </div>
 
             <button type="submit" className="btn-primary">

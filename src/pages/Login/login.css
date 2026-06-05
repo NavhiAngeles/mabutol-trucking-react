@@ -283,3 +283,39 @@
     transform: translateX(0);
   }
 }
+
+/* Field Validation Error Message */
+.login-page .field-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 0 2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #dc2626;
+  letter-spacing: 0.2px;
+  animation: errorFadeIn 0.2s ease;
+}
+
+.login-page .field-error svg {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+/* Red border on input when sibling error is present */
+.login-page .input-wrapper:has(+ .field-error) input {
+  border-color: #dc2626 !important;
+  background: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+@keyframes errorFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
