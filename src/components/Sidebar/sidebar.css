@@ -12,6 +12,7 @@
 
   border-right: 1px solid #E5E7EB;
   box-sizing: border-box;
+  z-index: 100;
 }
 
 /* Brand Section Scale Up */
