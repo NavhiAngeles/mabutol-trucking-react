@@ -79,6 +79,12 @@
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid #E2E8F0;
+  transition: 0.2s;
+}
+
+.avatar:hover {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px #BFDBFE;
 }
 
 .avatar-img {

@@ -299,3 +299,22 @@
   padding: 0 8px;
   font-size: 13px;
 }
+/* Avatar click-to-account */
+.avatar {
+  border-radius: 50%;
+  overflow: hidden;
+  transition: box-shadow 0.2s, opacity 0.2s;
+}
+
+.avatar:hover {
+  opacity: 0.85;
+  box-shadow: 0 0 0 2px #1E3A8A;
+}
+
+.avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}

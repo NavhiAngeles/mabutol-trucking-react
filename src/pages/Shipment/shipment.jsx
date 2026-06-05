@@ -1,12 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import "./shipment.css";
 
 export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  // State to handle which sub-page table dataset is actively visible
   const [currentTab, setCurrentTab] = useState("active");
+  const navigate = useNavigate();
 
   return (
     <MainLayout>
@@ -26,13 +27,18 @@ export default function Shipment() {
           <button id="notifBtn" className="notification-btn" onClick={() => alert("No new notifications")}>
             <i className="las la-bell"></i>
           </button>
-          <div className="avatar">
-            <img 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
-              alt="User Profile" 
-              className="avatar-img"
-            />
-          </div>
+          <div
+              className="avatar"
+              onClick={() => navigate("/settings/account")}
+              style={{ cursor: "pointer" }}
+              title="Go to Account Settings"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
+                alt="User Profile" 
+                className="avatar-img"
+              />
+            </div>
         </div>
       </header>
 

@@ -109,6 +109,12 @@
   height: 32px;
   background: #D1D5DB;
   border-radius: 50%;
+  transition: 0.2s;
+}
+
+.avatar:hover {
+  opacity: 0.8;
+  box-shadow: 0 0 0 2px #1D4ED8;
 }
 
 /* Content */

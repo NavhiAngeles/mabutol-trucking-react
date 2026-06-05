@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 
 export default function Customer() {
+  const navigate = useNavigate();
   // Matching dataset directly from image_96bae9.png
   const customers = [
     { id: 1, name: "Reyna Pascual", email: "reyna.pascual@gmail.com", phone: "0918 234 5678", bookings: "14 bookings", lastBooking: "Today 09:15 AM", memberSince: "Jan 2025", status: "ACTIVE" },
@@ -22,7 +24,17 @@ export default function Customer() {
         </div>
         <div className="topbar-right">
           <button id="notifBtn">🔔</button>
-          <div className="avatar"></div>
+          <div
+              className="avatar"
+              onClick={() => navigate("/settings/account")}
+              style={{ cursor: "pointer" }}
+              title="Go to Account Settings"
+            >
+              <img 
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
+                alt="User Profile" 
+                className="avatar-img" />
+            </div>
         </div>
       </header>
 

@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
 
   return (
       <MainLayout>
@@ -20,7 +22,17 @@ export default function Dashboard() {
             <button id="notifBtn" onClick={() => alert("No new notifications")}>
               🔔
             </button>
-            <div className="avatar"></div>
+            <div
+              className="avatar"
+              onClick={() => navigate("/settings/account")}
+              style={{ cursor: "pointer" }}
+              title="Go to Account Settings"
+            >
+              <img 
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
+              alt="User Profile" 
+              className="avatar-img" />
+            </div>
           </div>
         </header>
 

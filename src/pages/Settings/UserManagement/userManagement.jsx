@@ -316,7 +316,12 @@ export default function UserManagement() {
         <input type="text" placeholder="Search..." />
         <div className="topbar-right">
           <button>🔔</button>
-          <div className="avatar"></div>
+          <div className="avatar">
+            <img 
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
+              alt="User Profile" 
+              className="avatar-img" />
+          </div>
         </div>
       </header>
 
