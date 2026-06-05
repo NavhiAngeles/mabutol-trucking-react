@@ -445,7 +445,7 @@ const handleCargoToggle = (id) => {
       </section>
 
       {/* ================= REGISTER DRIVER MULTI-STEP MODAL ================= */}
-      {isDriverModalOpen && (
+      {(
         <div className="modal-backdrop">
           <div className="modal-window">
             <div className="modal-header">
