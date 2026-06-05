@@ -647,67 +647,6 @@ const handleCargoToggle = (id) => {
     </>
   )}
 </div>
-{showVehicleSuccess && (
-  <div className="modal-backdrop">
-    <div className="vehicle-success-modal">
-
-      <div className="success-icon">
-        ✓
-      </div>
-
-      <h2>
-        Vehicle Registered
-        <br />
-        Successfully
-      </h2>
-
-      <div className="vehicle-id">
-        SYSTEM ID:
-        <strong> TRK-1043</strong>
-      </div>
-
-      <div className="success-status-box">
-        <p>
-          Status:
-          <strong> READY FOR DISPATCH</strong>
-        </p>
-
-        <p>
-          The credentials and compliance
-          documentation for the new vehicle
-          have been verified and integrated
-          into the Vehicle Directory.
-        </p>
-      </div>
-
-      <button className="btn-primary success-full-btn">
-        View Vehicle Information
-      </button>
-
-      <button
-        className="btn-secondary success-full-btn"
-        onClick={() => {
-          setShowVehicleSuccess(false);
-          setVehicleStep(1);
-        }}
-      >
-        Register Another Vehicle
-      </button>
-
-      <button
-        className="success-close"
-        onClick={() => {
-          setShowVehicleSuccess(false);
-          setIsVehicleModalOpen(false);
-          setVehicleStep(1);
-        }}
-      >
-        ✕
-      </button>
-
-    </div>
-  </div>
-)}
           </div>
         </div>
       )}
