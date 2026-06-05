@@ -1,4 +1,4 @@
-﻿// fleet.jsx
+// fleet.jsx
 import { useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./fleet.css";
@@ -462,14 +462,20 @@ const handleCargoToggle = (id) => {
 
             {/* Steps Progress Metrics Indicator */}
             <div className="modal-steps-indicator">
-  <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>
-    1 Vehicle Info
+  <span className={`step-badge ${driverStep === 1 ? "active" : ""}`}>
+    1 Basic Information
   </span>
 
   <span className="step-line"></span>
 
-  <span className={`step-badge ${vehicleStep === 2 ? "active" : ""}`}>
+  <span className={`step-badge ${driverStep === 2 ? "active" : ""}`}>
     2 Documents
+  </span>
+
+  <span className="step-line"></span>
+
+  <span className={`step-badge ${driverStep === 3 ? "active" : ""}`}>
+    3 Confirmation
   </span>
 </div>
 
@@ -581,11 +587,11 @@ const handleCargoToggle = (id) => {
 
             {/* Modal Actions Footer Grouping */}
             <div className="modal-footer">
-  {vehicleStep === 1 && (
+  {driverStep === 1 && (
     <>
       <button
         className="btn-link"
-        onClick={() => setIsVehicleModalOpen(false)}
+        onClick={() => setIsDriverModalOpen(false)}
       >
         CANCEL
       </button>
@@ -593,7 +599,7 @@ const handleCargoToggle = (id) => {
       <div className="footer-right-buttons">
         <button
           className="btn-primary"
-          onClick={() => setVehicleStep(2)}
+          onClick={() => setDriverStep(2)}
         >
           NEXT STEP →
         </button>
@@ -601,11 +607,11 @@ const handleCargoToggle = (id) => {
     </>
   )}
 
-  {vehicleStep === 2 && (
+  {driverStep === 2 && (
     <>
       <button
         className="btn-link"
-        onClick={() => setVehicleStep(1)}
+        onClick={() => setDriverStep(1)}
       >
         ← BACK
       </button>
@@ -619,13 +625,25 @@ const handleCargoToggle = (id) => {
 
         <button
           className="btn-primary"
-          onClick={() => {
-            setShowVehicleSuccess(true);
-          }}
+          onClick={() => setDriverStep(3)}
         >
           Complete Registration ✓
         </button>
       </div>
+    </>
+  )}
+
+  {driverStep === 3 && (
+    <>
+      <button
+        className="btn-primary"
+        onClick={() => {
+          setIsDriverModalOpen(false);
+          setDriverStep(1);
+        }}
+      >
+        Close
+      </button>
     </>
   )}
 </div>
