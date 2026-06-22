@@ -12,6 +12,14 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
   const [selectedVehicle, setSelectedVehicle] = useState("10-wheeler-wing");
   const [overrideAmount, setOverrideAmount] = useState("884.00");
 
+  // Step 1 (Route & Schedule) field states — previously hardcoded/readOnly
+  const [pickupLocation, setPickupLocation] = useState("Cabanatuan City Hub Alpha");
+  const [destination, setDestination] = useState("Gapan City");
+  const [departureDate, setDepartureDate] = useState("2023-10-24");
+  const [departureTime, setDepartureTime] = useState("08:00");
+  const [billingCustomer, setBillingCustomer] = useState("1");
+  const [driverNotes, setDriverNotes] = useState("Handle with care. Stack max 3 high.");
+
   if (!isOpen) return null;
 
   // Handles closing the entire workspace clean
@@ -29,14 +37,29 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
         <label className="input-title">PICK-UP LOCATION</label>
         <div className="input-search-wrapper">
           <i className="las la-circle-notch input-icon input-blue-icon"></i>
-          <input type="text" defaultValue="Cabanatuan City Hub Alpha" readOnly />
+          <input
+            type="text"
+            value={pickupLocation}
+            onChange={(e) => setPickupLocation(e.target.value)}
+          />
           <i className="las la-search trailing-search-icon"></i>
         </div>
         <div className="hub-pills-row">
-          <button className="hub-pill active">Hub Alpha</button>
-          <button className="hub-pill">Agri-Terminal</button>
-          <button className="hub-pill">Cold Storage B</button>
-          <button className="hub-pill">Yard 4</button>
+          {[
+            { label: "Hub Alpha", value: "Cabanatuan City Hub Alpha" },
+            { label: "Agri-Terminal", value: "Cabanatuan City Agri-Terminal" },
+            { label: "Cold Storage B", value: "Cabanatuan City Cold Storage B" },
+            { label: "Yard 4", value: "Cabanatuan City Yard 4" },
+          ].map((hub) => (
+            <button
+              key={hub.label}
+              type="button"
+              className={`hub-pill ${pickupLocation === hub.value ? "active" : ""}`}
+              onClick={() => setPickupLocation(hub.value)}
+            >
+              {hub.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -45,7 +68,11 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
         <label className="input-title">DESTINATION</label>
         <div className="input-search-wrapper">
           <i className="las la-map-marker input-icon input-orange-icon"></i>
-          <input type="text" defaultValue="Gapan City" readOnly />
+          <input
+            type="text"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+          />
           <i className="las la-search trailing-search-icon"></i>
         </div>
       </div>
@@ -57,8 +84,8 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
           <span className="toll-badge">TOLL ROAD</span>
         </div>
         <div className="summary-timeline">
-          <div className="timeline-node blue-node">Cabanatuan City Hub Alpha</div>
-          <div className="timeline-node orange-node">Gapan City</div>
+          <div className="timeline-node blue-node">{pickupLocation}</div>
+          <div className="timeline-node orange-node">{destination}</div>
         </div>
         <div className="summary-footer-metrics">
           <div>
@@ -81,14 +108,22 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
           <label className="input-title">SCHEDULE DEPARTURE</label>
           <div className="input-search-wrapper">
             <i className="las la-calendar input-icon"></i>
-            <input type="text" defaultValue="10/24/2023" readOnly />
+            <input
+              type="date"
+              value={departureDate}
+              onChange={(e) => setDepartureDate(e.target.value)}
+            />
           </div>
         </div>
         <div className="form-group">
           <label className="input-title">&nbsp;</label>
           <div className="input-search-wrapper">
             <i className="las la-clock input-icon"></i>
-            <input type="text" defaultValue="08:00 AM" readOnly />
+            <input
+              type="time"
+              value={departureTime}
+              onChange={(e) => setDepartureTime(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -97,7 +132,7 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
       <div className="form-group">
         <label className="input-title">CUSTOMER BILLING</label>
         <div className="select-dropdown-wrapper">
-          <select defaultValue="1">
+          <select value={billingCustomer} onChange={(e) => setBillingCustomer(e.target.value)}>
             <option value="1">Agri-Logistics Inc. (Maria Santos)</option>
             <option value="2">San Miguel Corp</option>
           </select>
@@ -147,7 +182,13 @@ export default function CreateShipmentDrawer({ isOpen, onClose }) {
 
         <div className="form-group">
           <label className="input-title">NOTES TO DRIVER</label>
-          <textarea className="form-textarea" placeholder="Instructions..." rows={2} defaultValue="Handle with care. Stack max 3 high." />
+          <textarea
+            className="form-textarea"
+            placeholder="Instructions..."
+            rows={2}
+            value={driverNotes}
+            onChange={(e) => setDriverNotes(e.target.value)}
+          />
         </div>
 
         <div className="form-group">
