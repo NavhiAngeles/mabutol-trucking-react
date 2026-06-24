@@ -27,6 +27,26 @@ export default function Account() {
   const [editSuccess, setEditSuccess]           = useState(false);
   const [editError, setEditError]               = useState("");
 
+  // Sessions state
+  const [otherSessions, setOtherSessions] = useState([
+    { id: 1, device: "Safari on iPhone", time: "Yesterday, 10:15 PM" },
+  ]);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOutSessions, setLoggingOutSessions] = useState(false);
+  const [logoutDone, setLogoutDone] = useState(false);
+
+  const handleLogoutAllOtherSessions = () => {
+    setLoggingOutSessions(true);
+    // Simulate API call to revoke other sessions
+    setTimeout(() => {
+      setOtherSessions([]);
+      setLoggingOutSessions(false);
+      setLogoutDone(true);
+      setShowLogoutConfirm(false);
+      setTimeout(() => setLogoutDone(false), 2500);
+    }, 1200);
+  };
+
   const handleOpenEdit = () => {
     setEditForm({ ...profile });
     setPhotoPreview(null);
@@ -242,16 +262,35 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="session-box">
-                <strong>
-                  Safari on iPhone
-                </strong>
-                <span>
-                  Yesterday, 10:15 PM
-                </span>
-              </div>
+              {otherSessions.length > 0 ? (
+                otherSessions.map((session) => (
+                  <div className="session-box" key={session.id}>
+                    <strong>
+                      {session.device}
+                    </strong>
+                    <span>
+                      {session.time}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="session-box">
+                  <strong>No other active sessions</strong>
+                  <span>You're only signed in on this device</span>
+                </div>
+              )}
 
-              <button className="logout-btn">
+              {logoutDone && (
+                <p className="pw-success" style={{ marginBottom: "12px" }}>
+                  ✓ All other sessions have been logged out
+                </p>
+              )}
+
+              <button
+                className="logout-btn"
+                onClick={() => setShowLogoutConfirm(true)}
+                disabled={otherSessions.length === 0}
+              >
                 Log Out All Other Sessions
               </button>
             </div>
@@ -378,6 +417,56 @@ export default function Account() {
                 {pwSuccess ? "✓ Password Updated" : "Update Password"}
               </button>
               <button className="pw-cancel-btn" onClick={handleCloseModal}>Cancel</button>
+            </div>
+
+          </div>
+        </div>
+      )}
+      {/* ===== LOG OUT OTHER SESSIONS CONFIRM MODAL ===== */}
+      {showLogoutConfirm && (
+        <div className="pw-backdrop" onClick={() => !loggingOutSessions && setShowLogoutConfirm(false)}>
+          <div className="pw-modal" onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="pw-modal-header">
+              <h3 className="pw-modal-title">Log Out Other Sessions?</h3>
+              <button
+                className="pw-close-btn"
+                onClick={() => setShowLogoutConfirm(false)}
+                disabled={loggingOutSessions}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="pw-modal-body">
+              <p style={{ fontSize: "14px", color: "#475569", margin: 0 }}>
+                This will sign you out of all devices and browsers except this one
+                {otherSessions.length > 0 && (
+                  <> — including <strong>{otherSessions.map(s => s.device).join(", ")}</strong></>
+                )}.
+                You'll need to log in again on those devices.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="pw-modal-footer">
+              <button
+                className="pw-update-btn"
+                style={{ background: "#DC2626" }}
+                onClick={handleLogoutAllOtherSessions}
+                disabled={loggingOutSessions}
+              >
+                {loggingOutSessions ? "Logging out..." : "Yes, Log Out Other Sessions"}
+              </button>
+              <button
+                className="pw-cancel-btn"
+                onClick={() => setShowLogoutConfirm(false)}
+                disabled={loggingOutSessions}
+              >
+                Cancel
+              </button>
             </div>
 
           </div>

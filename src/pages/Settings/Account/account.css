@@ -203,6 +203,19 @@ BUTTONS
   border-radius: 10px;
 
   cursor: pointer;
+
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.logout-btn:hover:not(:disabled) {
+  background: #FEF2F2;
+}
+
+.logout-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  border-color: #E5E7EB;
+  color: #94A3B8;
 }
 
 /* =========================
