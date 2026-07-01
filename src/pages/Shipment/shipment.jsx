@@ -453,6 +453,7 @@ export default function Shipment() {
               </>
             ) : (
               /* ACTIVE / DELAYED / REVIEW DATA VIEW (shared shape) */
+              /* header */
               <>
                 <thead>
                   <tr>
