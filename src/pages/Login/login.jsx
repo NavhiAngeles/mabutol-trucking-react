@@ -1,51 +1,17 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLoginViewModel } from "../../viewmodels/LoginViewModel";
 import "./login.css";
 
 export default function Login() {
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [errors, setErrors] = useState({ email: "", password: "" });
-
-  function validateEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault();
-
-    const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
-
-    const newErrors = { email: "", password: "" };
-    let hasError = false;
-
-    if (!trimmedEmail) {
-      newErrors.email = "Email is required.";
-      hasError = true;
-    } else if (!validateEmail(trimmedEmail)) {
-      newErrors.email = "Please enter a valid email address.";
-      hasError = true;
-    }
-
-    if (!trimmedPassword) {
-      newErrors.password = "Password is required.";
-      hasError = true;
-    }
-
-    setErrors(newErrors);
-
-    if (hasError) return;
-
-    setSuccess(true);
-
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 2000);
-  }
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    errors,
+    setErrors,
+    status,
+    handleSubmit,
+  } = useLoginViewModel();
 
   return (
     <div className="login-page">
@@ -59,7 +25,7 @@ export default function Login() {
             </svg>
           </div>
           <h1>TANAW</h1>
-          {success && (
+          {status === "success" && (
             <div className="tanaw-toast">
               <div className="toast-check">
                 ✓
@@ -88,7 +54,7 @@ export default function Login() {
                 <input
                   type="email"
                   id="email"
-                  placeholder="name@company.com"
+                  placeholder="name@domain.com"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -110,7 +76,15 @@ export default function Login() {
               <label htmlFor="password">PASSWORD</label>
               <div className="input-wrapper">
                 <span className="input-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" 
+                  width="14" 
+                  height="14" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2.5" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
