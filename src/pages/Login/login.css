@@ -123,6 +123,7 @@
 .login-page input {
   width: 100%;
   padding-left: 50px;
+  padding-right: 44px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: #dce4f7;
@@ -130,6 +131,38 @@
   font-size: 14px;
   transition: all 0.2s ease;
   
+}
+
+/* Show/Hide Password Toggle — always visible, never conditionally hidden */
+.login-page .toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #7a869a;
+  cursor: pointer;
+  opacity: 1;
+  visibility: visible;
+  z-index: 5;
+  transition: color 0.15s ease;
+}
+
+.login-page .toggle-password:hover {
+  color: #022343;
+}
+
+.login-page .toggle-password:focus-visible {
+  outline: 2px solid #022343;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .login-page input::placeholder {
@@ -200,7 +233,7 @@
 
   padding-top: 0;
   padding-bottom: 0;
-  padding-right: 16px;
+  padding-right: 44px;
   padding-left: 30px !important;
 
   box-sizing: border-box;
