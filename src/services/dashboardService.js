@@ -7,14 +7,6 @@ export async function getDashboardStats() {
       .select("*", { count: "exact", head: true })
       .eq("status", "in_transit");
 
-    const { data, count, error } = await supabase
-    .from("shipments")
-    .select("*", { count: "exact" });
-
-    console.log("data:", data);
-    console.log("count:", count);
-    console.log("error:", error);
-
   const { count: delayedShipments, error: delayedError } =
     await supabase
       .from("shipments")
