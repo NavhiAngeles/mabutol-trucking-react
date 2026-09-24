@@ -14,7 +14,7 @@ export async function getDashboardStats() {
     console.log("data:", data);
     console.log("count:", count);
     console.log("error:", error);
-    
+
   const { count: delayedShipments, error: delayedError } =
     await supabase
       .from("shipments")
