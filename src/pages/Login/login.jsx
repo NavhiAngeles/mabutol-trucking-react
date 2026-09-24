@@ -1,17 +1,16 @@
-import { useState } from "react";
+import LoginSuccessToast from "../../components/Toast/loginsuccesstoast";
 import { useLoginViewModel } from "../../viewmodels/LoginViewModel";
 import "./login.css";
 
 export default function Login() {
   const {
     email,
-    setEmail,
     password,
-    setPassword,
     errors,
-    setErrors,
     status,
     handleSubmit,
+    handleEmailChange,
+    handlePasswordChange
   } = useLoginViewModel();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -28,18 +27,7 @@ export default function Login() {
             </svg>
           </div>
           <h1>TANAW</h1>
-          {status === "success" && (
-            <div className="tanaw-toast">
-              <div className="toast-check">
-                ✓
-            </div>
-
-            <div className="toast-content">
-              <h4>Login Successful</h4>
-              <p>Redirecting to dashboard...</p>
-            </div>
-          </div>
-          )}
+          {status === "success" && <LoginSuccessToast/>}
         </div>
 
         {/* Auth Card */}
@@ -59,10 +47,7 @@ export default function Login() {
                   id="email"
                   placeholder="name@domain.com"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
-                  }}
+                  onChange={(e) => handleEmailChange(e.target.value)}
                 />
               </div>
               {errors.email && (
@@ -98,10 +83,7 @@ export default function Login() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors((prev) => ({ ...prev, password: "" }));
-                  }}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
                 />
                 <button
                   type="button"

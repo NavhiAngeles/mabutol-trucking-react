@@ -35,6 +35,22 @@ export function useLoginViewModel() {
       setErrors((prev) => ({ ...prev, password: err.message }));
     }
   }
+  
+  function handlePasswordChange(value) {
+    setPassword(value);
 
-  return { email, setEmail, password, setPassword, errors, status, handleSubmit };
+    if (errors.password) {
+      setErrors((prev) => ({ ...prev, password: "" }));
+    }
+  }
+
+  function handleEmailChange(value) {
+    setEmail(value);
+
+    if (errors.email) {
+      setErrors((prev) => ({ ...prev, password: "" }));
+    }
+  }
+
+  return { email, setEmail, password, setPassword, errors, status, handleSubmit, handlePasswordChange, handleEmailChange };
 }
