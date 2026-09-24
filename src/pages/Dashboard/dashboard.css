@@ -587,3 +587,241 @@
 .bar-fill.green { background: var(--green); }
 .bar-fill.navy { background: var(--navy); }
 .bar-fill.orange { background: var(--orange); }
+
+/* ================= SHIPMENT TRENDS ================= */
+
+.trends-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 22px 0 14px 0;
+}
+
+.trends-header h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.trends-header span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 140px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 2px;
+}
+
+.trend-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 0;
+  height: 100%;
+}
+
+.trend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex-shrink: 0;
+}
+
+.trend-stem {
+  width: 2px;
+  background: var(--blue-bg);
+}
+
+.trend-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 2px 0 2px;
+}
+
+.trend-labels span {
+  flex: 1 1 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ================= DRIVER HOURS + COMPLIANCE ================= */
+
+.snapshot-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.snapshot-secondary-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 10px 0;
+}
+
+.driver-hours-box {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.driver-hours-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.driver-hours-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.driver-hours-box strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.driver-hours-box span {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.compliance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compliance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.compliance-row.orange { background: var(--orange-bg); }
+.compliance-row.red { background: var(--red-bg); }
+.compliance-row.amber { background: #FEF9E7; }
+
+.compliance-badge {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compliance-badge.orange { color: var(--orange); }
+.compliance-badge.red { color: var(--red); }
+.compliance-badge.amber { color: #CA8A04; }
+
+.view-all-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ================= OPERATIONS FEED ================= */
+
+.ops-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.ops-feed-header h3 {
+  margin: 0;
+}
+
+.ops-feed-refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4B5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.ops-feed-refresh:hover {
+  background: var(--bg);
+}
+
+.ops-feed-refresh svg {
+  width: 15px;
+  height: 15px;
+}
+
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feed-item {
+  display: flex;
+  gap: 10px;
+}
+
+.feed-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.feed-dot.green { background: var(--green); }
+.feed-dot.blue { background: var(--blue); }
+.feed-dot.navy { background: var(--navy); }
+
+.feed-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 2px 0;
+}
+
+.feed-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.feed-time {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin: 3px 0 0 0;
+}

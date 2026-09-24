@@ -83,6 +83,13 @@ const ArrowUp = (props) => (
   </svg>
 );
 
+const RotateCcw = (props) => (
+  <svg {...iconProps} {...props}>
+    <polyline points="1 4 1 10 7 10" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </svg>
+);
+
 const ClipboardList = (props) => (
   <svg {...iconProps} {...props}>
     <rect x="8" y="2" width="8" height="4" rx="1" />
@@ -92,8 +99,19 @@ const ClipboardList = (props) => (
   </svg>
 );
 
+const shipmentTrends = [
+  { day: "Mon", value: 42 },
+  { day: "Tue", value: 30 },
+  { day: "Wed", value: 54 },
+  { day: "Thu", value: 88 },
+  { day: "Fri", value: 64 },
+  { day: "Sat", value: 82 },
+  { day: "Sun", value: 100 },
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const maxTrend = Math.max(...shipmentTrends.map((d) => d.value));
 
   return (
     <MainLayout>
@@ -346,6 +364,28 @@ export default function Dashboard() {
                   <strong>18</strong>
                 </div>
               </div>
+
+              <div className="trends-header">
+                <h4>Shipment Trends</h4>
+                <span>Last 7 Days</span>
+              </div>
+
+              <div className="trend-chart">
+                {shipmentTrends.map((d) => (
+                  <div className="trend-col" key={d.day}>
+                    <div className="trend-dot" />
+                    <div
+                      className="trend-stem"
+                      style={{ height: `${(d.value / maxTrend) * 120}px` }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="trend-labels">
+                {shipmentTrends.map((d) => (
+                  <span key={d.day}>{d.day}</span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -409,7 +449,7 @@ export default function Dashboard() {
                   <strong>8</strong>
                 </div>
                 <div className="bar-track">
-                  <div className="bar-fill green" style={{ width: "25%" }} />
+                  <div className="bar-fill green" style={{ width: "22%" }} />
                 </div>
               </div>
 
@@ -419,9 +459,94 @@ export default function Dashboard() {
                   <strong>24</strong>
                 </div>
                 <div className="bar-track">
-                  <div className="bar-fill navy" style={{ width: "75%" }} />
+                  <div className="bar-fill navy" style={{ width: "67%" }} />
                 </div>
               </div>
+
+              <div className="resource-row">
+                <div className="resource-row-top">
+                  <span>Maintenance</span>
+                  <strong>4</strong>
+                </div>
+                <div className="bar-track">
+                  <div className="bar-fill orange" style={{ width: "11%" }} />
+                </div>
+              </div>
+
+              <div className="snapshot-secondary">
+                <div>
+                  <p className="snapshot-secondary-title">Driver Hours</p>
+                  <div className="driver-hours-box">
+                    <div className="driver-hours-icon">
+                      <Clock />
+                    </div>
+                    <strong>8.4h</strong>
+                    <span>Average shift</span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="snapshot-secondary-title">Compliance</p>
+                  <div className="compliance-list">
+                    <div className="compliance-row orange">
+                      <span>Expiring</span>
+                      <span className="compliance-badge orange">8</span>
+                    </div>
+                    <div className="compliance-row red">
+                      <span>Expired</span>
+                      <span className="compliance-badge red">6</span>
+                    </div>
+                    <div className="compliance-row amber">
+                      <span>Review</span>
+                      <span className="compliance-badge amber">9</span>
+                    </div>
+                  </div>
+                  <button className="view-all-link">View All →</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Operations Feed */}
+            <div className="ops-feed card">
+              <div className="ops-feed-header">
+                <h3>Operations Feed</h3>
+                <button className="ops-feed-refresh" aria-label="Refresh feed">
+                  <RotateCcw />
+                </button>
+              </div>
+
+              <div className="feed-list">
+                <div className="feed-item">
+                  <span className="feed-dot green" />
+                  <div>
+                    <p className="feed-title">Delivered: SHP-NE-7021</p>
+                    <p className="feed-desc">To: Cabanatuan City Warehouse</p>
+                    <p className="feed-time">5min ago</p>
+                  </div>
+                </div>
+
+                <div className="feed-item">
+                  <span className="feed-dot blue" />
+                  <div>
+                    <p className="feed-title">Dispatched: SHP-NE-9044</p>
+                    <p className="feed-desc">Route: Gapan-San Isidro Bypass</p>
+                    <p className="feed-time">18min ago</p>
+                  </div>
+                </div>
+
+                <div className="feed-item">
+                  <span className="feed-dot navy" />
+                  <div>
+                    <p className="feed-title">New Booking: Reyna Pascual</p>
+                    <p className="feed-desc">
+                      Cabanatuan → Talavera (Auto-route)
+                    </p>
+                    <p className="feed-time">1hr ago</p>
+                  </div>
+                </div>
+              </div>
+
+              <button className="view-all-link">View All Activity →</button>
             </div>
           </div>
         </div>
