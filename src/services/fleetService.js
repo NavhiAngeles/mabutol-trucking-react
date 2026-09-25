@@ -185,15 +185,45 @@ export async function getDriverById(driverId) {
 }
 
 /**
+ * Creates a Supabase Auth user for a driver via Edge Function.
+ * Uses the service_role key server-side so the calling admin's session is unaffected.
+ * Returns the new user's UUID for linking to drivers.user_id.
+ */
+export async function createDriverAuthUser({ email, password, fullName }) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("You must be logged in to create driver accounts.");
+
+    const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-driver-user`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ email, password, fullName }),
+        }
+    );
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Failed to create driver auth user");
+    return result.userId;
+}
+
+/**
  * Create a driver. `payload` should match the drivers columns, e.g.:
  * { full_name, contact_number, license_number, date_hired, emergency_contact_name, emergency_contact_number }
  * Pass `assignVehicleId` separately if the form also assigns a truck —
  * this writes to trucks.assigned_driver_id after the driver is created.
+ * Optional `userId` links the driver to their Supabase auth/public user.
  */
-export async function createDriver(payload, assignVehicleId, complianceDocs = []) {
+export async function createDriver(payload, assignVehicleId, complianceDocs = [], userId = null) {
+    const driverPayload = userId ? { ...payload, user_id: userId } : payload;
+
     const { data: driver, error } = await supabase
         .from("drivers")
-        .insert(payload)
+        .insert(driverPayload)
         .select(DRIVER_SELECT)
         .single();
 

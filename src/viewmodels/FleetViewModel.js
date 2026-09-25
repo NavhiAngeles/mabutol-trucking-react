@@ -9,6 +9,7 @@ import {
     getAssignableTrucks,
     getDrivers,
     createDriver,
+    createDriverAuthUser,
     getMaintenanceRecords,
     getVehicleTypes,
     getCargoCategories,
@@ -207,6 +208,19 @@ export function useFleetViewModel() {
                     });
                 }
 
+                // Create auth user if email + password provided
+                let userId = null;
+                if (form.email && form.password) {
+                    if (form.password !== form.confirmPassword) {
+                        throw new Error("Passwords do not match.");
+                    }
+                    userId = await createDriverAuthUser({
+                        email: form.email,
+                        password: form.password,
+                        fullName: form.fullName,
+                    });
+                }
+
                 const driver = await createDriver(
                     {
                         full_name: form.fullName,
@@ -216,7 +230,8 @@ export function useFleetViewModel() {
                         license_number: form.licenseNumber,
                     },
                     form.assignVehicle || null,
-                    complianceDocs
+                    complianceDocs,
+                    userId
                 );
 
                 await Promise.all([
