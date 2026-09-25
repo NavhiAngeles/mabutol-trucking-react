@@ -1,32 +1,13 @@
 import { supabase } from "./supabaseClient";
 
-export async function getActiveShipmentStats() {
-    const {count: in_transitShipments, error: in_transitError} = 
-    await supabase
-        .from("shipments")
-        .select("*", {count: "exact", head: true})
-        .eq("status", "in_transit");
-
-    const {count: loadingShipments, error: loadingError} =
-    await supabase
-        .from("shipments")
-        .select("*", {count: "exact", head: true})
-        .eq("status", "loading")
-
-    const {count: delayedShipments, error: delayedError} =
-    await supabase
-        .from("shipments")
-        .select("*", {count: "exact", head: true})
-        .eq("status", "delayed")
-
-    
-}
-
 const SHIPMENT_SELECT = `
   id,
   tracking_number,
   status,
   cargo_description,
+  weight_kg,
+  booking_source,
+  final_amount,
   pickup_address,
   dropoff_address,
   scheduled_departure,
@@ -123,8 +104,11 @@ export function mapShipmentRow(row) {
     destination: row.dropoff_address,
     destinationSub: "",
     status,
-    driver: "Unassigned",   // TODO: wire up once I see the deliveries table
+    driver: "Unassigned",   // TODO: wire up once deliveries/assignments table is ready
     fleet: "—",             // TODO
+    weightKg: row.weight_kg,
+    bookingSource: row.booking_source,
+    finalAmount: row.final_amount,
     delayMinutes,
     scheduledAt,
     actualAt,

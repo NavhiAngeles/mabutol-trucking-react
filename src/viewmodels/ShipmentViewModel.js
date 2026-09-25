@@ -118,8 +118,8 @@ export function useShipmentViewModel() {
 
     const avgReviewDays = review.length
       ? review.reduce((sum, s) => sum + (Date.now() - s.flaggedAt.getTime()), 0) /
-        review.length /
-        (1000 * 60 * 60 * 24)
+      review.length /
+      (1000 * 60 * 60 * 24)
       : 0;
 
     return {
