@@ -74,6 +74,8 @@ PROFILE
 }
 
 .avatar-box {
+  position: relative;
+
   width: 120px;
   height: 120px;
 
@@ -89,6 +91,44 @@ PROFILE
   font-weight: 700;
 
   color: #0F172A;
+}
+
+.avatar-camera-btn {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 50%;
+
+  background: white;
+  border: 1px solid #E2E8F0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #475569;
+  cursor: pointer;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+  transition: background 0.15s;
+}
+.avatar-camera-btn:hover { background: #F8FAFC; }
+
+.field-hint {
+  font-size: 11px;
+  color: #94A3B8;
+  margin: 4px 0 0;
+}
+
+.card-bottom-accent {
+  height: 3px;
+  background: #0F172A;
+  margin: 24px -24px -24px -24px;
+  border-radius: 0 0 14px 14px;
 }
 
 .profile-info {
@@ -143,8 +183,21 @@ PASSWORD
   margin-bottom: 24px;
 }
 
+.password-grid label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.strength-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin: 10px 0;
+}
+
 .strength-bar {
-  width: 100%;
+  flex: 1;
   height: 10px;
 
   background: #E5E7EB;
@@ -152,8 +205,12 @@ PASSWORD
   border-radius: 20px;
 
   overflow: hidden;
+}
 
-  margin: 10px 0;
+.inline-icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .strength-fill {
@@ -188,7 +245,7 @@ BUTTONS
 }
 
 .logout-btn {
-  margin-top: 20px;
+  margin-top: 4px;
 
   width: 100%;
 
@@ -203,6 +260,12 @@ BUTTONS
   border-radius: 10px;
 
   cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
 
   transition: background 0.15s, opacity 0.15s;
 }
@@ -236,6 +299,118 @@ SECURITY
   flex-direction: column;
   gap: 6px;
 }
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #334155;
+
+  margin-bottom: 10px;
+}
+.section-label svg { color: #64748B; flex-shrink: 0; }
+
+.session-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.current-badge {
+  background: #DCFCE7;
+  color: #16A34A;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.session-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #94A3B8;
+}
+
+.session-row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.session-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #64748B;
+}
+.session-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #94A3B8;
+}
+.session-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+.session-row-main div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.session-row-main strong {
+  color: #0F172A;
+  font-size: 14px;
+  font-weight: 700;
+}
+.session-row-main span {
+  color: #64748B;
+  font-size: 13px;
+}
+
+.session-logout-link {
+  background: none;
+  border: none;
+
+  color: #DC2626;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  padding: 4px;
+}
+.session-logout-link:hover { text-decoration: underline; }
+
+.account-details-box {
+  margin-top: 20px;
+  padding: 16px;
+
+  background: #EEF2FF;
+  border-radius: 10px;
+  border-top: 1px solid #E5E7EB;
+}
+
+.ad-row {
+  display: flex;
+  justify-content: space-between;
+
+  padding: 6px 0;
+
+  font-size: 14px;
+  color: #475569;
+}
+.ad-row strong { color: #0F172A; }
 
 /* =========================
 DETAILS
@@ -483,6 +658,28 @@ EDIT PROFILE BUTTON (card header)
   gap: 6px;
 }
 .ep-edit-btn:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.icon-only-btn {
+  width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+
+  background: white;
+  color: #334155;
+
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.icon-only-btn:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
 }

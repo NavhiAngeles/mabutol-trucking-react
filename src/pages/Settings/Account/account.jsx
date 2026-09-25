@@ -2,6 +2,50 @@ import { useState } from "react";
 import MainLayout from "../../../layouts/mainLayout";
 import "./account.css";
 
+/* Small inline icons (stroke-based, matches outline icon style) */
+const EditIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </svg>
+);
+const CameraIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" />
+    <circle cx="12" cy="13" r="3.2" />
+  </svg>
+);
+const ClockIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+const CheckCircleIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+const SmartphoneIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+const MapPinIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const LogOutIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+);
+
 export default function Account() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPw, setCurrentPw]     = useState("");
@@ -34,6 +78,10 @@ export default function Account() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOutSessions, setLoggingOutSessions] = useState(false);
   const [logoutDone, setLogoutDone] = useState(false);
+
+  const handleLogoutSession = (id) => {
+    setOtherSessions((prev) => prev.filter((s) => s.id !== id));
+  };
 
   const handleLogoutAllOtherSessions = () => {
     setLoggingOutSessions(true);
@@ -161,7 +209,9 @@ export default function Account() {
             <div className="settings-card">
               <div className="card-header ep-card-header">
                 <h3>Profile Information</h3>
-                <button className="ep-edit-btn" onClick={handleOpenEdit}>✏️ Edit</button>
+                <button className="icon-only-btn" onClick={handleOpenEdit} aria-label="Edit profile">
+                  <EditIcon />
+                </button>
               </div>
 
               <div className="profile-layout">
@@ -170,6 +220,9 @@ export default function Account() {
                     ? <img src={photoPreview} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "18px" }} />
                     : initials
                   }
+                  <button className="avatar-camera-btn" onClick={handleOpenEdit} aria-label="Change photo">
+                    <CameraIcon />
+                  </button>
                 </div>
 
                 <div className="profile-info">
@@ -181,6 +234,7 @@ export default function Account() {
                   <div className="info-group">
                     <label>EMAIL ADDRESS</label>
                     <span>{profile.email}</span>
+                    <p className="field-hint">Contact support to change your email.</p>
                   </div>
 
                   <div className="info-group">
@@ -196,6 +250,7 @@ export default function Account() {
                   </div>
                 </div>
               </div>
+              <div className="card-bottom-accent"></div>
             </div>
 
             {/* Password */}
@@ -213,23 +268,23 @@ export default function Account() {
               <div className="password-grid">
                 <div>
                   <label>PASSWORD STRENGTH</label>
-                  <div className="strength-bar">
-                    <div className="strength-fill"></div>
+                  <div className="strength-row">
+                    <div className="strength-bar">
+                      <div className="strength-fill"></div>
+                    </div>
+                    <span className="green">Strong</span>
                   </div>
-                  <span className="green">
-                    Strong
-                  </span>
                 </div>
 
                 <div>
                   <label>LAST CHANGED</label>
-                  <span>30 days ago</span>
+                  <span className="inline-icon-text"><ClockIcon /> 30 days ago</span>
                 </div>
 
                 <div>
                   <label>STATUS</label>
-                  <span className="green">
-                    Secure
+                  <span className="green inline-icon-text">
+                    <CheckCircleIcon /> Secure
                   </span>
                 </div>
               </div>
@@ -248,29 +303,34 @@ export default function Account() {
                 <h3>Login & Security</h3>
               </div>
 
+              <div className="section-label"><ClockIcon size={14} /> Recent Activity</div>
               <div className="security-box">
-                <div className="recent-session">
-                  <strong>
-                    Today, 08:30 AM
-                  </strong>
-                  <span>
-                    Chrome on Windows
-                  </span>
-                  <small>
-                    Cabanatuan City
-                  </small>
+                <div className="session-top-row">
+                  <strong>Today, 08:30 AM</strong>
+                  <span className="current-badge">Current</span>
                 </div>
+                <span>Chrome on Windows</span>
+                <small className="session-location"><MapPinIcon /> Cabanatuan City</small>
               </div>
+
+              <div className="section-label" style={{ marginTop: "20px" }}>Other Sessions</div>
 
               {otherSessions.length > 0 ? (
                 otherSessions.map((session) => (
-                  <div className="session-box" key={session.id}>
-                    <strong>
-                      {session.device}
-                    </strong>
-                    <span>
-                      {session.time}
-                    </span>
+                  <div className="session-box session-row" key={session.id}>
+                    <div className="session-row-main">
+                      <span className="session-icon"><SmartphoneIcon /></span>
+                      <div>
+                        <strong>{session.device}</strong>
+                        <span>{session.time}</span>
+                      </div>
+                    </div>
+                    <button
+                      className="session-logout-link"
+                      onClick={() => handleLogoutSession(session.id)}
+                    >
+                      Log Out
+                    </button>
                   </div>
                 ))
               ) : (
@@ -291,24 +351,19 @@ export default function Account() {
                 onClick={() => setShowLogoutConfirm(true)}
                 disabled={otherSessions.length === 0}
               >
-                Log Out All Other Sessions
+                <LogOutIcon /> Log Out All Other Sessions
               </button>
-            </div>
 
-            {/* Account Details */}
-            <div className="settings-card">
-              <div className="card-header">
-                <h3>Account Details</h3>
-              </div>
-
-              <div className="details-row">
-                <span>Account ID:</span>
-                <strong>ADM-0001</strong>
-              </div>
-
-              <div className="details-row">
-                <span>Member Since:</span>
-                <strong>Jan 15, 2025</strong>
+              <div className="account-details-box">
+                <div className="section-label">ACCOUNT DETAILS</div>
+                <div className="ad-row">
+                  <span>Account ID:</span>
+                  <strong>ADM-0001</strong>
+                </div>
+                <div className="ad-row">
+                  <span>Member Since:</span>
+                  <strong>Jan 15, 2025</strong>
+                </div>
               </div>
             </div>
           </div>
