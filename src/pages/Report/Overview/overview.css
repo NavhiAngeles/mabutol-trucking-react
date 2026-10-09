@@ -91,7 +91,9 @@
 /* ---------- Content shell ---------- */
 .ov-content {
   padding: 32px 32px 48px;
-  max-width: 1280px;
+  width: 100%;
+  min-width: 0;
+  min-height: calc(100vh - 78px); /* fill the area below the topbar */
   background: #fff;
 }
 
@@ -559,19 +561,156 @@
 .ov-activity li p { font-size: 14px; font-weight: 600; line-height: 1.45; }
 .ov-activity li span { font-size: 12px; color: #64748B; }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 1100px) {
-  .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ov-charts { grid-template-columns: 1fr; }
-  .ov-bottom { grid-template-columns: 1fr; }
-  .ov-drivers, .ov-compliance, .ov-lower { grid-column: 1; grid-row: auto; }
-  .ov-compliance { min-height: 520px; }
+/* =========================================================
+   Responsive
+   - Page-level layout uses viewport media queries.
+   - Card internals use container queries, so cards adapt to
+     the space they actually get (works with any sidebar width).
+   Breakpoints: 1100 (tablet/laptop), 700 (mobile)
+   ========================================================= */
+
+/* ---------- Base fluid tweaks (all sizes) ---------- */
+.ov-search { min-width: 0; }
+.ov-search input { min-width: 0; }
+.ov-header { flex-wrap: wrap; gap: 16px; }
+.ov-header h1 { font-size: clamp(26px, 4vw, 36px); }
+.ov-stat-value strong { font-size: clamp(26px, 2.4vw, 34px); }
+.ov-gauge { max-width: 100%; aspect-ratio: 1; height: auto; }
+.ov-driver-info strong,
+.ov-driver-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ov-btn:focus-visible,
+.ov-tab:focus-visible,
+.ov-apply:focus-visible,
+.ov-bell:focus-visible,
+.ov-kebab:focus-visible,
+.ov-link:focus-visible {
+  outline: 2px solid var(--ov-navy);
+  outline-offset: 2px;
 }
 
+/* ---------- Container queries (component level) ---------- */
+.ov-chart-card,
+.ov-drivers,
+.ov-fleet,
+.ov-activity { container-type: inline-size; }
+
+/* Chart header: title + kebab on row 1, insight chip on row 2 */
+@container (max-width: 440px) {
+  .ov-chart-head { flex-wrap: wrap; row-gap: 12px; }
+  .ov-chart-title { flex: 1 1 0; min-width: 0; max-width: none; }
+  .ov-kebab { order: 2; }
+  .ov-chip { order: 3; flex: 1 1 100%; }
+}
+
+/* Driver rows: avatar | name + bar | percentage */
+@container (max-width: 460px) {
+  .ov-driver-list li {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas: "av info pct" "av track pct";
+    height: auto;
+    padding: 12px 0;
+    gap: 8px 12px;
+  }
+  .ov-initials { grid-area: av; align-self: center; }
+  .ov-driver-info { grid-area: info; }
+  .ov-track { grid-area: track; }
+  .ov-driver-pct { grid-area: pct; align-self: center; }
+}
+
+/* Fleet / activity headers: let the link wrap under the title */
+@container (max-width: 360px) {
+  .ov-card-head-sm { flex-wrap: wrap; }
+  .ov-activity .ov-link-sm { width: auto; }
+  .ov-activity .ov-card-head-sm h3 { max-width: none; line-height: 1.3; }
+}
+
+/* ---------- Tablet & small laptop (<= 1100px) ---------- */
+@media (max-width: 1100px) {
+  .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .ov-charts { grid-template-columns: 1fr; }
+  .ov-bottom { grid-template-columns: 1fr; margin-top: 40px; }
+  .ov-drivers, .ov-compliance, .ov-lower { grid-column: 1; grid-row: auto; }
+}
+
+/* Tablet only: compliance card goes horizontal (gauge left, list right) */
+@media (min-width: 701px) and (max-width: 1100px) {
+  .ov-compliance {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 40px;
+    align-items: center;
+  }
+  .ov-comp-head { grid-column: 1 / -1; }
+  .ov-comp-head h3 { max-width: none; }
+  .ov-comp-body { padding: 24px 0 8px; }
+}
+
+/* ---------- Mobile (<= 700px) ---------- */
 @media (max-width: 700px) {
-  .ov-header { flex-direction: column; gap: 16px; }
-  .ov-filters { height: auto; flex-wrap: wrap; gap: 8px; padding: 8px; }
-  .ov-tabs { flex-wrap: wrap; }
-  .ov-stats, .ov-lower { grid-template-columns: 1fr; }
-  .ov-popover { min-width: 200px; }
+  /* Topbar */
+  .ov-topbar { height: 64px; padding: 0 16px; gap: 12px; }
+  .ov-search { flex: 1 1 auto; height: 40px; gap: 10px; }
+  .ov-search input { font-size: 16px; } /* avoids iOS zoom-on-focus */
+  .ov-topbar-right { gap: 12px; }
+
+  /* Shell + header */
+  .ov-content { padding: 20px 16px 32px; }
+  .ov-header { flex-direction: column; }
+  .ov-actions { width: 100%; margin-top: 0; }
+  .ov-btn { flex: 1; justify-content: center; height: 42px; }
+
+  /* Filters */
+  .ov-filters {
+    position: relative;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 8px;
+  }
+  .ov-tabs { flex-wrap: wrap; gap: 6px; width: 100%; }
+  .ov-tab { height: 36px; padding: 0 12px; }
+  .ov-custom-wrap { position: static; }
+  .ov-popover { left: 8px; right: 8px; top: calc(100% + 8px); min-width: 0; }
+  .ov-field input { font-size: 16px; padding: 10px; }
+  .ov-apply { padding: 10px 14px; }
+  .ov-date-pill { flex: 1 1 100%; justify-content: center; height: 40px; font-size: 14px; }
+
+  /* Stats */
+  .ov-stats { grid-template-columns: 1fr; gap: 12px; margin-top: 24px; }
+  .ov-stat { min-height: 0; }
+
+  /* Charts */
+  .ov-charts { gap: 16px; margin-top: 24px; }
+  .ov-chart-card { padding: 16px; min-height: 0; }
+  .ov-axis { font-size: 15px; }       /* SVG scales down, so bump in-SVG text */
+  .ov-axis-sm { font-size: 13px; }
+  .ov-legend { flex-wrap: wrap; gap: 8px 20px; font-size: 14px; }
+
+  /* Bottom grid */
+  .ov-bottom { gap: 16px; margin-top: 32px; }
+  .ov-card-head { padding: 16px; }
+  .ov-card-head-sm { padding: 16px 16px 8px; }
+  .ov-driver-list { padding: 0 16px 8px; }
+  .ov-compliance { padding: 16px; }
+  .ov-comp-body { padding: 16px 0; }
+  .ov-gauge { width: min(194px, 100%); }
+  .ov-lower { grid-template-columns: 1fr; gap: 16px; }
+  .ov-fleet-grid { padding: 4px 16px 0; gap: 12px; }
+  .ov-fleet-meta, .ov-fleet-bar { margin-left: 16px; margin-right: 16px; }
+  .ov-activity ul { padding: 4px 16px 20px; }
+}
+
+/* ---------- Very small phones (<= 380px) ---------- */
+@media (max-width: 380px) {
+  .ov-tab { padding: 0 10px; font-size: 12.5px; }
+  .ov-stat { padding: 16px 16px 12px; }
+  .ov-comp-list li { font-size: 13.5px; }
+}
+
+/* ---------- Large screens: use the extra width instead of leaving gaps ---------- */
+@media (min-width: 1600px) {
+  .ov-content { padding-left: 48px; padding-right: 48px; }
+  .ov-stats, .ov-charts, .ov-bottom, .ov-lower { gap: 32px; }
 }
