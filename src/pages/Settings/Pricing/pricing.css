@@ -1,149 +1,603 @@
+/* =========================================================
+   PRICING PAGE
+   Everything is scoped under .pricing-page so it can't leak
+   into (or be overridden by) other pages / the layout CSS.
+========================================================= */
 
+.pricing-page {
+  --navy: #0b2a4a;
+  --ink: #111827;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --band: #eef0fc;          /* card header band */
+  --thead: #e7eaf9;         /* table header band */
+  --line: #e5e7eb;
+  --input-border: #b9bfcc;
+  --orange: #f97316;
 
-/* =========================
-NOTICE
-========================= */
-
-.notice-box {
-  background: #FEE2E2;
-
-  border-left: 4px solid #F97316;
-
-  padding: 16px 20px;
-
-  border-radius: 10px;
-
-  margin-bottom: 24px;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
-.notice-box p {
-  margin-top: 6px;
-  color: #7C2D12;
+.pricing-page *,
+.pricing-page *::before,
+.pricing-page *::after {
+  box-sizing: border-box;
 }
 
-/* =========================
-HEADER
-========================= */
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.page-header h2 {
-  font-size: 34px;
-  margin-bottom: 8px;
-}
-
-.page-header p {
-  color: #6B7280;
+.pricing-page h2,
+.pricing-page h3,
+.pricing-page p {
+  margin: 0;
 }
 
 /* =========================
-GRID
+   TOPBAR
 ========================= */
 
-.pricing-grid {
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 24px;
-}
-
-.left-column,
-.right-column {
+.pricing-page .topbar {
+  height: 78px;
+  padding: 0 28px 0 24px;
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
 }
 
-/* =========================
-CARDS
-========================= */
-
-.settings-card {
-  background: white;
-
-  border-radius: 14px;
-
-  border: 1px solid #E5E7EB;
-
-  padding: 24px;
-}
-
-.card-header {
-  margin-bottom: 16px;
-}
-
-.card-header h3 {
-  font-size: 22px;
-}
-
-.card-desc {
-  color: #6B7280;
-  margin-bottom: 24px;
-}
-
-/* =========================
-FORMS
-========================= */
-
-.form-grid {
-  display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
-  gap: 20px;
-}
-
-.input-group {
+.pricing-page .search-box {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 16px;
+  width: 448px;
+  max-width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  background: var(--band);
+  border-radius: 4px;
+  color: #64748b;
 }
 
-.input-group label {
+.pricing-page .search-box input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.pricing-page .search-box input::placeholder {
+  color: #64748b;
+}
+
+.pricing-page .search-box:focus-within {
+  box-shadow: 0 0 0 2px rgba(11, 42, 74, 0.35);
+}
+
+.pricing-page .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pricing-page .icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pricing-page .topbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #d1d5db;
+}
+
+.pricing-page .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #111827;
+}
+
+.pricing-page .avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* =========================
+   CONTENT
+========================= */
+
+.pricing-page .content {
+  padding: 26px 56px 48px 32px;
+}
+
+/* =========================
+   NOTICE
+========================= */
+
+.pricing-page .notice-box {
+  padding: 12px 16px 12px 16px;
+  background: #fdddc8;
+  border-left: 4px solid var(--orange);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  margin-bottom: 32px;
+}
+
+.pricing-page .notice-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #9a3412;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.pricing-page .notice-title strong {
+  font-weight: 500;
+}
+
+.pricing-page .notice-box p {
+  margin-top: 2px;
   font-size: 12px;
+  line-height: 16px;
+  color: #7c2d12;
+}
 
-  color: #64748B;
+/* =========================
+   HEADER
+========================= */
 
+.pricing-page .page-header {
+  margin-bottom: 28px;
+}
+
+.pricing-page .page-header h2 {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+}
+
+.pricing-page .page-header p {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--text);
+}
+
+/* =========================
+   GRID
+========================= */
+
+.pricing-page .pricing-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.pricing-page .left-column,
+.pricing-page .right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* =========================
+   CARDS
+========================= */
+
+.pricing-page .settings-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pricing-page .settings-card.card-accent {
+  border-bottom: 4px solid var(--navy);
+}
+
+.pricing-page .card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 56px;
+  padding: 0 24px;
+  background: var(--band);
+  color: var(--navy);
+  border-bottom: 1px solid var(--line);
+}
+
+.pricing-page .card-header h3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pricing-page .card-desc {
+  padding: 8px 24px 10px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+}
+
+.pricing-page .card-desc-tight {
+  padding-bottom: 8px;
+  border-bottom: 0;
+}
+
+.pricing-page .card-footnote {
+  padding: 14px 24px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+
+/* =========================
+   FORMS (Fixed Trip Fees)
+========================= */
+
+.pricing-page .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px 32px;
+  align-items: start;
+  padding: 24px 24px 28px;
+}
+
+.pricing-page .input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-page .input-group:nth-child(2) {
+  padding-top: 0;
+}
+
+.pricing-page .input-group label {
+  margin-bottom: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #334155;
+}
+
+.pricing-page .input-group small {
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--muted);
+}
+
+.pricing-page .money-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid var(--input-border);
+  border-radius: 2px;
+  color: #475569;
+}
+
+.pricing-page .money-input input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+/* =========================
+   INPUT FOCUS (shared)
+========================= */
+
+.pricing-page .money-input:focus-within,
+.pricing-page .peso-cell input:focus,
+.pricing-page .rate-input:focus {
+  outline: 2px solid rgba(11, 42, 74, 0.45);
+  outline-offset: 1px;
+}
+
+/* =========================
+   TABLES
+========================= */
+
+.pricing-page .pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.pricing-page .pricing-table th {
+  padding: 12px 24px;
+  background: var(--thead);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-align: left;
+  vertical-align: middle;
+  color: #3b4558;
+}
+
+.pricing-page .pricing-table td {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  font-size: 16px;
+  line-height: 22px;
+  text-align: left;
+  vertical-align: middle;
+  color: var(--ink);
+}
+
+.pricing-page .pricing-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pricing-page .pricing-table .ta-right {
+  text-align: right;
+}
+
+.pricing-page .muted-cell {
+  color: #374151;
+}
+
+/* ---- Surcharges ---- */
+
+.pricing-page .surcharge-table col,
+.pricing-page .surcharge-table th:nth-child(1) { width: 38%; }
+.pricing-page .surcharge-table th:nth-child(2) { width: 36%; }
+.pricing-page .surcharge-table th:nth-child(3) { width: 26%; }
+
+.pricing-page .surcharge-table th,
+.pricing-page .surcharge-table td {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.pricing-page .surcharge-table td {
+  height: 80px;
+}
+
+.pricing-page .surcharge-table th:nth-child(1),
+.pricing-page .surcharge-table td:nth-child(1) {
+  padding-right: 0;
+}
+
+.pricing-page .tag {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--thead);
+  border-radius: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.pricing-page .tag-wrap {
+  max-width: 112px;
+}
+
+.pricing-page .tag-strong {
+  background: #cfe0fb;
+}
+
+.pricing-page .peso-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #475569;
+}
+
+.pricing-page .peso-cell input {
+  width: 96px;
+  height: 36px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid var(--input-border);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.pricing-page .applied-as {
+  color: #374151;
+  line-height: 22px;
+}
+
+.pricing-page .applied-as {
+  white-space: normal;
+}
+
+/* ---- Vehicles ---- */
+
+.pricing-page .vehicle-table th:nth-child(1) { width: 40%; }
+.pricing-page .vehicle-table th:nth-child(2) { width: 32%; }
+.pricing-page .vehicle-table th:nth-child(3) { width: 28%; }
+
+.pricing-page .vehicle-table th,
+.pricing-page .vehicle-table td {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.pricing-page .vehicle-table td {
+  height: 77px;
+}
+
+.pricing-page .vehicle-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.pricing-page .vehicle-icon {
+  flex: 0 0 24px;
+  display: grid;
+  place-items: center;
+  color: #4b5563;
+}
+
+.pricing-page .rate-input {
+  width: 96px;
+  height: 38px;
+  padding: 0 12px;
+  background: #fff;
+  border: 1px solid var(--input-border);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  font: inherit;
+  font-size: 16px;
+  text-align: center;
+  color: var(--ink);
+}
+
+/* ---- Toll gates ---- */
+
+.pricing-page .toll-table th:nth-child(1) { width: 29%; }
+.pricing-page .toll-table th:nth-child(2) { width: 22%; }
+.pricing-page .toll-table th:nth-child(3) { width: 25%; }
+.pricing-page .toll-table th:nth-child(4) { width: 24%; }
+
+.pricing-page .toll-table th,
+.pricing-page .toll-table td {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.pricing-page .toll-table td {
+  height: 77px;
+}
+
+.pricing-page .toll-name {
   font-weight: 600;
 }
 
-.input-group input,
-.pricing-table input {
+.pricing-page .toll-fee {
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.pricing-page .toll-fee span {
+  display: block;
+}
+
+.pricing-page .hwy {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 2px;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+}
+
+.pricing-page .hwy-nlex {
+  background: #dbe4ff;
+  color: #1e3a8a;
+}
+
+.pricing-page .hwy-tplex {
+  background: #d1fae5;
+  color: #166534;
+}
+
+.pricing-page .hwy-sctex {
+  background: #ffe4d0;
+  color: #c2410c;
+}
+
+.pricing-page .toll-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+}
+
+.pricing-page .toll-footer p {
+  max-width: 290px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--muted);
+}
+
+.pricing-page .add-toll-btn {
+  flex: 0 0 auto;
+  width: 127px;
   padding: 10px 12px;
+  background: #fff;
+  border: 1.5px solid var(--navy);
+  border-radius: 2px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--navy);
+  cursor: pointer;
+}
 
-  border: 1px solid #CBD5E1;
+.pricing-page .add-toll-btn:hover {
+  background: var(--band);
+}
 
-  border-radius: 8px;
-
-  background: #F8FAFC;
+.pricing-page .add-toll-btn:focus-visible {
+  outline: 2px solid rgba(11, 42, 74, 0.45);
+  outline-offset: 2px;
 }
 
 /* =========================
-TABLES
+   RESPONSIVE
 ========================= */
 
-.pricing-table {
-  width: 100%;
+@media (max-width: 900px) {
+  .pricing-page .pricing-grid {
+    grid-template-columns: 1fr;
+  }
 
-  border-collapse: collapse;
-}
+  .pricing-page .content {
+    padding: 20px 16px 40px;
+  }
 
-.pricing-table th,
-.pricing-table td {
-  padding: 14px 12px;
+  .pricing-page .form-grid {
+    grid-template-columns: 1fr;
+  }
 
-  border-bottom: 1px solid #F1F5F9;
-
-  text-align: left;
-}
-
-.pricing-table th {
-  background: #F8FAFC;
-
-  color: #64748B;
-
-  font-size: 13px;
+  .pricing-page .search-box {
+    width: 100%;
+    margin-right: 16px;
+  }
 }
