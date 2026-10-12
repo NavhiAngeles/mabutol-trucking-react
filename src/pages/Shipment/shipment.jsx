@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
@@ -6,8 +7,10 @@ import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import "./shipment.css";
 
 export default function Shipment() {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
 
   const {
     visibleShipments,
@@ -23,58 +26,153 @@ export default function Shipment() {
     refresh,
   } = useShipmentViewModel();
 
-  /* --------------------- actions dropdown state --------------------- */
-  const [openMenuId, setOpenMenuId] = useState(null);
-  const menuRef = useRef(null);
-
-  // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+    const onOutsideClick = (event) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target)
+      ) {
         setOpenMenuId(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener("mousedown", onOutsideClick);
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        onOutsideClick
+      );
   }, []);
 
   const toggleMenu = (id) =>
-    setOpenMenuId((prev) => (prev === id ? null : id));
+    setOpenMenuId((previous) =>
+      previous === id ? null : id
+    );
 
-  /* ----------------------- action handlers ------------------------- */
   const handleView = (shipment) => {
-    console.log("View shipment:", shipment.id);
-    // TODO: navigate to shipment detail page
+    console.log("View shipment:", shipment.dbId);
+    window.alert(
+      `Shipment ${shipment.id}\nDetails page is not implemented yet.`
+    );
   };
 
   const handleEdit = (shipment) => {
-    console.log("Edit shipment:", shipment.id);
-    // TODO: open edit drawer / navigate to edit page
+    console.log("Edit shipment:", shipment.dbId);
+    window.alert("Shipment editing is not implemented yet.");
   };
 
   const handleCancel = (shipment) => {
-    console.log("Cancel shipment:", shipment.id);
-    // TODO: confirmation modal + call cancelShipment service
+    console.log("Cancel shipment:", shipment.dbId);
+    window.alert("Shipment cancellation is not implemented yet.");
   };
+
+  const statusLabel = (status) =>
+    ({
+      transit: "IN TRANSIT",
+      loading: "LOADING",
+      delayed: "DELAYED",
+      review: "REVIEW",
+      completed: "COMPLETED",
+    })[status] ??
+    String(status || "UNKNOWN").toUpperCase();
+
+  const statusClass = (status) =>
+    ({
+      transit: "transit-pill",
+      loading: "loading-pill",
+      delayed: "delayed-pill",
+      review: "review-pill",
+    })[status] ?? "loading-pill";
+
+  const renderMenu = (shipment, completed = false) => (
+    <div
+      className="action-menu-wrapper"
+      ref={openMenuId === shipment.dbId ? menuRef : null}
+    >
+      <button
+        type="button"
+        className="action-btn"
+        aria-label={`Actions for ${shipment.id}`}
+        aria-expanded={openMenuId === shipment.dbId}
+        onClick={() => toggleMenu(shipment.dbId)}
+      >
+        <i className="las la-ellipsis-v" />
+      </button>
+
+      {openMenuId === shipment.dbId && (
+        <div className="action-dropdown">
+          <button
+            type="button"
+            onClick={() => {
+              handleView(shipment);
+              setOpenMenuId(null);
+            }}
+          >
+            <i className="las la-eye" /> View Details
+          </button>
+
+          {!completed && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  handleEdit(shipment);
+                  setOpenMenuId(null);
+                }}
+              >
+                <i className="las la-pen" /> Edit
+              </button>
+
+              {shipment.status !== "review" && (
+                <button
+                  type="button"
+                  className="action-danger"
+                  onClick={() => {
+                    handleCancel(shipment);
+                    setOpenMenuId(null);
+                  }}
+                >
+                  <i className="las la-times-circle" /> Cancel
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <MainLayout>
-      {/* Global Topbar Header Area */}
+      {/* TOPBAR */}
       <header className="topbar">
         <div className="search-container">
-          <i className="las la-search topbar-search-icon"></i>
+          <i className="las la-search topbar-search-icon" />
+
           <input
             type="text"
             id="shipmentSearch"
-            placeholder="Search..."
-            onChange={(e) => console.log("Searching:", e.target.value)}
+            placeholder="Search shipments..."
+            value={searchQuery}
+            onChange={(event) =>
+              setSearchQuery(event.target.value)
+            }
           />
         </div>
 
         <div className="topbar-right">
-          <button id="notifBtn" className="notification-btn" onClick={() => alert("No new notifications")}>
-            <i className="las la-bell"></i>
+          <button
+            type="button"
+            id="notifBtn"
+            className="notification-btn"
+            onClick={() =>
+              window.alert("No new notifications")
+            }
+          >
+            <i className="las la-bell" />
           </button>
+
           <div
             className="avatar"
             onClick={() => navigate("/settings/account")}
@@ -90,57 +188,76 @@ export default function Shipment() {
         </div>
       </header>
 
-      {/* Main Content Workspace Layout Canvas */}
       <section className="content">
-
-        {/* Dynamic Title and Action Button based on Tab View */}
+        {/* HEADER */}
         <div className="header-row">
           <div className="header">
             <h2>Shipments - {activeConfig.title}</h2>
             <p>{activeConfig.description}</p>
           </div>
 
-          <button className="btn-primary" onClick={() => setIsDrawerOpen(true)}>
-            <i className="las la-plus"></i> ADD SHIPMENT
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setIsDrawerOpen(true)}
+          >
+            <i className="las la-plus" /> ADD SHIPMENT
           </button>
         </div>
 
-        {/* Error Banner */}
+        {/* DATABASE ERROR */}
         {error && (
-          <div className="shipment-error-banner">
-            <i className="las la-exclamation-circle"></i>
-            <span>{error}</span>
-            <button onClick={refresh} className="retry-btn">Retry</button>
+          <div
+            className="shipment-error-banner"
+            role="alert"
+          >
+            <i className="las la-exclamation-circle" />
+
+            <span>
+              Could not load shipments: {error}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => refresh()}
+              className="retry-btn"
+            >
+              Retry
+            </button>
           </div>
         )}
 
-        {/* Dynamic Operational Cards Block Row */}
+        {/* STATISTICS */}
         <div className="stats">
           {currentTab === "active" && (
             <>
               <div className="stat-card completed">
                 <div className="stat-header">
                   <h4>In Transit</h4>
-                  <i className="las la-truck stat-icon text-transit"></i>
+                  <i className="las la-truck stat-icon text-transit" />
                 </div>
                 <h2>{stats.transitCount}</h2>
                 <p>Currently on the road</p>
               </div>
+
               <div className="stat-card ontime">
                 <div className="stat-header">
                   <h4>Loading / Preparing</h4>
-                  <i className="las la-box stat-icon text-loading"></i>
+                  <i className="las la-box stat-icon text-loading" />
                 </div>
                 <h2>{stats.loadingCount}</h2>
-                <p>Awaiting dispatch parameters</p>
+                <p>Awaiting dispatch</p>
               </div>
+
               <div className="stat-card late">
                 <div className="stat-header">
                   <h4>Delayed</h4>
-                  <i className="las la-exclamation-triangle stat-icon text-delayed"></i>
+                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
                 </div>
                 <h2>{stats.delayedCount}</h2>
-                <p className="text-danger-accent">Immediate routing review required</p>
+                <p className="text-danger-accent">
+                  Requires attention
+                </p>
               </div>
             </>
           )}
@@ -150,23 +267,25 @@ export default function Shipment() {
               <div className="stat-card late">
                 <div className="stat-header">
                   <h4>Delayed Now</h4>
-                  <i className="las la-exclamation-triangle stat-icon text-delayed"></i>
+                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
                 </div>
                 <h2>{stats.delayedCount}</h2>
-                <p className="text-danger-accent">Immediate routing review required</p>
+                <p>Requires attention</p>
               </div>
+
               <div className="stat-card ontime">
                 <div className="stat-header">
                   <h4>Avg. Delay</h4>
-                  <i className="las la-clock stat-icon"></i>
+                  <i className="las la-clock stat-icon" />
                 </div>
                 <h2>{stats.avgDelayLabel}</h2>
-                <p>Across all delayed shipments</p>
+                <p>Across delayed shipments</p>
               </div>
+
               <div className="stat-card completed">
                 <div className="stat-header">
                   <h4>Worst Delay</h4>
-                  <i className="las la-hourglass-end stat-icon text-delayed"></i>
+                  <i className="las la-hourglass-end stat-icon text-delayed" />
                 </div>
                 <h2>{stats.worstDelay.label}</h2>
                 <p>{stats.worstDelay.id}</p>
@@ -179,26 +298,28 @@ export default function Shipment() {
               <div className="stat-card completed">
                 <div className="stat-header">
                   <h4>Completed Today</h4>
-                  <i className="las la-check-circle stat-icon"></i>
+                  <i className="las la-check-circle stat-icon" />
                 </div>
                 <h2>{stats.completedToday}</h2>
                 <p>Deliveries finished today</p>
               </div>
+
               <div className="stat-card ontime">
                 <div className="stat-header">
                   <h4>On Time Fulfill</h4>
-                  <i className="las la-clock stat-icon"></i>
+                  <i className="las la-clock stat-icon" />
                 </div>
                 <h2>{stats.onTimeToday}</h2>
                 <p>{stats.onTimePct}% of today's handoffs</p>
               </div>
+
               <div className="stat-card late">
                 <div className="stat-header">
                   <h4>Late Deliveries</h4>
-                  <i className="las la-exclamation-triangle stat-icon"></i>
+                  <i className="las la-exclamation-triangle stat-icon" />
                 </div>
                 <h2>{stats.lateToday}</h2>
-                <p>Delivered but outside window</p>
+                <p>Delivered outside window</p>
               </div>
             </>
           )}
@@ -208,26 +329,28 @@ export default function Shipment() {
               <div className="stat-card late">
                 <div className="stat-header">
                   <h4>Pending Review</h4>
-                  <i className="las la-flag stat-icon text-delayed"></i>
+                  <i className="las la-flag stat-icon text-delayed" />
                 </div>
                 <h2>{visibleShipments.length}</h2>
-                <p className="text-danger-accent">Needs manual sign-off</p>
+                <p>Needs manual review</p>
               </div>
+
               <div className="stat-card ontime">
                 <div className="stat-header">
                   <h4>Avg. Age</h4>
-                  <i className="las la-history stat-icon"></i>
+                  <i className="las la-history stat-icon" />
                 </div>
                 <h2>{stats.avgReviewAgeLabel}</h2>
-                <p>Since flagged for review</p>
+                <p>Since last update</p>
               </div>
+
               <div className="stat-card completed">
                 <div className="stat-header">
                   <h4>Resolved This Week</h4>
-                  <i className="las la-check-circle stat-icon"></i>
+                  <i className="las la-check-circle stat-icon" />
                 </div>
                 <h2>—</h2>
-                <p>Cleared after review</p>
+                <p>Not yet tracked</p>
               </div>
             </>
           )}
@@ -235,129 +358,186 @@ export default function Shipment() {
           <div className="stat-card trips">
             <div className="stat-header">
               <h4>This Week's Trips</h4>
-              <i className="las la-chart-bar stat-icon"></i>
+              <i className="las la-chart-bar stat-icon" />
             </div>
             <h2>{stats.weeklyTrips}</h2>
-            <p>Aggregated fleet total</p>
+            <p>Shipments created this week</p>
           </div>
         </div>
 
-        {/* INTERACTIVE NAVIGATION SUB-TABS OVERHAUL */}
+        {/* SHIPMENT TABS */}
         <div className="view-tabs">
           {tabs.map((tab) => (
             <div
               key={tab.key}
-              className={`tab ${currentTab === tab.key ? "active" : ""}`}
-              onClick={() => setCurrentTab(tab.key)}
+              className={`tab ${
+                currentTab === tab.key ? "active" : ""
+              }`}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setCurrentTab(tab.key);
+                setOpenMenuId(null);
+              }}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" ||
+                  event.key === " "
+                ) {
+                  event.preventDefault();
+                  setCurrentTab(tab.key);
+                  setOpenMenuId(null);
+                }
+              }}
             >
               {tab.label}
-              {tab.badge !== null && tab.badge !== undefined && (
-                <span className={`badge ${tab.badgeClass || ""}`}>{tab.badge}</span>
-              )}
+
+              {tab.badge !== null &&
+                tab.badge !== undefined && (
+                  <span
+                    className={`badge ${
+                      tab.badgeClass || ""
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
             </div>
           ))}
         </div>
 
-        {/* Filter Controls Bar */}
+        {/* SEARCH AND REFRESH */}
         <div className="table-controls">
           <div className="search-wrapper">
-            <i className="las la-search table-search-icon"></i>
+            <i className="las la-search table-search-icon" />
+
             <input
               type="text"
               className="table-search"
-              placeholder="Search by ID, route point, or driver..."
+              placeholder="Search by ID, route, driver or customer..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(event) =>
+                setSearchQuery(event.target.value)
+              }
             />
           </div>
-          <button className="control-btn">SORT BY <i className="las la-bars"></i></button>
-          <button className="control-btn">TODAY <i className="las la-calendar"></i></button>
-          <button className="control-btn"><i className="las la-sliders-h"></i></button>
+
+          <button
+            type="button"
+            className="control-btn"
+            onClick={() => refresh()}
+          >
+            REFRESH <i className="las la-sync" />
+          </button>
         </div>
 
-        {/* Loading State */}
+        {/* LOADING */}
         {isLoading && (
-          <div className="shipment-loading">
-            <i className="las la-spinner la-spin"></i>
+          <div
+            className="shipment-loading"
+            role="status"
+          >
+            <i className="las la-spinner la-spin" />
             <span>Loading shipments…</span>
           </div>
         )}
 
-        {/* DYNAMIC CONDITION TABLE CONTAINER SWITCH */}
+        {/* SHIPMENT TABLE */}
         {!isLoading && (
           <div className="shipment-table-card">
             <table className="shipment-table">
               {currentTab === "completed" ? (
-                /* COMPLETED OPERATIONS DATA VIEW */
                 <>
                   <thead>
                     <tr>
                       <th>Shipment ID</th>
                       <th>Customer</th>
                       <th>Route</th>
-                      <th>Driver & Vehicle</th>
+                      <th>Driver &amp; Vehicle</th>
                       <th>Target Delivery</th>
                       <th>Actual Delivery</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {visibleShipments.map((s) => (
                       <tr key={s.dbId}>
                         <td>
-                          <div className="cell-bold">{s.id}</div>
-                          <div className="cell-sub">{s.cargo}</div>
+                          <div className="cell-bold">
+                            {s.id}
+                          </div>
+                          <div className="cell-sub">
+                            {s.cargo}
+                          </div>
                         </td>
+
                         <td>
                           <div className="customer-cell">
-                            <div className="customer-avatar avatar-blue">{s.customerInitials}</div>
-                            <div className="text-dark-bold">{s.customer}</div>
+                            <div className="customer-avatar avatar-blue">
+                              {s.customerInitials || "?"}
+                            </div>
+                            <div className="text-dark-bold">
+                              {s.customer}
+                            </div>
                           </div>
                         </td>
+
                         <td>
                           <div className="text-dark-bold">
-                            {s.origin} <span className="route-arrow">→</span> {s.destination}
+                            {s.origin}{" "}
+                            <span className="route-arrow">
+                              →
+                            </span>{" "}
+                            {s.destination}
                           </div>
                         </td>
+
                         <td>
-                          <div className="text-dark-bold">{s.driver}</div>
-                          <div className="cell-sub">{s.fleet}</div>
+                          <div className="text-dark-bold">
+                            {s.driver}
+                          </div>
+                          <div className="cell-sub">
+                            {s.fleet}
+                          </div>
                         </td>
+
                         <td>{s.targetDelivery}</td>
-                        <td className="text-dark-bold">{s.actualDelivery}</td>
+
+                        <td className="text-dark-bold">
+                          {s.actualDelivery}
+                        </td>
+
                         <td>
                           <span className="status transit">
-                            <i className="las la-check-circle"></i> {s.deliveryStatus}
+                            <i className="las la-check-circle" />{" "}
+                            {s.deliveryStatus}
                           </span>
                         </td>
-                        <td>
-                          <div className="action-menu-wrapper" ref={openMenuId === s.dbId ? menuRef : null}>
-                            <button className="action-btn" onClick={() => toggleMenu(s.dbId)}>
-                              <i className="las la-ellipsis-v"></i>
-                            </button>
-                            {openMenuId === s.dbId && (
-                              <div className="action-dropdown">
-                                <button onClick={() => { handleView(s); setOpenMenuId(null); }}>
-                                  <i className="las la-eye"></i> View Details
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
+
+                        <td>{renderMenu(s, true)}</td>
                       </tr>
                     ))}
+
                     {visibleShipments.length === 0 && (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: "center", padding: "32px" }}>
-                          No completed shipments to show.
+                        <td
+                          colSpan={8}
+                          style={{
+                            textAlign: "center",
+                            padding: "32px",
+                          }}
+                        >
+                          {error
+                            ? "Unable to load completed shipments."
+                            : "No completed shipments to show."}
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </>
               ) : (
-                /* ACTIVE / DELAYED / REVIEW DATA VIEW (shared shape) */
                 <>
                   <thead>
                     <tr>
@@ -366,68 +546,93 @@ export default function Shipment() {
                       <th>Destination</th>
                       <th>Status</th>
                       <th>Assigned Driver</th>
-                      <th>{currentTab === "review" ? "Last Update" : "Estimated Delivery"}</th>
+                      <th>
+                        {currentTab === "review"
+                          ? "Last Update"
+                          : "Estimated Delivery"}
+                      </th>
                       <th>Actions</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {visibleShipments.map((s) => (
                       <tr key={s.dbId}>
                         <td>
-                          <div className="cell-bold">{s.id}</div>
-                          <div className="cell-sub">{s.cargo}</div>
-                        </td>
-                        <td>
-                          <div className="text-dark-bold">{s.origin}</div>
-                          <div className="cell-sub">{s.originSub}</div>
-                        </td>
-                        <td>
-                          <div className="text-dark-bold">{s.destination}</div>
-                          <div className="cell-sub">{s.destinationSub}</div>
-                        </td>
-                        <td>
-                          <span
-                            className={`status ${s.status === "transit" ? "transit-pill" : s.status === "delayed" ? "delayed-pill" : s.status === "review" ? "review-pill" : "loading-pill"}`}
-                          >
-                            ● {s.status.toUpperCase()}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="text-dark-bold">{s.driver}</div>
-                          <div className="cell-sub">{s.fleet}</div>
-                        </td>
-                        <td>
-                          <div className="text-dark-bold">{s.eta}</div>
-                          <div className={`status-sub-indicator ${s.etaNoteClass || ""}`}>{s.etaNote}</div>
-                        </td>
-                        <td>
-                          <div className="action-menu-wrapper" ref={openMenuId === s.dbId ? menuRef : null}>
-                            <button className="action-btn" onClick={() => toggleMenu(s.dbId)}>
-                              <i className="las la-ellipsis-v"></i>
-                            </button>
-                            {openMenuId === s.dbId && (
-                              <div className="action-dropdown">
-                                <button onClick={() => { handleView(s); setOpenMenuId(null); }}>
-                                  <i className="las la-eye"></i> View Details
-                                </button>
-                                <button onClick={() => { handleEdit(s); setOpenMenuId(null); }}>
-                                  <i className="las la-pen"></i> Edit
-                                </button>
-                                {s.status !== "review" && (
-                                  <button className="action-danger" onClick={() => { handleCancel(s); setOpenMenuId(null); }}>
-                                    <i className="las la-times-circle"></i> Cancel
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                          <div className="cell-bold">
+                            {s.id}
+                          </div>
+                          <div className="cell-sub">
+                            {s.cargo}
                           </div>
                         </td>
+
+                        <td>
+                          <div className="text-dark-bold">
+                            {s.origin}
+                          </div>
+                          <div className="cell-sub">
+                            {s.originSub}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="text-dark-bold">
+                            {s.destination}
+                          </div>
+                          <div className="cell-sub">
+                            {s.destinationSub}
+                          </div>
+                        </td>
+
+                        <td>
+                          <span
+                            className={`status ${statusClass(
+                              s.status
+                            )}`}
+                          >
+                            ● {statusLabel(s.status)}
+                          </span>
+                        </td>
+
+                        <td>
+                          <div className="text-dark-bold">
+                            {s.driver}
+                          </div>
+                          <div className="cell-sub">
+                            {s.fleet}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="text-dark-bold">
+                            {s.eta}
+                          </div>
+                          <div
+                            className={`status-sub-indicator ${
+                              s.etaNoteClass || ""
+                            }`}
+                          >
+                            {s.etaNote}
+                          </div>
+                        </td>
+
+                        <td>{renderMenu(s)}</td>
                       </tr>
                     ))}
+
                     {visibleShipments.length === 0 && (
                       <tr>
-                        <td colSpan={7} style={{ textAlign: "center", padding: "32px" }}>
-                          No {activeConfig.label?.toLowerCase() ?? ""} shipments to show.
+                        <td
+                          colSpan={7}
+                          style={{
+                            textAlign: "center",
+                            padding: "32px",
+                          }}
+                        >
+                          {error
+                            ? "Unable to load shipments."
+                            : `No ${activeConfig.label.toLowerCase()} shipments to show.`}
                         </td>
                       </tr>
                     )}
@@ -436,23 +641,37 @@ export default function Shipment() {
               )}
             </table>
 
-            {/* Bottom Table Pagination Control Footer */}
+            {/* TABLE FOOTER */}
             <div className="table-pagination-footer">
               <span className="pagination-summary">
-                Showing 1-{visibleShipments.length} of {visibleShipments.length} {activeConfig.label} Shipments
+                {visibleShipments.length === 0
+                  ? "Showing 0"
+                  : `Showing 1–${visibleShipments.length}`}{" "}
+                of {visibleShipments.length}{" "}
+                {activeConfig.label} Shipments
               </span>
+
               <div className="pagination-controls-group">
-                <button className="page-nav-btn"><i className="las la-angle-left"></i></button>
-                <button className="page-number-btn active">1</button>
-                <button className="page-nav-btn"><i className="las la-angle-right"></i></button>
+                <button
+                  type="button"
+                  className="page-number-btn active"
+                >
+                  1
+                </button>
               </div>
             </div>
           </div>
         )}
       </section>
 
-      {/* Slide-out Overlay Form Component */}
-      <CreateShipmentDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+      {/* CREATE SHIPMENT DRAWER */}
+      <CreateShipmentDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => {
+          setIsDrawerOpen(false);
+          refresh();
+        }}
+      />
     </MainLayout>
   );
 }

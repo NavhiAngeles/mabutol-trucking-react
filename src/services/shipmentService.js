@@ -1,191 +1,440 @@
+
 import { supabase } from "./supabaseClient";
 
-const SHIPMENT_SELECT = `
-  id,
-  tracking_number,
-  status,
-  cargo_description,
-  weight_kg,
-  booking_source,
-  final_amount,
-  pickup_address,
-  dropoff_address,
-  scheduled_departure,
-  estimated_arrival,
-  actual_delivery_at,
-  created_at,
-  updated_at,
-  customer:customers!shipments_customer_id_fkey ( * ),
-  cargo_category:cargo_categories ( * )
-`;
+/*
+  MABUTOL TRUCKING
+  SHIPMENT SERVICE
 
-/* Unmapped statuses (e.g. cancelled) become "other" and appear in no tab. */
+  Connects the Shipment page to the existing
+  Supabase public.shipments table.
+
+  No additional Supabase connection is required.
+*/
+
+// ============================================
+// SHIPMENT STATUS MAPPING
+// ============================================
+
 const STATUS_MAP = {
+  pending: "loading",
   booked: "loading",
   confirmed: "loading",
   assigned: "loading",
   loading: "loading",
+  preparing: "loading",
+  ready_for_pickup: "loading",
+
   in_transit: "transit",
+  transit: "transit",
+  ongoing: "transit",
+
   delayed: "delayed",
+
   under_review: "review",
+  review: "review",
+
   delivered: "completed",
   completed: "completed",
 };
 
-/* ------------------------------ formatting ------------------------------ */
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 
-const pad = (n) => String(n).padStart(2, "0");
-const formatTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const pad = (number) =>
+  String(number).padStart(2, "0");
 
-const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const toDate = (value) => {
+  if (!value) return null;
 
-export const isToday = (date) =>
-  !!date && startOfDay(date).getTime() === startOfDay(new Date()).getTime();
+  const date = new Date(value);
 
-/* "Today, 14:30" / "Yesterday, 17:40" / "2 days ago, 09:20" / "Sep 12, 09:20" */
-export function formatDayTime(date) {
-  if (!date) return "—";
-  const dayDiff = Math.round(
-    (startOfDay(new Date()) - startOfDay(date)) / (1000 * 60 * 60 * 24)
+  return Number.isNaN(date.getTime())
+    ? null
+    : date;
+};
+
+const startOfDay = (date) =>
+  new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
   );
-  const time = formatTime(date);
-  if (dayDiff === 0) return `Today, ${time}`;
-  if (dayDiff === 1) return `Yesterday, ${time}`;
-  if (dayDiff > 1 && dayDiff <= 6) return `${dayDiff} days ago, ${time}`;
-  const label = date.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
-  return `${label}, ${time}`;
+
+export function isToday(date) {
+  if (!date) return false;
+
+  const parsedDate = toDate(date);
+
+  if (!parsedDate) return false;
+
+  return (
+    startOfDay(parsedDate).getTime() ===
+    startOfDay(new Date()).getTime()
+  );
 }
 
-/* 100 -> "1h 40m", 55 -> "55m" */
+export function formatDayTime(value) {
+  const date = toDate(value);
+
+  if (!date) return "—";
+
+  const time = `${pad(date.getHours())}:${pad(
+    date.getMinutes()
+  )}`;
+
+  const today = startOfDay(new Date());
+  const target = startOfDay(date);
+
+  const difference = Math.round(
+    (today.getTime() - target.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (difference === 0) {
+    return `Today, ${time}`;
+  }
+
+  if (difference === 1) {
+    return `Yesterday, ${time}`;
+  }
+
+  if (difference > 1 && difference <= 6) {
+    return `${difference} days ago, ${time}`;
+  }
+
+  return `${date.toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+  })}, ${time}`;
+}
+
 export function formatDuration(totalMinutes) {
-  const m = Math.max(0, Math.round(totalMinutes));
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  if (h === 0) return `${rem}m`;
-  return rem === 0 ? `${h}h` : `${h}h ${rem}m`;
+  const minutes = Math.max(
+    0,
+    Math.round(Number(totalMinutes) || 0)
+  );
+
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+
+  if (hours === 0) {
+    return `${remaining}m`;
+  }
+
+  if (remaining === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${remaining}m`;
 }
 
-const toInitials = (name = "") =>
-  name
+const getInitials = (name = "") =>
+  String(name)
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
+    .map((word) => word[0].toUpperCase())
     .join("");
 
-const toDate = (value) => (value ? new Date(value) : null);
-
-/* ------------------------------- mapping -------------------------------- */
-
-/* Joined tables use select("*"), so this tolerates whatever the name column is called. */
-const pickName = (rec) =>
-  rec?.company_name ?? rec?.business_name ?? rec?.name ?? rec?.full_name ?? null;
+// ============================================
+// MAP SUPABASE DATA TO REACT TABLE
+// ============================================
 
 export function mapShipmentRow(row) {
-  const status = STATUS_MAP[row.status] ?? "other";
-  const scheduledAt = toDate(row.estimated_arrival);
-  const actualAt = toDate(row.actual_delivery_at);
-  const updatedAt = toDate(row.updated_at);
-  const departAt = toDate(row.scheduled_departure);
+  const rawStatus = String(
+    row.status ?? "pending"
+  ).toLowerCase();
+
+  const status = STATUS_MAP[rawStatus] ?? "review";
+
+  const scheduledAt = toDate(
+    row.estimated_arrival
+  );
+
+  const actualAt = toDate(
+    row.actual_delivery_at
+  );
+
+  const updatedAt = toDate(
+    row.updated_at ?? row.created_at
+  );
+
+  const departAt = toDate(
+    row.scheduled_departure
+  );
+
+  const customerName =
+    row.customer_name ??
+    row.customer?.company_name ??
+    row.customer?.business_name ??
+    row.customer?.name ??
+    "—";
 
   const delayMinutes =
     status === "delayed" && scheduledAt
-      ? Math.max(0, (Date.now() - scheduledAt.getTime()) / 60000)
+      ? Math.max(
+          0,
+          (Date.now() - scheduledAt.getTime()) /
+            60000
+        )
       : 0;
 
-  const customerName = pickName(row.customer) ?? "—";
-
-  const base = {
-    id: row.tracking_number,
+  const baseShipment = {
     dbId: row.id,
-    cargo: row.cargo_description ?? pickName(row.cargo_category) ?? "General cargo",
-    origin: row.pickup_address,
+
+    id:
+      row.tracking_number ??
+      String(row.id ?? "—"),
+
+    cargo:
+      row.cargo_description ??
+      "General Cargo",
+
+    origin:
+      row.pickup_address ??
+      "Not specified",
+
     originSub: "",
-    destination: row.dropoff_address,
+
+    destination:
+      row.dropoff_address ??
+      "Not specified",
+
     destinationSub: "",
+
     status,
-    driver: "Unassigned",   // TODO: wire up once deliveries/assignments table is ready
-    fleet: "—",             // TODO
-    weightKg: row.weight_kg,
-    bookingSource: row.booking_source,
-    finalAmount: row.final_amount,
-    delayMinutes,
+
+    driver: "Unassigned",
+
+    fleet: "—",
+
+    customer: customerName,
+
+    customerInitials: getInitials(
+      customerName
+    ),
+
+    weightKg: row.weight_kg ?? 0,
+
+    bookingSource:
+      row.booking_source ?? "—",
+
+    finalAmount:
+      row.final_amount ?? 0,
+
     scheduledAt,
+
     actualAt,
-    flaggedAt: updatedAt,
+
+    flaggedAt:
+      updatedAt ?? new Date(),
+
+    delayMinutes,
   };
 
+  // ==========================================
+  // COMPLETED SHIPMENTS
+  // ==========================================
+
   if (status === "completed") {
-    const onTime = actualAt && scheduledAt ? actualAt <= scheduledAt : true;
+    const onTime =
+      actualAt && scheduledAt
+        ? actualAt <= scheduledAt
+        : true;
+
     return {
-      ...base,
-      customer: customerName,
-      customerInitials: toInitials(customerName),
-      targetDelivery: formatDayTime(scheduledAt),
-      actualDelivery: formatDayTime(actualAt),
-      deliveryStatus: onTime ? "ON TIME" : "LATE",
+      ...baseShipment,
+
+      targetDelivery:
+        formatDayTime(scheduledAt),
+
+      actualDelivery:
+        formatDayTime(actualAt),
+
+      deliveryStatus:
+        onTime ? "ON TIME" : "LATE",
     };
   }
 
+  // ==========================================
+  // ACTIVE / DELAYED / REVIEW SHIPMENTS
+  // ==========================================
+
   let eta = formatDayTime(scheduledAt);
+
   let etaNote = "";
+
   let etaNoteClass = "text-muted-gray";
 
   if (status === "transit") {
-    etaNote = "On Time";
+    etaNote = "In Transit";
     etaNoteClass = "text-success-green";
-  } else if (status === "loading") {
-    etaNote = departAt ? `Est. Depart ${formatTime(departAt)}` : "Awaiting dispatch";
-  } else if (status === "delayed") {
-    etaNote = `Delayed ${formatDuration(delayMinutes)}`;
-    etaNoteClass = "text-danger-accent";
-  } else if (status === "review") {
-    eta = formatDayTime(actualAt ?? updatedAt);
-    etaNote = "Flagged for review";   // no flag-reason column on shipments
+  }
+
+  if (status === "loading") {
+    etaNote = departAt
+      ? `Est. Depart ${formatDayTime(departAt)}`
+      : "Awaiting Dispatch";
+  }
+
+  if (status === "delayed") {
+    etaNote = `Delayed ${formatDuration(
+      delayMinutes
+    )}`;
+
     etaNoteClass = "text-danger-accent";
   }
 
-  return { ...base, eta, etaNote, etaNoteClass };
+  if (status === "review") {
+    eta = formatDayTime(
+      actualAt ?? updatedAt
+    );
+
+    etaNote = "Needs Review";
+    etaNoteClass = "text-danger-accent";
+  }
+
+  return {
+    ...baseShipment,
+    eta,
+    etaNote,
+    etaNoteClass,
+  };
 }
 
-/* -------------------------------- queries ------------------------------- */
+// ============================================
+// FETCH ALL SHIPMENTS FROM SUPABASE
+// ============================================
 
-/* Fine for a capstone-sized dataset. When the table grows, switch to
-   server-side filtering (.eq("status", ...)) + .range() pagination. */
 export async function fetchShipments() {
-  const { data, error } = await supabase
-    .from("shipments")
-    .select(SHIPMENT_SELECT)
-    .order("created_at", { ascending: false })
-    .limit(500);
+  try {
+    console.log(
+      "Fetching shipments from Supabase..."
+    );
 
-  if (error) throw error;
-  return (data ?? []).map(mapShipmentRow);
+    const { data, error } = await supabase
+      .from("shipments")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(500);
+
+    if (error) {
+      console.error(
+        "Supabase shipment error:",
+        error
+      );
+
+      throw error;
+    }
+
+    console.log(
+      "Raw shipment data:",
+      data
+    );
+
+    const mappedShipments = (
+      data ?? []
+    ).map(mapShipmentRow);
+
+    console.log(
+      "Mapped shipments:",
+      mappedShipments
+    );
+
+    return mappedShipments;
+  } catch (error) {
+    console.error(
+      "Failed to fetch shipments:",
+      error
+    );
+
+    throw error;
+  }
 }
 
-/* "This Week's Trips" card: shipments created since Monday 00:00. */
+// ============================================
+// FETCH THIS WEEK'S TRIP COUNT
+// ============================================
+
 export async function fetchWeeklyTripCount() {
-  const now = new Date();
-  const monday = startOfDay(now);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  try {
+    const monday = startOfDay(
+      new Date()
+    );
 
-  const { count, error } = await supabase
-    .from("shipments")
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", monday.toISOString());
+    const day = monday.getDay();
 
-  if (error) throw error;
-  return count ?? 0;
+    const daysSinceMonday =
+      (day + 6) % 7;
+
+    monday.setDate(
+      monday.getDate() - daysSinceMonday
+    );
+
+    const { count, error } = await supabase
+      .from("shipments")
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
+      .gte(
+        "created_at",
+        monday.toISOString()
+      );
+
+    if (error) {
+      console.error(
+        "Weekly trip count error:",
+        error
+      );
+
+      // Do not prevent the shipment table
+      // from loading if this count fails.
+      return 0;
+    }
+
+    return count ?? 0;
+  } catch (error) {
+    console.error(
+      "Failed to fetch weekly trips:",
+      error
+    );
+
+    return 0;
+  }
 }
 
-/* Calls onChange whenever a shipment row is inserted/updated/deleted.
-   Needs Realtime enabled for the `shipments` table in Supabase.
-   Returns an unsubscribe function. */
+// ============================================
+// REALTIME SHIPMENT UPDATES
+// ============================================
+
 export function subscribeToShipments(onChange) {
   const channel = supabase
     .channel("shipments-changes")
-    .on("postgres_changes", { event: "*", schema: "public", table: "shipments" }, onChange)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "shipments",
+      },
+      () => {
+        console.log(
+          "Shipment database changed."
+        );
+
+        if (typeof onChange === "function") {
+          onChange();
+        }
+      }
+    )
     .subscribe();
 
-  return () => supabase.removeChannel(channel);
+  // Cleanup when the component unmounts
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
