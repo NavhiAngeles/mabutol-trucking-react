@@ -1282,7 +1282,7 @@ export default function CreateShipmentDrawer({
 
         {/* RIGHT MAP PANEL */}
         <div className="drawer-map-panel">
-          <TruckTrackingMap />
+          <TruckTrackingMap pickupLocation={form.pickupLocation} />
         </div>
 
         {/* SUCCESS MODAL */}

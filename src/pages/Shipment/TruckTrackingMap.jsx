@@ -12,7 +12,30 @@ import {
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
-export default function TruckTrackingMap() {
+const PICKUP_LOCATIONS = [
+  {
+    name: "MICT Manila",
+    search: "Manila International Container Terminal",
+    coordinates: [120.9608, 14.5967],
+  },
+  {
+    name: "North Harbor",
+    search: "Manila North Harbor",
+    coordinates: [120.9585, 14.6135],
+  },
+  {
+    name: "South Harbor",
+    search: "Manila South Harbor",
+    coordinates: [120.9677, 14.5833],
+  },
+  {
+    name: "Subic Port",
+    search: "Subic Bay International Terminal",
+    coordinates: [120.2824, 14.7942],
+  },
+];
+
+export default function TruckTrackingMap({ pickupLocation }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const [error, setError] = useState("");
@@ -82,6 +105,50 @@ export default function TruckTrackingMap() {
       mapRef.current = null;
     };
   }, []);
+
+    useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map || !pickupLocation) return;
+
+    const location = PICKUP_LOCATIONS.find((item) =>
+      pickupLocation.includes(item.search)
+    );
+
+    if (!location) return;
+
+    let marker = null;
+
+    const showMarker = () => {
+      marker = new maplibregl.Marker({
+        color: "#dc2626",
+      })
+        .setLngLat(location.coordinates)
+        .setPopup(
+          new maplibregl.Popup({ offset: 25 }).setText(
+            `Pickup: ${location.name}`
+          )
+        )
+        .addTo(map);
+
+      map.flyTo({
+        center: location.coordinates,
+        zoom: 14,
+        essential: true,
+      });
+    };
+
+    if (map.loaded()) {
+      showMarker();
+    } else {
+      map.once("load", showMarker);
+    }
+
+    return () => {
+      map.off("load", showMarker);
+      if (marker) marker.remove();
+    };
+  }, [pickupLocation]);
 
   return (
     <div
