@@ -5,6 +5,8 @@ import {
   saveVehicleRates,
   savePricingSettings,
 } from "../../../services/pricingService";
+import { getCurrentPricingUser } from "../../../services/tollGateService";
+import TollGateManager from "./TollGateManager";
 import "./pricing.css";
 
 /* =========================
@@ -45,7 +47,14 @@ const BellIcon = () => (
 const WarningIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
     <path d="M12 3L2 21h20L12 3z" fill="#EA580C" />
-    <rect x="11" y="9" width="2" height="6" rx="1" fill="#FFEDD5" />
+    <rect
+      x="11"
+      y="9"
+      width="2"
+      height="6"
+      rx="1"
+      fill="#FFEDD5"
+    />
     <circle cx="12" cy="17.7" r="1.2" fill="#FFEDD5" />
   </svg>
 );
@@ -75,15 +84,8 @@ const TruckIcon = ({ size = 22 }) => (
   </Svg>
 );
 
-const TollIcon = () => (
-  <Svg size={22}>
-    <path d="M17.5 6.5A8 8 0 1017.5 17.5" />
-    <path d="M14.5 9A4.5 4.5 0 1014.5 15" />
-  </Svg>
-);
-
 /* =========================
-   CONFIGURATION
+   SURCHARGE CONFIGURATION
 ========================= */
 
 const SURCHARGES = [
@@ -117,58 +119,6 @@ const SURCHARGES = [
   },
 ];
 
-const TOLLS = [
-  {
-    id: 1,
-    gate: "NLEX Balintawak",
-    highway: "NLEX",
-    cls: "Class 2 (Truck)",
-    fee: "204.00",
-  },
-  {
-    id: 2,
-    gate: "NLEX Bocaue",
-    highway: "NLEX",
-    cls: "Class 2",
-    fee: "168.00",
-  },
-  {
-    id: 3,
-    gate: "NLEX San Fernando",
-    highway: "NLEX",
-    cls: "Class 2",
-    fee: "336.00",
-  },
-  {
-    id: 4,
-    gate: "NLEX Tarlac/Gerona",
-    highway: "NLEX",
-    cls: "Class 2",
-    fee: "420.00",
-  },
-  {
-    id: 5,
-    gate: "TPLEX Tarlac Entry",
-    highway: "TPLEX",
-    cls: "Class 2",
-    fee: "162.00",
-  },
-  {
-    id: 6,
-    gate: "TPLEX San Jose Exit",
-    highway: "TPLEX",
-    cls: "Class 2",
-    fee: "216.00",
-  },
-  {
-    id: 7,
-    gate: "SCTEX Entry",
-    highway: "SCTEX",
-    cls: "Class 2",
-    fee: "198.00",
-  },
-];
-
 const DEFAULT_FEES = {
   minBooking: "",
   driver: "",
@@ -178,14 +128,8 @@ const DEFAULT_SURCHARGES = Object.fromEntries(
   SURCHARGES.map((item) => [item.id, ""])
 );
 
-const formatMoney = (value) =>
-  Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
 const isValidAmount = (value) =>
-  String(value).trim() !== "" &&
+  String(value ?? "").trim() !== "" &&
   Number.isFinite(Number(value)) &&
   Number(value) >= 0;
 
@@ -197,11 +141,14 @@ export default function Pricing() {
   const [vehicles, setVehicles] = useState([]);
   const [rates, setRates] = useState({});
   const [fees, setFees] = useState(DEFAULT_FEES);
-  const [surcharges, setSurcharges] =
-    useState(DEFAULT_SURCHARGES);
+  const [surcharges, setSurcharges] = useState(
+    DEFAULT_SURCHARGES
+  );
 
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
@@ -211,6 +158,9 @@ export default function Pricing() {
     setError("");
 
     try {
+      const currentUser = await getCurrentPricingUser();
+      setIsAdmin(currentUser.isAdmin);
+
       const data = await fetchPricingData();
 
       setVehicles(data.vehicles);
@@ -226,13 +176,14 @@ export default function Pricing() {
         )
       );
 
-      const settings = data.settings;
+      const settings = data.settings || {};
 
       setFees({
         minBooking:
           settings.minimum_booking_fee == null
             ? ""
             : String(settings.minimum_booking_fee),
+
         driver:
           settings.driver_allowance == null
             ? ""
@@ -254,7 +205,8 @@ export default function Pricing() {
       );
     } catch (err) {
       console.error("Pricing load error:", err);
-      setError(err.message || "Unable to load pricing data.");
+      setIsAdmin(false);
+      setError(err.message || "Unable to load pricing.");
     } finally {
       setLoading(false);
     }
@@ -265,30 +217,41 @@ export default function Pricing() {
   }, [loadPricing]);
 
   const setFee = (key) => (event) => {
+    if (!isAdmin) return;
+
     setFees((previous) => ({
       ...previous,
       [key]: event.target.value,
     }));
+
     setSuccess("");
   };
 
   const setRate = (id) => (event) => {
+    if (!isAdmin) return;
+
     setRates((previous) => ({
       ...previous,
       [id]: event.target.value,
     }));
+
     setSuccess("");
   };
 
   const setSurcharge = (id) => (event) => {
+    if (!isAdmin) return;
+
     setSurcharges((previous) => ({
       ...previous,
       [id]: event.target.value,
     }));
+
     setSuccess("");
   };
 
   const handleSave = async () => {
+    if (!isAdmin || saving) return;
+
     setError("");
     setSuccess("");
 
@@ -320,8 +283,8 @@ export default function Pricing() {
       console.error("Pricing save error:", err);
 
       setError(
-        `${err.message || "Unable to save pricing changes."} ` +
-          "Some earlier updates may have succeeded. Reload and verify."
+        `${err.message || "Unable to save pricing."} ` +
+          "Some updates may have succeeded. Reload and verify."
       );
     } finally {
       setSaving(false);
@@ -329,7 +292,9 @@ export default function Pricing() {
   };
 
   const filteredVehicles = vehicles.filter((vehicle) =>
-    vehicle.name.toLowerCase().includes(search.toLowerCase())
+    vehicle.name
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
   return (
@@ -339,11 +304,14 @@ export default function Pricing() {
         <header className="topbar">
           <label className="search-box">
             <SearchIcon />
+
             <input
               type="text"
               placeholder="Search vehicle types..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
             />
           </label>
 
@@ -370,30 +338,31 @@ export default function Pricing() {
         </header>
 
         <section className="content">
-          {/* NOTICE */}
+          {/* ADMIN NOTICE */}
           <div className="notice-box">
             <div className="notice-title">
               <WarningIcon />
-              <strong>Super Admin Notice</strong>
+              <strong>Admin Notice</strong>
             </div>
 
             <p>
-              Pricing changes should be restricted to authorized
-              Super Admin accounts through Supabase policies.
+              Only active Admin accounts can modify Pricing
+              &amp; Rates. Other authenticated users have
+              read-only access where permitted by Supabase.
             </p>
           </div>
 
-          {/* PAGE HEADER */}
+          {/* HEADER */}
           <div className="page-header">
             <h2>Settings — Pricing &amp; Rates</h2>
 
             <p>
-              Configure vehicle rates, fixed trip fees, handling
-              surcharges, and toll fee presets.
+              Configure vehicle rates, fixed trip fees,
+              handling surcharges, and toll gate presets.
             </p>
           </div>
 
-          {/* STATUS MESSAGES */}
+          {/* ERROR */}
           {error && (
             <div
               role="alert"
@@ -402,13 +371,14 @@ export default function Pricing() {
                 marginBottom: 16,
                 color: "#991b1b",
                 background: "#fee2e2",
-                borderRadius: 4,
+                borderRadius: 6,
               }}
             >
               {error}
             </div>
           )}
 
+          {/* SUCCESS */}
           {success && (
             <div
               role="status"
@@ -417,7 +387,7 @@ export default function Pricing() {
                 marginBottom: 16,
                 color: "#166534",
                 background: "#dcfce7",
-                borderRadius: 4,
+                borderRadius: 6,
               }}
             >
               {success}
@@ -459,12 +429,13 @@ export default function Pricing() {
                             value={fees.minBooking}
                             onChange={setFee("minBooking")}
                             placeholder="0.00"
+                            readOnly={!isAdmin}
                           />
                         </div>
 
                         <small>
-                          Applied when the calculated base rate
-                          falls below this amount.
+                          Applied when the calculated base
+                          rate falls below this amount.
                         </small>
                       </div>
 
@@ -483,18 +454,18 @@ export default function Pricing() {
                             value={fees.driver}
                             onChange={setFee("driver")}
                             placeholder="0.00"
+                            readOnly={!isAdmin}
                           />
                         </div>
 
                         <small>
-                          Default driver allowance used for trip
-                          expense calculations.
+                          Default driver allowance per trip.
                         </small>
                       </div>
                     </div>
                   </div>
 
-                  {/* SPECIAL HANDLING */}
+                  {/* SURCHARGES */}
                   <div className="settings-card">
                     <div className="card-header">
                       <BoxIcon />
@@ -502,7 +473,7 @@ export default function Pricing() {
                     </div>
 
                     <p className="card-desc card-desc-tight">
-                      Additional charges for cargo requiring
+                      Additional fees for cargo requiring
                       special handling.
                     </p>
 
@@ -550,6 +521,7 @@ export default function Pricing() {
                                   onChange={setSurcharge(
                                     item.id
                                   )}
+                                  readOnly={!isAdmin}
                                 />
                               </div>
                             </td>
@@ -579,7 +551,7 @@ export default function Pricing() {
                     </div>
 
                     <p className="card-desc card-desc-tight">
-                      Vehicle types, capacities, and rates loaded
+                      Vehicle rates and capacities loaded
                       directly from Supabase.
                     </p>
 
@@ -630,6 +602,7 @@ export default function Pricing() {
                                   onChange={setRate(
                                     vehicle.id
                                   )}
+                                  readOnly={!isAdmin}
                                 />
                               ) : (
                                 <span
@@ -661,80 +634,12 @@ export default function Pricing() {
                     </p>
                   </div>
 
-                  {/* TOLL GATES */}
-                  <div className="settings-card">
-                    <div className="card-header">
-                      <TollIcon />
-                      <h3>Toll Gate Rates</h3>
-                    </div>
-
-                    <p className="card-desc card-desc-tight">
-                      Local preset values. Supabase storage for
-                      toll gates has not yet been configured.
-                    </p>
-
-                    <table className="pricing-table toll-table">
-                      <thead>
-                        <tr>
-                          <th>TOLL GATE</th>
-                          <th>HIGHWAY</th>
-                          <th>VEHICLE CLASS</th>
-                          <th className="ta-right">
-                            FEE (₱)
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {TOLLS.map((toll) => (
-                          <tr key={toll.id}>
-                            <td className="toll-name">
-                              {toll.gate}
-                            </td>
-
-                            <td>
-                              <span
-                                className={`hwy hwy-${toll.highway.toLowerCase()}`}
-                              >
-                                {toll.highway}
-                              </span>
-                            </td>
-
-                            <td className="muted-cell">
-                              {toll.cls}
-                            </td>
-
-                            <td className="ta-right toll-fee">
-                              <span>₱</span>
-                              <span>
-                                {formatMoney(toll.fee)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <div className="toll-footer">
-                      <p>
-                        Toll values are illustrative presets,
-                        not verified live toll charges.
-                      </p>
-
-                      <button
-                        type="button"
-                        className="add-toll-btn"
-                        disabled
-                        title="Toll database connection pending"
-                      >
-                        + Add Toll Gate
-                      </button>
-                    </div>
-                  </div>
+                  {/* SUPABASE TOLL GATE MANAGEMENT */}
+                  <TollGateManager isAdmin={isAdmin} />
                 </div>
               </div>
 
-              {/* SAVE BUTTON */}
+              {/* PRICING SAVE BUTTONS */}
               <div
                 style={{
                   display: "flex",
@@ -751,7 +656,7 @@ export default function Pricing() {
                   style={{
                     padding: "12px 24px",
                     border: "1px solid #0b2a4a",
-                    borderRadius: 4,
+                    borderRadius: 6,
                     background: "#fff",
                     color: "#0b2a4a",
                     cursor: saving
@@ -763,28 +668,30 @@ export default function Pricing() {
                   Reload
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  style={{
-                    padding: "12px 28px",
-                    border: "none",
-                    borderRadius: 4,
-                    background: saving
-                      ? "#64748b"
-                      : "#0b2a4a",
-                    color: "#fff",
-                    cursor: saving
-                      ? "not-allowed"
-                      : "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {saving
-                    ? "Saving..."
-                    : "Save Pricing Changes"}
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      padding: "12px 28px",
+                      border: "none",
+                      borderRadius: 6,
+                      background: saving
+                        ? "#64748b"
+                        : "#0b2a4a",
+                      color: "#fff",
+                      cursor: saving
+                        ? "not-allowed"
+                        : "pointer",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {saving
+                      ? "Saving..."
+                      : "Save Pricing Changes"}
+                  </button>
+                )}
               </div>
             </>
           )}
