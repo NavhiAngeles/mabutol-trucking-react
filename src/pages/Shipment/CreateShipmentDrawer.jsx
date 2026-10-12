@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
 import TruckTrackingMap from "./TruckTrackingMap";
@@ -108,9 +108,15 @@ export default function CreateShipmentDrawer({
   onCreated,
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
+
   const [pickerMode, setPickerMode] = useState(null);
   const [confirmedPickup, setConfirmedPickup] = useState(null);
-  const [confirmedDestination, setConfirmedDestination] = useState(null);
+  const [confirmedDestination, setConfirmedDestination] =
+    useState(null);
+
+  const [isResolvingAddress, setIsResolvingAddress] =
+    useState(false);
+  const [addressError, setAddressError] = useState("");
 
   const [currentStep, setCurrentStep] = useState(1);
   const [customers, setCustomers] = useState([]);
@@ -121,7 +127,11 @@ export default function CreateShipmentDrawer({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdShipment, setCreatedShipment] = useState(null);
 
-  // UPDATE FORM FIELDS
+  const lookupControllerRef = useRef(null);
+  const lookupIdRef = useRef(0);
+  const lookupBusyRef = useRef(false);
+
+  // UPDATE FORM
   const update = (field, value) => {
     setForm((previous) => ({
       ...previous,
@@ -137,42 +147,122 @@ export default function CreateShipmentDrawer({
     }
 
     setSaveError("");
+    setAddressError("");
   };
 
-  // CONFIRM MAP LOCATION
-  const handleConfirmLocation = ({ type, lat, lng }) => {
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setSaveError("Invalid map coordinates.");
+  // CANCEL AN ACTIVE ADDRESS LOOKUP
+  const cancelAddressLookup = () => {
+    lookupIdRef.current += 1;
+    lookupControllerRef.current?.abort();
+    lookupControllerRef.current = null;
+    lookupBusyRef.current = false;
+    setIsResolvingAddress(false);
+  };
+
+  // PHASE 3: REVERSE GEOCODING
+  const handleConfirmLocation = async ({ type, lat, lng }) => {
+    if (lookupBusyRef.current) return;
+
+    if (type !== "pickup" && type !== "destination") {
       return;
     }
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      setAddressError("Invalid map coordinates.");
+      return;
+    }
+
+    const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
+
+    if (!apiKey) {
+      setAddressError("Missing MapTiler API key.");
+      return;
+    }
+
+    lookupBusyRef.current = true;
+    setIsResolvingAddress(true);
+    setAddressError("");
+
+    const requestId = ++lookupIdRef.current;
+    const controller = new AbortController();
+    lookupControllerRef.current = controller;
 
     const coordinates = { lat, lng };
-    const locationText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const fallbackAddress =
+      `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
-    if (type === "pickup") {
-      setForm((previous) => ({
-        ...previous,
-        pickupLocation: locationText,
-      }));
+    let resolvedAddress = fallbackAddress;
+    let warning = "";
 
-      setConfirmedPickup(coordinates);
-    } else if (type === "destination") {
-      setForm((previous) => ({
-        ...previous,
-        destination: locationText,
-      }));
+    try {
+      const url =
+        `https://api.maptiler.com/geocoding/` +
+        `${lng},${lat}.json` +
+        `?key=${encodeURIComponent(apiKey)}` +
+        `&language=en&limit=1`;
 
-      setConfirmedDestination(coordinates);
-    } else {
-      return;
+      const response = await fetch(url, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Address lookup failed (${response.status}).`
+        );
+      }
+
+      const data = await response.json();
+      const feature = data.features?.[0];
+
+      if (
+        typeof feature?.place_name === "string" &&
+        feature.place_name.trim()
+      ) {
+        resolvedAddress = feature.place_name.trim();
+      } else {
+        warning =
+          "No readable address was found. Coordinates were used instead.";
+      }
+    } catch (error) {
+      if (error.name === "AbortError") return;
+
+      console.error("Reverse geocoding error:", error);
+      warning =
+        "Could not retrieve the address. Coordinates were used instead.";
+    } finally {
+      if (requestId === lookupIdRef.current) {
+        if (type === "pickup") {
+          setForm((previous) => ({
+            ...previous,
+            pickupLocation: resolvedAddress,
+          }));
+          setConfirmedPickup(coordinates);
+        } else {
+          setForm((previous) => ({
+            ...previous,
+            destination: resolvedAddress,
+          }));
+          setConfirmedDestination(coordinates);
+        }
+
+        setAddressError(warning);
+        setPickerMode(null);
+        setIsResolvingAddress(false);
+        lookupBusyRef.current = false;
+        lookupControllerRef.current = null;
+      }
     }
-
-    setPickerMode(null);
-    setSaveError("");
   };
 
-  // CANCEL MAP PICKER
   const handleCancelPicker = () => {
+    if (lookupBusyRef.current) return;
     setPickerMode(null);
   };
 
@@ -186,21 +276,32 @@ export default function CreateShipmentDrawer({
       setLoadingCustomers(true);
       setCustomerError("");
 
-      const { data, error } = await supabase
-        .from("customers")
-        .select("*")
-        .limit(500);
+      try {
+        const { data, error } = await supabase
+          .from("customers")
+          .select("*")
+          .limit(500);
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      if (error) {
-        setCustomers([]);
-        setCustomerError(error.message);
-      } else {
-        setCustomers(data || []);
+        if (error) {
+          setCustomers([]);
+          setCustomerError(error.message);
+        } else {
+          setCustomers(data || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setCustomers([]);
+          setCustomerError(
+            error.message || "Failed to load customers."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingCustomers(false);
+        }
       }
-
-      setLoadingCustomers(false);
     };
 
     loadCustomers();
@@ -209,6 +310,14 @@ export default function CreateShipmentDrawer({
       cancelled = true;
     };
   }, [isOpen]);
+
+  // ABORT PENDING REQUEST WHEN COMPONENT UNMOUNTS
+  useEffect(() => {
+    return () => {
+      lookupIdRef.current += 1;
+      lookupControllerRef.current?.abort();
+    };
+  }, []);
 
   const selectedCustomer = customers.find(
     (customer) =>
@@ -234,12 +343,14 @@ export default function CreateShipmentDrawer({
   const operationalCost = tollCost + driverAllowance;
   const estimatedProfit = finalCharge - operationalCost;
 
-  // RESET FORM
+  // RESET
   const reset = () => {
+    cancelAddressLookup();
     setForm(INITIAL_FORM);
     setPickerMode(null);
     setConfirmedPickup(null);
     setConfirmedDestination(null);
+    setAddressError("");
     setCurrentStep(1);
     setSaveError("");
     setCreatedShipment(null);
@@ -248,12 +359,11 @@ export default function CreateShipmentDrawer({
 
   const handleCloseAll = () => {
     if (isSaving) return;
-
     reset();
     onClose?.();
   };
 
-  // VALIDATION
+  // VALIDATE ROUTE
   const validateRoute = () => {
     if (!form.pickupLocation.trim()) {
       return "Pickup location is required.";
@@ -282,6 +392,7 @@ export default function CreateShipmentDrawer({
     return "";
   };
 
+  // VALIDATE CARGO
   const validateCargo = () => {
     const weight = Number(form.weight);
 
@@ -304,6 +415,7 @@ export default function CreateShipmentDrawer({
     return "";
   };
 
+  // VALIDATE FINANCIAL FIELDS
   const validateFinance = () => {
     if (
       !isValidMoney(form.baseRate) ||
@@ -342,6 +454,11 @@ export default function CreateShipmentDrawer({
 
   // NEXT STEP
   const handleNext = () => {
+    if (isResolvingAddress) {
+      setSaveError("Wait for address detection to finish.");
+      return;
+    }
+
     const error =
       currentStep === 1 ? validateRoute() : validateCargo();
 
@@ -356,10 +473,12 @@ export default function CreateShipmentDrawer({
 
   // SAVE SHIPMENT
   const handleCreateShipment = async () => {
-    if (isSaving) return;
+    if (isSaving || isResolvingAddress) return;
 
     const error =
-      validateRoute() || validateCargo() || validateFinance();
+      validateRoute() ||
+      validateCargo() ||
+      validateFinance();
 
     if (error) {
       setSaveError(error);
@@ -417,7 +536,9 @@ export default function CreateShipmentDrawer({
   const renderRouteStep = () => (
     <div className="step-scroll-content">
       <div className="form-group">
-        <label className="input-title">PICK-UP LOCATION</label>
+        <label className="input-title">
+          PICK-UP LOCATION
+        </label>
 
         <div className="input-search-wrapper">
           <i className="las la-circle-notch input-icon input-blue-icon" />
@@ -437,6 +558,7 @@ export default function CreateShipmentDrawer({
         <button
           type="button"
           className="view-map-text-btn"
+          disabled={isResolvingAddress}
           onClick={() =>
             setPickerMode((previous) =>
               previous === "pickup" ? null : "pickup"
@@ -461,6 +583,7 @@ export default function CreateShipmentDrawer({
             <button
               key={hub.label}
               type="button"
+              disabled={isResolvingAddress}
               className={`hub-pill ${
                 form.pickupLocation === hub.value ? "active" : ""
               }`}
@@ -494,9 +617,12 @@ export default function CreateShipmentDrawer({
         <button
           type="button"
           className="view-map-text-btn"
+          disabled={isResolvingAddress}
           onClick={() =>
             setPickerMode((previous) =>
-              previous === "destination" ? null : "destination"
+              previous === "destination"
+                ? null
+                : "destination"
             )
           }
         >
@@ -565,7 +691,9 @@ export default function CreateShipmentDrawer({
 
       <div className="form-grid-2x2">
         <div className="form-group">
-          <label className="input-title">DISTANCE (KM)</label>
+          <label className="input-title">
+            DISTANCE (KM)
+          </label>
 
           <div className="input-search-wrapper">
             <input
@@ -623,7 +751,6 @@ export default function CreateShipmentDrawer({
 
           <div className="input-search-wrapper">
             <i className="las la-calendar input-icon" />
-
             <input
               type="date"
               value={form.departureDate}
@@ -635,11 +762,12 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="form-group">
-          <label className="input-title">DEPARTURE TIME</label>
+          <label className="input-title">
+            DEPARTURE TIME
+          </label>
 
           <div className="input-search-wrapper">
             <i className="las la-clock input-icon" />
-
             <input
               type="time"
               value={form.departureTime}
@@ -652,7 +780,9 @@ export default function CreateShipmentDrawer({
       </div>
 
       <div className="form-group">
-        <label className="input-title">CUSTOMER BILLING</label>
+        <label className="input-title">
+          CUSTOMER BILLING
+        </label>
 
         <div className="select-dropdown-wrapper">
           <select
@@ -669,7 +799,10 @@ export default function CreateShipmentDrawer({
             </option>
 
             {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
+              <option
+                key={customer.id}
+                value={customer.id}
+              >
                 {customerName(customer)}
               </option>
             ))}
@@ -679,8 +812,8 @@ export default function CreateShipmentDrawer({
         </div>
 
         <p className="field-info-text">
-          <i className="las la-info-circle" /> Registered
-          customer accounts from Supabase.
+          <i className="las la-info-circle" />{" "}
+          Registered customer accounts from Supabase.
         </p>
 
         {customerError && (
@@ -712,7 +845,9 @@ export default function CreateShipmentDrawer({
       </div>
 
       <div className="form-group">
-        <label className="input-title">TOTAL WEIGHT</label>
+        <label className="input-title">
+          TOTAL WEIGHT
+        </label>
 
         <div className="input-search-wrapper">
           <input
@@ -725,7 +860,6 @@ export default function CreateShipmentDrawer({
               update("weight", e.target.value)
             }
           />
-
           <span className="trailing-unit">kg</span>
         </div>
       </div>
@@ -746,9 +880,13 @@ export default function CreateShipmentDrawer({
               key={tag}
               type="button"
               className={`handling-badge-btn ${
-                form.specialHandling === tag ? "active" : ""
+                form.specialHandling === tag
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => update("specialHandling", tag)}
+              onClick={() =>
+                update("specialHandling", tag)
+              }
             >
               {tag}
             </button>
@@ -798,9 +936,13 @@ export default function CreateShipmentDrawer({
                 role="button"
                 tabIndex={overweight ? -1 : 0}
                 className={`vehicle-card ${
-                  overweight ? "disabled" : "searchable"
+                  overweight
+                    ? "disabled"
+                    : "searchable"
                 } ${
-                  selected && !overweight ? "active" : ""
+                  selected && !overweight
+                    ? "active"
+                    : ""
                 }`}
                 onClick={() => {
                   if (!overweight) {
@@ -810,7 +952,8 @@ export default function CreateShipmentDrawer({
                 onKeyDown={(e) => {
                   if (
                     !overweight &&
-                    (e.key === "Enter" || e.key === " ")
+                    (e.key === "Enter" ||
+                      e.key === " ")
                   ) {
                     e.preventDefault();
                     update("selectedVehicle", truck.id);
@@ -824,7 +967,6 @@ export default function CreateShipmentDrawer({
                 <div className="vehicle-card-details">
                   <div className="vehicle-title-line">
                     <h4>{truck.name}</h4>
-
                     <span className="vehicle-fleet-id-tag">
                       Fleet: {truck.fleetCode}
                     </span>
@@ -872,7 +1014,6 @@ export default function CreateShipmentDrawer({
     <div className="step-scroll-content">
       <div className="review-alert-banner">
         <i className="las la-exclamation-triangle alert-banner-icon" />
-
         <p>
           Review the shipment information and financial
           estimates before confirming. Actual driver and
@@ -882,7 +1023,9 @@ export default function CreateShipmentDrawer({
 
       {/* ROUTE */}
       <div className="review-section">
-        <label className="review-section-title">ROUTE</label>
+        <label className="review-section-title">
+          ROUTE
+        </label>
 
         <div className="review-timeline-display">
           <div className="review-node blue-dot">
@@ -938,8 +1081,9 @@ export default function CreateShipmentDrawer({
           </label>
 
           <div className="review-data-text">
-            <strong>{customerName(selectedCustomer)}</strong>
-
+            <strong>
+              {customerName(selectedCustomer)}
+            </strong>
             <span className="blue-status-tag">
               REGISTERED
             </span>
@@ -949,7 +1093,9 @@ export default function CreateShipmentDrawer({
 
       {/* CARGO */}
       <div className="review-section">
-        <label className="review-section-title">CARGO</label>
+        <label className="review-section-title">
+          CARGO
+        </label>
 
         <div className="review-data-row align-center">
           <strong className="font-bold">
@@ -984,7 +1130,8 @@ export default function CreateShipmentDrawer({
 
           <div className="entity-info-box">
             <h4>
-              {selectedVehicle?.name || "Not selected"}
+              {selectedVehicle?.name ||
+                "Not selected"}
             </h4>
 
             <p>
@@ -1013,7 +1160,6 @@ export default function CreateShipmentDrawer({
 
           <div className="entity-info-box">
             <h4>Unassigned</h4>
-
             <p>
               Driver availability and compliance
               have not been verified.
@@ -1030,7 +1176,6 @@ export default function CreateShipmentDrawer({
       <div className="financial-statement-card cost-charge-blue">
         <div className="financial-header-row">
           <h3>Shipment Charge</h3>
-
           <span className="financial-badge-tag orange-bg">
             WHAT CUSTOMER PAYS
           </span>
@@ -1038,7 +1183,6 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-data-row">
           <span>Base Rate</span>
-
           <input
             type="number"
             min="0"
@@ -1056,7 +1200,6 @@ export default function CreateShipmentDrawer({
           <span>
             Special Handling ({form.specialHandling})
           </span>
-
           <input
             type="number"
             min="0"
@@ -1071,7 +1214,6 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-total-row">
           <span>Total Suggested Charge</span>
-
           <span className="total-price-text">
             {currency(suggestedCharge)}
           </span>
@@ -1104,7 +1246,6 @@ export default function CreateShipmentDrawer({
       <div className="financial-statement-card operational-grey">
         <div className="financial-header-row">
           <h3>Trip Estimate</h3>
-
           <span className="financial-badge-tag grey-bg">
             DRIVER TRIP ALLOWANCE
           </span>
@@ -1112,7 +1253,6 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-data-row">
           <span>Tolls (₱)</span>
-
           <input
             type="number"
             min="0"
@@ -1127,7 +1267,6 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-data-row">
           <span>Allowance (₱)</span>
-
           <input
             type="number"
             min="0"
@@ -1142,7 +1281,6 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-total-row">
           <span>TOTAL OPERATIONAL COST</span>
-
           <span className="total-price-text-sm">
             {currency(operationalCost)}
           </span>
@@ -1163,14 +1301,14 @@ export default function CreateShipmentDrawer({
               ? "Final Shipment Charge"
               : "Total Suggested Charge"}
           </span>
-
           <span>{currency(finalCharge)}</span>
         </div>
 
         <div className="financial-data-row">
           <span>Total Operational Cost</span>
-
-          <span>-{currency(operationalCost)}</span>
+          <span>
+            -{currency(operationalCost)}
+          </span>
         </div>
 
         <div className="financial-total-row border-dashed">
@@ -1192,7 +1330,8 @@ export default function CreateShipmentDrawer({
         </div>
 
         <p className="field-info-text">
-          Estimate only. Actual operating costs may differ.
+          Estimate only. Actual operating costs
+          may differ.
         </p>
       </div>
     </div>
@@ -1221,7 +1360,6 @@ export default function CreateShipmentDrawer({
                 <i className="las la-arrow-left" />{" "}
                 BACK TO SHIPMENTS
               </button>
-
               <h2>Create New Shipment</h2>
             </div>
 
@@ -1230,12 +1368,13 @@ export default function CreateShipmentDrawer({
               <div
                 className={`step-item ${
                   currentStep >= 1 ? "active" : ""
-                } ${currentStep > 1 ? "checked" : ""}`}
+                } ${
+                  currentStep > 1 ? "checked" : ""
+                }`}
               >
                 <span className="step-num">
                   {currentStep > 1 ? "✓" : "1"}
                 </span>
-
                 {currentStep === 1 && (
                   <span className="step-label">
                     Route & Schedule
@@ -1245,19 +1384,22 @@ export default function CreateShipmentDrawer({
 
               <div
                 className={`step-line ${
-                  currentStep >= 2 ? "active-line" : ""
+                  currentStep >= 2
+                    ? "active-line"
+                    : ""
                 }`}
               />
 
               <div
                 className={`step-item ${
                   currentStep >= 2 ? "active" : ""
-                } ${currentStep > 2 ? "checked" : ""}`}
+                } ${
+                  currentStep > 2 ? "checked" : ""
+                }`}
               >
                 <span className="step-num">
                   {currentStep > 2 ? "✓" : "2"}
                 </span>
-
                 {currentStep === 2 && (
                   <span className="step-label">
                     Cargo & Vehicle
@@ -1267,17 +1409,20 @@ export default function CreateShipmentDrawer({
 
               <div
                 className={`step-line ${
-                  currentStep === 3 ? "active-line" : ""
+                  currentStep === 3
+                    ? "active-line"
+                    : ""
                 }`}
               />
 
               <div
                 className={`step-item ${
-                  currentStep === 3 ? "active" : ""
+                  currentStep === 3
+                    ? "active"
+                    : ""
                 }`}
               >
                 <span className="step-num">3</span>
-
                 {currentStep === 3 && (
                   <span className="step-label">
                     Review & Confirmation
@@ -1306,6 +1451,23 @@ export default function CreateShipmentDrawer({
                 <p>{saveError}</p>
               </div>
             )}
+
+            {addressError && (
+              <div
+                role="alert"
+                style={{
+                  margin: "12px",
+                  padding: "12px",
+                  background: "#fff7ed",
+                  color: "#9a3412",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                }}
+              >
+                <i className="las la-exclamation-triangle" />{" "}
+                {addressError}
+              </div>
+            )}
           </div>
 
           {/* FOOTER */}
@@ -1330,6 +1492,7 @@ export default function CreateShipmentDrawer({
                 <button
                   type="button"
                   className="btn-submit"
+                  disabled={isResolvingAddress}
                   onClick={handleNext}
                 >
                   {currentStep === 1
@@ -1344,7 +1507,7 @@ export default function CreateShipmentDrawer({
                   type="button"
                   className="btn-full-confirm"
                   onClick={handleCreateShipment}
-                  disabled={isSaving}
+                  disabled={isSaving || isResolvingAddress}
                 >
                   <i
                     className={
@@ -1385,6 +1548,7 @@ export default function CreateShipmentDrawer({
             onCancelPicker={handleCancelPicker}
             confirmedPickup={confirmedPickup}
             confirmedDestination={confirmedDestination}
+            isResolvingAddress={isResolvingAddress}
           />
         </div>
 
@@ -1410,7 +1574,6 @@ export default function CreateShipmentDrawer({
                   <span className="meta-lbl">
                     SHIPMENT ID
                   </span>
-
                   <strong className="meta-val color-blue">
                     {createdShipment?.tracking_number ||
                       createdShipment?.id ||
@@ -1422,7 +1585,6 @@ export default function CreateShipmentDrawer({
                   <span className="meta-lbl">
                     CUSTOMER
                   </span>
-
                   <strong className="meta-val">
                     {customerName(selectedCustomer)}
                   </strong>
@@ -1432,7 +1594,6 @@ export default function CreateShipmentDrawer({
                   <span className="meta-lbl">
                     DRIVER
                   </span>
-
                   <strong className="meta-val">
                     Unassigned
                   </strong>
@@ -1442,7 +1603,6 @@ export default function CreateShipmentDrawer({
                   <span className="meta-lbl">
                     NET VALUE
                   </span>
-
                   <strong className="meta-val">
                     {currency(
                       createdShipment?.final_amount
