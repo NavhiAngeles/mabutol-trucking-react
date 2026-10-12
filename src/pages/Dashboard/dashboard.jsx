@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
+import DashboardTrackingMap from "./DashboardTrackingMap";
 import { useDashboardViewModel } from "../../viewmodels/DashboardViewModel";
 
 /* ---- Inline icons (no external icon package required) ---- */
@@ -127,7 +128,7 @@ export default function Dashboard() {
   if (error) {
     return <p>Error: {error}</p>;
   }
-  
+
   return (
     <MainLayout>
       {/* Topbar */}
@@ -235,135 +236,13 @@ export default function Dashboard() {
           {/* Left column */}
           <div className="col-left">
             {/* Map */}
+            {/* Map */}
             <div className="map-card">
               <div className="map-card-header">
                 <h3>Live Tracking: Luzon</h3>
-                <div className="map-controls">
-                  <button className="map-pill-btn">
-                    Satellite <ChevronDown />
-                  </button>
-                  <div className="zoom-group">
-                    <button aria-label="Zoom in">
-                      <Plus />
-                    </button>
-                    <button aria-label="Zoom out">
-                      <Minus />
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              <div className="map-canvas">
-                <svg viewBox="0 0 640 400" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="640" height="400" fill="#CBD9E8" />
-
-                  {/* Landmass */}
-                  <path
-                    d="M300 20
-                       C 330 15, 355 35, 350 60
-                       C 380 70, 390 100, 375 125
-                       C 400 140, 405 170, 385 190
-                       C 410 210, 405 245, 375 260
-                       C 390 285, 380 315, 355 330
-                       C 365 355, 345 380, 315 370
-                       C 300 390, 270 385, 260 365
-                       C 230 370, 205 350, 210 325
-                       C 185 315, 175 290, 190 270
-                       C 165 255, 160 225, 180 205
-                       C 160 190, 158 165, 178 148
-                       C 165 125, 175 100, 200 90
-                       C 195 65, 215 40, 245 40
-                       C 255 20, 285 10, 300 20 Z"
-                    fill="#E8E4DA"
-                    stroke="#D5CFC0"
-                    strokeWidth="1.5"
-                  />
-
-                  {/* Local route (green) */}
-                  <path
-                    d="M255 110 C 265 140, 250 170, 265 200"
-                    stroke="#16A34A"
-                    strokeWidth="2.5"
-                    fill="none"
-                    strokeDasharray="5 4"
-                  />
-
-                  {/* Delayed route (red) - Baguio down to NLEX midpoint */}
-                  <path
-                    d="M245 55 C 260 85, 250 120, 290 190"
-                    stroke="#DC2626"
-                    strokeWidth="3"
-                    fill="none"
-                  />
-
-                  {/* In-transit route (blue) - continues down to Manila */}
-                  <path
-                    d="M290 190 C 300 230, 285 270, 300 340"
-                    stroke="#2563EB"
-                    strokeWidth="3"
-                    fill="none"
-                  />
-
-                  {/* Baguio City marker */}
-                  <circle cx="245" cy="55" r="6" fill="#DC2626" stroke="white" strokeWidth="2" />
-                  <text x="256" y="52" fontSize="11" fontWeight="600" fill="#1F2937">
-                    Baguio City
-                  </text>
-
-                  {/* San Jose City marker */}
-                  <circle cx="205" cy="195" r="4" fill="#4B5563" />
-                  <text x="150" y="199" fontSize="10" fill="#4B5563">
-                    San Jose City
-                  </text>
-
-                  {/* Gapan City marker */}
-                  <circle cx="285" cy="255" r="4" fill="#4B5563" />
-                  <text x="296" y="259" fontSize="10" fill="#4B5563">
-                    Gapan City
-                  </text>
-
-                  {/* In-transit truck marker */}
-                  <circle cx="290" cy="190" r="7" fill="#2563EB" stroke="white" strokeWidth="2" />
-
-                  {/* Manila marker */}
-                  <circle cx="300" cy="340" r="6" fill="#1F2937" stroke="white" strokeWidth="2" />
-                  <text x="311" y="344" fontSize="11" fontWeight="600" fill="#1F2937">
-                    Manila
-                  </text>
-                </svg>
-
-                {/* Truck popup */}
-                <div className="map-popup">
-                  <div className="map-popup-badges">
-                    <span className="map-popup-id">SHP-NE-8042</span>
-                    <span className="map-popup-status">IN TRANSIT</span>
-                  </div>
-                  <p className="map-popup-name">Ramon Cruz - Isuzu Forward</p>
-                  <div className="map-popup-row">
-                    <MapPin /> NLEX km 42
-                  </div>
-                  <div className="map-popup-row">
-                    <Clock /> ETA: 2h 15min
-                  </div>
-                </div>
-
-                {/* Legend */}
-                <div className="map-legend">
-                  <div className="map-legend-title">Legend</div>
-                  <div className="map-legend-row">
-                    <span className="map-legend-dot" style={{ background: "#2563EB" }} />
-                    In Transit
-                  </div>
-                  <div className="map-legend-row">
-                    <span className="map-legend-dot" style={{ background: "#DC2626" }} />
-                    Delayed
-                  </div>
-                  <div className="map-legend-row">
-                    <span className="map-legend-dot" style={{ background: "#16A34A" }} />
-                    Local Route
-                  </div>
-                </div>
-              </div>
+              <DashboardTrackingMap />
             </div>
 
             {/* Performance & Analytics */}
