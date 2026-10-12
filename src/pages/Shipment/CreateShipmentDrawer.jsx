@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
+import TruckTrackingMap from "./TruckTrackingMap";
 
 const HUBS = [
   { label: "Hub Alpha", value: "Cabanatuan City Hub Alpha" },
@@ -305,23 +306,23 @@ export default function CreateShipmentDrawer({
       );
 
       const shipmentData = {
-  customer_id: selectedCustomer.id,
-  pickup_address: form.pickupLocation.trim(),
-  dropoff_address: form.destination.trim(),
-  scheduled_departure: departure.toISOString(),
-  cargo_description: form.cargoDescription.trim(),
-  weight_kg: Number(form.weight),
+        customer_id: selectedCustomer.id,
+        pickup_address: form.pickupLocation.trim(),
+        dropoff_address: form.destination.trim(),
+        scheduled_departure: departure.toISOString(),
+        cargo_description: form.cargoDescription.trim(),
+        weight_kg: Number(form.weight),
 
-  quoted_amount: suggestedCharge,
+        quoted_amount: suggestedCharge,
 
-  override_amount:
-    form.overrideAmount.trim() !== ""
-      ? Number(form.overrideAmount)
-      : null,
+        override_amount:
+          form.overrideAmount.trim() !== ""
+            ? Number(form.overrideAmount)
+            : null,
 
-  status: "booked",
-  booking_source: "web",
-};
+        status: "booked",
+        booking_source: "web",
+      };
 
       const { data, error: insertError } = await supabase
         .from("shipments")
@@ -728,8 +729,8 @@ export default function CreateShipmentDrawer({
 
                   <span
                     className={`vehicle-tag ${truck.isEnclosed
-                        ? "blue-tag"
-                        : "grey-tag"
+                      ? "blue-tag"
+                      : "grey-tag"
                       }`}
                   >
                     {truck.typeTag}
@@ -1269,22 +1270,7 @@ export default function CreateShipmentDrawer({
 
         {/* RIGHT MAP PANEL */}
         <div className="drawer-map-panel">
-          <div className="simulated-map-canvas">
-            <div className="map-fallback-overlay">
-              <p>
-                🗺️ Regional Logistics Map Dashboard
-              </p>
-
-              <span>
-                {form.pickupLocation || "Pickup"} →{" "}
-                {form.destination || "Destination"}
-              </span>
-
-              <p>
-                Route map integration is not yet configured.
-              </p>
-            </div>
-          </div>
+          <TruckTrackingMap />
         </div>
 
         {/* SUCCESS MODAL */}
