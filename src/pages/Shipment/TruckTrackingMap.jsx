@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
@@ -36,17 +37,26 @@ const PICKUP_LOCATIONS = [
 ];
 
 export default function TruckTrackingMap({
-  pickupLocation,
+  pickupLocation = "",
   pickerMode = null,
+  onConfirmLocation,
+  onCancelPicker,
+  confirmedPickup = null,
+  confirmedDestination = null,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+  const pickupMarkerRef = useRef(null);
+  const destinationMarkerRef = useRef(null);
 
   const [error, setError] = useState("");
+  const [mapReady, setMapReady] = useState(false);
   const [centerCoordinates, setCenterCoordinates] = useState(null);
 
+  // INITIALIZE MAP
   useEffect(() => {
     const container = containerRef.current;
+
     if (!container) return;
 
     const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
@@ -57,13 +67,15 @@ export default function TruckTrackingMap({
     }
 
     let map;
+    let resizeObserver;
 
     try {
       map = new maplibregl.Map({
         container,
-        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(apiKey)}`,
+        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(
+          apiKey
+        )}`,
 
-        // Luzon restrictions
         center: LUZON_CENTER,
         zoom: 8,
         minZoom: LUZON_MIN_ZOOM,
@@ -79,59 +91,74 @@ export default function TruckTrackingMap({
         "top-right"
       );
 
+      const updateCenterCoordinates = () => {
+        const center = map.getCenter();
+
+        setCenterCoordinates({
+          lat: center.lat,
+          lng: center.lng,
+        });
+      };
+
       map.on("load", () => {
         console.log("MapLibre map loaded successfully!");
 
         setError("");
         map.resize();
-
-        const center = map.getCenter();
-
-        setCenterCoordinates({
-          lat: center.lat,
-          lng: center.lng,
-        });
+        updateCenterCoordinates();
+        setMapReady(true);
       });
 
-      map.on("moveend", () => {
-        const center = map.getCenter();
-
-        setCenterCoordinates({
-          lat: center.lat,
-          lng: center.lng,
-        });
-      });
+      map.on("moveend", updateCenterCoordinates);
 
       map.on("error", (event) => {
         console.error("MapLibre error:", event.error);
+
         setError(
           event.error?.message || "Map failed to load."
         );
       });
+
+      resizeObserver = new ResizeObserver(() => {
+        map.resize();
+      });
+
+      resizeObserver.observe(container);
     } catch (err) {
       console.error("Map initialization error:", err);
-      setError(err.message);
+
+      setError(
+        err?.message || "Unable to initialize the map."
+      );
     }
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (mapRef.current) {
-        mapRef.current.resize();
-      }
-    });
-
-    resizeObserver.observe(container);
-
     return () => {
-      resizeObserver.disconnect();
-      if (map) map.remove();
+      resizeObserver?.disconnect();
+
+      pickupMarkerRef.current?.remove();
+      destinationMarkerRef.current?.remove();
+
+      pickupMarkerRef.current = null;
+      destinationMarkerRef.current = null;
+
+      if (map) {
+        map.remove();
+      }
+
       mapRef.current = null;
     };
   }, []);
 
+  // DISPLAY PRESET PICKUP LOCATION
   useEffect(() => {
     const map = mapRef.current;
 
-    if (!map || !pickupLocation || pickerMode) return;
+    if (!map || !mapReady || pickerMode) return;
+
+    // Confirmed pickup markers are managed separately.
+    if (confirmedPickup) return;
+
+    if (!pickupLocation) return;
 
     const location = PICKUP_LOCATIONS.find((item) =>
       pickupLocation.includes(item.search)
@@ -139,38 +166,122 @@ export default function TruckTrackingMap({
 
     if (!location) return;
 
-    let marker = null;
+    const marker = new maplibregl.Marker({
+      color: "#dc2626",
+    })
+      .setLngLat(location.coordinates)
+      .setPopup(
+        new maplibregl.Popup({
+          offset: 25,
+        }).setText(`Pickup: ${location.name}`)
+      )
+      .addTo(map);
 
-    const showMarker = () => {
-      marker = new maplibregl.Marker({
-        color: "#dc2626",
-      })
-        .setLngLat(location.coordinates)
-        .setPopup(
-          new maplibregl.Popup({ offset: 25 }).setText(
-            `Pickup: ${location.name}`
-          )
-        )
-        .addTo(map);
-
-      map.flyTo({
-        center: location.coordinates,
-        zoom: 14,
-        essential: true,
-      });
-    };
-
-    if (map.loaded()) {
-      showMarker();
-    } else {
-      map.once("load", showMarker);
-    }
+    map.flyTo({
+      center: location.coordinates,
+      zoom: 14,
+      essential: true,
+    });
 
     return () => {
-      map.off("load", showMarker);
-      if (marker) marker.remove();
+      marker.remove();
     };
-  }, [pickupLocation, pickerMode]);
+  }, [
+    pickupLocation,
+    pickerMode,
+    mapReady,
+    confirmedPickup,
+  ]);
+
+  // DISPLAY CONFIRMED PICKUP MARKER
+  useEffect(() => {
+    const map = mapRef.current;
+
+    pickupMarkerRef.current?.remove();
+    pickupMarkerRef.current = null;
+
+    if (!map || !mapReady || !confirmedPickup) return;
+
+    const marker = new maplibregl.Marker({
+      color: "#dc2626",
+    })
+      .setLngLat([
+        confirmedPickup.lng,
+        confirmedPickup.lat,
+      ])
+      .setPopup(
+        new maplibregl.Popup({
+          offset: 25,
+        }).setText("Confirmed Pickup Location")
+      )
+      .addTo(map);
+
+    pickupMarkerRef.current = marker;
+
+    return () => {
+      marker.remove();
+
+      if (pickupMarkerRef.current === marker) {
+        pickupMarkerRef.current = null;
+      }
+    };
+  }, [confirmedPickup, mapReady]);
+
+  // DISPLAY CONFIRMED DESTINATION MARKER
+  useEffect(() => {
+    const map = mapRef.current;
+
+    destinationMarkerRef.current?.remove();
+    destinationMarkerRef.current = null;
+
+    if (!map || !mapReady || !confirmedDestination) return;
+
+    const marker = new maplibregl.Marker({
+      color: "#2563eb",
+    })
+      .setLngLat([
+        confirmedDestination.lng,
+        confirmedDestination.lat,
+      ])
+      .setPopup(
+        new maplibregl.Popup({
+          offset: 25,
+        }).setText("Confirmed Destination")
+      )
+      .addTo(map);
+
+    destinationMarkerRef.current = marker;
+
+    return () => {
+      marker.remove();
+
+      if (destinationMarkerRef.current === marker) {
+        destinationMarkerRef.current = null;
+      }
+    };
+  }, [confirmedDestination, mapReady]);
+
+  // CONFIRM SELECTED LOCATION
+  const handleConfirmLocation = () => {
+    const map = mapRef.current;
+
+    if (!map || !mapReady || !pickerMode) return;
+
+    if (
+      pickerMode !== "pickup" &&
+      pickerMode !== "destination"
+    ) {
+      return;
+    }
+
+    const center = map.getCenter();
+
+    onConfirmLocation?.({
+      type: pickerMode,
+      lat: center.lat,
+      lng: center.lng,
+    });
+  };
 
   return (
     <div
@@ -181,6 +292,7 @@ export default function TruckTrackingMap({
         position: "relative",
       }}
     >
+      {/* MAP CONTAINER */}
       <div
         ref={containerRef}
         style={{
@@ -191,10 +303,12 @@ export default function TruckTrackingMap({
         }}
       />
 
+      {/* LOCATION PICKER */}
       {pickerMode && !error && (
         <>
-          {/* CENTERED LOCATION POINTER */}
+          {/* FIXED RED POINTER */}
           <div
+            aria-hidden="true"
             style={{
               position: "absolute",
               left: "50%",
@@ -202,7 +316,8 @@ export default function TruckTrackingMap({
               transform: "translate(-50%, -100%)",
               pointerEvents: "none",
               zIndex: 5,
-              filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.3))",
+              filter:
+                "drop-shadow(0 4px 4px rgba(0,0,0,0.3))",
             }}
           >
             <svg
@@ -227,7 +342,7 @@ export default function TruckTrackingMap({
             </svg>
           </div>
 
-          {/* LOCATION PICKER INFORMATION */}
+          {/* PICKER INFORMATION PANEL */}
           <div
             style={{
               position: "absolute",
@@ -236,16 +351,19 @@ export default function TruckTrackingMap({
               transform: "translateX(-50%)",
               zIndex: 6,
               background: "#ffffff",
-              padding: "12px 18px",
+              padding: "16px",
               borderRadius: "12px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              boxShadow:
+                "0 4px 12px rgba(0,0,0,0.2)",
               textAlign: "center",
-              minWidth: "240px",
-              pointerEvents: "none",
+              width: "min(290px, calc(100% - 24px))",
+              boxSizing: "border-box",
+              pointerEvents: "auto",
             }}
           >
             <strong
               style={{
+                display: "block",
                 fontSize: "14px",
                 color: "#111827",
               }}
@@ -259,28 +377,84 @@ export default function TruckTrackingMap({
               style={{
                 fontSize: "12px",
                 color: "#6b7280",
-                margin: "6px 0",
+                margin: "8px 0",
               }}
             >
-              Drag the map to position the pointer
+              Drag or zoom the map to position the pointer.
             </p>
 
+            {/* SELECTED COORDINATES */}
             {centerCoordinates && (
               <div
                 style={{
+                  background: "#f3f4f6",
+                  padding: "10px",
+                  borderRadius: "8px",
                   fontSize: "12px",
                   color: "#374151",
+                  marginBottom: "12px",
                 }}
               >
-                Lat: {centerCoordinates.lat.toFixed(6)}
-                <br />
-                Lng: {centerCoordinates.lng.toFixed(6)}
+                <div>
+                  Latitude:{" "}
+                  {centerCoordinates.lat.toFixed(6)}
+                </div>
+
+                <div>
+                  Longitude:{" "}
+                  {centerCoordinates.lng.toFixed(6)}
+                </div>
               </div>
             )}
+
+            {/* CONFIRM BUTTON */}
+            <button
+              type="button"
+              onClick={handleConfirmLocation}
+              disabled={!mapReady}
+              style={{
+                width: "100%",
+                padding: "11px",
+                background: mapReady
+                  ? "#dc2626"
+                  : "#9ca3af",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: mapReady
+                  ? "pointer"
+                  : "not-allowed",
+                fontWeight: "600",
+                fontSize: "13px",
+                marginBottom: "8px",
+              }}
+            >
+              Confirm Location
+            </button>
+
+            {/* CANCEL BUTTON */}
+            <button
+              type="button"
+              onClick={() => onCancelPicker?.()}
+              style={{
+                width: "100%",
+                padding: "10px",
+                background: "#f3f4f6",
+                color: "#374151",
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "600",
+                fontSize: "13px",
+              }}
+            >
+              Cancel Selection
+            </button>
           </div>
         </>
       )}
 
+      {/* ERROR MESSAGE */}
       {error && (
         <div
           role="alert"
@@ -294,7 +468,8 @@ export default function TruckTrackingMap({
             borderRadius: "8px",
             color: "#dc2626",
             zIndex: 10,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+            boxShadow:
+              "0 2px 10px rgba(0,0,0,0.15)",
           }}
         >
           {error}

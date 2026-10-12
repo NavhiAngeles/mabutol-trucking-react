@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
@@ -7,7 +6,8 @@ import TruckTrackingMap from "./TruckTrackingMap";
 const HUBS = [
   {
     label: "MICT Manila",
-    value: "Manila International Container Terminal, MICT South Access Road, Port of Manila, Manila 1012, Metro Manila",
+    value:
+      "Manila International Container Terminal, MICT South Access Road, Port of Manila, Manila 1012, Metro Manila",
   },
   {
     label: "North Harbor",
@@ -19,7 +19,8 @@ const HUBS = [
   },
   {
     label: "Subic Port",
-    value: "Subic Bay International Terminal, San Bernardino Road, Subic Bay Freeport Zone, Zambales 2222",
+    value:
+      "Subic Bay International Terminal, San Bernardino Road, Subic Bay Freeport Zone, Zambales 2222",
   },
 ];
 
@@ -108,6 +109,9 @@ export default function CreateShipmentDrawer({
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [pickerMode, setPickerMode] = useState(null);
+  const [confirmedPickup, setConfirmedPickup] = useState(null);
+  const [confirmedDestination, setConfirmedDestination] = useState(null);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [customers, setCustomers] = useState([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
@@ -117,14 +121,62 @@ export default function CreateShipmentDrawer({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdShipment, setCreatedShipment] = useState(null);
 
+  // UPDATE FORM FIELDS
   const update = (field, value) => {
     setForm((previous) => ({
       ...previous,
       [field]: value,
     }));
+
+    if (field === "pickupLocation") {
+      setConfirmedPickup(null);
+    }
+
+    if (field === "destination") {
+      setConfirmedDestination(null);
+    }
+
     setSaveError("");
   };
 
+  // CONFIRM MAP LOCATION
+  const handleConfirmLocation = ({ type, lat, lng }) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setSaveError("Invalid map coordinates.");
+      return;
+    }
+
+    const coordinates = { lat, lng };
+    const locationText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+    if (type === "pickup") {
+      setForm((previous) => ({
+        ...previous,
+        pickupLocation: locationText,
+      }));
+
+      setConfirmedPickup(coordinates);
+    } else if (type === "destination") {
+      setForm((previous) => ({
+        ...previous,
+        destination: locationText,
+      }));
+
+      setConfirmedDestination(coordinates);
+    } else {
+      return;
+    }
+
+    setPickerMode(null);
+    setSaveError("");
+  };
+
+  // CANCEL MAP PICKER
+  const handleCancelPicker = () => {
+    setPickerMode(null);
+  };
+
+  // LOAD CUSTOMERS
   useEffect(() => {
     if (!isOpen) return;
 
@@ -167,7 +219,7 @@ export default function CreateShipmentDrawer({
     (vehicle) => vehicle.id === form.selectedVehicle
   );
 
-  // Financial calculations
+  // FINANCIAL CALCULATIONS
   const baseRate = Number(form.baseRate) || 0;
   const handlingCharge = Number(form.handlingCharge) || 0;
   const suggestedCharge = baseRate + handlingCharge;
@@ -182,9 +234,12 @@ export default function CreateShipmentDrawer({
   const operationalCost = tollCost + driverAllowance;
   const estimatedProfit = finalCharge - operationalCost;
 
+  // RESET FORM
   const reset = () => {
     setForm(INITIAL_FORM);
     setPickerMode(null);
+    setConfirmedPickup(null);
+    setConfirmedDestination(null);
     setCurrentStep(1);
     setSaveError("");
     setCreatedShipment(null);
@@ -193,10 +248,12 @@ export default function CreateShipmentDrawer({
 
   const handleCloseAll = () => {
     if (isSaving) return;
+
     reset();
     onClose?.();
   };
 
+  // VALIDATION
   const validateRoute = () => {
     if (!form.pickupLocation.trim()) {
       return "Pickup location is required.";
@@ -283,11 +340,10 @@ export default function CreateShipmentDrawer({
     return "";
   };
 
+  // NEXT STEP
   const handleNext = () => {
     const error =
-      currentStep === 1
-        ? validateRoute()
-        : validateCargo();
+      currentStep === 1 ? validateRoute() : validateCargo();
 
     if (error) {
       setSaveError(error);
@@ -298,13 +354,12 @@ export default function CreateShipmentDrawer({
     setCurrentStep((step) => Math.min(step + 1, 3));
   };
 
+  // SAVE SHIPMENT
   const handleCreateShipment = async () => {
     if (isSaving) return;
 
     const error =
-      validateRoute() ||
-      validateCargo() ||
-      validateFinance();
+      validateRoute() || validateCargo() || validateFinance();
 
     if (error) {
       setSaveError(error);
@@ -326,14 +381,11 @@ export default function CreateShipmentDrawer({
         scheduled_departure: departure.toISOString(),
         cargo_description: form.cargoDescription.trim(),
         weight_kg: Number(form.weight),
-
         quoted_amount: suggestedCharge,
-
         override_amount:
           form.overrideAmount.trim() !== ""
             ? Number(form.overrideAmount)
             : null,
-
         status: "booked",
         booking_source: "web",
       };
@@ -348,7 +400,6 @@ export default function CreateShipmentDrawer({
 
       setCreatedShipment(data);
       setShowSuccessModal(true);
-
       onCreated?.(data);
     } catch (error) {
       console.error("Create shipment error:", error);
@@ -362,15 +413,15 @@ export default function CreateShipmentDrawer({
 
   if (!isOpen) return null;
 
+  // STEP 1: ROUTE & SCHEDULE
   const renderRouteStep = () => (
     <div className="step-scroll-content">
       <div className="form-group">
-        <label className="input-title">
-          PICK-UP LOCATION
-        </label>
+        <label className="input-title">PICK-UP LOCATION</label>
 
         <div className="input-search-wrapper">
           <i className="las la-circle-notch input-icon input-blue-icon" />
+
           <input
             type="text"
             placeholder="Enter pickup location"
@@ -379,35 +430,44 @@ export default function CreateShipmentDrawer({
               update("pickupLocation", e.target.value)
             }
           />
+
           <i className="las la-search trailing-search-icon" />
         </div>
 
-<button
-  type="button"
-  className="view-map-text-btn"
-  onClick={() =>
-    setPickerMode((previous) =>
-      previous === "pickup" ? null : "pickup"
-    )
-  }
->
-  <i className="las la-map-marker" />
+        <button
+          type="button"
+          className="view-map-text-btn"
+          onClick={() =>
+            setPickerMode((previous) =>
+              previous === "pickup" ? null : "pickup"
+            )
+          }
+        >
+          <i className="las la-map-marker" />
+          {pickerMode === "pickup"
+            ? " Exit Pickup Picker"
+            : " Pick Pickup on Map"}
+        </button>
 
-  {pickerMode === "pickup"
-    ? " Exit Pickup Picker"
-    : " Pick Pickup on Map"}
-</button>
+        {confirmedPickup && (
+          <p className="field-info-text">
+            <i className="las la-check-circle" /> Pickup
+            location confirmed on map.
+          </p>
+        )}
 
         <div className="hub-pills-row">
           {HUBS.map((hub) => (
             <button
               key={hub.label}
               type="button"
-              className={`hub-pill ${form.pickupLocation === hub.value ? "active" : ""
-                }`}
-              onClick={() =>
-                update("pickupLocation", hub.value)
-              }
+              className={`hub-pill ${
+                form.pickupLocation === hub.value ? "active" : ""
+              }`}
+              onClick={() => {
+                update("pickupLocation", hub.value);
+                setPickerMode(null);
+              }}
             >
               {hub.label}
             </button>
@@ -420,6 +480,7 @@ export default function CreateShipmentDrawer({
 
         <div className="input-search-wrapper">
           <i className="las la-map-marker input-icon input-orange-icon" />
+
           <input
             type="text"
             placeholder="Enter destination"
@@ -429,21 +490,28 @@ export default function CreateShipmentDrawer({
             }
           />
         </div>
-        <button
-  type="button"
-  className="view-map-text-btn"
-  onClick={() =>
-    setPickerMode((previous) =>
-      previous === "destination" ? null : "destination"
-    )
-  }
->
-  <i className="las la-map-marker" />
 
-  {pickerMode === "destination"
-    ? " Exit Destination Picker"
-    : " Pick Destination on Map"}
-</button>
+        <button
+          type="button"
+          className="view-map-text-btn"
+          onClick={() =>
+            setPickerMode((previous) =>
+              previous === "destination" ? null : "destination"
+            )
+          }
+        >
+          <i className="las la-map-marker" />
+          {pickerMode === "destination"
+            ? " Exit Destination Picker"
+            : " Pick Destination on Map"}
+        </button>
+
+        {confirmedDestination && (
+          <p className="field-info-text">
+            <i className="las la-check-circle" /> Destination
+            confirmed on map.
+          </p>
+        )}
       </div>
 
       <div className="route-summary-card">
@@ -488,7 +556,7 @@ export default function CreateShipmentDrawer({
             type="button"
             className="view-map-text-btn"
             disabled
-            title="Map integration is not configured"
+            title="Route visualization is not configured"
           >
             <i className="las la-map" /> View on map
           </button>
@@ -497,9 +565,8 @@ export default function CreateShipmentDrawer({
 
       <div className="form-grid-2x2">
         <div className="form-group">
-          <label className="input-title">
-            DISTANCE (KM)
-          </label>
+          <label className="input-title">DISTANCE (KM)</label>
+
           <div className="input-search-wrapper">
             <input
               type="number"
@@ -518,6 +585,7 @@ export default function CreateShipmentDrawer({
           <label className="input-title">
             EST. TRAVEL TIME (MIN)
           </label>
+
           <div className="input-search-wrapper">
             <input
               type="number"
@@ -533,9 +601,7 @@ export default function CreateShipmentDrawer({
       </div>
 
       <div className="form-group">
-        <label className="input-title">
-          TOLL ROAD
-        </label>
+        <label className="input-title">TOLL ROAD</label>
 
         <label className="field-info-text">
           <input
@@ -557,6 +623,7 @@ export default function CreateShipmentDrawer({
 
           <div className="input-search-wrapper">
             <i className="las la-calendar input-icon" />
+
             <input
               type="date"
               value={form.departureDate}
@@ -568,12 +635,11 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="form-group">
-          <label className="input-title">
-            DEPARTURE TIME
-          </label>
+          <label className="input-title">DEPARTURE TIME</label>
 
           <div className="input-search-wrapper">
             <i className="las la-clock input-icon" />
+
             <input
               type="time"
               value={form.departureTime}
@@ -586,9 +652,7 @@ export default function CreateShipmentDrawer({
       </div>
 
       <div className="form-group">
-        <label className="input-title">
-          CUSTOMER BILLING
-        </label>
+        <label className="input-title">CUSTOMER BILLING</label>
 
         <div className="select-dropdown-wrapper">
           <select
@@ -605,10 +669,7 @@ export default function CreateShipmentDrawer({
             </option>
 
             {customers.map((customer) => (
-              <option
-                key={customer.id}
-                value={customer.id}
-              >
+              <option key={customer.id} value={customer.id}>
                 {customerName(customer)}
               </option>
             ))}
@@ -618,8 +679,8 @@ export default function CreateShipmentDrawer({
         </div>
 
         <p className="field-info-text">
-          <i className="las la-info-circle" />{" "}
-          Registered customer accounts from Supabase.
+          <i className="las la-info-circle" /> Registered
+          customer accounts from Supabase.
         </p>
 
         {customerError && (
@@ -631,6 +692,7 @@ export default function CreateShipmentDrawer({
     </div>
   );
 
+  // STEP 2: CARGO & VEHICLE
   const renderCargoStep = () => (
     <div className="step-scroll-content">
       <div className="form-group">
@@ -650,9 +712,7 @@ export default function CreateShipmentDrawer({
       </div>
 
       <div className="form-group">
-        <label className="input-title">
-          TOTAL WEIGHT
-        </label>
+        <label className="input-title">TOTAL WEIGHT</label>
 
         <div className="input-search-wrapper">
           <input
@@ -665,6 +725,7 @@ export default function CreateShipmentDrawer({
               update("weight", e.target.value)
             }
           />
+
           <span className="trailing-unit">kg</span>
         </div>
       </div>
@@ -684,11 +745,10 @@ export default function CreateShipmentDrawer({
             <button
               key={tag}
               type="button"
-              className={`handling-badge-btn ${form.specialHandling === tag ? "active" : ""
-                }`}
-              onClick={() =>
-                update("specialHandling", tag)
-              }
+              className={`handling-badge-btn ${
+                form.specialHandling === tag ? "active" : ""
+              }`}
+              onClick={() => update("specialHandling", tag)}
             >
               {tag}
             </button>
@@ -737,9 +797,11 @@ export default function CreateShipmentDrawer({
                 key={truck.id}
                 role="button"
                 tabIndex={overweight ? -1 : 0}
-                className={`vehicle-card ${overweight ? "disabled" : "searchable"
-                  } ${selected && !overweight ? "active" : ""
-                  }`}
+                className={`vehicle-card ${
+                  overweight ? "disabled" : "searchable"
+                } ${
+                  selected && !overweight ? "active" : ""
+                }`}
                 onClick={() => {
                   if (!overweight) {
                     update("selectedVehicle", truck.id);
@@ -762,6 +824,7 @@ export default function CreateShipmentDrawer({
                 <div className="vehicle-card-details">
                   <div className="vehicle-title-line">
                     <h4>{truck.name}</h4>
+
                     <span className="vehicle-fleet-id-tag">
                       Fleet: {truck.fleetCode}
                     </span>
@@ -773,10 +836,11 @@ export default function CreateShipmentDrawer({
                   </p>
 
                   <span
-                    className={`vehicle-tag ${truck.isEnclosed
-                      ? "blue-tag"
-                      : "grey-tag"
-                      }`}
+                    className={`vehicle-tag ${
+                      truck.isEnclosed
+                        ? "blue-tag"
+                        : "grey-tag"
+                    }`}
                   >
                     {truck.typeTag}
                   </span>
@@ -803,10 +867,12 @@ export default function CreateShipmentDrawer({
     </div>
   );
 
+  // STEP 3: REVIEW & CONFIRMATION
   const renderReviewStep = () => (
     <div className="step-scroll-content">
       <div className="review-alert-banner">
         <i className="las la-exclamation-triangle alert-banner-icon" />
+
         <p>
           Review the shipment information and financial
           estimates before confirming. Actual driver and
@@ -816,9 +882,7 @@ export default function CreateShipmentDrawer({
 
       {/* ROUTE */}
       <div className="review-section">
-        <label className="review-section-title">
-          ROUTE
-        </label>
+        <label className="review-section-title">ROUTE</label>
 
         <div className="review-timeline-display">
           <div className="review-node blue-dot">
@@ -862,8 +926,7 @@ export default function CreateShipmentDrawer({
 
           <div className="review-data-text">
             <i className="las la-calendar" />{" "}
-            {form.departureDate}
-            {" "}
+            {form.departureDate}{" "}
             <i className="las la-clock" />{" "}
             {form.departureTime}
           </div>
@@ -875,9 +938,7 @@ export default function CreateShipmentDrawer({
           </label>
 
           <div className="review-data-text">
-            <strong>
-              {customerName(selectedCustomer)}
-            </strong>
+            <strong>{customerName(selectedCustomer)}</strong>
 
             <span className="blue-status-tag">
               REGISTERED
@@ -888,9 +949,7 @@ export default function CreateShipmentDrawer({
 
       {/* CARGO */}
       <div className="review-section">
-        <label className="review-section-title">
-          CARGO
-        </label>
+        <label className="review-section-title">CARGO</label>
 
         <div className="review-data-row align-center">
           <strong className="font-bold">
@@ -927,6 +986,7 @@ export default function CreateShipmentDrawer({
             <h4>
               {selectedVehicle?.name || "Not selected"}
             </h4>
+
             <p>
               {selectedVehicle?.fleetCode
                 ? `Sample fleet: ${selectedVehicle.fleetCode}`
@@ -953,6 +1013,7 @@ export default function CreateShipmentDrawer({
 
           <div className="entity-info-box">
             <h4>Unassigned</h4>
+
             <p>
               Driver availability and compliance
               have not been verified.
@@ -1109,9 +1170,7 @@ export default function CreateShipmentDrawer({
         <div className="financial-data-row">
           <span>Total Operational Cost</span>
 
-          <span>
-            -{currency(operationalCost)}
-          </span>
+          <span>-{currency(operationalCost)}</span>
         </div>
 
         <div className="financial-total-row border-dashed">
@@ -1133,13 +1192,13 @@ export default function CreateShipmentDrawer({
         </div>
 
         <p className="field-info-text">
-          Estimate only. Actual operating costs
-          may differ.
+          Estimate only. Actual operating costs may differ.
         </p>
       </div>
     </div>
   );
 
+  // MAIN DRAWER
   return (
     <div
       className="drawer-overlay"
@@ -1166,11 +1225,12 @@ export default function CreateShipmentDrawer({
               <h2>Create New Shipment</h2>
             </div>
 
+            {/* STEPPER */}
             <div className="stepper-wrapper">
               <div
-                className={`step-item ${currentStep >= 1 ? "active" : ""
-                  } ${currentStep > 1 ? "checked" : ""
-                  }`}
+                className={`step-item ${
+                  currentStep >= 1 ? "active" : ""
+                } ${currentStep > 1 ? "checked" : ""}`}
               >
                 <span className="step-num">
                   {currentStep > 1 ? "✓" : "1"}
@@ -1184,14 +1244,15 @@ export default function CreateShipmentDrawer({
               </div>
 
               <div
-                className={`step-line ${currentStep >= 2 ? "active-line" : ""
-                  }`}
+                className={`step-line ${
+                  currentStep >= 2 ? "active-line" : ""
+                }`}
               />
 
               <div
-                className={`step-item ${currentStep >= 2 ? "active" : ""
-                  } ${currentStep > 2 ? "checked" : ""
-                  }`}
+                className={`step-item ${
+                  currentStep >= 2 ? "active" : ""
+                } ${currentStep > 2 ? "checked" : ""}`}
               >
                 <span className="step-num">
                   {currentStep > 2 ? "✓" : "2"}
@@ -1205,13 +1266,15 @@ export default function CreateShipmentDrawer({
               </div>
 
               <div
-                className={`step-line ${currentStep === 3 ? "active-line" : ""
-                  }`}
+                className={`step-line ${
+                  currentStep === 3 ? "active-line" : ""
+                }`}
               />
 
               <div
-                className={`step-item ${currentStep === 3 ? "active" : ""
-                  }`}
+                className={`step-item ${
+                  currentStep === 3 ? "active" : ""
+                }`}
               >
                 <span className="step-num">3</span>
 
@@ -1315,11 +1378,15 @@ export default function CreateShipmentDrawer({
 
         {/* RIGHT MAP PANEL */}
         <div className="drawer-map-panel">
-  <TruckTrackingMap
-    pickupLocation={form.pickupLocation}
-    pickerMode={pickerMode}
-  />
-</div>
+          <TruckTrackingMap
+            pickupLocation={form.pickupLocation}
+            pickerMode={pickerMode}
+            onConfirmLocation={handleConfirmLocation}
+            onCancelPicker={handleCancelPicker}
+            confirmedPickup={confirmedPickup}
+            confirmedDestination={confirmedDestination}
+          />
+        </div>
 
         {/* SUCCESS MODAL */}
         {showSuccessModal && (
