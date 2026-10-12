@@ -35,10 +35,15 @@ const PICKUP_LOCATIONS = [
   },
 ];
 
-export default function TruckTrackingMap({ pickupLocation }) {
+export default function TruckTrackingMap({
+  pickupLocation,
+  pickerMode = null,
+}) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
+
   const [error, setError] = useState("");
+  const [centerCoordinates, setCenterCoordinates] = useState(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -76,8 +81,25 @@ export default function TruckTrackingMap({ pickupLocation }) {
 
       map.on("load", () => {
         console.log("MapLibre map loaded successfully!");
+
         setError("");
         map.resize();
+
+        const center = map.getCenter();
+
+        setCenterCoordinates({
+          lat: center.lat,
+          lng: center.lng,
+        });
+      });
+
+      map.on("moveend", () => {
+        const center = map.getCenter();
+
+        setCenterCoordinates({
+          lat: center.lat,
+          lng: center.lng,
+        });
       });
 
       map.on("error", (event) => {
@@ -106,10 +128,10 @@ export default function TruckTrackingMap({ pickupLocation }) {
     };
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     const map = mapRef.current;
 
-    if (!map || !pickupLocation) return;
+    if (!map || !pickupLocation || pickerMode) return;
 
     const location = PICKUP_LOCATIONS.find((item) =>
       pickupLocation.includes(item.search)
@@ -148,7 +170,7 @@ export default function TruckTrackingMap({ pickupLocation }) {
       map.off("load", showMarker);
       if (marker) marker.remove();
     };
-  }, [pickupLocation]);
+  }, [pickupLocation, pickerMode]);
 
   return (
     <div
@@ -168,6 +190,96 @@ export default function TruckTrackingMap({ pickupLocation }) {
           height: "100%",
         }}
       />
+
+      {pickerMode && !error && (
+        <>
+          {/* CENTERED LOCATION POINTER */}
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -100%)",
+              pointerEvents: "none",
+              zIndex: 5,
+              filter: "drop-shadow(0 4px 4px rgba(0,0,0,0.3))",
+            }}
+          >
+            <svg
+              width="44"
+              height="60"
+              viewBox="0 0 44 60"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M22 2C11 2 2 11 2 22C2 38 22 58 22 58S42 38 42 22C42 11 33 2 22 2Z"
+                fill="#dc2626"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+              />
+
+              <circle
+                cx="22"
+                cy="22"
+                r="9"
+                fill="#ffffff"
+              />
+            </svg>
+          </div>
+
+          {/* LOCATION PICKER INFORMATION */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "20px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 6,
+              background: "#ffffff",
+              padding: "12px 18px",
+              borderRadius: "12px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              textAlign: "center",
+              minWidth: "240px",
+              pointerEvents: "none",
+            }}
+          >
+            <strong
+              style={{
+                fontSize: "14px",
+                color: "#111827",
+              }}
+            >
+              {pickerMode === "pickup"
+                ? "Select Pickup Location"
+                : "Select Destination"}
+            </strong>
+
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#6b7280",
+                margin: "6px 0",
+              }}
+            >
+              Drag the map to position the pointer
+            </p>
+
+            {centerCoordinates && (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#374151",
+                }}
+              >
+                Lat: {centerCoordinates.lat.toFixed(6)}
+                <br />
+                Lng: {centerCoordinates.lng.toFixed(6)}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {error && (
         <div

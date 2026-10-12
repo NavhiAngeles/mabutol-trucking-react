@@ -107,6 +107,7 @@ export default function CreateShipmentDrawer({
   onCreated,
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [pickerMode, setPickerMode] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [customers, setCustomers] = useState([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
@@ -183,6 +184,7 @@ export default function CreateShipmentDrawer({
 
   const reset = () => {
     setForm(INITIAL_FORM);
+    setPickerMode(null);
     setCurrentStep(1);
     setSaveError("");
     setCreatedShipment(null);
@@ -380,6 +382,22 @@ export default function CreateShipmentDrawer({
           <i className="las la-search trailing-search-icon" />
         </div>
 
+<button
+  type="button"
+  className="view-map-text-btn"
+  onClick={() =>
+    setPickerMode((previous) =>
+      previous === "pickup" ? null : "pickup"
+    )
+  }
+>
+  <i className="las la-map-marker" />
+
+  {pickerMode === "pickup"
+    ? " Exit Pickup Picker"
+    : " Pick Pickup on Map"}
+</button>
+
         <div className="hub-pills-row">
           {HUBS.map((hub) => (
             <button
@@ -411,6 +429,21 @@ export default function CreateShipmentDrawer({
             }
           />
         </div>
+        <button
+  type="button"
+  className="view-map-text-btn"
+  onClick={() =>
+    setPickerMode((previous) =>
+      previous === "destination" ? null : "destination"
+    )
+  }
+>
+  <i className="las la-map-marker" />
+
+  {pickerMode === "destination"
+    ? " Exit Destination Picker"
+    : " Pick Destination on Map"}
+</button>
       </div>
 
       <div className="route-summary-card">
@@ -1282,8 +1315,11 @@ export default function CreateShipmentDrawer({
 
         {/* RIGHT MAP PANEL */}
         <div className="drawer-map-panel">
-          <TruckTrackingMap pickupLocation={form.pickupLocation} />
-        </div>
+  <TruckTrackingMap
+    pickupLocation={form.pickupLocation}
+    pickerMode={pickerMode}
+  />
+</div>
 
         {/* SUCCESS MODAL */}
         {showSuccessModal && (
