@@ -5,10 +5,22 @@ import "./createShipment.css";
 import TruckTrackingMap from "./TruckTrackingMap";
 
 const HUBS = [
-  { label: "Hub Alpha", value: "Cabanatuan City Hub Alpha" },
-  { label: "Agri-Terminal", value: "Cabanatuan City Agri-Terminal" },
-  { label: "Cold Storage B", value: "Cabanatuan City Cold Storage B" },
-  { label: "Yard 4", value: "Cabanatuan City Yard 4" },
+  {
+    label: "MICT Manila",
+    value: "Manila International Container Terminal, MICT South Access Road, Port of Manila, Manila 1012, Metro Manila",
+  },
+  {
+    label: "North Harbor",
+    value: "Manila North Harbor, Tondo, Manila 1012, Metro Manila",
+  },
+  {
+    label: "South Harbor",
+    value: "Manila South Harbor, Port Area, Manila, Metro Manila",
+  },
+  {
+    label: "Subic Port",
+    value: "Subic Bay International Terminal, San Bernardino Road, Subic Bay Freeport Zone, Zambales 2222",
+  },
 ];
 
 const VEHICLES = [
