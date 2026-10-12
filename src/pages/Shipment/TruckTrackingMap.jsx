@@ -3,6 +3,13 @@ import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import {
+  LUZON_BOUNDS,
+  LUZON_CENTER,
+  LUZON_MIN_ZOOM,
+  LUZON_MAX_ZOOM,
+} from "../../config/mapBound";
+
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 export default function TruckTrackingMap() {
@@ -27,8 +34,14 @@ export default function TruckTrackingMap() {
       map = new maplibregl.Map({
         container,
         style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(apiKey)}`,
-        center: [121.0437, 14.676],
-        zoom: 9,
+
+        // Luzon restrictions
+        center: LUZON_CENTER,
+        zoom: 8,
+        minZoom: LUZON_MIN_ZOOM,
+        maxZoom: LUZON_MAX_ZOOM,
+        maxBounds: LUZON_BOUNDS,
+        renderWorldCopies: false,
       });
 
       mapRef.current = map;

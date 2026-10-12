@@ -4,6 +4,13 @@ import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import {
+  LUZON_BOUNDS,
+  LUZON_CENTER,
+  LUZON_MIN_ZOOM,
+  LUZON_MAX_ZOOM,
+} from "../../config/mapBound";
+
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const MAP_STYLES = {
@@ -34,8 +41,14 @@ export default function DashboardTrackingMap() {
       map = new maplibregl.Map({
         container: containerRef.current,
         style: `https://api.maptiler.com/maps/${MAP_STYLES.streets}/style.json?key=${encodeURIComponent(apiKey)}`,
-        center: [121.05, 15.35],
+
+        // Luzon restrictions
+        center: LUZON_CENTER,
         zoom: 7,
+        minZoom: LUZON_MIN_ZOOM,
+        maxZoom: LUZON_MAX_ZOOM,
+        maxBounds: LUZON_BOUNDS,
+        renderWorldCopies: false,
         attributionControl: true,
       });
 
@@ -88,12 +101,12 @@ export default function DashboardTrackingMap() {
   }
 
   function resetView() {
-    mapRef.current?.flyTo({
-      center: [121.05, 15.35],
-      zoom: 7,
-      essential: true,
-    });
-  }
+  mapRef.current?.flyTo({
+    center: LUZON_CENTER,
+    zoom: 7,
+    essential: true,
+  });
+}
 
   return (
     <div className="dashboard-tracking-map">
