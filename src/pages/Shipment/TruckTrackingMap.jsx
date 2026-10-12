@@ -35,6 +35,9 @@ const PICKUP_LOCATIONS = [
   },
 ];
 
+const ROUTE_SOURCE = "shipment-driving-route";
+const ROUTE_LAYER = "shipment-driving-route-line";
+
 export default function TruckTrackingMap({
   pickupLocation = "",
   pickerMode = null,
@@ -43,6 +46,9 @@ export default function TruckTrackingMap({
   confirmedPickup = null,
   confirmedDestination = null,
   isResolvingAddress = false,
+  routeGeoJSON = null,
+  isCalculatingRoute = false,
+  routeError = "",
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -71,9 +77,9 @@ export default function TruckTrackingMap({
     try {
       map = new maplibregl.Map({
         container,
-        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(
-          apiKey
-        )}`,
+        style:
+          "https://api.maptiler.com/maps/streets-v2/style.json" +
+          `?key=${encodeURIComponent(apiKey)}`,
         center: LUZON_CENTER,
         zoom: 8,
         minZoom: LUZON_MIN_ZOOM,
@@ -89,8 +95,9 @@ export default function TruckTrackingMap({
         "top-right"
       );
 
-      const updateCenterCoordinates = () => {
+      const updateCenter = () => {
         const center = map.getCenter();
+
         setCenterCoordinates({
           lat: center.lat,
           lng: center.lng,
@@ -98,25 +105,31 @@ export default function TruckTrackingMap({
       };
 
       map.on("load", () => {
-        console.log("MapLibre map loaded successfully!");
         setError("");
         setMapReady(true);
         map.resize();
-        updateCenterCoordinates();
+        updateCenter();
       });
 
-      map.on("moveend", updateCenterCoordinates);
+      map.on("moveend", updateCenter);
 
       map.on("error", (event) => {
         console.error("MapLibre error:", event.error);
-        setError(event.error?.message || "Map failed to load.");
+
+        if (!map.loaded()) {
+          setError(
+            event.error?.message || "Map failed to load."
+          );
+        }
       });
 
-      resizeObserver = new ResizeObserver(() => {
-        map.resize();
-      });
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(() => {
+          map.resize();
+        });
 
-      resizeObserver.observe(container);
+        resizeObserver.observe(container);
+      }
     } catch (err) {
       console.error("Map initialization error:", err);
       setError(err?.message || "Unable to initialize map.");
@@ -136,7 +149,7 @@ export default function TruckTrackingMap({
     };
   }, []);
 
-  // SHOW PRESET PORT PICKUP
+  // SHOW PRESET PICKUP PORT
   useEffect(() => {
     const map = mapRef.current;
 
@@ -169,7 +182,7 @@ export default function TruckTrackingMap({
     return () => marker.remove();
   }, [pickupLocation, pickerMode, confirmedPickup, mapReady]);
 
-  // SHOW CONFIRMED PICKUP MARKER
+  // CONFIRMED PICKUP MARKER
   useEffect(() => {
     const map = mapRef.current;
 
@@ -196,13 +209,14 @@ export default function TruckTrackingMap({
 
     return () => {
       marker.remove();
+
       if (pickupMarkerRef.current === marker) {
         pickupMarkerRef.current = null;
       }
     };
   }, [confirmedPickup, mapReady]);
 
-  // SHOW CONFIRMED DESTINATION MARKER
+  // CONFIRMED DESTINATION MARKER
   useEffect(() => {
     const map = mapRef.current;
 
@@ -229,13 +243,95 @@ export default function TruckTrackingMap({
 
     return () => {
       marker.remove();
+
       if (destinationMarkerRef.current === marker) {
         destinationMarkerRef.current = null;
       }
     };
   }, [confirmedDestination, mapReady]);
 
-  // CONFIRM THE EXACT MAP CENTER
+  // PHASE 4: DRAW ROAD ROUTE
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const removeRoute = () => {
+      if (map.getLayer(ROUTE_LAYER)) {
+        map.removeLayer(ROUTE_LAYER);
+      }
+
+      if (map.getSource(ROUTE_SOURCE)) {
+        map.removeSource(ROUTE_SOURCE);
+      }
+    };
+
+    removeRoute();
+
+    if (!routeGeoJSON?.features?.length) {
+      return;
+    }
+
+    try {
+      map.addSource(ROUTE_SOURCE, {
+        type: "geojson",
+        data: routeGeoJSON,
+      });
+
+      map.addLayer({
+        id: ROUTE_LAYER,
+        type: "line",
+        source: ROUTE_SOURCE,
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#2563eb",
+          "line-width": 5,
+          "line-opacity": 0.9,
+        },
+      });
+
+      // FIT MAP TO ROUTE
+      const bounds = new maplibregl.LngLatBounds();
+
+      const includeCoordinates = (coordinates) => {
+        if (!Array.isArray(coordinates)) return;
+
+        if (
+          typeof coordinates[0] === "number" &&
+          typeof coordinates[1] === "number"
+        ) {
+          bounds.extend(coordinates);
+          return;
+        }
+
+        coordinates.forEach(includeCoordinates);
+      };
+
+      routeGeoJSON.features.forEach((feature) => {
+        includeCoordinates(feature.geometry?.coordinates);
+      });
+
+      if (!bounds.isEmpty() && !pickerMode) {
+        map.fitBounds(bounds, {
+          padding: 70,
+          maxZoom: 14,
+          duration: 1000,
+        });
+      }
+    } catch (err) {
+      console.error("Unable to draw route:", err);
+    }
+
+    return () => {
+      if (mapRef.current === map) {
+        removeRoute();
+      }
+    };
+  }, [routeGeoJSON, mapReady, pickerMode]);
+
+  // CONFIRM MAP CENTER
   const handleConfirmLocation = () => {
     const map = mapRef.current;
 
@@ -244,13 +340,6 @@ export default function TruckTrackingMap({
       !mapReady ||
       !pickerMode ||
       isResolvingAddress
-    ) {
-      return;
-    }
-
-    if (
-      pickerMode !== "pickup" &&
-      pickerMode !== "destination"
     ) {
       return;
     }
@@ -273,7 +362,6 @@ export default function TruckTrackingMap({
         position: "relative",
       }}
     >
-      {/* MAP CONTAINER */}
       <div
         ref={containerRef}
         style={{
@@ -284,10 +372,9 @@ export default function TruckTrackingMap({
         }}
       />
 
-      {/* CAMERA-STYLE LOCATION PICKER */}
+      {/* CAMERA-STYLE PICKER */}
       {pickerMode && !error && (
         <>
-          {/* FIXED CENTER PIN */}
           <div
             aria-hidden="true"
             style={{
@@ -313,11 +400,15 @@ export default function TruckTrackingMap({
                 stroke="#ffffff"
                 strokeWidth="2.5"
               />
-              <circle cx="22" cy="22" r="9" fill="#ffffff" />
+              <circle
+                cx="22"
+                cy="22"
+                r="9"
+                fill="#ffffff"
+              />
             </svg>
           </div>
 
-          {/* LOCATION PICKER PANEL */}
           <div
             style={{
               position: "absolute",
@@ -332,7 +423,6 @@ export default function TruckTrackingMap({
               textAlign: "center",
               width: "min(290px, calc(100% - 24px))",
               boxSizing: "border-box",
-              pointerEvents: "auto",
             }}
           >
             <strong
@@ -369,15 +459,16 @@ export default function TruckTrackingMap({
                 }}
               >
                 <div>
-                  Latitude: {centerCoordinates.lat.toFixed(6)}
+                  Latitude:{" "}
+                  {centerCoordinates.lat.toFixed(6)}
                 </div>
                 <div>
-                  Longitude: {centerCoordinates.lng.toFixed(6)}
+                  Longitude:{" "}
+                  {centerCoordinates.lng.toFixed(6)}
                 </div>
               </div>
             )}
 
-            {/* CONFIRM AND DETECT ADDRESS */}
             <button
               type="button"
               onClick={handleConfirmLocation}
@@ -409,11 +500,7 @@ export default function TruckTrackingMap({
             <button
               type="button"
               disabled={isResolvingAddress}
-              onClick={() => {
-                if (!isResolvingAddress) {
-                  onCancelPicker?.();
-                }
-              }}
+              onClick={() => onCancelPicker?.()}
               style={{
                 width: "100%",
                 padding: "10px",
@@ -433,6 +520,33 @@ export default function TruckTrackingMap({
             </button>
           </div>
         </>
+      )}
+
+      {/* ROUTING STATUS */}
+      {!pickerMode && (isCalculatingRoute || routeError) && (
+        <div
+          role="status"
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "min(360px, calc(100% - 24px))",
+            padding: "12px 16px",
+            background: "#ffffff",
+            color: routeError ? "#b91c1c" : "#1f2937",
+            borderRadius: "10px",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
+            zIndex: 7,
+            fontSize: "13px",
+            textAlign: "center",
+            boxSizing: "border-box",
+          }}
+        >
+          {isCalculatingRoute
+            ? "Calculating truck route..."
+            : routeError}
+        </div>
       )}
 
       {/* MAP ERROR */}
