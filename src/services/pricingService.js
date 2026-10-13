@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { attachVehiclePricing, pricingDate } from "./vehiclePricing";
 
 export async function fetchHandlingSurcharges() {
   const { data, error } = await supabase.from("system_settings")
@@ -11,6 +12,7 @@ export async function fetchHandlingSurcharges() {
 }
 
 export async function fetchPricingData() {
+  const today = pricingDate();
   const [vehicleResult, rateResult, settingsResult] =
     await Promise.all([
       supabase
@@ -25,7 +27,7 @@ export async function fetchPricingData() {
           "id, name, vehicle_type_id, base_rate, per_km_rate, per_kg_rate, min_charge, is_active, effective_from, effective_to"
         )
         .eq("is_active", true)
-        .lte("effective_from", new Date().toISOString().slice(0, 10)),
+        .lte("effective_from", today),
 
       supabase
         .from("system_settings")
@@ -41,32 +43,7 @@ export async function fetchPricingData() {
   if (rateResult.error) throw rateResult.error;
   if (settingsResult.error) throw settingsResult.error;
 
-  const today = new Date().toISOString().slice(0, 10);
-
-  const currentRates = (rateResult.data || [])
-    .filter(
-      (rate) =>
-        !rate.effective_to || rate.effective_to >= today
-    )
-    .sort((a, b) =>
-      b.effective_from.localeCompare(a.effective_from)
-    );
-
-  const rateByVehicle = new Map();
-
-  for (const rate of currentRates) {
-    if (
-      rate.vehicle_type_id &&
-      !rateByVehicle.has(rate.vehicle_type_id)
-    ) {
-      rateByVehicle.set(rate.vehicle_type_id, rate);
-    }
-  }
-
-  const vehicles = (vehicleResult.data || []).map((vehicle) => ({
-    ...vehicle,
-    pricing: rateByVehicle.get(vehicle.id) || null,
-  }));
+  const vehicles = attachVehiclePricing(vehicleResult.data || [], rateResult.data || [], today);
 
   const settings = Object.fromEntries(
     (settingsResult.data || []).map((setting) => [

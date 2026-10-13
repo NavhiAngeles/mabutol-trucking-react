@@ -5,8 +5,9 @@ import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
-import { fetchHandlingSurcharges } from "../../services/pricingService";
+import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
+import { vehicleBaseRate, vehicleCanCarry, pricingDate } from "../../services/vehiclePricing";
 
 const HUBS = [
   {
@@ -28,45 +29,6 @@ const HUBS = [
     label: "Subic Port",
     value:
       "Subic Bay International Terminal, San Bernardino Road, Subic Bay Freeport Zone, Zambales 2222",
-  },
-];
-
-const VEHICLES = [
-  {
-    id: "4-wheeler-closed",
-    name: "4-Wheeler Closed Van",
-    maxWeight: 2000,
-    fleetCode: "T-102",
-    typeTag: "ENCLOSED",
-    isEnclosed: true,
-    iconClass: "las la-truck-pickup",
-  },
-  {
-    id: "6-wheeler-forward",
-    name: "6-Wheeler Forward",
-    maxWeight: 5000,
-    fleetCode: "T-305",
-    typeTag: "OPEN DROPSIDE",
-    isEnclosed: false,
-    iconClass: "las la-truck",
-  },
-  {
-    id: "10-wheeler-wing",
-    name: "10-Wheeler Wing Van",
-    maxWeight: 15000,
-    fleetCode: "T-402",
-    typeTag: "ENCLOSED WING",
-    isEnclosed: true,
-    iconClass: "las la-dolly-flatbed",
-  },
-  {
-    id: "10-wheeler-flatbed",
-    name: "10-Wheeler Flatbed",
-    maxWeight: 12000,
-    fleetCode: "T-409",
-    typeTag: "OPEN FLATBED",
-    isEnclosed: false,
-    iconClass: "las la-truck-loading",
   },
 ];
 
@@ -92,7 +54,6 @@ const INITIAL_FORM = {
   distanceKm: "",
   estimatedMinutes: "",
   usesTollRoad: false,
-  baseRate: "",
   overrideAmount: "",
   tollCost: "0",
   driverAllowance: "0",
@@ -142,21 +103,25 @@ export default function CreateShipmentDrawer({
   const [scheduleClock, setScheduleClock] = useState(() => Date.now());
   const [handlingRates, setHandlingRates] = useState(null);
   const [handlingPricingError, setHandlingPricingError] = useState("");
+  const [vehicles, setVehicles] = useState([]);
+  const currentPricingDate = pricingDate(scheduleClock);
 
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-    fetchHandlingSurcharges().then(rates => {
+    fetchPricingData().then(data => {
       if (cancelled) return;
-      setHandlingRates(rates);
+      setHandlingRates(data.settings.handling_surcharges || null);
+      setVehicles(data.vehicles);
       setHandlingPricingError("");
     }).catch(error => {
       if (cancelled) return;
       setHandlingRates(null);
-      setHandlingPricingError(error.message || "Unable to load handling prices.");
+      setVehicles([]);
+      setHandlingPricingError(error.message || "Unable to load vehicle and handling prices.");
     });
     return () => { cancelled = true; };
-  }, [isOpen]);
+  }, [isOpen, currentPricingDate]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -514,6 +479,12 @@ export default function CreateShipmentDrawer({
         if (data?.roadOnlyVerified !== true) {
           throw new Error("A road-only truck route could not be verified. Please try again later.");
         }
+        if (!Number.isFinite(data.distanceKm) || data.distanceKm < 0 ||
+            !data.geojson?.features?.some(feature => feature.geometry?.type === "LineString" &&
+              feature.geometry.coordinates?.length >= 2 && feature.geometry.coordinates.every(point =>
+                Array.isArray(point) && validCoordinate({ lng: point[0], lat: point[1] })))) {
+          throw new Error("The routing service returned an invalid route or distance. Please select the locations again.");
+        }
 
         setRouteGeoJSON(data.geojson);
 
@@ -630,18 +601,18 @@ export default function CreateShipmentDrawer({
       String(form.billingCustomer)
   );
 
-  const selectedVehicle = VEHICLES.find(
+  const selectedVehicle = vehicles.find(
     (vehicle) =>
       vehicle.id === form.selectedVehicle
   );
 
   // FINANCIAL CALCULATIONS
-  const baseRate = Number(form.baseRate) || 0;
+  const baseRate = routeGeoJSON ? vehicleBaseRate(selectedVehicle, form.distanceKm) : null;
 
   const handlingCharge = handlingCost(handlingRates, form.specialHandling, form.distanceKm);
 
   const suggestedCharge =
-    handlingCharge === null ? null : baseRate + handlingCharge;
+    handlingCharge === null || baseRate === null ? null : baseRate + handlingCharge;
 
   const finalCharge =
     form.overrideAmount.trim() === ""
@@ -730,21 +701,22 @@ export default function CreateShipmentDrawer({
     if (!selectedVehicle) {
       return "Select a vehicle type.";
     }
+    if (!vehicleCanCarry(selectedVehicle, weight)) return "The selected vehicle cannot carry this weight. Select another vehicle.";
+    if (baseRate === null) return "A valid driving route and vehicle pricing record are required.";
 
-    if (weight > selectedVehicle.maxWeight) {
-      return "Cargo exceeds the selected vehicle capacity.";
-    }
 
     return "";
   };
 
   // VALIDATE FINANCIAL DATA
   const validateFinance = () => {
+    if (baseRate === null || !selectedVehicle?.pricing?.id || !vehicleCanCarry(selectedVehicle, form.weight)) {
+      return "Select a vehicle with valid pricing and sufficient capacity, and calculate a valid route.";
+    }
     if (handlingCharge === null || handlingPricingError) {
       return handlingPricingError || "The selected handling price is unavailable. Check pricing settings and route distance.";
     }
     if (
-      !isValidMoney(form.baseRate) ||
       !isValidMoney(form.tollCost) ||
       !isValidMoney(form.driverAllowance)
     ) {
@@ -834,12 +806,23 @@ export default function CreateShipmentDrawer({
     setSaveError("");
 
     try {
-      const currentRates = await fetchHandlingSurcharges();
+      const currentPricing = await fetchPricingData();
+      const currentRates = currentPricing.settings.handling_surcharges;
+      const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
+      const currentBaseRate = vehicleBaseRate(currentVehicle, form.distanceKm);
+      if (!vehicleCanCarry(currentVehicle, form.weight) || currentBaseRate === null) {
+        setVehicles(currentPricing.vehicles);
+        throw new Error("The selected vehicle or its pricing is no longer available for this shipment.");
+      }
       const currentHandlingCharge = handlingCost(currentRates, form.specialHandling, form.distanceKm);
       if (currentHandlingCharge === null) throw new Error("The selected handling price is unavailable. Check pricing settings and route distance.");
-      if (currentHandlingCharge !== handlingCharge) {
+      if (currentHandlingCharge !== handlingCharge || currentBaseRate !== baseRate ||
+          currentVehicle.pricing.id !== selectedVehicle.pricing.id ||
+          Number(currentVehicle.pricing.per_km_rate) !== Number(selectedVehicle.pricing.per_km_rate) ||
+          Number(currentVehicle.pricing.min_charge) !== Number(selectedVehicle.pricing.min_charge)) {
         setHandlingRates(currentRates);
-        throw new Error("Handling pricing has changed. Review the updated total and submit again.");
+        setVehicles(currentPricing.vehicles);
+        throw new Error("Shipment pricing has changed. Review the updated total and submit again.");
       }
       const departureError = validateDeparture(form.departureDate, form.departureTime);
       if (departureError) throw new Error(departureError);
@@ -863,6 +846,9 @@ export default function CreateShipmentDrawer({
         weight_kg: Number(form.weight),
 
         special_handling: form.specialHandling,
+        requested_vehicle_type_id: currentVehicle.id,
+        pricing_rate_id: currentVehicle.pricing.id,
+        distance_km: Number(form.distanceKm),
 
         quoted_amount: suggestedCharge,
 
@@ -1177,6 +1163,7 @@ export default function CreateShipmentDrawer({
               step="0.1"
               placeholder="Distance"
               value={form.distanceKm}
+              readOnly
               onChange={(e) =>
                 update(
                   "distanceKm",
@@ -1461,10 +1448,10 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="vehicle-selection-grid">
-          {VEHICLES.map((truck) => {
-            const overweight =
-              Number(form.weight) >
-              truck.maxWeight;
+          {vehicles.map((truck) => {
+            const overweight = !vehicleCanCarry(truck, form.weight === "" ? 0 : form.weight);
+            const missingPrice = vehicleBaseRate(truck, 0) === null;
+            const unavailable = overweight || missingPrice;
 
             const selected =
               form.selectedVehicle ===
@@ -1475,9 +1462,10 @@ export default function CreateShipmentDrawer({
                 key={truck.id}
                 role="button"
                 tabIndex={
-                  overweight ? -1 : 0
+                  unavailable ? -1 : 0
                 }
-                className={`vehicle-card ${overweight
+                aria-disabled={unavailable}
+                className={`vehicle-card ${unavailable
                     ? "disabled"
                     : "searchable"
                   } ${selected && !overweight
@@ -1485,7 +1473,7 @@ export default function CreateShipmentDrawer({
                     : ""
                   }`}
                 onClick={() => {
-                  if (!overweight) {
+                  if (!unavailable) {
                     update(
                       "selectedVehicle",
                       truck.id
@@ -1494,7 +1482,7 @@ export default function CreateShipmentDrawer({
                 }}
                 onKeyDown={(e) => {
                   if (
-                    !overweight &&
+                    !unavailable &&
                     (e.key === "Enter" ||
                       e.key === " ")
                   ) {
@@ -1510,7 +1498,7 @@ export default function CreateShipmentDrawer({
                 <div className="vehicle-card-icon">
                   <i
                     className={
-                      truck.iconClass
+                      "las la-truck"
                     }
                   />
                 </div>
@@ -1522,24 +1510,20 @@ export default function CreateShipmentDrawer({
                     </h4>
 
                     <span className="vehicle-fleet-id-tag">
-                      Fleet:{" "}
-                      {truck.fleetCode}
+                      {missingPrice ? "Pricing unavailable" : `${currency(truck.pricing.per_km_rate)}/km`}
                     </span>
                   </div>
 
                   <p>
                     Up to{" "}
-                    {truck.maxWeight.toLocaleString()}{" "}
+                    {Number(truck.default_capacity_kg).toLocaleString()}{" "}
                     kg
                   </p>
 
                   <span
-                    className={`vehicle-tag ${truck.isEnclosed
-                        ? "blue-tag"
-                        : "grey-tag"
-                      }`}
+                    className="vehicle-tag blue-tag"
                   >
-                    {truck.typeTag}
+                    {missingPrice ? "No valid rate" : `Minimum ${currency(truck.pricing.min_charge)}`}
                   </span>
                 </div>
 
@@ -1557,9 +1541,7 @@ export default function CreateShipmentDrawer({
         </div>
 
         <p className="field-info-text">
-          These are sample vehicle types,
-          not verified fleet availability
-          or actual assignments.
+          {handlingPricingError || (vehicles.length ? "Choose a vehicle type. Truck assignment is handled separately." : "No vehicle types are available. Check vehicle and pricing settings.")}
         </p>
       </div>
     </div>
@@ -1702,9 +1684,7 @@ export default function CreateShipmentDrawer({
             </h4>
 
             <p>
-              {selectedVehicle?.fleetCode
-                ? `Sample fleet: ${selectedVehicle.fleetCode}`
-                : "No fleet selected"}
+              {selectedVehicle?.pricing ? `${currency(selectedVehicle.pricing.per_km_rate)}/km · Minimum ${currency(selectedVehicle.pricing.min_charge)}` : "No vehicle pricing selected"}
             </p>
           </div>
 
@@ -1759,14 +1739,10 @@ export default function CreateShipmentDrawer({
             min="0"
             step="0.01"
             className="override-text-field"
-            value={form.baseRate}
-            placeholder="0.00"
-            onChange={(e) =>
-              update(
-                "baseRate",
-                e.target.value
-              )
-            }
+            value={baseRate ?? ""}
+            readOnly
+            aria-label="Calculated vehicle base rate"
+            placeholder="Awaiting route and vehicle pricing"
           />
         </div>
 
@@ -2154,6 +2130,8 @@ export default function CreateShipmentDrawer({
                   }
                   disabled={
                     isSaving ||
+                    baseRate === null || handlingCharge === null || Boolean(handlingPricingError) ||
+                    !vehicleCanCarry(selectedVehicle, form.weight) ||
                     isResolvingAddress ||
                     isCalculatingRoute
                   }
