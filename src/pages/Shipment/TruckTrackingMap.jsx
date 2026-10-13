@@ -12,34 +12,10 @@ import {
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
-const PICKUP_LOCATIONS = [
-  {
-    name: "MICT Manila",
-    search: "Manila International Container Terminal",
-    coordinates: [120.9608, 14.5967],
-  },
-  {
-    name: "North Harbor",
-    search: "Manila North Harbor",
-    coordinates: [120.9585, 14.6135],
-  },
-  {
-    name: "South Harbor",
-    search: "Manila South Harbor",
-    coordinates: [120.9677, 14.5833],
-  },
-  {
-    name: "Subic Port",
-    search: "Subic Bay International Terminal",
-    coordinates: [120.2824, 14.7942],
-  },
-];
-
 const ROUTE_SOURCE = "shipment-driving-route";
 const ROUTE_LAYER = "shipment-driving-route-line";
 
 export default function TruckTrackingMap({
-  pickupLocation = "",
   pickerMode = null,
   onConfirmLocation,
   onCancelPicker,
@@ -149,39 +125,6 @@ export default function TruckTrackingMap({
     };
   }, []);
 
-  // SHOW PRESET PICKUP PORT
-  useEffect(() => {
-    const map = mapRef.current;
-
-    if (!map || !mapReady || pickerMode) return;
-    if (confirmedPickup || !pickupLocation) return;
-
-    const location = PICKUP_LOCATIONS.find((item) =>
-      pickupLocation.includes(item.search)
-    );
-
-    if (!location) return;
-
-    const marker = new maplibregl.Marker({
-      color: "#dc2626",
-    })
-      .setLngLat(location.coordinates)
-      .setPopup(
-        new maplibregl.Popup({ offset: 25 }).setText(
-          `Pickup: ${location.name}`
-        )
-      )
-      .addTo(map);
-
-    map.flyTo({
-      center: location.coordinates,
-      zoom: 14,
-      essential: true,
-    });
-
-    return () => marker.remove();
-  }, [pickupLocation, pickerMode, confirmedPickup, mapReady]);
-
   // CONFIRMED PICKUP MARKER
   useEffect(() => {
     const map = mapRef.current;
@@ -206,6 +149,7 @@ export default function TruckTrackingMap({
       .addTo(map);
 
     pickupMarkerRef.current = marker;
+    map.flyTo({ center: [confirmedPickup.lng, confirmedPickup.lat], zoom: 15, essential: true });
 
     return () => {
       marker.remove();
@@ -240,6 +184,7 @@ export default function TruckTrackingMap({
       .addTo(map);
 
     destinationMarkerRef.current = marker;
+    map.flyTo({ center: [confirmedDestination.lng, confirmedDestination.lat], zoom: 15, essential: true });
 
     return () => {
       marker.remove();
@@ -396,7 +341,7 @@ export default function TruckTrackingMap({
             >
               <path
                 d="M22 2C11 2 2 11 2 22C2 38 22 58 22 58S42 38 42 22C42 11 33 2 22 2Z"
-                fill="#dc2626"
+                fill={pickerMode === "destination" ? "#2563eb" : "#dc2626"}
                 stroke="#ffffff"
                 strokeWidth="2.5"
               />

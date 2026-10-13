@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
 import TruckTrackingMap from "./TruckTrackingMap";
+import AddressAutocomplete from "./AddressAutocomplete";
 
 const HUBS = [
   {
@@ -167,9 +168,17 @@ export default function CreateShipmentDrawer({
 
   // UPDATE FORM FIELDS
   const update = (field, value) => {
+    if (field === "pickupLocation" || field === "destination") {
+      routeIdRef.current += 1;
+      routeControllerRef.current?.abort();
+      setRouteGeoJSON(null);
+      setRouteError("");
+      setIsCalculatingRoute(false);
+    }
     setForm((previous) => ({
       ...previous,
       [field]: value,
+      ...(["pickupLocation", "destination"].includes(field) ? { distanceKm: "", estimatedMinutes: "" } : {}),
     }));
 
     if (field === "pickupLocation") {
@@ -196,7 +205,19 @@ export default function CreateShipmentDrawer({
   };
 
   // PHASE 3: REVERSE GEOCODING
-  const handleSelectHub = async (hub) => {
+  const selectAddress = (type, feature, address = feature.place_name) => {
+    const coordinates = { lng: feature.center?.[0], lat: feature.center?.[1] };
+    if (!validCoordinate(coordinates)) return;
+    cancelAddressLookup();
+    update(type === "pickup" ? "pickupLocation" : "destination", address);
+    if (type === "pickup") setConfirmedPickup(coordinates);
+    else setConfirmedDestination(coordinates);
+    setPickerMode(null);
+  };
+
+  const handleSelectHub = async (event) => {
+    const hub = HUBS.find(item => item.label === event.currentTarget.dataset.hub);
+    if (!hub) return;
     cancelAddressLookup();
     update("pickupLocation", hub.value);
     setPickerMode(null);
@@ -232,7 +253,7 @@ export default function CreateShipmentDrawer({
         throw new Error("No pickup coordinates were found.");
       }
       if (requestId !== lookupIdRef.current) return;
-      setConfirmedPickup(coordinates);
+      selectAddress("pickup", { ...data.features[0], center: [coordinates.lng, coordinates.lat] }, hub.value);
     } catch (error) {
       if (controller.signal.aborted || requestId !== lookupIdRef.current) return;
       console.error("Default pickup lookup error:", error);
@@ -334,17 +355,11 @@ export default function CreateShipmentDrawer({
     } finally {
       if (requestId === lookupIdRef.current) {
         if (type === "pickup") {
-          setForm((previous) => ({
-            ...previous,
-            pickupLocation: resolvedAddress,
-          }));
+          update("pickupLocation", resolvedAddress);
 
           setConfirmedPickup(coordinates);
         } else {
-          setForm((previous) => ({
-            ...previous,
-            destination: resolvedAddress,
-          }));
+          update("destination", resolvedAddress);
 
           setConfirmedDestination(coordinates);
         }
@@ -850,24 +865,19 @@ export default function CreateShipmentDrawer({
           PICK-UP LOCATION
         </label>
 
-        <div className="input-search-wrapper">
-          <i className="las la-circle-notch input-icon input-blue-icon" />
-
-          <input
-            type="text"
+        <AddressAutocomplete
+            iconClass="las la-circle-notch input-icon input-blue-icon"
             placeholder="Enter pickup location"
             value={form.pickupLocation}
             disabled={isResolvingAddress}
-            onChange={(e) =>
+            onSelect={feature => selectAddress("pickup", feature)}
+            onChange={(value) =>
               update(
                 "pickupLocation",
-                e.target.value
+                value
               )
             }
           />
-
-          <i className="las la-search trailing-search-icon" />
-        </div>
 
         <button
           type="button"
@@ -899,13 +909,14 @@ export default function CreateShipmentDrawer({
           {HUBS.map((hub) => (
             <button
               key={hub.label}
+              data-hub={hub.label}
               type="button"
               disabled={isResolvingAddress}
               className={`hub-pill ${form.pickupLocation === hub.value
                   ? "active"
                   : ""
                 }`}
-              onClick={() => handleSelectHub(hub)}
+              onClick={handleSelectHub}
             >
               {hub.label}
             </button>
@@ -919,22 +930,19 @@ export default function CreateShipmentDrawer({
           DESTINATION
         </label>
 
-        <div className="input-search-wrapper">
-          <i className="las la-map-marker input-icon input-orange-icon" />
-
-          <input
-            type="text"
+        <AddressAutocomplete
+            iconClass="las la-map-marker input-icon input-orange-icon"
             placeholder="Enter destination"
             value={form.destination}
             disabled={isResolvingAddress}
-            onChange={(e) =>
+            onSelect={feature => selectAddress("destination", feature)}
+            onChange={(value) =>
               update(
                 "destination",
-                e.target.value
+                value
               )
             }
           />
-        </div>
 
         <button
           type="button"
@@ -958,7 +966,7 @@ export default function CreateShipmentDrawer({
         {confirmedDestination && (
           <p className="field-info-text">
             <i className="las la-check-circle" />{" "}
-            Destination confirmed on map.
+            Destination location confirmed.
           </p>
         )}
       </div>
