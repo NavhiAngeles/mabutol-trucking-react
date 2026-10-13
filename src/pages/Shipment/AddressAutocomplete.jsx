@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from "react";
+import { LUZON_BOUNDS } from "../../config/mapBound";
 
 export default function AddressAutocomplete({ value, onChange, onSelect, disabled, placeholder, iconClass }) {
   const id = useId();
@@ -15,14 +16,20 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       try {
         const key = import.meta.env.VITE_MAPTILER_API_KEY;
         if (!key) throw new Error("Address search is unavailable. Use the map picker.");
-        const params = new URLSearchParams({ key, country: "ph", language: "en", limit: "5", autocomplete: "true" });
+        const params = new URLSearchParams({
+          key, country: "ph", language: "en", limit: "8", autocomplete: "true",
+          types: "address,road,poi,place,locality,neighbourhood,municipality",
+          fuzzyMatch: "true",
+          bbox: LUZON_BOUNDS.flat().join(","),
+        });
         const response = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?${params}`, { signal: controller.signal });
         if (!response.ok) throw new Error("Address search failed. Try again or use the map picker.");
         const data = await response.json();
         const matches = (data.features || []).filter(feature =>
           typeof feature.place_name === "string" && feature.place_name.trim() &&
           Array.isArray(feature.center) && Number.isFinite(feature.center[0]) && Number.isFinite(feature.center[1]) &&
-          Math.abs(feature.center[0]) <= 180 && Math.abs(feature.center[1]) <= 90
+          feature.center[0] >= LUZON_BOUNDS[0][0] && feature.center[0] <= LUZON_BOUNDS[1][0] &&
+          feature.center[1] >= LUZON_BOUNDS[0][1] && feature.center[1] <= LUZON_BOUNDS[1][1]
         );
         if (!controller.signal.aborted) setResults({ query, features: matches, message: matches.length ? "" : "No matching addresses. Try another search or use the map picker." });
       } catch (error) {

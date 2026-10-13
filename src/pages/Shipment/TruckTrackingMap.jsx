@@ -196,6 +196,14 @@ export default function TruckTrackingMap({
   }, [confirmedDestination, mapReady]);
 
   // PHASE 4: DRAW ROAD ROUTE
+  // Start exact-pin adjustments at the selected point, even after route fitting.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !pickerMode) return;
+    const point = pickerMode === "pickup" ? confirmedPickup : confirmedDestination;
+    if (point) map.flyTo({ center: [point.lng, point.lat], zoom: 17, essential: true });
+  }, [pickerMode, mapReady, confirmedPickup, confirmedDestination]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;

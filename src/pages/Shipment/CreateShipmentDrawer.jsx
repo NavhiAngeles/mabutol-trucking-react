@@ -3,6 +3,7 @@ import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
+import { LUZON_BOUNDS } from "../../config/mapBound";
 
 const HUBS = [
   {
@@ -69,6 +70,14 @@ const VEHICLES = [
 const INITIAL_FORM = {
   pickupLocation: "",
   destination: "",
+  pickupBuilding: "",
+  pickupUnit: "",
+  pickupGate: "",
+  pickupLandmark: "",
+  destinationBuilding: "",
+  destinationUnit: "",
+  destinationGate: "",
+  destinationLandmark: "",
   departureDate: "",
   departureTime: "",
   billingCustomer: "",
@@ -85,6 +94,14 @@ const INITIAL_FORM = {
   overrideAmount: "",
   tollCost: "0",
   driverAllowance: "0",
+};
+
+const detailedAddress = (form, type) => {
+  const address = type === "pickup" ? form.pickupLocation : form.destination;
+  const details = ["Building", "Unit", "Gate", "Landmark"]
+    .filter(key => form[`${type}${key}`].trim())
+    .map(key => `${key}: ${form[`${type}${key}`].trim()}`);
+  return [address.trim(), ...details].join("; ");
 };
 
 const currency = (value) =>
@@ -240,6 +257,7 @@ export default function CreateShipmentDrawer({
         country: "ph",
         language: "en",
         limit: "1",
+        bbox: LUZON_BOUNDS.flat().join(","),
       });
       const response = await fetch(
         `https://api.maptiler.com/geocoding/${encodeURIComponent(hub.value)}.json?${query}`,
@@ -308,7 +326,8 @@ export default function CreateShipmentDrawer({
     const fallbackAddress =
       `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
-    let resolvedAddress = fallbackAddress;
+    const enteredAddress = (type === "pickup" ? form.pickupLocation : form.destination).trim();
+    let resolvedAddress = enteredAddress || fallbackAddress;
     let warning = "";
 
     try {
@@ -335,10 +354,10 @@ export default function CreateShipmentDrawer({
         typeof feature?.place_name === "string" &&
         feature.place_name.trim()
       ) {
-        resolvedAddress = feature.place_name.trim();
+        resolvedAddress = enteredAddress || feature.place_name.trim();
       } else {
         warning =
-          "No readable address was found. Coordinates were used instead.";
+          "No address was found. Your exact map pin was saved; you can enter an address or landmark.";
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -351,7 +370,7 @@ export default function CreateShipmentDrawer({
       );
 
       warning =
-        "Could not retrieve the address. Coordinates were used instead.";
+        "Address lookup failed. Your exact map pin was saved; you can enter an address or landmark.";
     } finally {
       if (requestId === lookupIdRef.current) {
         if (type === "pickup") {
@@ -798,10 +817,10 @@ export default function CreateShipmentDrawer({
         customer_id: selectedCustomer.id,
 
         pickup_address:
-          form.pickupLocation.trim(),
+          detailedAddress(form, "pickup"),
 
         dropoff_address:
-          form.destination.trim(),
+          detailedAddress(form, "destination"),
 
         scheduled_departure:
           departure.toISOString(),
@@ -856,6 +875,21 @@ export default function CreateShipmentDrawer({
 
   if (!isOpen) return null;
 
+  const renderAddressDetails = (type) => (
+    <details className="location-details">
+      <summary>Optional address details</summary>
+      <div className="location-details-fields">
+        {[ ["Building", "Building or warehouse name"], ["Unit", "Unit / floor number"], ["Gate", "Gate / entrance number"], ["Landmark", "Nearby landmark"] ].map(([key, label]) => (
+          <label key={key} className="location-detail-label">
+            {label}
+            <input type="text" value={form[`${type}${key}`]} maxLength={200}
+              onChange={event => update(`${type}${key}`, event.target.value)} placeholder={`${label} (optional)`} />
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+
   // STEP 1: ROUTE AND SCHEDULE
   const renderRouteStep = () => (
     <div className="step-scroll-content">
@@ -867,7 +901,7 @@ export default function CreateShipmentDrawer({
 
         <AddressAutocomplete
             iconClass="las la-circle-notch input-icon input-blue-icon"
-            placeholder="Enter pickup location"
+            placeholder="Search pickup address or landmark"
             value={form.pickupLocation}
             disabled={isResolvingAddress}
             onSelect={feature => selectAddress("pickup", feature)}
@@ -895,13 +929,14 @@ export default function CreateShipmentDrawer({
 
           {pickerMode === "pickup"
             ? " Exit Pickup Picker"
-            : " Pick Pickup on Map"}
+            : confirmedPickup ? " Adjust Pickup Pin on Map" : " Pick Pickup on Map"}
         </button>
 
         {confirmedPickup && (
           <p className="field-info-text">
             <i className="las la-check-circle" />{" "}
             Pickup location confirmed.
+            {` (${confirmedPickup.lat.toFixed(6)}, ${confirmedPickup.lng.toFixed(6)})`}
           </p>
         )}
 
@@ -922,6 +957,8 @@ export default function CreateShipmentDrawer({
             </button>
           ))}
         </div>
+        <p className="field-info-text">Can't find the address? Pick the exact truck entrance on the map.</p>
+        {renderAddressDetails("pickup")}
       </div>
 
       {/* DESTINATION */}
@@ -932,7 +969,7 @@ export default function CreateShipmentDrawer({
 
         <AddressAutocomplete
             iconClass="las la-map-marker input-icon input-orange-icon"
-            placeholder="Enter destination"
+            placeholder="Search delivery address or landmark"
             value={form.destination}
             disabled={isResolvingAddress}
             onSelect={feature => selectAddress("destination", feature)}
@@ -960,15 +997,18 @@ export default function CreateShipmentDrawer({
 
           {pickerMode === "destination"
             ? " Exit Destination Picker"
-            : " Pick Destination on Map"}
+            : confirmedDestination ? " Adjust Delivery Pin on Map" : " Pick Destination on Map"}
         </button>
 
         {confirmedDestination && (
           <p className="field-info-text">
             <i className="las la-check-circle" />{" "}
             Destination location confirmed.
+            {` (${confirmedDestination.lat.toFixed(6)}, ${confirmedDestination.lng.toFixed(6)})`}
           </p>
         )}
+        <p className="field-info-text">Can't find the address? Pick the exact delivery entrance on the map.</p>
+        {renderAddressDetails("destination")}
       </div>
 
       {/* ROUTE SUMMARY */}
@@ -985,12 +1025,12 @@ export default function CreateShipmentDrawer({
 
         <div className="summary-timeline">
           <div className="timeline-node blue-node">
-            {form.pickupLocation ||
+            {detailedAddress(form, "pickup") ||
               "Pickup location"}
           </div>
 
           <div className="timeline-node orange-node">
-            {form.destination ||
+            {detailedAddress(form, "destination") ||
               "Destination"}
           </div>
         </div>
@@ -1485,14 +1525,14 @@ export default function CreateShipmentDrawer({
         <div className="review-timeline-display">
           <div className="review-node blue-dot">
             <strong>
-              {form.pickupLocation}
+              {detailedAddress(form, "pickup")}
             </strong>
             <span>Pick-up</span>
           </div>
 
           <div className="review-node orange-dot">
             <strong>
-              {form.destination}
+              {detailedAddress(form, "destination")}
             </strong>
             <span>Destination</span>
           </div>

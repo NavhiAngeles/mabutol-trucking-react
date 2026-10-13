@@ -213,6 +213,13 @@
   font-size: 12px;
 }
 
+.location-details { margin-top: 10px; }
+.location-details summary { color: #1E40AF; font-size: 12px; cursor: pointer; }
+.location-details-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.location-detail-label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: #64748B; }
+.location-detail-label input { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #D8E2EF; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: inherit; font-size: 12px; }
+.location-detail-label input:focus { outline: none; border-color: #3B82F6; background: #FFFFFF; }
+
 .input-icon {
   position: absolute;
   left: 14px;
