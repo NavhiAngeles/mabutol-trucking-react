@@ -391,6 +391,10 @@ export default function CreateShipmentDrawer({
 
         if (requestId !== routeIdRef.current) return;
 
+        if (data?.roadOnlyVerified !== true) {
+          throw new Error("A road-only truck route could not be verified. Please try again later.");
+        }
+
         setRouteGeoJSON(data.geojson);
 
         setForm((previous) => ({

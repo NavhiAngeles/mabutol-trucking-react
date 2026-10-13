@@ -53,7 +53,7 @@ function decodePolyline(encoded, precision = 5) {
         }
 
         byte = encoded.charCodeAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
+        result += (byte & 0x1f) * Math.pow(2, shift);
         shift += 5;
       } while (byte >= 0x20);
 
@@ -124,6 +124,11 @@ Deno.serve(async (request) => {
           ],
           instructions: false,
           geometry: true,
+          extra_info: ["waycategory"],
+          // Keep truck routes on land, including when a port is selected.
+          options: {
+            avoid_features: ["ferries", "fords"],
+          },
         }),
       }
     );
@@ -164,6 +169,10 @@ Deno.serve(async (request) => {
     const route = result.routes?.[0];
     const summary = route?.summary;
 
+    console.log("ORS route summary:", summary);
+    console.log("ORS geometry type:", typeof route?.geometry);
+    console.log("ORS requested coordinates:", { pickup, destination });
+
     if (
       !route ||
       !summary ||
@@ -183,7 +192,23 @@ Deno.serve(async (request) => {
       );
     }
 
-    const coordinates = decodePolyline(route.geometry);
+    const wayCategories = route.extras?.waycategory?.values;
+    if (!Array.isArray(wayCategories) || wayCategories.length === 0) {
+      return jsonResponse(
+        { error: "Unable to verify a road-only route. Please try again." },
+        502
+      );
+    }
+
+    // ORS waycategory is a bitmask: 8 = ferry, 16 = ford.
+    if (wayCategories.some((segment) => (segment[2] & 24) !== 0)) {
+      return jsonResponse(
+        { error: "No road-only truck route was returned. Select the port's truck entrance or access road." },
+        422
+      );
+    }
+
+    const coordinates = decodePolyline(route.geometry, 5);
 
     if (coordinates.length < 2) {
       return jsonResponse(
@@ -210,6 +235,7 @@ Deno.serve(async (request) => {
     };
 
     return jsonResponse({
+      roadOnlyVerified: true,
       geojson,
       distanceKm: Number(
         (summary.distance / 1000).toFixed(1)
