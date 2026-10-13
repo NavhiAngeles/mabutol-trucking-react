@@ -17,6 +17,10 @@ import {
 ============================================================================= */
 
 export const TAB_CONFIG = {
+  all: {
+    label: 'All', title: 'All Shipments', description: 'All accessible shipments, including pending and cancelled records.',
+    filter: () => true,
+  },
   active: {
     label: "Active",
     title: "Active Operations",
@@ -65,7 +69,8 @@ export function useShipmentViewModel() {
   const [error, setError] = useState(null);
   const [params, setParams] = useSearchParams();
   const currentTab = Object.hasOwn(TAB_CONFIG, params.get('tab')) ? params.get('tab') : 'active';
-  const setCurrentTab = tab => setParams(previous => { previous.set('tab', tab); return previous; });
+  const recordFilter = params.get('record');
+  const setCurrentTab = tab => setParams(previous => { previous.set('tab', tab); previous.delete('record'); return previous; });
   const [searchQuery, setSearchQuery] = useState("");
   const loadVersion = useRef(0);
   const invalidateLoads = useCallback(() => { loadVersion.current += 1; }, []);
@@ -103,8 +108,9 @@ export function useShipmentViewModel() {
     const q = searchQuery.trim().toLowerCase();
     return shipments
       .filter(activeConfig.filter)
+      .filter(s => !recordFilter || s.dbId === recordFilter)
       .filter((s) => !q || matchesSearch(s, q));
-  }, [shipments, activeConfig, searchQuery]);
+  }, [shipments, activeConfig, searchQuery, recordFilter]);
 
   const tabs = useMemo(
     () =>
@@ -175,5 +181,6 @@ export function useShipmentViewModel() {
     error,
     // actions
     refresh: load,
+    recordFilter,
   };
 }

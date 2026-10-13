@@ -807,6 +807,48 @@
 .feed-dot.green { background: var(--green); }
 .feed-dot.blue { background: var(--blue); }
 .feed-dot.navy { background: var(--navy); }
+.feed-dot.red { background: var(--red); }
+.feed-event-link { padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.feed-event-link:hover { text-decoration: underline; }
+.feed-error { color: #b91c1c; font-size: 12px; }
+.ops-feed-refresh:disabled { opacity: 0.5; cursor: wait; }
+.operations-history-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.operations-history-dialog { background: white; color: var(--text); width: min(720px, 100%); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 12px; box-shadow: 0 24px 60px rgba(0,0,0,0.18); }
+.operations-history-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 28px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.operations-history-header h3 { margin: 0; color: var(--navy); font-size: 20px; font-weight: 700; line-height: 1.4; }
+.operations-history-header p { margin: 6px 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.operations-history-dialog button { font-family: inherit; cursor: pointer; }
+.operations-history-close { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); font-size: 24px; line-height: 1; }
+.operations-history-close:hover { background: var(--bg); color: var(--navy); }
+.operations-history-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 28px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; color: var(--text-muted); font-size: 12px; }
+.operations-history-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; background: white; color: var(--navy); font-size: 13px; font-weight: 600; line-height: 1.2; }
+.operations-history-button:hover:not(:disabled) { background: var(--lavender); border-color: #CBD5E1; }
+.operations-history-button:disabled { background: var(--bg); color: #64748B; cursor: not-allowed; }
+.operations-history-dialog button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.operations-history-body { overflow-y: auto; min-height: 0; padding: 8px 28px; }
+.operations-history-list { gap: 0; }
+.operations-history-list .feed-item { padding: 18px 0; gap: 12px; border-bottom: 1px solid var(--border); }
+.operations-history-list .feed-item:last-child { border-bottom: 0; }
+.operations-history-list .feed-dot { margin-top: 7px; }
+.feed-event-content { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.feed-event-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.operations-history-list .feed-title { font-size: 13px; line-height: 1.5; }
+.operations-history-list .feed-desc { line-height: 1.6; }
+.operations-history-list .feed-time { margin-top: 7px; color: var(--text-muted); line-height: 1.5; }
+.operations-event-badge { flex-shrink: 0; max-width: 45%; border-radius: 4px; padding: 3px 8px; font-size: 10px; font-weight: 600; line-height: 1.5; }
+.operations-event-badge.green { color: #166534; background: var(--green-bg); }
+.operations-event-badge.red { color: #991B1B; background: var(--red-bg); }
+.operations-event-badge.blue { color: #1E40AF; background: var(--blue-bg); }
+.operations-event-badge.navy { color: var(--navy); background: var(--lavender); }
+.operations-history-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 28px; border-top: 1px solid var(--border); background: white; flex-shrink: 0; color: var(--text-muted); font-size: 13px; }
+@media (max-width: 600px) {
+  .operations-history-backdrop { padding: 12px; }
+  .operations-history-header, .operations-history-toolbar, .operations-history-pagination { padding: 16px; }
+  .operations-history-body { padding: 0 16px; }
+  .operations-history-toolbar { flex-wrap: wrap; }
+  .operations-history-list .feed-event-heading { flex-direction: column; gap: 4px; margin-bottom: 6px; }
+  .operations-event-badge { max-width: 100%; }
+}
 
 .feed-title {
   font-size: 13px;

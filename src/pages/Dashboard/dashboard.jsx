@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
 import DashboardTrackingMap from "./DashboardTrackingMap";
+import OperationsFeed from "./OperationsFeed";
 import { useDashboardViewModel } from "../../viewmodels/DashboardViewModel";
 import { comparisonLabel } from '../../services/operationalStats';
 
@@ -79,12 +80,6 @@ const ChevronDown = (props) => (
   </svg>
 );
 
-const RotateCcw = (props) => (
-  <svg {...iconProps} {...props}>
-    <polyline points="1 4 1 10 7 10" />
-    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-  </svg>
-);
 
 const ClipboardList = (props) => (
   <svg {...iconProps} {...props}>
@@ -392,48 +387,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Operations Feed */}
-            <div className="ops-feed card">
-              <div className="ops-feed-header">
-                <h3>Operations Feed</h3>
-                <button className="ops-feed-refresh" aria-label="Refresh feed">
-                  <RotateCcw />
-                </button>
-              </div>
-
-              <div className="feed-list">
-                <div className="feed-item">
-                  <span className="feed-dot green" />
-                  <div>
-                    <p className="feed-title">Delivered: SHP-NE-7021</p>
-                    <p className="feed-desc">To: Cabanatuan City Warehouse</p>
-                    <p className="feed-time">5min ago</p>
-                  </div>
-                </div>
-
-                <div className="feed-item">
-                  <span className="feed-dot blue" />
-                  <div>
-                    <p className="feed-title">Dispatched: SHP-NE-9044</p>
-                    <p className="feed-desc">Route: Gapan-San Isidro Bypass</p>
-                    <p className="feed-time">18min ago</p>
-                  </div>
-                </div>
-
-                <div className="feed-item">
-                  <span className="feed-dot navy" />
-                  <div>
-                    <p className="feed-title">New Booking: Reyna Pascual</p>
-                    <p className="feed-desc">
-                      Cabanatuan → Talavera (Auto-route)
-                    </p>
-                    <p className="feed-time">1hr ago</p>
-                  </div>
-                </div>
-              </div>
-
-              <button className="view-all-link">View All Activity →</button>
-            </div>
+            <OperationsFeed />
           </div>
         </div>
       </section>

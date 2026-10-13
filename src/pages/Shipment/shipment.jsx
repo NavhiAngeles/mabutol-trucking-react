@@ -24,6 +24,7 @@ export default function Shipment() {
     isLoading,
     error,
     refresh,
+    recordFilter,
   } = useShipmentViewModel();
 
   useEffect(() => {
@@ -206,6 +207,7 @@ export default function Shipment() {
         </div>
 
         {/* DATABASE ERROR */}
+        {recordFilter && <p role="status">{!isLoading && !error && !visibleShipments.length ? 'The selected shipment is unavailable or does not match your search.' : 'Showing the shipment selected from Operations Feed.'} <button onClick={() => setCurrentTab('all')}>Show all shipments</button></p>}
         {error && (
           <div
             className="shipment-error-banner"
