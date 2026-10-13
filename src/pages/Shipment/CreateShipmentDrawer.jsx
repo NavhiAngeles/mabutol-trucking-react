@@ -5,6 +5,8 @@ import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
+import { fetchHandlingSurcharges } from "../../services/pricingService";
+import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
 
 const HUBS = [
   {
@@ -91,7 +93,6 @@ const INITIAL_FORM = {
   estimatedMinutes: "",
   usesTollRoad: false,
   baseRate: "",
-  handlingCharge: "0",
   overrideAmount: "",
   tollCost: "0",
   driverAllowance: "0",
@@ -106,7 +107,7 @@ const detailedAddress = (form, type) => {
 };
 
 const currency = (value) =>
-  `₱${Number(value || 0).toLocaleString("en-PH", {
+  value == null ? "Unavailable" : `₱${Number(value || 0).toLocaleString("en-PH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -139,6 +140,23 @@ export default function CreateShipmentDrawer({
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [scheduleClock, setScheduleClock] = useState(() => Date.now());
+  const [handlingRates, setHandlingRates] = useState(null);
+  const [handlingPricingError, setHandlingPricingError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    fetchHandlingSurcharges().then(rates => {
+      if (cancelled) return;
+      setHandlingRates(rates);
+      setHandlingPricingError("");
+    }).catch(error => {
+      if (cancelled) return;
+      setHandlingRates(null);
+      setHandlingPricingError(error.message || "Unable to load handling prices.");
+    });
+    return () => { cancelled = true; };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -620,11 +638,10 @@ export default function CreateShipmentDrawer({
   // FINANCIAL CALCULATIONS
   const baseRate = Number(form.baseRate) || 0;
 
-  const handlingCharge =
-    Number(form.handlingCharge) || 0;
+  const handlingCharge = handlingCost(handlingRates, form.specialHandling, form.distanceKm);
 
   const suggestedCharge =
-    baseRate + handlingCharge;
+    handlingCharge === null ? null : baseRate + handlingCharge;
 
   const finalCharge =
     form.overrideAmount.trim() === ""
@@ -640,7 +657,7 @@ export default function CreateShipmentDrawer({
     tollCost + driverAllowance;
 
   const estimatedProfit =
-    finalCharge - operationalCost;
+    finalCharge === null ? null : finalCharge - operationalCost;
 
   // RESET DRAWER
   const reset = () => {
@@ -723,9 +740,11 @@ export default function CreateShipmentDrawer({
 
   // VALIDATE FINANCIAL DATA
   const validateFinance = () => {
+    if (handlingCharge === null || handlingPricingError) {
+      return handlingPricingError || "The selected handling price is unavailable. Check pricing settings and route distance.";
+    }
     if (
       !isValidMoney(form.baseRate) ||
-      !isValidMoney(form.handlingCharge) ||
       !isValidMoney(form.tollCost) ||
       !isValidMoney(form.driverAllowance)
     ) {
@@ -815,6 +834,13 @@ export default function CreateShipmentDrawer({
     setSaveError("");
 
     try {
+      const currentRates = await fetchHandlingSurcharges();
+      const currentHandlingCharge = handlingCost(currentRates, form.specialHandling, form.distanceKm);
+      if (currentHandlingCharge === null) throw new Error("The selected handling price is unavailable. Check pricing settings and route distance.");
+      if (currentHandlingCharge !== handlingCharge) {
+        setHandlingRates(currentRates);
+        throw new Error("Handling pricing has changed. Review the updated total and submit again.");
+      }
       const departureError = validateDeparture(form.departureDate, form.departureTime);
       if (departureError) throw new Error(departureError);
       const departure = parsePhilippineDeparture(form.departureDate, form.departureTime);
@@ -835,6 +861,8 @@ export default function CreateShipmentDrawer({
           form.cargoDescription.trim(),
 
         weight_kg: Number(form.weight),
+
+        special_handling: form.specialHandling,
 
         quoted_amount: suggestedCharge,
 
@@ -1372,30 +1400,28 @@ export default function CreateShipmentDrawer({
         </label>
 
         <div className="handling-badges-row">
-          {[
-            "None",
-            "Fragile",
-            "Keep Dry",
-            "Temperature Sensitive",
-          ].map((tag) => (
+          {HANDLING_OPTIONS.map((option) => (
             <button
-              key={tag}
+              key={option.id}
               type="button"
-              className={`handling-badge-btn ${form.specialHandling === tag
+              disabled={handlingRates?.[option.id] == null || isSaving}
+              className={`handling-badge-btn ${form.specialHandling === option.label
                   ? "active"
                   : ""
                 }`}
               onClick={() =>
                 update(
                   "specialHandling",
-                  tag
+                  option.label
                 )
               }
             >
-              {tag}
+              {option.label} · {handlingRates?.[option.id] != null ? `${currency(handlingRates[option.id])}${option.perKm ? "/km" : ""}` : "Unavailable"}
             </button>
           ))}
         </div>
+        {handlingPricingError && <p role="alert" className="field-info-text" style={{ color: "#b91c1c" }}>{handlingPricingError}</p>}
+        {!handlingRates && !handlingPricingError && <p className="field-info-text">Loading handling prices...</p>}
       </div>
 
       {/* DRIVER NOTES */}
@@ -1755,13 +1781,9 @@ export default function CreateShipmentDrawer({
             min="0"
             step="0.01"
             className="override-text-field"
-            value={form.handlingCharge}
-            onChange={(e) =>
-              update(
-                "handlingCharge",
-                e.target.value
-              )
-            }
+            value={handlingCharge ?? ""}
+            readOnly
+            aria-label="Database handling charge"
           />
         </div>
 
@@ -1787,9 +1809,7 @@ export default function CreateShipmentDrawer({
             min="0"
             step="0.01"
             className="override-text-field"
-            placeholder={`Suggested: ${suggestedCharge.toFixed(
-              2
-            )}`}
+            placeholder={`Suggested: ${suggestedCharge?.toFixed(2) ?? "Unavailable"}`}
             value={form.overrideAmount}
             onChange={(e) =>
               update(

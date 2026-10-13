@@ -7,6 +7,7 @@ import {
 } from "../../../services/pricingService";
 import { getCurrentPricingUser } from "../../../services/tollGateService";
 import TollGateManager from "./TollGateManager";
+import { HANDLING_OPTIONS } from "../../../services/handlingPricing";
 import "./pricing.css";
 
 /* =========================
@@ -88,36 +89,7 @@ const TruckIcon = ({ size = 22 }) => (
    SURCHARGE CONFIGURATION
 ========================= */
 
-const SURCHARGES = [
-  {
-    id: "fragile",
-    label: "Fragile",
-    appliedAs: "Per trip (flat fee)",
-  },
-  {
-    id: "keepdry",
-    label: "Keep Dry",
-    appliedAs: "Per trip (flat fee)",
-  },
-  {
-    id: "temp",
-    label: "Temperature Sensitive",
-    appliedAs: "Per trip (flat fee)",
-    multiline: true,
-  },
-  {
-    id: "perishable",
-    label: "Perishable",
-    appliedAs: "Per trip (flat fee)",
-  },
-  {
-    id: "cold",
-    label: "Cold Chain (Refrigerated)",
-    appliedAs: "Per km additional",
-    multiline: true,
-    strong: true,
-  },
-];
+const SURCHARGES = HANDLING_OPTIONS;
 
 const DEFAULT_FEES = {
   minBooking: "",

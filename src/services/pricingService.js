@@ -1,5 +1,15 @@
 import { supabase } from "./supabaseClient";
 
+export async function fetchHandlingSurcharges() {
+  const { data, error } = await supabase.from("system_settings")
+    .select("value").eq("key", "handling_surcharges").single();
+  if (error) throw error;
+  if (!data?.value || typeof data.value !== "object" || Array.isArray(data.value)) {
+    throw new Error("Handling surcharge settings are missing or invalid.");
+  }
+  return data.value;
+}
+
 export async function fetchPricingData() {
   const [vehicleResult, rateResult, settingsResult] =
     await Promise.all([
