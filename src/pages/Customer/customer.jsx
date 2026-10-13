@@ -1,81 +1,49 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
-
-// Per-customer profile data
-const customerProfiles = {
-  1: {
-    id: "CUST-0001",
-    address: "Cabanatuan City, Nueva Ecija",
-    bookingSummary: { total: 14, completed: 11, cancelled: 2, activeNow: 1 },
-    recentBookings: [
-      { id: "SHP-NE-7821", route: "Cabanatuan → Talavera",  date: "Oct 29", status: "Completed", cargo: "Palletized Goods", deliveredAt: "Oct 29, 10:45 AM" },
-      { id: "SHP-NE-7654", route: "Cabanatuan → Gapan",     date: "Oct 21", status: "Completed", cargo: "Rice Sacks", deliveredAt: "Oct 21", late: "Late +1hr" },
-      { id: "SHP-NE-7203", route: "Palayan → Cabanatuan",   date: "Oct 10", status: "Cancelled", cargo: "Construction Materials" },
-      { id: "SHP-NE-7155", route: "San Jose → Cabanatuan",  date: "Oct 05", status: "Completed", cargo: "General Cargo", deliveredAt: "Oct 05, 2:00 PM" },
-      { id: "SHP-NE-6982", route: "Cabanatuan → Rizal",     date: "Sep 28", status: "Completed", cargo: "General Cargo", deliveredAt: "Sep 28" },
-      { id: "SHP-NE-6891", route: "Cabanatuan → San Jose",  date: "Sep 28", status: "Completed", cargo: "Electronics" },
-      { id: "SHP-NE-6840", route: "Muñoz → Talavera",       date: "Sep 20", status: "Completed", cargo: "Dry Goods" },
-      { id: "SHP-NE-6501", route: "Guimba → Cabanatuan",    date: "Sep 08", status: "Completed", cargo: "General Cargo" },
-    ],
-  },
-  2: {
-    id: "CUST-0002",
-    address: "Gapan City, Nueva Ecija",
-    bookingSummary: { total: 8, completed: 7, cancelled: 1, activeNow: 0 },
-    recentBookings: [
-      { id: "SHP-NE-7900", route: "Gapan → Cabanatuan",    date: "Yesterday",    status: "Completed" },
-      { id: "SHP-NE-7710", route: "Cabanatuan → San Jose", date: "Oct 18, 2025", status: "Completed" },
-      { id: "SHP-NE-7530", route: "Gapan → Talavera",      date: "Oct 05, 2025", status: "Cancelled" },
-    ],
-  },
-  3: {
-    id: "CUST-0003",
-    address: "Palayan City, Nueva Ecija",
-    bookingSummary: { total: 22, completed: 19, cancelled: 3, activeNow: 0 },
-    recentBookings: [
-      { id: "SHP-NE-7800", route: "Palayan → Cabanatuan",  date: "Oct 28, 2025", status: "Completed" },
-      { id: "SHP-NE-7600", route: "Cabanatuan → Palayan",  date: "Oct 14, 2025", status: "Completed" },
-      { id: "SHP-NE-7400", route: "Palayan → Gapan",       date: "Sep 30, 2025", status: "Completed" },
-    ],
-  },
-  4: {
-    id: "CUST-0004",
-    address: "Talavera, Nueva Ecija",
-    bookingSummary: { total: 3, completed: 2, cancelled: 1, activeNow: 0 },
-    recentBookings: [
-      { id: "SHP-NE-7450", route: "Talavera → Cabanatuan", date: "Oct 15, 2025", status: "Completed" },
-      { id: "SHP-NE-7200", route: "Cabanatuan → Talavera", date: "Sep 22, 2025", status: "Cancelled" },
-      { id: "SHP-NE-6950", route: "Talavera → San Jose",   date: "Sep 10, 2025", status: "Completed" },
-    ],
-  },
-  5: {
-    id: "CUST-0005",
-    address: "Muñoz City, Nueva Ecija",
-    bookingSummary: { total: 1, completed: 0, cancelled: 1, activeNow: 0 },
-    recentBookings: [
-      { id: "SHP-NE-7100", route: "Muñoz → Cabanatuan",    date: "Oct 10, 2025", status: "Cancelled" },
-    ],
-  },
-  6: {
-    id: "CUST-0006",
-    address: "San Jose City, Nueva Ecija",
-    bookingSummary: { total: 6, completed: 5, cancelled: 1, activeNow: 0 },
-    recentBookings: [
-      { id: "SHP-NE-7350", route: "San Jose → Cabanatuan", date: "Sep 30, 2025", status: "Completed" },
-      { id: "SHP-NE-7180", route: "Cabanatuan → San Jose", date: "Sep 18, 2025", status: "Completed" },
-      { id: "SHP-NE-6990", route: "San Jose → Gapan",      date: "Sep 05, 2025", status: "Cancelled" },
-    ],
-  },
-};
+import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
 
 export default function Customer() {
   const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [profileModal, setProfileModal] = useState(null); // holds the full customer object
-  const [bookingHistoryModal, setBookingHistoryModal] = useState(null); // holds customer for full booking history
+  const [profileCustomerId, setProfileCustomerId] = useState(null);
+  const [historyCustomerId, setHistoryCustomerId] = useState(null);
   const menuRef = useRef(null);
+  const { customers: records, bookings, loading, error, refresh } = useCustomerDirectory({ includeBookings: true });
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sort, setSort] = useState("newest");
+  const [todayOnly, setTodayOnly] = useState(false);
+  const [requestedPage, setPage] = useState(1);
+  const rows = useMemo(() => buildCustomerRows(records, bookings), [records, bookings]);
+  const stats = useMemo(() => customerStatistics(rows), [rows]);
+  const filtered = useMemo(() => filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly }), [rows, query, statusFilter, sort, todayOnly]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / 6));
+  const page = Math.min(requestedPage, pageCount);
+  const customers = filtered.slice((page - 1) * 6, page * 6);
+  const profileModal = rows.find(row => row.id === profileCustomerId) || null;
+  const bookingHistoryModal = rows.find(row => row.id === historyCustomerId) || null;
+  const setProfileModal = customer => setProfileCustomerId(customer?.id || null);
+  const setBookingHistoryModal = customer => setHistoryCustomerId(customer?.id || null);
+  const changeSearch = value => { setQuery(value); setPage(1); };
+  const countLabel = value => loading || error ? "—" : value;
+  const exportCustomers = () => {
+    const cell = value => {
+      const text = String(value ?? "");
+      const safe = /^[=+\-@\t\r]/.test(text.trimStart()) ? `'${text}` : text;
+      return `"${safe.replaceAll('"', '""')}"`;
+    };
+    const lines = [ ["Customer ID", "Name", "Email", "Phone", "Bookings", "Last booking", "Member since", "Status"],
+      ...filtered.map(row => [row.customer_code || row.id, row.name, row.email, row.phone, row.bookingCount, row.lastBooking, row.memberSince, row.status]),
+    ];
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + lines.map(line => line.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = "mabutol-customers.csv";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
+
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -94,14 +62,6 @@ export default function Customer() {
     return () => { document.body.style.overflow = ""; };
   }, [profileModal, bookingHistoryModal]);
 
-  const customers = [
-    { id: 1, name: "Reyna Pascual",     email: "reyna.pascual@gmail.com", phone: "0918 234 5678", bookings: "14 bookings", lastBooking: "Today 09:15 AM", memberSince: "Jan 2025", status: "ACTIVE" },
-    { id: 2, name: "Ernesto Villanueva",email: "ernesto.v@gmail.com",     phone: "0923 521 1238", bookings: "8 bookings",  lastBooking: "Yesterday",       memberSince: "Feb 2025", status: "ACTIVE" },
-    { id: 3, name: "Joanna Dela Rosa",  email: "joanna.dr@yahoo.com",     phone: "0918 754 5858", bookings: "22 bookings", lastBooking: "Oct 28, 2025",    memberSince: "Nov 2024", status: "ACTIVE" },
-    { id: 4, name: "Noel Castillo",     email: "noel.castillo@gmail.com", phone: "0967 234 1246", bookings: "3 bookings",  lastBooking: "Oct 15, 2025",    memberSince: "Sep 2025", status: "ACTIVE" },
-    { id: 5, name: "Maricel Soriano",   email: "maricel.s@gmail.com",     phone: "0936 623 6734", bookings: "1 booking",   lastBooking: "Oct 10, 2025",    memberSince: "Oct 2025", status: "SUSPENDED" },
-    { id: 6, name: "Benito Aquino",     email: "benito.aq@gmail.com",     phone: "0962 085 7812", bookings: "6 bookings",  lastBooking: "Sep 30, 2025",    memberSince: "Aug 2025", status: "ACTIVE" },
-  ];
 
   const handleViewProfile = (cust) => {
     setOpenMenuId(null);
@@ -113,8 +73,8 @@ export default function Customer() {
     setBookingHistoryModal(cust);
   };
 
-  const profile = profileModal ? customerProfiles[profileModal.id] : null;
-  const historyProfile = bookingHistoryModal ? customerProfiles[bookingHistoryModal.id] : null;
+  const profile = profileModal ? profileModal.profile : null;
+  const historyProfile = bookingHistoryModal ? bookingHistoryModal.profile : null;
 
   return (
     <MainLayout>
@@ -122,7 +82,7 @@ export default function Customer() {
       <header className="topbar">
         <div className="search-container">
           <span className="icon">🔍</span>
-          <input type="text" placeholder="Search..." id="customerSearch" />
+          <input type="text" placeholder="Search customers..." id="customerSearch" value={query} onChange={event => changeSearch(event.target.value)} />
         </div>
         <div className="topbar-right">
           <button id="notifBtn">🔔</button>
@@ -146,31 +106,34 @@ export default function Customer() {
         <div className="content-header">
           <div>
             <h2 className="page-title">Customers</h2>
-            <p className="page-subtitle">View and monitor registered customers from the mobile app.</p>
+            <p className="page-subtitle">View and monitor registered customers.</p>
           </div>
-          <button className="btn-export">📥 Export</button>
+          <button className="btn-export" disabled={loading || Boolean(error) || !filtered.length} onClick={exportCustomers}>📥 Export</button>
         </div>
 
         <div className="stats-container">
-          <div className="stat-card total-cust"><h4>TOTAL CUSTOMERS</h4><h2>142</h2></div>
-          <div className="stat-card active-cust"><h4>ACTIVE THIS MONTH</h4><h2>87</h2></div>
-          <div className="stat-card new-cust"><h4>NEW THIS WEEK</h4><h2>12</h2></div>
-          <div className="stat-card suspended-cust"><h4>SUSPENDED</h4><h2>3</h2></div>
+          <div className="stat-card total-cust"><h4>TOTAL CUSTOMERS</h4><h2>{countLabel(stats.total)}</h2></div>
+          <div className="stat-card active-cust" title="Active customers with a booking created this month, in Philippine time"><h4>ACTIVE THIS MONTH</h4><h2>{countLabel(stats.activeThisMonth)}</h2></div>
+          <div className="stat-card new-cust"><h4>NEW THIS WEEK</h4><h2>{countLabel(stats.newThisWeek)}</h2></div>
+          <div className="stat-card suspended-cust"><h4>SUSPENDED</h4><h2>{countLabel(stats.suspended)}</h2></div>
         </div>
 
         <div className="filter-action-bar">
           <div className="search-wrapper">
             <span className="search-icon">🔍</span>
-            <input type="text" className="table-search" placeholder="Search by ID, Vehicle Type, or Driver..." />
+            <input type="text" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
           </div>
           <div className="filter-buttons">
-            <button className="filter-btn">SORT BY <span className="btn-icon">≡</span></button>
-            <button className="filter-btn">TODAY <span className="btn-icon">📅</span></button>
-            <button className="icon-only-btn">🎛️</button>
+            <button className="filter-btn" onClick={() => { setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : "newest"); setPage(1); }} title="Cycle newest, name, and booking count">SORT: {sort.toUpperCase()} <span className="btn-icon">≡</span></button>
+            <button className="filter-btn" aria-pressed={todayOnly} onClick={() => { setTodayOnly(value => !value); setPage(1); }} title="Customers whose latest booking was created today">{todayOnly ? "TODAY ✓" : "TODAY"} <span className="btn-icon">📅</span></button>
+            <select className="filter-btn" aria-label="Customer status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
+              <option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="SUSPENDED">Suspended</option><option value="UNKNOWN">Unknown</option>
+            </select>
           </div>
         </div>
 
-        <div className="customer-table-card">
+        {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button className="filter-btn" onClick={refresh}>Retry</button></div>}
+        <div className="customer-table-card" aria-busy={loading}>
           <table className="customer-table">
             <thead>
               <tr>
@@ -184,7 +147,9 @@ export default function Customer() {
               </tr>
             </thead>
             <tbody>
-              {customers.map((cust) => (
+              {loading || error || customers.length === 0 ? (
+                <tr><td colSpan={7} className="customer-table-message">{loading ? "Loading customers..." : error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
+              ) : customers.map((cust) => (
                 <tr key={cust.id}>
                   <td>
                     <div className="customer-info-cell">
@@ -218,7 +183,7 @@ export default function Customer() {
                           <button className="dropdown-item" onClick={() => handleViewBookingHistory(cust)}>
                             View Booking History
                           </button>
-                          <button className="dropdown-item danger" onClick={() => setOpenMenuId(null)}>
+                          <button className="dropdown-item danger" disabled title="Account suspension is not connected yet">
                             Suspend Account
                           </button>
                         </div>
@@ -231,14 +196,13 @@ export default function Customer() {
           </table>
 
           <div className="table-pagination">
-            <span className="pagination-text">Showing 1-6 of 142 customers</span>
+            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * 6 + 1}–${Math.min(page * 6, filtered.length)}`} of {loading || error ? "—" : filtered.length} customers</span>
             <div className="pagination-controls">
-              <button className="page-arrow">‹</button>
-              <button className="page-number active">1</button>
-              <button className="page-number">2</button>
-              <button className="page-number">3</button>
-              <span className="page-dots">...</span>
-              <button className="page-arrow">›</button>
+              <button className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page">‹</button>
+              {[...new Set([1, page - 1, page, page + 1, pageCount])].filter(number => number >= 1 && number <= pageCount).sort((a, b) => a - b).map(number => (
+                <button key={number} className={`page-number ${number === page ? "active" : ""}`} aria-current={number === page ? "page" : undefined} disabled={loading || Boolean(error)} onClick={() => setPage(number)}>{number}</button>
+              ))}
+              <button className="page-arrow" disabled={loading || Boolean(error) || page >= pageCount} onClick={() => setPage(page + 1)} aria-label="Next customer page">›</button>
             </div>
           </div>
         </div>
@@ -317,10 +281,10 @@ export default function Customer() {
                       ● {profileModal.status === "ACTIVE" ? "Active" : "Suspended"}
                     </span>
                   </div>
-                  <button className="cp-suspend-btn">
+                  <button className="cp-suspend-btn" disabled title="Account suspension is not connected yet">
                     🚫 Suspend Account
                   </button>
-                  <p className="cp-suspend-hint">Suspending this account will prevent new bookings.</p>
+                  <p className="cp-suspend-hint">Account suspension is not connected yet.</p>
                 </div>
 
               </div>
@@ -371,7 +335,8 @@ export default function Customer() {
                       </tr>
                     </thead>
                     <tbody>
-                      {profile.recentBookings.map((b) => (
+                      {profile.recentBookings.length === 0 && <tr><td colSpan={4}>No bookings recorded.</td></tr>}
+                      {profile.recentBookings.slice(0, 5).map((b) => (
                         <tr key={b.id}>
                           <td className="cp-shipment-id">{b.id}</td>
                           <td>{b.route}</td>
@@ -444,9 +409,10 @@ export default function Customer() {
             <div className="bh-body">
               <h4 className="bh-section-label">BOOKING HISTORY</h4>
               <div className="bh-timeline">
+                {historyProfile.recentBookings.length === 0 && <p>No bookings recorded.</p>}
                 {historyProfile.recentBookings.map((b, idx) => {
                   const isCancelled = b.status.toLowerCase() === "cancelled";
-                  const isActive = b.status.toLowerCase() === "active";
+                  const isActive = !["completed", "cancelled"].includes(b.status.toLowerCase());
                   const dotClass = isCancelled ? "red" : isActive ? "blue" : "green";
                   return (
                     <div className="bh-timeline-item" key={b.id}>

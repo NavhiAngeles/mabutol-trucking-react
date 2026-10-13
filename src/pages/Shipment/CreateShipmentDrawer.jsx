@@ -8,6 +8,7 @@ import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./
 import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
 import { vehicleBaseRate, vehicleCanCarry, pricingDate } from "../../services/vehiclePricing";
+import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
 
 const HUBS = [
   {
@@ -162,11 +163,7 @@ export default function CreateShipmentDrawer({
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [customers, setCustomers] = useState([]);
-  const [loadingCustomers, setLoadingCustomers] =
-    useState(false);
-
-  const [customerError, setCustomerError] = useState("");
+  const { customers, loading: loadingCustomers, error: customerError } = useCustomerDirectory({ enabled: isOpen });
 
   const [saveError, setSaveError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -537,53 +534,6 @@ export default function CreateShipmentDrawer({
     isOpen,
   ]);
 
-  // LOAD CUSTOMERS FROM SUPABASE
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let cancelled = false;
-
-    const loadCustomers = async () => {
-      setLoadingCustomers(true);
-      setCustomerError("");
-
-      try {
-        const { data, error } = await supabase
-          .from("customers")
-          .select("*")
-          .limit(500);
-
-        if (cancelled) return;
-
-        if (error) {
-          setCustomers([]);
-          setCustomerError(error.message);
-        } else {
-          setCustomers(data || []);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setCustomers([]);
-
-          setCustomerError(
-            error.message ||
-            "Failed to load customers."
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingCustomers(false);
-        }
-      }
-    };
-
-    loadCustomers();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
-
   // CLEANUP PENDING REQUESTS
   useEffect(() => {
     return () => {
@@ -676,8 +626,8 @@ export default function CreateShipmentDrawer({
     const departureError = validateDeparture(form.departureDate, form.departureTime);
     if (departureError) return departureError;
 
-    if (!selectedCustomer) {
-      return "Select a registered customer.";
+    if (!selectedCustomer || selectedCustomer.is_active !== true) {
+      return "Select an active registered customer.";
     }
 
     return "";
@@ -1149,53 +1099,6 @@ export default function CreateShipmentDrawer({
         </p>
       )}
 
-      {/* DISTANCE AND TIME */}
-      <div className="form-grid-2x2">
-        <div className="form-group">
-          <label className="input-title">
-            DISTANCE (KM)
-          </label>
-
-          <div className="input-search-wrapper">
-            <input
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="Distance"
-              value={form.distanceKm}
-              readOnly
-              onChange={(e) =>
-                update(
-                  "distanceKm",
-                  e.target.value
-                )
-              }
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="input-title">
-            EST. TRAVEL TIME (MIN)
-          </label>
-
-          <div className="input-search-wrapper">
-            <input
-              type="number"
-              min="0"
-              placeholder="Minutes"
-              value={form.estimatedMinutes}
-              onChange={(e) =>
-                update(
-                  "estimatedMinutes",
-                  e.target.value
-                )
-              }
-            />
-          </div>
-        </div>
-      </div>
-
       {/* TOLL ROAD */}
       <div className="form-group">
         <label className="input-title">
@@ -1304,6 +1207,7 @@ export default function CreateShipmentDrawer({
               <option
                 key={customer.id}
                 value={customer.id}
+                disabled={customer.is_active !== true}
               >
                 {customerName(customer)}
               </option>
