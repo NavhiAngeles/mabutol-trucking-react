@@ -1351,6 +1351,7 @@ export default function CreateShipmentDrawer({
             type="number"
             min="0.01"
             step="0.01"
+            className="shipment-weight-input"
             placeholder="Weight"
             value={form.weight}
             onChange={(e) =>
