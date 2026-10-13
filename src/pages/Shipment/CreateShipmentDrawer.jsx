@@ -196,6 +196,56 @@ export default function CreateShipmentDrawer({
   };
 
   // PHASE 3: REVERSE GEOCODING
+  const handleSelectHub = async (hub) => {
+    cancelAddressLookup();
+    update("pickupLocation", hub.value);
+    setPickerMode(null);
+
+    const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
+    if (!apiKey) {
+      setAddressError("Unable to locate this pickup. Please confirm it on the map.");
+      return;
+    }
+
+    const requestId = ++lookupIdRef.current;
+    const controller = new AbortController();
+    lookupControllerRef.current = controller;
+    lookupBusyRef.current = true;
+    setIsResolvingAddress(true);
+
+    try {
+      const query = new URLSearchParams({
+        key: apiKey,
+        country: "ph",
+        language: "en",
+        limit: "1",
+      });
+      const response = await fetch(
+        `https://api.maptiler.com/geocoding/${encodeURIComponent(hub.value)}.json?${query}`,
+        { signal: controller.signal }
+      );
+      if (!response.ok) throw new Error("Pickup lookup failed.");
+      const data = await response.json();
+      const center = data.features?.[0]?.center;
+      const coordinates = { lng: center?.[0], lat: center?.[1] };
+      if (!validCoordinate(coordinates)) {
+        throw new Error("No pickup coordinates were found.");
+      }
+      if (requestId !== lookupIdRef.current) return;
+      setConfirmedPickup(coordinates);
+    } catch (error) {
+      if (controller.signal.aborted || requestId !== lookupIdRef.current) return;
+      console.error("Default pickup lookup error:", error);
+      setAddressError("Unable to locate this pickup. Please confirm it on the map.");
+    } finally {
+      if (requestId === lookupIdRef.current) {
+        setIsResolvingAddress(false);
+        lookupBusyRef.current = false;
+        lookupControllerRef.current = null;
+      }
+    }
+  };
+
   const handleConfirmLocation = async ({
     type,
     lat,
@@ -841,7 +891,7 @@ export default function CreateShipmentDrawer({
         {confirmedPickup && (
           <p className="field-info-text">
             <i className="las la-check-circle" />{" "}
-            Pickup confirmed on map.
+            Pickup location confirmed.
           </p>
         )}
 
@@ -855,14 +905,7 @@ export default function CreateShipmentDrawer({
                   ? "active"
                   : ""
                 }`}
-              onClick={() => {
-                update(
-                  "pickupLocation",
-                  hub.value
-                );
-
-                setPickerMode(null);
-              }}
+              onClick={() => handleSelectHub(hub)}
             >
               {hub.label}
             </button>
