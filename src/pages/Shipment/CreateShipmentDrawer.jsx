@@ -4,6 +4,7 @@ import "./createShipment.css";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { LUZON_BOUNDS } from "../../config/mapBound";
+import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
 
 const HUBS = [
   {
@@ -137,6 +138,22 @@ export default function CreateShipmentDrawer({
   onCreated,
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [scheduleClock, setScheduleClock] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const refresh = () => setScheduleClock(Date.now());
+    const initialRefresh = setTimeout(refresh, 0);
+    const timer = setInterval(refresh, 1000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearTimeout(initialRefresh);
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [isOpen]);
 
   const [pickerMode, setPickerMode] = useState(null);
 
@@ -668,20 +685,8 @@ export default function CreateShipmentDrawer({
       return "Destination is required.";
     }
 
-    if (
-      !form.departureDate ||
-      !form.departureTime
-    ) {
-      return "Departure date and time are required.";
-    }
-
-    const departure = new Date(
-      `${form.departureDate}T${form.departureTime}`
-    );
-
-    if (Number.isNaN(departure.getTime())) {
-      return "Invalid departure date or time.";
-    }
+    const departureError = validateDeparture(form.departureDate, form.departureTime);
+    if (departureError) return departureError;
 
     if (!selectedCustomer) {
       return "Select a registered customer.";
@@ -810,9 +815,9 @@ export default function CreateShipmentDrawer({
     setSaveError("");
 
     try {
-      const departure = new Date(
-        `${form.departureDate}T${form.departureTime}`
-      );
+      const departureError = validateDeparture(form.departureDate, form.departureTime);
+      if (departureError) throw new Error(departureError);
+      const departure = parsePhilippineDeparture(form.departureDate, form.departureTime);
 
       const shipmentData = {
         customer_id: selectedCustomer.id,
@@ -875,6 +880,13 @@ export default function CreateShipmentDrawer({
   };
 
   if (!isOpen) return null;
+
+  const scheduleLimits = departureLimits(scheduleClock);
+  const scheduleError = form.departureDate || form.departureTime
+    ? validateDeparture(form.departureDate, form.departureTime, scheduleClock)
+    : "";
+  const sameDay = form.departureDate === scheduleLimits.today;
+  const noFutureTimeToday = sameDay && scheduleLimits.earliestDate !== scheduleLimits.today;
 
   const hasValidRoute = routeGeoJSON?.features?.some(feature =>
     feature.geometry?.type === "LineString" &&
@@ -1203,6 +1215,9 @@ export default function CreateShipmentDrawer({
             <input
               type="date"
               value={form.departureDate}
+              min={scheduleLimits.today}
+              aria-invalid={Boolean(scheduleError)}
+              aria-describedby={scheduleError ? "departure-schedule-error" : "departure-timezone"}
               onChange={(e) =>
                 update(
                   "departureDate",
@@ -1224,6 +1239,11 @@ export default function CreateShipmentDrawer({
             <input
               type="time"
               value={form.departureTime}
+              disabled={noFutureTimeToday}
+              step={60}
+              min={sameDay ? (noFutureTimeToday ? "23:59" : scheduleLimits.earliestTime) : undefined}
+              aria-invalid={Boolean(scheduleError)}
+              aria-describedby={scheduleError ? "departure-schedule-error" : "departure-timezone"}
               onChange={(e) =>
                 update(
                   "departureTime",
@@ -1236,6 +1256,13 @@ export default function CreateShipmentDrawer({
       </div>
 
       {/* CUSTOMER */}
+      <p id="departure-timezone" className="field-info-text">Departure uses Philippine time (Asia/Manila).</p>
+      {noFutureTimeToday && <p className="field-info-text">No future departure times remain today. Select a later date.</p>}
+      {scheduleError && (
+        <p id="departure-schedule-error" role="alert" style={{ color: "#b91c1c", fontSize: "13px" }}>
+          {scheduleError}
+        </p>
+      )}
       <div className="form-group">
         <label className="input-title">
           CUSTOMER BILLING
