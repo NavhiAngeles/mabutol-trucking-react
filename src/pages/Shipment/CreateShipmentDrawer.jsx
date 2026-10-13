@@ -153,6 +153,7 @@ export default function CreateShipmentDrawer({
 
   // PHASE 4 ROUTING STATE
   const [routeGeoJSON, setRouteGeoJSON] = useState(null);
+  const [fullRouteViewRequest, setFullRouteViewRequest] = useState(0);
 
   const [isCalculatingRoute, setIsCalculatingRoute] =
     useState(false);
@@ -875,6 +876,14 @@ export default function CreateShipmentDrawer({
 
   if (!isOpen) return null;
 
+  const hasValidRoute = routeGeoJSON?.features?.some(feature =>
+    feature.geometry?.type === "LineString" &&
+    feature.geometry.coordinates?.length >= 2 &&
+    feature.geometry.coordinates.every(point =>
+      Array.isArray(point) && validCoordinate({ lng: point[0], lat: point[1] })
+    )
+  ) && validCoordinate(confirmedPickup) && validCoordinate(confirmedDestination) && !isCalculatingRoute;
+
   const renderAddressDetails = (type) => (
     <details className="location-details">
       <summary>Optional address details</summary>
@@ -1063,18 +1072,19 @@ export default function CreateShipmentDrawer({
           <button
             type="button"
             className="view-map-text-btn"
-            disabled={!routeGeoJSON}
+            disabled={!hasValidRoute}
             title={
-              routeGeoJSON
-                ? "Show calculated route on map"
-                : "Confirm both locations on the map first"
+              hasValidRoute
+                ? "Show the full driving route and both locations"
+                : "Calculate a valid driving route first"
             }
             onClick={() => {
               setPickerMode(null);
+              setFullRouteViewRequest(previous => previous + 1);
             }}
           >
             <i className="las la-map" />{" "}
-            View on map
+            View Full Route
           </button>
         </div>
       </div>
@@ -2159,6 +2169,7 @@ export default function CreateShipmentDrawer({
             routeGeoJSON={
               routeGeoJSON
             }
+            fullRouteViewRequest={fullRouteViewRequest}
             isCalculatingRoute={
               isCalculatingRoute
             }

@@ -23,6 +23,7 @@ export default function TruckTrackingMap({
   confirmedDestination = null,
   isResolvingAddress = false,
   routeGeoJSON = null,
+  fullRouteViewRequest = 0,
   isCalculatingRoute = false,
   routeError = "",
 }) {
@@ -245,34 +246,6 @@ export default function TruckTrackingMap({
         },
       });
 
-      // FIT MAP TO ROUTE
-      const bounds = new maplibregl.LngLatBounds();
-
-      const includeCoordinates = (coordinates) => {
-        if (!Array.isArray(coordinates)) return;
-
-        if (
-          typeof coordinates[0] === "number" &&
-          typeof coordinates[1] === "number"
-        ) {
-          bounds.extend(coordinates);
-          return;
-        }
-
-        coordinates.forEach(includeCoordinates);
-      };
-
-      routeGeoJSON.features.forEach((feature) => {
-        includeCoordinates(feature.geometry?.coordinates);
-      });
-
-      if (!bounds.isEmpty() && !pickerMode) {
-        map.fitBounds(bounds, {
-          padding: 70,
-          maxZoom: 14,
-          duration: 1000,
-        });
-      }
     } catch (err) {
       console.error("Unable to draw route:", err);
     }
@@ -283,6 +256,36 @@ export default function TruckTrackingMap({
       }
     };
   }, [routeGeoJSON, mapReady, pickerMode]);
+
+  // Refit the existing route on every button click, without requesting a new route.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || pickerMode || !routeGeoJSON?.features?.length) return;
+
+    const bounds = new maplibregl.LngLatBounds();
+    const validPoint = point => Array.isArray(point) &&
+      Number.isFinite(point[0]) && Number.isFinite(point[1]) &&
+      Math.abs(point[0]) <= 180 && Math.abs(point[1]) <= 90;
+    let hasRoute = false;
+    for (const feature of routeGeoJSON.features) {
+      const geometry = feature.geometry;
+      if (geometry?.type !== "LineString" || geometry.coordinates?.length < 2 ||
+          !geometry.coordinates?.every(validPoint)) continue;
+      geometry.coordinates.forEach(point => bounds.extend(point));
+      hasRoute = true;
+    }
+    if (!hasRoute) return;
+    for (const point of [confirmedPickup, confirmedDestination]) {
+      if (point && validPoint([point.lng, point.lat])) bounds.extend([point.lng, point.lat]);
+    }
+    map.resize();
+    map.stop();
+    map.fitBounds(bounds, {
+      padding: { top: 80, bottom: 90, left: 70, right: 80 },
+      maxZoom: 14,
+      duration: 800,
+    });
+  }, [routeGeoJSON, mapReady, pickerMode, confirmedPickup, confirmedDestination, fullRouteViewRequest]);
 
   // CONFIRM MAP CENTER
   const handleConfirmLocation = () => {
