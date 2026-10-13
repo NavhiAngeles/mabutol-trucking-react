@@ -1,5 +1,7 @@
 
 import { supabase } from "./supabaseClient";
+import { fetchOperationalRows, fetchOperationalDeliveries } from './dashboardService';
+import { pendingDeparture } from './operationalStats';
 
 /*
   MABUTOL TRUCKING
@@ -16,10 +18,10 @@ import { supabase } from "./supabaseClient";
 // ============================================
 
 const STATUS_MAP = {
-  pending: "loading",
-  booked: "loading",
+  pending: "pending",
+  booked: "booked",
   confirmed: "loading",
-  assigned: "loading",
+  assigned: "assigned",
   loading: "loading",
   preparing: "loading",
   ready_for_pickup: "loading",
@@ -35,6 +37,7 @@ const STATUS_MAP = {
 
   delivered: "completed",
   completed: "completed",
+  cancelled: "cancelled",
 };
 
 // ============================================
@@ -181,6 +184,8 @@ export function mapShipmentRow(row) {
       : 0;
 
   const baseShipment = {
+    rawStatus,
+    pendingDispatch: row.pendingDispatch ?? false,
     dbId: row.id,
 
     id:
@@ -313,13 +318,10 @@ export async function fetchShipments() {
       "Fetching shipments from Supabase..."
     );
 
-    const { data, error } = await supabase
-      .from("shipments")
-      .select("*")
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(500);
+    const [data, deliveries] = await Promise.all([
+      fetchOperationalRows('shipments', '*'), fetchOperationalDeliveries(),
+    ]);
+    const error = null;
 
     if (error) {
       console.error(
@@ -336,8 +338,8 @@ export async function fetchShipments() {
     );
 
     const mappedShipments = (
-      data ?? []
-    ).map(mapShipmentRow);
+      (data ?? []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    ).map(row => mapShipmentRow({ ...row, pendingDispatch: pendingDeparture(row, deliveries) }));
 
     console.log(
       "Mapped shipments:",
@@ -431,6 +433,7 @@ export function subscribeToShipments(onChange) {
         }
       }
     )
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, onChange)
     .subscribe();
 
   // Cleanup when the component unmounts

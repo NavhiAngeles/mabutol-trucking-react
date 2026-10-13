@@ -3,6 +3,7 @@ import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
 import DashboardTrackingMap from "./DashboardTrackingMap";
 import { useDashboardViewModel } from "../../viewmodels/DashboardViewModel";
+import { comparisonLabel } from '../../services/operationalStats';
 
 /* ---- Inline icons (no external icon package required) ---- */
 const iconProps = {
@@ -78,13 +79,6 @@ const ChevronDown = (props) => (
   </svg>
 );
 
-const ArrowUp = (props) => (
-  <svg {...iconProps} {...props}>
-    <line x1="12" y1="19" x2="12" y2="5" />
-    <polyline points="5 12 12 5 19 12" />
-  </svg>
-);
-
 const RotateCcw = (props) => (
   <svg {...iconProps} {...props}>
     <polyline points="1 4 1 10 7 10" />
@@ -119,15 +113,11 @@ export default function Dashboard() {
     stats,
     loading,
     error,
+    refresh,
   } = useDashboardViewModel();
 
-  if (loading) {
-    return <p>Loading dashboard...</p>;
-  }
-
-  if (error) {
-    return <p>Error: {error}</p>;
-  }
+  const cardProps = (path) => ({ role: 'link', tabIndex: 0, onClick: () => navigate(path),
+    onKeyDown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(path); } } });
 
   return (
     <MainLayout>
@@ -181,53 +171,55 @@ export default function Dashboard() {
         </div>
 
         {/* Stats */}
+        {loading && <p role="status">Loading operational statistics…</p>}
+        {error && <p role="alert">Could not load statistics: {error} <button onClick={refresh}>Retry</button></p>}
         <div className="stats">
-          <div className="stat-card green">
+          <div className="stat-card green" {...cardProps('/shipment?tab=active')}>
             <div className="stat-top">
               <h4>Active Shipments</h4>
               <div className="stat-icon green">
                 <Truck />
               </div>
             </div>
-            <h2>{stats.activeShipments}</h2>
+            <h2>{stats?.activeShipments ?? '—'}</h2>
             <p className="stat-delta green">
-              <ArrowUp /> +2 from yesterday
+              {comparisonLabel(stats?.activeDelta ?? null)}
             </p>
           </div>
 
-          <div className="stat-card red">
+          <div className="stat-card red" {...cardProps('/shipment?tab=delayed')}>
             <div className="stat-top">
               <h4>Delayed Shipments</h4>
               <div className="stat-icon red">
                 <AlertTriangle />
               </div>
             </div>
-            <h2>{stats.delayedShipments}</h2>
+            <h2>{stats?.delayedShipments ?? '—'}</h2>
             <p className="stat-delta red">
-              <ArrowUp /> +1 from yesterday
+              {comparisonLabel(stats?.delayedDelta ?? null)}
             </p>
           </div>
 
-          <div className="stat-card orange">
+          <div className="stat-card orange" {...cardProps('/fleet?availability=dispatch-ready')}>
             <div className="stat-top">
               <h4>Available Trucks</h4>
               <div className="stat-icon orange">
                 <Truck />
               </div>
             </div>
-            <h2>{stats.availableTrucks}</h2>
+            <h2>{stats?.availableTrucks ?? '—'}</h2>
             <p className="stat-delta orange">Ready for dispatch</p>
           </div>
 
-          <div className="stat-card blue">
+          <div className="stat-card blue" {...cardProps('/shipment?tab=dispatch')}>
             <div className="stat-top">
               <h4>Pending Dispatch</h4>
               <div className="stat-icon blue">
                 <Clock />
               </div>
             </div>
-            <h2>{stats.pendingDispatch}</h2>
-            <p className="stat-delta blue">Ready for assignment</p>
+            <h2>{stats?.pendingDispatch ?? '—'}</h2>
+            <p className="stat-delta blue">{stats ? `${stats.awaitingAssignment} awaiting assignment · ${stats.awaitingDispatch} awaiting dispatch` : 'Booked or assigned, not departed'}</p>
           </div>
         </div>
 

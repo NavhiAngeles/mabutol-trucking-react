@@ -1,54 +1,66 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getDashboardStats,
   subscribeToDashboardChanges,
 } from "../services/dashboardService";
 
 export function useDashboardViewModel() {
-  const [stats, setStats] = useState({
-    activeShipments: 0,
-    delayedShipments: 0,
-    availableTrucks: 0,
-    pendingDispatch: 0,
-  });
+  const [stats, setStats] = useState(null);
+  const refreshRef = useRef(() => {});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadStats = useCallback(async () => {
+  const refresh = useCallback(() => refreshRef.current(), []);
+  useEffect(() => {
+    let disposed = false, running = false, again = false, timer;
+    const loadStats = async () => {
+    if (disposed) return;
+    if (running) { again = true; return; }
+    running = true;
     try {
       setError(null);
 
       const data = await getDashboardStats();
 
-      setStats(data);
+      if (!disposed) { setStats(data); setError(null); }
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
-      setError(error.message);
+      if (!disposed) { setError(error.message); setStats(null); }
     } finally {
-      setLoading(false);
+      running = false;
+      if (!disposed) setLoading(false);
+      if (again && !disposed) { again = false; schedule(); }
     }
-  }, []);
-
-  useEffect(() => {
+    };
+    function schedule() { clearTimeout(timer); timer = setTimeout(loadStats, 250); }
+    const onVisible = () => { if (document.visibilityState === 'visible') schedule(); };
+    refreshRef.current = schedule;
     // Initial fetch
-    loadStats();
+    schedule();
 
     // Listen for database changes
     const unsubscribe = subscribeToDashboardChanges(() => {
-      loadStats();
+      schedule();
     });
 
     // Cleanup when Dashboard unmounts
+    const poll = setInterval(schedule, 15000);
+    window.addEventListener('focus', schedule);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
+      disposed = true; clearTimeout(timer); clearInterval(poll);
       unsubscribe();
+      window.removeEventListener('focus', schedule);
+      document.removeEventListener('visibilitychange', onVisible);
+      refreshRef.current = () => {};
     };
-  }, [loadStats]);
+  }, []);
 
   return {
     stats,
     loading,
     error,
-    refresh: loadStats,
+    refresh,
   };
 }

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from 'react-router-dom';
+import { ACTIVE_STATUSES } from '../services/operationalStats';
 import {
   fetchShipments,
   fetchWeeklyTripCount,
@@ -20,7 +22,7 @@ export const TAB_CONFIG = {
     title: "Active Operations",
     description:
       "Real-time view of all ongoing shipments currently in transit, loading, or preparing for departure.",
-    filter: (s) => s.status === "transit" || s.status === "loading",
+    filter: (s) => ACTIVE_STATUSES.includes(s.rawStatus),
   },
   delayed: {
     label: "Delayed",
@@ -28,6 +30,11 @@ export const TAB_CONFIG = {
     description: "Shipments currently behind schedule and requiring routing review.",
     filter: (s) => s.status === "delayed",
     badgeClass: "badge-danger",
+  },
+  dispatch: {
+    label: 'Pending Dispatch', title: 'Pending Dispatch',
+    description: 'Booked and assigned shipments that have not started loading or departed.',
+    filter: s => s.pendingDispatch,
   },
   completed: {
     label: "Completed",
@@ -56,31 +63,38 @@ export function useShipmentViewModel() {
   const [weeklyTrips, setWeeklyTrips] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentTab, setCurrentTab] = useState("active");
+  const [params, setParams] = useSearchParams();
+  const currentTab = Object.hasOwn(TAB_CONFIG, params.get('tab')) ? params.get('tab') : 'active';
+  const setCurrentTab = tab => setParams(previous => { previous.set('tab', tab); return previous; });
   const [searchQuery, setSearchQuery] = useState("");
+  const loadVersion = useRef(0);
+  const invalidateLoads = useCallback(() => { loadVersion.current += 1; }, []);
 
   /* ------------------------------- loading ------------------------------- */
   const load = useCallback(async ({ silent = false } = {}) => {
+    const version = ++loadVersion.current;
     if (!silent) setIsLoading(true);
     try {
       const [rows, trips] = await Promise.all([fetchShipments(), fetchWeeklyTripCount()]);
+      if (version !== loadVersion.current) return;
       setShipments(rows);
       setWeeklyTrips(trips);
       setError(null);
     } catch (err) {
       console.error("Failed to load shipments:", err);
-      setError(err.message ?? "Failed to load shipments");
+      if (version === loadVersion.current) setError(err.message ?? "Failed to load shipments");
     } finally {
-      setIsLoading(false);
+      if (version === loadVersion.current) setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    load();
+    const initial = setTimeout(load, 0);
     // Live updates: quietly refetch whenever a shipment row changes
     const unsubscribe = subscribeToShipments(() => load({ silent: true }));
-    return unsubscribe;
-  }, [load]);
+    const poll = setInterval(() => load({ silent: true }), 15000);
+    return () => { invalidateLoads(); clearTimeout(initial); clearInterval(poll); unsubscribe(); };
+  }, [load, invalidateLoads]);
 
   /* ----------------------------- derived data ---------------------------- */
   const activeConfig = TAB_CONFIG[currentTab];
@@ -124,7 +138,7 @@ export function useShipmentViewModel() {
 
     return {
       transitCount: withStatus("transit").length,
-      loadingCount: withStatus("loading").length,
+      loadingCount: withStatus("loading").length + withStatus("assigned").length,
       delayedCount: delayed.length,
 
       avgDelayLabel: formatDuration(avgDelay),

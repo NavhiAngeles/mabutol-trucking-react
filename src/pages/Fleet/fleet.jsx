@@ -1,12 +1,34 @@
 // fleet.jsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getDispatchReadyTruckIds, subscribeToDashboardChanges } from '../../services/dashboardService';
 import MainLayout from "../../layouts/mainLayout";
 import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 
 export default function Fleet() {
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const readyOnly = params.get('availability') === 'dispatch-ready';
+  const [readyIds, setReadyIds] = useState(null);
+  const [readyError, setReadyError] = useState('');
+  useEffect(() => {
+    if (!readyOnly) return;
+    let disposed = false, running = false;
+    async function load() {
+      if (running || disposed) return;
+      running = true;
+      try {
+        const ids = await getDispatchReadyTruckIds();
+        if (!disposed) { setReadyIds(new Set(ids)); setReadyError(''); }
+      } catch (err) { if (!disposed) { setReadyIds(null); setReadyError(err.message); } }
+      finally { running = false; }
+    }
+    const initial = setTimeout(load, 0);
+    const poll = setInterval(load, 15000);
+    const unsubscribe = subscribeToDashboardChanges(load);
+    return () => { disposed = true; clearTimeout(initial); clearInterval(poll); unsubscribe(); };
+  }, [readyOnly]);
 
   // ViewModel State & Actions
   const {
@@ -219,6 +241,7 @@ export default function Fleet() {
 
   // Filtered Lists
   const filteredTrucks = trucks.filter((truck) => {
+    if (readyOnly && !readyIds?.has(truck.id)) return false;
     if (!vehicleSearch.trim()) return true;
     const q = vehicleSearch.toLowerCase();
     return (
@@ -291,6 +314,7 @@ export default function Fleet() {
 
       {/* Primary Scrolling Content Frame */}
       <section className="content scrollable-panel">
+        {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => setParams({})}>Show all vehicles</button></p>}
 
         {/* HEADER ACTIONS BLOCK */}
         <div className="header-actions-row">
