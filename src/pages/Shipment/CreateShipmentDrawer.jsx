@@ -703,6 +703,17 @@ export default function CreateShipmentDrawer({
     return "";
   };
 
+  // BACK STEP - Preserve all shipment form data
+  const handleBack = () => {
+    if (isSaving) return;
+
+    setSaveError("");
+
+    setCurrentStep((previousStep) =>
+      Math.max(previousStep - 1, 1)
+    );
+  };
+
   // NEXT STEP
   const handleNext = () => {
     if (
@@ -1982,6 +1993,7 @@ export default function CreateShipmentDrawer({
             )}
           </div>
 
+          
           {/* FOOTER */}
           <div className="drawer-footer-wrapper-fixed">
             {currentStep < 3 ? (
@@ -1989,29 +2001,23 @@ export default function CreateShipmentDrawer({
                 <button
                   type="button"
                   className="btn-cancel"
-                  onClick={() => {
-                    if (
-                      currentStep > 1
-                    ) {
-                      setSaveError("");
-
-                      setCurrentStep(
-                        currentStep - 1
-                      );
-                    } else {
-                      handleCloseAll();
-                    }
-                  }}
+                  onClick={
+                    currentStep === 1
+                      ? handleCloseAll
+                      : handleBack
+                  }
+                  disabled={isSaving}
                 >
-                  {currentStep > 1
-                    ? "Back"
-                    : "Cancel"}
+                  {currentStep === 1
+                    ? "Cancel"
+                    : "← Back to Step 1"}
                 </button>
 
                 <button
                   type="button"
                   className="btn-submit"
                   disabled={
+                    isSaving ||
                     isResolvingAddress ||
                     isCalculatingRoute
                   }
@@ -2019,23 +2025,52 @@ export default function CreateShipmentDrawer({
                 >
                   {currentStep === 1
                     ? "Cargo & Vehicle"
-                    : "Review & Confirm"}{" "}
+                    : "Review & Confirm"}
 
-                  <i className="las la-arrow-right" />
+                  <i
+                    className="las la-arrow-right"
+                    aria-hidden="true"
+                  />
                 </button>
               </div>
             ) : (
               <div className="drawer-review-footer-block">
+
+                {/* BACK TO STEP 2 */}
+                <button
+                  type="button"
+                  className="btn-cancel"
+                  onClick={handleBack}
+                  disabled={isSaving}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    alignSelf: "flex-start",
+                    gap: "8px",
+                    padding: "8px 0",
+                  }}
+                >
+                  <i
+                    className="las la-arrow-left"
+                    aria-hidden="true"
+                  />
+                  Back to Step 2
+                </button>
+
+                {/* CONFIRM SHIPMENT */}
                 <button
                   type="button"
                   className="btn-full-confirm"
-                  onClick={
-                    handleCreateShipment
-                  }
+                  onClick={handleCreateShipment}
                   disabled={
                     isSaving ||
-                    baseRate === null || handlingCharge === null || Boolean(handlingPricingError) ||
-                    !vehicleCanCarry(selectedVehicle, form.weight) ||
+                    baseRate === null ||
+                    handlingCharge === null ||
+                    Boolean(handlingPricingError) ||
+                    !vehicleCanCarry(
+                      selectedVehicle,
+                      form.weight
+                    ) ||
                     isResolvingAddress ||
                     isCalculatingRoute
                   }
@@ -2046,7 +2081,8 @@ export default function CreateShipmentDrawer({
                         ? "las la-spinner la-spin"
                         : "las la-check-circle"
                     }
-                  />{" "}
+                    aria-hidden="true"
+                  />
 
                   {isSaving
                     ? "Saving Shipment..."
@@ -2054,25 +2090,25 @@ export default function CreateShipmentDrawer({
                 </button>
 
                 <span className="footer-notice-subtext">
-                  Shipment will be saved
-                  to Supabase. Driver
-                  notification is not
-                  enabled yet.
+                  Shipment will be saved to Supabase.
+                  Driver notification is not enabled yet.
                 </span>
 
+                {/* DISCARD SHIPMENT */}
                 <button
                   type="button"
                   className="btn-discard-action"
                   onClick={handleCloseAll}
                   disabled={isSaving}
                 >
-                  Cancel and discard
-                  shipment
+                  Cancel and discard shipment
                 </button>
               </div>
             )}
           </div>
         </div>
+
+
 
         {/* RIGHT MAP PANEL */}
         <div className="drawer-map-panel">
