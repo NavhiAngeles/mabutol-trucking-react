@@ -1836,18 +1836,16 @@ export default function CreateShipmentDrawer({
     </div>
   );
 
+  
   // MAIN DRAWER
   return (
-    <div
-      className="drawer-overlay"
-      onClick={handleCloseAll}
-    >
+    <div className="drawer-overlay">
       <div
         className="drawer-container"
-        onClick={(e) =>
-          e.stopPropagation()
-        }
+        onClick={(e) => e.stopPropagation()}
       >
+
+      
         {/* LEFT PANEL */}
         <div className="drawer-form-panel">
           {/* HEADER */}
