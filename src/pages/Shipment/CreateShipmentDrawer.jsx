@@ -7,7 +7,7 @@ import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
 import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
-import { vehicleBaseRate, vehicleCanCarry, pricingDate } from "../../services/vehiclePricing";
+import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDate, } from "../../services/vehiclePricing";
 import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
 
 const HUBS = [
@@ -477,9 +477,9 @@ export default function CreateShipmentDrawer({
           throw new Error("A road-only truck route could not be verified. Please try again later.");
         }
         if (!Number.isFinite(data.distanceKm) || data.distanceKm < 0 ||
-            !data.geojson?.features?.some(feature => feature.geometry?.type === "LineString" &&
-              feature.geometry.coordinates?.length >= 2 && feature.geometry.coordinates.every(point =>
-                Array.isArray(point) && validCoordinate({ lng: point[0], lat: point[1] })))) {
+          !data.geojson?.features?.some(feature => feature.geometry?.type === "LineString" &&
+            feature.geometry.coordinates?.length >= 2 && feature.geometry.coordinates.every(point =>
+              Array.isArray(point) && validCoordinate({ lng: point[0], lat: point[1] })))) {
           throw new Error("The routing service returned an invalid route or distance. Please select the locations again.");
         }
 
@@ -741,6 +741,9 @@ export default function CreateShipmentDrawer({
     setCurrentStep((step) =>
       Math.min(step + 1, 3)
     );
+    if (!vehicleFitsShipmentWeight(selectedVehicle, weight)) {
+      return "Select a truck with sufficient capacity and no more than 2,000 kg of excess capacity.";
+    }
   };
 
   // CREATE SHIPMENT IN SUPABASE
@@ -778,9 +781,9 @@ export default function CreateShipmentDrawer({
       const currentHandlingCharge = handlingCost(currentRates, form.specialHandling, form.distanceKm);
       if (currentHandlingCharge === null) throw new Error("The selected handling price is unavailable. Check pricing settings and route distance.");
       if (currentHandlingCharge !== handlingCharge || currentBaseRate !== baseRate ||
-          currentVehicle.pricing.id !== selectedVehicle.pricing.id ||
-          Number(currentVehicle.pricing.per_km_rate) !== Number(selectedVehicle.pricing.per_km_rate) ||
-          Number(currentVehicle.pricing.min_charge) !== Number(selectedVehicle.pricing.min_charge)) {
+        currentVehicle.pricing.id !== selectedVehicle.pricing.id ||
+        Number(currentVehicle.pricing.per_km_rate) !== Number(selectedVehicle.pricing.per_km_rate) ||
+        Number(currentVehicle.pricing.min_charge) !== Number(selectedVehicle.pricing.min_charge)) {
         setHandlingRates(currentRates);
         setVehicles(currentPricing.vehicles);
         throw new Error("Shipment pricing has changed. Review the updated total and submit again.");
@@ -875,7 +878,7 @@ export default function CreateShipmentDrawer({
     <details className="location-details">
       <summary>Optional address details</summary>
       <div className="location-details-fields">
-        {[ ["Building", "Building or warehouse name"], ["Unit", "Unit / floor number"], ["Gate", "Gate / entrance number"], ["Landmark", "Nearby landmark"] ].map(([key, label]) => (
+        {[["Building", "Building or warehouse name"], ["Unit", "Unit / floor number"], ["Gate", "Gate / entrance number"], ["Landmark", "Nearby landmark"]].map(([key, label]) => (
           <label key={key} className="location-detail-label">
             {label}
             <input type="text" value={form[`${type}${key}`]} maxLength={200}
@@ -896,18 +899,18 @@ export default function CreateShipmentDrawer({
         </label>
 
         <AddressAutocomplete
-            iconClass="las la-circle-notch input-icon input-blue-icon"
-            placeholder="Search pickup address or landmark"
-            value={form.pickupLocation}
-            disabled={isResolvingAddress}
-            onSelect={feature => selectAddress("pickup", feature)}
-            onChange={(value) =>
-              update(
-                "pickupLocation",
-                value
-              )
-            }
-          />
+          iconClass="las la-circle-notch input-icon input-blue-icon"
+          placeholder="Search pickup address or landmark"
+          value={form.pickupLocation}
+          disabled={isResolvingAddress}
+          onSelect={feature => selectAddress("pickup", feature)}
+          onChange={(value) =>
+            update(
+              "pickupLocation",
+              value
+            )
+          }
+        />
 
         <button
           type="button"
@@ -944,8 +947,8 @@ export default function CreateShipmentDrawer({
               type="button"
               disabled={isResolvingAddress}
               className={`hub-pill ${form.pickupLocation === hub.value
-                  ? "active"
-                  : ""
+                ? "active"
+                : ""
                 }`}
               onClick={handleSelectHub}
             >
@@ -964,18 +967,18 @@ export default function CreateShipmentDrawer({
         </label>
 
         <AddressAutocomplete
-            iconClass="las la-map-marker input-icon input-orange-icon"
-            placeholder="Search delivery address or landmark"
-            value={form.destination}
-            disabled={isResolvingAddress}
-            onSelect={feature => selectAddress("destination", feature)}
-            onChange={(value) =>
-              update(
-                "destination",
-                value
-              )
-            }
-          />
+          iconClass="las la-map-marker input-icon input-orange-icon"
+          placeholder="Search delivery address or landmark"
+          value={form.destination}
+          disabled={isResolvingAddress}
+          onSelect={feature => selectAddress("destination", feature)}
+          onChange={(value) =>
+            update(
+              "destination",
+              value
+            )
+          }
+        />
 
         <button
           type="button"
@@ -1308,8 +1311,8 @@ export default function CreateShipmentDrawer({
               type="button"
               disabled={handlingRates?.[option.id] == null || isSaving}
               className={`handling-badge-btn ${form.specialHandling === option.label
-                  ? "active"
-                  : ""
+                ? "active"
+                : ""
                 }`}
               onClick={() =>
                 update(
@@ -1362,90 +1365,101 @@ export default function CreateShipmentDrawer({
           </span>
         </div>
 
+
         <div className="vehicle-selection-grid">
           {vehicles.map((truck) => {
-            const overweight = !vehicleCanCarry(truck, form.weight === "" ? 0 : form.weight);
+            const cargoWeight = Number(form.weight);
+            const truckCapacity = Number(truck.default_capacity_kg);
+
+            const validWeight =
+              form.weight !== "" &&
+              Number.isFinite(cargoWeight) &&
+              cargoWeight > 0;
+
+            const tooSmall =
+              validWeight && truckCapacity < cargoWeight;
+
+            const tooLarge =
+              validWeight && truckCapacity > cargoWeight + 2000;
+
+            const fitsWeight = vehicleFitsShipmentWeight(
+              truck,
+              form.weight
+            );
+
             const missingPrice = vehicleBaseRate(truck, 0) === null;
-            const unavailable = overweight || missingPrice;
+
+            const unavailable = !fitsWeight || missingPrice;
 
             const selected =
-              form.selectedVehicle ===
-              truck.id;
+              form.selectedVehicle === truck.id && !unavailable;
 
             return (
               <div
                 key={truck.id}
                 role="button"
-                tabIndex={
-                  unavailable ? -1 : 0
-                }
+                tabIndex={unavailable ? -1 : 0}
                 aria-disabled={unavailable}
-                className={`vehicle-card ${unavailable
-                    ? "disabled"
-                    : "searchable"
-                  } ${selected && !overweight
-                    ? "active"
-                    : ""
-                  }`}
+                className={`vehicle-card ${unavailable ? "disabled" : "searchable"
+                  } ${selected ? "active" : ""}`}
                 onClick={() => {
                   if (!unavailable) {
-                    update(
-                      "selectedVehicle",
-                      truck.id
-                    );
+                    update("selectedVehicle", truck.id);
                   }
                 }}
                 onKeyDown={(e) => {
                   if (
                     !unavailable &&
-                    (e.key === "Enter" ||
-                      e.key === " ")
+                    (e.key === "Enter" || e.key === " ")
                   ) {
                     e.preventDefault();
-
-                    update(
-                      "selectedVehicle",
-                      truck.id
-                    );
+                    update("selectedVehicle", truck.id);
                   }
                 }}
               >
                 <div className="vehicle-card-icon">
-                  <i
-                    className={
-                      "las la-truck"
-                    }
-                  />
+                  <i className="las la-truck" />
                 </div>
 
                 <div className="vehicle-card-details">
                   <div className="vehicle-title-line">
-                    <h4>
-                      {truck.name}
-                    </h4>
+                    <h4>{truck.name}</h4>
 
                     <span className="vehicle-fleet-id-tag">
-                      {missingPrice ? "Pricing unavailable" : `${currency(truck.pricing.per_km_rate)}/km`}
+                      {missingPrice
+                        ? "Pricing unavailable"
+                        : `${currency(truck.pricing.per_km_rate)}/km`}
                     </span>
                   </div>
 
                   <p>
-                    Up to{" "}
-                    {Number(truck.default_capacity_kg).toLocaleString()}{" "}
-                    kg
+                    Up to {truckCapacity.toLocaleString()} kg
                   </p>
 
-                  <span
-                    className="vehicle-tag blue-tag"
-                  >
-                    {missingPrice ? "No valid rate" : `Minimum ${currency(truck.pricing.min_charge)}`}
+                  <span className="vehicle-tag blue-tag">
+                    {missingPrice
+                      ? "No valid rate"
+                      : `Minimum ${currency(truck.pricing.min_charge)}`}
                   </span>
                 </div>
 
-                {overweight ? (
+                {!validWeight ? (
                   <div className="error-alert-text">
-                    <i className="las la-exclamation-circle" />{" "}
-                    Exceeds weight
+                    Enter cargo weight first
+                  </div>
+                ) : tooSmall ? (
+                  <div className="error-alert-text">
+                    <i className="las la-exclamation-circle" />
+                    Insufficient capacity
+                  </div>
+                ) : tooLarge ? (
+                  <div className="error-alert-text">
+                    <i className="las la-exclamation-circle" />
+                    Exceeds 2,000 kg allowance
+                  </div>
+                ) : missingPrice ? (
+                  <div className="error-alert-text">
+                    Pricing unavailable
                   </div>
                 ) : selected ? (
                   <i className="las la-check-circle select-check-icon" />
@@ -1454,6 +1468,7 @@ export default function CreateShipmentDrawer({
             );
           })}
         </div>
+
 
         <p className="field-info-text">
           {handlingPricingError || (vehicles.length ? "Choose a vehicle type. Truck assignment is handled separately." : "No vehicle types are available. Check vehicle and pricing settings.")}
@@ -1836,7 +1851,7 @@ export default function CreateShipmentDrawer({
     </div>
   );
 
-  
+
   // MAIN DRAWER
   return (
     <div className="drawer-overlay">
@@ -1845,7 +1860,7 @@ export default function CreateShipmentDrawer({
         onClick={(e) => e.stopPropagation()}
       >
 
-      
+
         {/* LEFT PANEL */}
         <div className="drawer-form-panel">
           {/* HEADER */}
@@ -1870,8 +1885,8 @@ export default function CreateShipmentDrawer({
             <div className="stepper-wrapper">
               <div
                 className={`step-item ${currentStep >= 1
-                    ? "active"
-                    : ""
+                  ? "active"
+                  : ""
                   } ${currentStep > 1
                     ? "checked"
                     : ""
@@ -1892,15 +1907,15 @@ export default function CreateShipmentDrawer({
 
               <div
                 className={`step-line ${currentStep >= 2
-                    ? "active-line"
-                    : ""
+                  ? "active-line"
+                  : ""
                   }`}
               />
 
               <div
                 className={`step-item ${currentStep >= 2
-                    ? "active"
-                    : ""
+                  ? "active"
+                  : ""
                   } ${currentStep > 2
                     ? "checked"
                     : ""
@@ -1921,15 +1936,15 @@ export default function CreateShipmentDrawer({
 
               <div
                 className={`step-line ${currentStep === 3
-                    ? "active-line"
-                    : ""
+                  ? "active-line"
+                  : ""
                   }`}
               />
 
               <div
                 className={`step-item ${currentStep === 3
-                    ? "active"
-                    : ""
+                  ? "active"
+                  : ""
                   }`}
               >
                 <span className="step-num">
@@ -1991,7 +2006,7 @@ export default function CreateShipmentDrawer({
             )}
           </div>
 
-          
+
           {/* FOOTER */}
           <div className="drawer-footer-wrapper-fixed">
             {currentStep < 3 ? (

@@ -27,3 +27,25 @@ export function vehicleCanCarry(vehicle, weight) {
   return vehicle?.is_active === true && Number.isFinite(Number(capacity)) && Number(capacity) > 0 &&
     validAmount(weight) && Number(weight) <= Number(capacity);
 }
+
+
+export function vehicleFitsShipmentWeight(vehicle, weight) {
+  const cargoWeight = Number(weight);
+  const truckCapacity = Number(vehicle?.default_capacity_kg);
+  const MAX_EXTRA_CAPACITY_KG = 2000;
+
+  if (
+    weight === "" ||
+    weight === null ||
+    weight === undefined ||
+    !Number.isFinite(cargoWeight) ||
+    cargoWeight <= 0
+  ) {
+    return false;
+  }
+
+  return (
+    vehicleCanCarry(vehicle, cargoWeight) &&
+    truckCapacity <= cargoWeight + MAX_EXTRA_CAPACITY_KG
+  );
+}
