@@ -1,9 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../services/supabaseClient";
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const { clearAuth } = useAuth();
+  const logoutInFlight = useRef(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const location = useLocation();
 
   const [reportsOpen, setReportsOpen] = useState(false);
@@ -29,9 +35,22 @@ export default function Sidebar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  const handleConfirmLogout = () => {
-    setIsLogoutModalOpen(false);
-    navigate("/");
+  const handleConfirmLogout = async () => {
+    if (logoutInFlight.current) return;
+    logoutInFlight.current = true;
+    setIsLoggingOut(true);
+    setLogoutError("");
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) throw error;
+      clearAuth();
+      navigate("/", { replace: true });
+    } catch {
+      setLogoutError("Unable to log out. Please try again.");
+    } finally {
+      logoutInFlight.current = false;
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -183,7 +202,7 @@ export default function Sidebar() {
             Help Center
           </div>
           
-          <div className="nav-item logout-button" onClick={() => setIsLogoutModalOpen(true)}>
+          <div className="nav-item logout-button" onClick={() => { setLogoutError(""); setIsLogoutModalOpen(true); }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
               <polyline points="16 17 21 12 16 7"/>
@@ -197,14 +216,15 @@ export default function Sidebar() {
       {/* Logout Confirmation Modal */}
       {isLogoutModalOpen && (
         <div className="logout-modal-backdrop">
-          <div className="logout-modal-box">
-            <h3>Confirm Log Out</h3>
+          <div className="logout-modal-box" role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-busy={isLoggingOut}>
+            <h3 id="logout-title">Confirm Log Out</h3>
             <p>Are you sure you want to log out?</p>
+            {logoutError && <p role="alert">{logoutError}</p>}
             <div className="logout-modal-actions">
-              <button className="btn-modal-yes" onClick={handleConfirmLogout}>
-                Yes
+              <button className="btn-modal-yes" disabled={isLoggingOut} onClick={handleConfirmLogout}>
+                {isLoggingOut ? "Logging out…" : "Yes"}
               </button>
-              <button className="btn-modal-no" onClick={() => setIsLogoutModalOpen(false)}>
+              <button className="btn-modal-no" disabled={isLoggingOut} onClick={() => setIsLogoutModalOpen(false)}>
                 No
               </button>
             </div>
