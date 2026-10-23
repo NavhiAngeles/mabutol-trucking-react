@@ -4,12 +4,15 @@ import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
+import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
 
 export default function Shipment() {
   const navigate = useNavigate();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [assigningId, setAssigningId] = useState(null);
+  const [assignmentMessage, setAssignmentMessage] = useState("");
   const menuRef = useRef(null);
 
   const {
@@ -58,6 +61,23 @@ export default function Shipment() {
     );
   };
 
+  const handleAssign = async (shipment) => {
+    if (assigningId) return;
+    setAssigningId(shipment.dbId);
+    setAssignmentMessage("");
+    try {
+      const deliveryId = await assignShipmentResources(shipment.dbId);
+      setAssignmentMessage(deliveryId
+        ? `Driver and truck assigned to ${shipment.id}.`
+        : "No available driver and matching truck can carry this load. The booking is still awaiting assignment.");
+      await refresh();
+    } catch (error) {
+      setAssignmentMessage(error.message || "Could not assign this shipment. Please try again.");
+    } finally {
+      setAssigningId(null);
+    }
+  };
+
   const handleEdit = (shipment) => {
     console.log("Edit shipment:", shipment.dbId);
     window.alert("Shipment editing is not implemented yet.");
@@ -103,6 +123,12 @@ export default function Shipment() {
 
       {openMenuId === shipment.dbId && (
         <div className="action-dropdown">
+          {shipment.rawStatus === "booked" && !shipment.assignmentId && (
+            <button type="button" disabled={Boolean(assigningId)}
+              onClick={() => { handleAssign(shipment); setOpenMenuId(null); }}>
+              {assigningId === shipment.dbId ? "Assigning…" : "Assign available driver & truck"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -207,6 +233,7 @@ export default function Shipment() {
         </div>
 
         {/* DATABASE ERROR */}
+        {assignmentMessage && <p role="status">{assignmentMessage}</p>}
         {recordFilter && <p role="status">{!isLoading && !error && !visibleShipments.length ? 'The selected shipment is unavailable or does not match your search.' : 'Showing the shipment selected from Operations Feed.'} <button onClick={() => setCurrentTab('all')}>Show all shipments</button></p>}
         {error && (
           <div

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
+import { createShipment } from "../../services/shipmentService";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { LUZON_BOUNDS } from "../../config/mapBound";
@@ -825,18 +826,7 @@ export default function CreateShipmentDrawer({
         booking_source: "web",
       };
 
-      const {
-        data,
-        error: insertError,
-      } = await supabase
-        .from("shipments")
-        .insert(shipmentData)
-        .select()
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
+      const data = await createShipment(shipmentData);
 
       setCreatedShipment(data);
       setShowSuccessModal(true);
@@ -1353,7 +1343,7 @@ export default function CreateShipmentDrawer({
       <div className="form-group">
         <div className="vehicle-header-row">
           <label className="input-title">
-            SELECT VEHICLE
+            SELECT VEHICLE TYPE
           </label>
 
           <span className="weight-filter-label">
@@ -1433,8 +1423,23 @@ export default function CreateShipmentDrawer({
                   </div>
 
                   <p>
-                    Up to {truckCapacity.toLocaleString()} kg
+                    Standard type capacity: {truckCapacity.toLocaleString()} kg
                   </p>
+
+                  <p>
+                    {!truck.fleetCapacityKnown
+                      ? "Registered truck capacity could not be checked"
+                      : truck.registeredMaxCapacityKg == null
+                        ? "No trucks registered for this type"
+                        : `Largest registered truck: ${truck.registeredMaxCapacityKg.toLocaleString()} kg`}
+                  </p>
+
+                  {validWeight && truck.fleetCapacityKnown &&
+                    (truck.registeredMaxCapacityKg == null || truck.registeredMaxCapacityKg < cargoWeight) && (
+                    <p className="error-alert-text" role="status">
+                      No registered truck of this type can carry this load. Booking will await assignment.
+                    </p>
+                  )}
 
                   <span className="vehicle-tag blue-tag">
                     {missingPrice
@@ -1471,7 +1476,7 @@ export default function CreateShipmentDrawer({
 
 
         <p className="field-info-text">
-          {handlingPricingError || (vehicles.length ? "Choose a vehicle type. Truck assignment is handled separately." : "No vehicle types are available. Check vehicle and pricing settings.")}
+          {handlingPricingError || (vehicles.length ? "Choose a vehicle type for pricing. Standard capacity describes the type; each registered truck has its own capacity. A driver and truck are assigned only when a suitable pair is available. Otherwise, the booking awaits assignment." : "No vehicle types are available. Check vehicle and pricing settings.")}
         </p>
       </div>
     </div>
@@ -1486,9 +1491,8 @@ export default function CreateShipmentDrawer({
         <p>
           Review the shipment information
           and financial estimates before
-          confirming. Actual driver and
-          vehicle assignments are not yet
-          connected.
+          confirming. We will try to assign an available driver and a matching
+          truck that can carry your load. Otherwise, the booking awaits assignment.
         </p>
       </div>
 
@@ -1599,7 +1603,7 @@ export default function CreateShipmentDrawer({
       {/* VEHICLE */}
       <div className="review-section">
         <label className="review-section-title">
-          VEHICLE
+          REQUESTED VEHICLE TYPE
         </label>
 
         <div className="assigned-entity-card">
@@ -1619,7 +1623,7 @@ export default function CreateShipmentDrawer({
           </div>
 
           <span className="auto-assign-tag">
-            Not yet assigned
+            Type selected
           </span>
         </div>
       </div>
@@ -1636,17 +1640,16 @@ export default function CreateShipmentDrawer({
           </div>
 
           <div className="entity-info-box">
-            <h4>Unassigned</h4>
+            <h4>Automatic assignment</h4>
 
             <p>
-              Driver availability and
-              compliance have not been
-              verified.
+              We will check availability when you confirm.
+              If no suitable pair is available, the booking will await assignment.
             </p>
           </div>
 
           <span className="auto-assign-tag">
-            Pending assignment
+            On creation
           </span>
         </div>
       </div>
@@ -2103,7 +2106,7 @@ export default function CreateShipmentDrawer({
                 </button>
 
                 <span className="footer-notice-subtext">
-                  Shipment will be saved to Supabase.
+                  Shipment will be booked and checked for automatic assignment.
                   Driver notification is not enabled yet.
                 </span>
 
@@ -2174,8 +2177,11 @@ export default function CreateShipmentDrawer({
               </h2>
 
               <p className="alert-modal-subtitle">
-                The shipment was saved
-                to Supabase.
+                {createdShipment?.assignmentLookupFailed
+                  ? "Shipment booked. Check the overview for assignment details."
+                  : createdShipment?.assignment
+                    ? "Shipment booked with a driver and truck assigned."
+                    : "Shipment booked. Awaiting an available driver and matching truck."}
               </p>
 
               <div className="alert-meta-summary-box">
@@ -2209,7 +2215,14 @@ export default function CreateShipmentDrawer({
                   </span>
 
                   <strong className="meta-val">
-                    Unassigned
+                    {createdShipment?.assignment?.driver?.full_name || (createdShipment?.assignmentLookupFailed ? "Check overview" : "Awaiting assignment")}
+                  </strong>
+                </div>
+
+                <div className="meta-row">
+                  <span className="meta-lbl">TRUCK</span>
+                  <strong className="meta-val">
+                    {createdShipment?.assignment?.truck?.plate_number || (createdShipment?.assignmentLookupFailed ? "Check overview" : "Awaiting assignment")}
                   </strong>
                 </div>
 

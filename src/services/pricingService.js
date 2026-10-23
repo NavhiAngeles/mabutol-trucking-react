@@ -13,7 +13,7 @@ export async function fetchHandlingSurcharges() {
 
 export async function fetchPricingData() {
   const today = pricingDate();
-  const [vehicleResult, rateResult, settingsResult] =
+  const [vehicleResult, rateResult, settingsResult, truckResult] =
     await Promise.all([
       supabase
         .from("vehicle_types")
@@ -37,13 +37,25 @@ export async function fetchPricingData() {
           "driver_allowance",
           "handling_surcharges",
         ]),
+      supabase.from("trucks").select("vehicle_type_id, capacity_kg"),
     ]);
 
   if (vehicleResult.error) throw vehicleResult.error;
   if (rateResult.error) throw rateResult.error;
   if (settingsResult.error) throw settingsResult.error;
 
-  const vehicles = attachVehiclePricing(vehicleResult.data || [], rateResult.data || [], today);
+  const vehicles = attachVehiclePricing(vehicleResult.data || [], rateResult.data || [], today)
+    .map(vehicle => {
+      const capacities = (truckResult.data || [])
+        .filter(truck => truck.vehicle_type_id === vehicle.id)
+        .map(truck => Number(truck.capacity_kg))
+        .filter(capacity => Number.isFinite(capacity) && capacity > 0);
+      return {
+        ...vehicle,
+        fleetCapacityKnown: !truckResult.error,
+        registeredMaxCapacityKg: capacities.length ? Math.max(...capacities) : null,
+      };
+    });
 
   const settings = Object.fromEntries(
     (settingsResult.data || []).map((setting) => [

@@ -1,7 +1,31 @@
 
 import { supabase } from "./supabaseClient";
-import { fetchOperationalRows, fetchOperationalDeliveries } from './dashboardService';
+import { fetchOperationalRows } from './dashboardService';
 import { pendingDeparture } from './operationalStats';
+
+const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at,driver:drivers(full_name),truck:trucks(plate_number)';
+
+export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
+
+export async function assignShipmentResources(shipmentId) {
+  const { data, error } = await supabase.rpc('assign_shipment_resources', { p_shipment: shipmentId });
+  if (error) throw error;
+  return data;
+}
+
+// A read failure after a successful insert must never invite a duplicate booking.
+export async function createShipment(payload) {
+  const { data, error } = await supabase.from('shipments').insert(payload).select().single();
+  if (error) throw error;
+  try {
+    const result = await supabase.from('deliveries').select(ASSIGNMENT_COLUMNS)
+      .eq('shipment_id', data.id).neq('status', 'cancelled').maybeSingle();
+    if (result.error) return { ...data, assignmentLookupFailed: true };
+    return { ...data, assignment: result.data };
+  } catch {
+    return { ...data, assignmentLookupFailed: true };
+  }
+}
 
 /*
   MABUTOL TRUCKING
@@ -210,9 +234,10 @@ export function mapShipmentRow(row) {
 
     status,
 
-    driver: "Unassigned",
+    assignmentId: row.assignment?.id ?? null,
+    driver: row.assignment?.driver?.full_name ?? "Unassigned",
 
-    fleet: "—",
+    fleet: row.assignment?.truck?.plate_number ?? "—",
 
     customer: customerName,
 
@@ -319,7 +344,7 @@ export async function fetchShipments() {
     );
 
     const [data, deliveries] = await Promise.all([
-      fetchOperationalRows('shipments', '*'), fetchOperationalDeliveries(),
+      fetchOperationalRows('shipments', '*'), fetchShipmentAssignments(),
     ]);
     const error = null;
 
@@ -339,7 +364,9 @@ export async function fetchShipments() {
 
     const mappedShipments = (
       (data ?? []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-    ).map(row => mapShipmentRow({ ...row, pendingDispatch: pendingDeparture(row, deliveries) }));
+    ).map(row => mapShipmentRow({ ...row,
+      assignment: deliveries.find(d => d.shipment_id === row.id && d.status !== 'cancelled'),
+      pendingDispatch: pendingDeparture(row, deliveries) }));
 
     console.log(
       "Mapped shipments:",
