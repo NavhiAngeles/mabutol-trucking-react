@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
-import DashboardTrackingMap from "./DashboardTrackingMap";
+import { DashboardMapSlot } from './DashboardMapProvider';
 import OperationsFeed from "./OperationsFeed";
 import { useDashboardViewModel } from "../../viewmodels/DashboardViewModel";
 import { comparisonLabel } from '../../services/operationalStats';
@@ -229,7 +229,7 @@ export default function Dashboard() {
                 <h3>Live Tracking: Luzon</h3>
               </div>
 
-              <DashboardTrackingMap />
+              <DashboardMapSlot />
             </div>
 
             {/* Performance & Analytics */}
