@@ -653,6 +653,9 @@ export default function CreateShipmentDrawer({
       return "Select a vehicle type.";
     }
     if (!vehicleCanCarry(selectedVehicle, weight)) return "The selected vehicle cannot carry this weight. Select another vehicle.";
+    if (!vehicleFitsShipmentWeight(selectedVehicle, weight)) {
+      return "Select a truck with sufficient capacity and no more than 2,000 kg of excess capacity.";
+    }
     if (baseRate === null) return "A valid driving route and vehicle pricing record are required.";
 
 
@@ -742,9 +745,6 @@ export default function CreateShipmentDrawer({
     setCurrentStep((step) =>
       Math.min(step + 1, 3)
     );
-    if (!vehicleFitsShipmentWeight(selectedVehicle, weight)) {
-      return "Select a truck with sufficient capacity and no more than 2,000 kg of excess capacity.";
-    }
   };
 
   // CREATE SHIPMENT IN SUPABASE
