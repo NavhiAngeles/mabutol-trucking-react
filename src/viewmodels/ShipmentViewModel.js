@@ -70,8 +70,9 @@ export function useShipmentViewModel() {
   const [params, setParams] = useSearchParams();
   const currentTab = Object.hasOwn(TAB_CONFIG, params.get('tab')) ? params.get('tab') : 'active';
   const recordFilter = params.get('record');
-  const setCurrentTab = tab => setParams(previous => { previous.set('tab', tab); previous.delete('record'); return previous; });
-  const [searchQuery, setSearchQuery] = useState("");
+  const statusFilter = params.get('status');
+  const setCurrentTab = tab => setParams(previous => { previous.set('tab', tab); previous.delete('record'); previous.delete('status'); return previous; });
+  const [searchQuery, setSearchQuery] = useState(params.get("q") || "");
   const loadVersion = useRef(0);
   const invalidateLoads = useCallback(() => { loadVersion.current += 1; }, []);
 
@@ -102,15 +103,16 @@ export function useShipmentViewModel() {
   }, [load, invalidateLoads]);
 
   /* ----------------------------- derived data ---------------------------- */
-  const activeConfig = TAB_CONFIG[currentTab];
+  const activeConfig = useMemo(() => statusFilter === 'pending' ? { ...TAB_CONFIG[currentTab], title: 'Pending Booking Requests', description: 'Customer booking requests awaiting review. Select a tab to clear this filter.' } : TAB_CONFIG[currentTab], [statusFilter, currentTab]);
 
   const visibleShipments = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return shipments
       .filter(activeConfig.filter)
       .filter(s => !recordFilter || s.dbId === recordFilter)
+      .filter(s => !statusFilter || s.rawStatus === statusFilter)
       .filter((s) => !q || matchesSearch(s, q));
-  }, [shipments, activeConfig, searchQuery, recordFilter]);
+  }, [shipments, activeConfig, searchQuery, recordFilter, statusFilter]);
 
   const tabs = useMemo(
     () =>

@@ -1,5 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
+import { useLiveData } from "../../hooks/useLiveData";
+import { getLiveTracking, DASHBOARD_TABLES } from "../../services/dashboardDetailService";
 import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -19,23 +21,21 @@ const MAP_STYLES = {
 };
 
 export default function DashboardTrackingMap() {
+  const tracking = useLiveData(getLiveTracking, DASHBOARD_TABLES);
   const containerRef = useRef(null);
   const mapRef = useRef(null);
 
   const [mapStyle, setMapStyle] = useState("streets");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => import.meta.env.VITE_MAPTILER_API_KEY ? "" : "Map configuration is missing.");
 
   const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    if (!apiKey) {
-      setError("MapTiler API key is missing from .env");
-      return;
-    }
+    if (!apiKey) return;
 
-    let map;
+    let map, initializationError;
 
     try {
       map = new maplibregl.Map({
@@ -65,9 +65,10 @@ export default function DashboardTrackingMap() {
       });
     } catch (err) {
       console.error("Dashboard map initialization failed:", err);
-      setError(err.message);
+      initializationError = err.message;
     }
 
+    const errorTimer = initializationError ? setTimeout(() => setError(initializationError), 0) : null;
     const observer = new ResizeObserver(() => {
       mapRef.current?.resize();
     });
@@ -75,11 +76,24 @@ export default function DashboardTrackingMap() {
     observer.observe(containerRef.current);
 
     return () => {
+      if (errorTimer) clearTimeout(errorTimer);
       observer.disconnect();
       mapRef.current = null;
       map?.remove();
     };
   }, [apiKey]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !tracking.data) return;
+    const markers = tracking.data.map(row => {
+      const text = document.createElement('div');
+      text.textContent = row.plate + ' · ' + new Date(row.recorded_at).toLocaleString() + (row.stale ? ' · Last known position (older than 5 minutes)' : ' · Recent GPS');
+      return new maplibregl.Marker({ color: row.stale ? '#64748b' : '#16a34a' })
+        .setLngLat([row.longitude, row.latitude]).setPopup(new maplibregl.Popup().setDOMContent(text)).addTo(map);
+    });
+    return () => markers.forEach(marker => marker.remove());
+  }, [tracking.data]);
 
   function changeStyle(event) {
     const nextStyle = event.target.value;
@@ -142,7 +156,8 @@ export default function DashboardTrackingMap() {
       )}
 
       <div className="dashboard-tracking-note">
-        Map ready — live vehicle locations not yet connected
+        {tracking.loading ? 'Loading vehicle positions…' : tracking.error ? 'Unable to refresh GPS positions.' : tracking.data?.length ? tracking.data.length + ' tracked vehicle(s); select a marker for its timestamp.' : 'No GPS positions for active deliveries.'}
+        {tracking.error && <button onClick={tracking.refresh}>Retry GPS</button>}
       </div>
     </div>
   );

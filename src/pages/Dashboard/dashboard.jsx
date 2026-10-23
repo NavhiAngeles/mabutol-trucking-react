@@ -1,3 +1,7 @@
+import { useState } from "react";
+import OfficeTools from "../../components/OfficeTools";
+import { useLiveData } from "../../hooks/useLiveData";
+import { getDashboardDetails, DASHBOARD_TABLES } from "../../services/dashboardDetailService";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./dashboard.css";
@@ -20,13 +24,6 @@ const Search = (props) => (
   <svg {...iconProps} {...props}>
     <circle cx="11" cy="11" r="7" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
-
-const Bell = (props) => (
-  <svg {...iconProps} {...props}>
-    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
 
@@ -54,33 +51,6 @@ const Clock = (props) => (
   </svg>
 );
 
-const MapPin = (props) => (
-  <svg {...iconProps} {...props}>
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-    <circle cx="12" cy="10" r="3" />
-  </svg>
-);
-
-const Plus = (props) => (
-  <svg {...iconProps} {...props}>
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-const Minus = (props) => (
-  <svg {...iconProps} {...props}>
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-);
-
-const ChevronDown = (props) => (
-  <svg {...iconProps} {...props}>
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
-
 const ClipboardList = (props) => (
   <svg {...iconProps} {...props}>
     <rect x="8" y="2" width="8" height="4" rx="1" />
@@ -90,19 +60,15 @@ const ClipboardList = (props) => (
   </svg>
 );
 
-const shipmentTrends = [
-  { day: "Mon", value: 42 },
-  { day: "Tue", value: 30 },
-  { day: "Wed", value: 54 },
-  { day: "Thu", value: 88 },
-  { day: "Fri", value: 64 },
-  { day: "Sat", value: 82 },
-  { day: "Sun", value: 100 },
-];
-
 export default function Dashboard() {
   const navigate = useNavigate();
-  const maxTrend = Math.max(...shipmentTrends.map((d) => d.value));
+  const [search, setSearch] = useState("");
+  const details = useLiveData(getDashboardDetails, DASHBOARD_TABLES);
+  const shipmentTrends = details.data?.trends || [];
+  const maxTrend = Math.max(1, ...shipmentTrends.map(d => d.value));
+  const resources = details.data?.resources;
+  const compliance = details.data?.compliance;
+  const percent = count => resources?.total ? (count / resources.total * 100) + '%' : '0%';
 
   const {
     stats,
@@ -118,41 +84,16 @@ export default function Dashboard() {
     <MainLayout>
       {/* Topbar */}
       <header className="topbar">
-        <div className="search-wrap">
+        <form className="search-wrap" onSubmit={event => { event.preventDefault(); navigate("/shipment?tab=all&q=" + encodeURIComponent(search.trim())); }}>
           <Search className="search-icon" />
           <input
             type="text"
             id="search"
-            placeholder="Search..."
-            onChange={(e) => console.log("Searching:", e.target.value)}
+            placeholder="Search shipments…" aria-label="Search shipments" value={search}
+            onChange={e => setSearch(e.target.value)}
           />
-        </div>
-
-        <div className="topbar-right">
-          <button
-            id="notifBtn"
-            className="icon-btn"
-            onClick={() => alert("No new notifications")}
-            aria-label="Notifications"
-          >
-            <Bell />
-          </button>
-
-          <div className="topbar-divider" />
-
-          <button
-            className="avatar"
-            onClick={() => navigate("/settings/account")}
-            aria-label="Go to Account Settings"
-            title="Go to Account Settings"
-          >
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60"
-              alt="User Profile"
-              className="avatar-img"
-            />
-          </button>
-        </div>
+        </form>
+        <div className="topbar-right"><OfficeTools /></div>
       </header>
 
       {/* Content */}
@@ -165,6 +106,8 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {details.loading && <p role="status">Loading dashboard details…</p>}
+        {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button onClick={details.refresh}>Retry</button></p>}
         {/* Stats */}
         {loading && <p role="status">Loading operational statistics…</p>}
         {error && <p role="alert">Could not load statistics: {error} <button onClick={refresh}>Retry</button></p>}
@@ -238,11 +181,11 @@ export default function Dashboard() {
               <div className="analytics-grid">
                 <div className="mini-stat">
                   <span>On-Time Delivery Rate</span>
-                  <strong>87.0%</strong>
+                  <strong>{details.data?.onTimeRate == null ? "—" : details.data.onTimeRate + "%"}</strong><small>Completed shipments with both arrival timestamps ({details.data?.timedDeliveries ?? 0})</small>
                 </div>
                 <div className="mini-stat">
                   <span>Completed Today</span>
-                  <strong>18</strong>
+                  <strong>{details.data?.completedToday ?? "—"}</strong>
                 </div>
               </div>
 
@@ -253,8 +196,8 @@ export default function Dashboard() {
 
               <div className="trend-chart">
                 {shipmentTrends.map((d) => (
-                  <div className="trend-col" key={d.day}>
-                    <div className="trend-dot" />
+                  <div className="trend-col" key={d.date} title={d.date + ": " + d.value + " shipments created"}>
+                    <span>{d.value}</span><div className="trend-dot" />
                     <div
                       className="trend-stem"
                       style={{ height: `${(d.value / maxTrend) * 120}px` }}
@@ -279,44 +222,16 @@ export default function Dashboard() {
                 <p>Critical alerts &amp; items requiring attention</p>
               </div>
 
-              <div className="alert-card red">
-                <div className="alert-icon red">
-                  <AlertTriangle />
+              {details.data?.alerts.length === 0 && <p>No operational alerts.</p>}
+              {details.data?.alerts.map(alert => (
+                <div className={"alert-card " + alert.color} key={alert.id}>
+                  <div className={"alert-icon " + alert.color}><ClipboardList /></div>
+                  <div><p className={"alert-title " + alert.color}>{alert.title}</p>
+                    <p className="alert-body">{alert.body}</p>
+                    <button className={"alert-link " + alert.color} onClick={() => navigate(alert.path)}>{alert.action} →</button>
+                  </div>
                 </div>
-                <div>
-                  <p className="alert-title red">Urgent Delay</p>
-                  <p className="alert-body">
-                    SHP-NE-8039 is delayed +4hrs on NLEX
-                  </p>
-                  <button className="alert-link red">VIEW SHIPMENT →</button>
-                </div>
-              </div>
-
-              <div className="alert-card orange">
-                <div className="alert-icon orange">
-                  <ClipboardList />
-                </div>
-                <div>
-                  <p className="alert-title orange">Compliance Alert</p>
-                  <p className="alert-body">
-                    Ricardo Bautista's license expires in 45 days
-                  </p>
-                  <button className="alert-link orange">VIEW COMPLIANCE →</button>
-                </div>
-              </div>
-
-              <div className="alert-card blue">
-                <div className="alert-icon blue">
-                  <ClipboardList />
-                </div>
-                <div>
-                  <p className="alert-title blue">Booking</p>
-                  <p className="alert-body">
-                    5 customer bookings pending your review
-                  </p>
-                  <button className="alert-link blue">REVIEW NOW →</button>
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Resource Snapshot */}
@@ -327,42 +242,43 @@ export default function Dashboard() {
               <div className="resource-row">
                 <div className="resource-row-top">
                   <span>Available</span>
-                  <strong>8</strong>
+                  <strong>{resources?.available ?? "—"}</strong>
                 </div>
                 <div className="bar-track">
-                  <div className="bar-fill green" style={{ width: "22%" }} />
+                  <div className="bar-fill green" style={{ width: percent(resources?.available) }} />
                 </div>
               </div>
 
               <div className="resource-row">
                 <div className="resource-row-top">
                   <span>In Use</span>
-                  <strong>24</strong>
+                  <strong>{resources?.inUse ?? "—"}</strong>
                 </div>
                 <div className="bar-track">
-                  <div className="bar-fill navy" style={{ width: "67%" }} />
+                  <div className="bar-fill navy" style={{ width: percent(resources?.inUse) }} />
                 </div>
               </div>
 
               <div className="resource-row">
                 <div className="resource-row-top">
                   <span>Maintenance</span>
-                  <strong>4</strong>
+                  <strong>{resources?.maintenance ?? "—"}</strong>
                 </div>
                 <div className="bar-track">
-                  <div className="bar-fill orange" style={{ width: "11%" }} />
+                  <div className="bar-fill orange" style={{ width: percent(resources?.maintenance) }} />
                 </div>
               </div>
 
+              <p>Other / inactive: {resources?.other ?? "—"} · Total fleet: {resources?.total ?? "—"}</p>
               <div className="snapshot-secondary">
                 <div>
-                  <p className="snapshot-secondary-title">Driver Hours</p>
+                  <p className="snapshot-secondary-title">Completed Trip Duration</p>
                   <div className="driver-hours-box">
                     <div className="driver-hours-icon">
                       <Clock />
                     </div>
-                    <strong>8.4h</strong>
-                    <span>Average shift</span>
+                    <strong>{details.data?.averageTripHours == null ? "—" : details.data.averageTripHours.toFixed(1) + "h"}</strong>
+                    <span>Average departure to arrival</span>
                   </div>
                 </div>
 
@@ -371,18 +287,18 @@ export default function Dashboard() {
                   <div className="compliance-list">
                     <div className="compliance-row orange">
                       <span>Expiring</span>
-                      <span className="compliance-badge orange">8</span>
+                      <span className="compliance-badge orange">{compliance?.expiring ?? "—"}</span>
                     </div>
                     <div className="compliance-row red">
                       <span>Expired</span>
-                      <span className="compliance-badge red">6</span>
+                      <span className="compliance-badge red">{compliance?.expired ?? "—"}</span>
                     </div>
                     <div className="compliance-row amber">
                       <span>Review</span>
-                      <span className="compliance-badge amber">9</span>
+                      <span className="compliance-badge amber">{compliance?.review ?? "—"}</span>
                     </div>
                   </div>
-                  <button className="view-all-link">View All →</button>
+                  <button className="view-all-link" onClick={() => navigate("/fleet?view=compliance")}>View All →</button>
                 </div>
               </div>
             </div>

@@ -1099,3 +1099,25 @@ MODAL STRUCTURAL CONFIGURATIONS
 
   color: #94a3b8;
 }
+/* Dashboard/Fleet integration: retain existing card and button design. */
+.fleet-dialog { border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; width: min(760px, calc(100vw - 32px)); max-height: 90vh; overflow: auto; color: #334155; }
+.fleet-dialog::backdrop { background: #0f172a80; }
+.fleet-dialog fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fleet-dialog .form-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
+.fleet-dialog input,.fleet-dialog select { max-width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+.fleet-dialog label { display: block; margin: 8px 0; }
+.fleet-dialog .fleet-check { display: inline-flex; align-items: center; gap: 8px; margin-right: 16px; }
+.fleet-documents { padding-left: 20px; }
+.fleet-documents li { padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+.fleet-documents button { margin-left: 8px; }
+.fleet-calendar { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; overflow: auto; }
+.fleet-calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(100px,1fr)); min-width: 700px; }
+.fleet-calendar-day { min-height: 95px; padding: 8px; border: 1px solid #e2e8f0; }
+.fleet-calendar-day button { display: block; text-align: left; font-size: 12px; margin-top: 5px; overflow-wrap: anywhere; width: 100%; }
+
+.premium-table td > .btn-link { margin-right: 10px; }
+.fleet-calendar-day button { padding: 5px 7px; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px; cursor: pointer; }
+
+.fleet-dialog { margin: auto; box-sizing: border-box; }
+.fleet-table-scroll { width: 100%; overflow-x: auto; }
+.fleet-table-scroll .premium-table { min-width: 760px; }

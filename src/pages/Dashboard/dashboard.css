@@ -959,3 +959,6 @@
     padding: 5px;
   }
 }
+
+.analytics .mini-stat strong, .analytics .mini-stat small { display: block; }
+.analytics .mini-stat small { margin-top: 6px; font-size: 12px; color: #64748b; line-height: 1.4; }

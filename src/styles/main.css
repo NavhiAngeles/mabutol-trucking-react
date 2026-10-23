@@ -18,3 +18,8 @@ body::before {
   inset: 0;
 }
 
+
+.office-tools { display: flex; gap: 12px; align-items: center; position: relative; }
+.office-notifications { position: absolute; right: 0; top: 100%; width: min(380px,85vw); max-height: 65vh; overflow: auto; z-index: 100; padding: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 24px #0f172a22; }
+.office-notifications article { padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+.office-notifications article button { display: block; margin-top: 8px; }

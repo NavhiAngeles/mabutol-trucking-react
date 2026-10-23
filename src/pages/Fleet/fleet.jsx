@@ -1,13 +1,16 @@
 // fleet.jsx
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { getDispatchReadyTruckIds, subscribeToDashboardChanges } from '../../services/dashboardService';
 import MainLayout from "../../layouts/mainLayout";
 import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
+import OfficeTools from "../../components/OfficeTools";
+import { FleetEditor, ComplianceDialog } from "./FleetDialogs";
+import MaintenancePanel from "./MaintenancePanel";
+import { validateComplianceFile } from "../../services/fleetWorkspaceService";
 
 export default function Fleet() {
-  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const readyOnly = params.get('availability') === 'dispatch-ready';
   const [readyIds, setReadyIds] = useState(null);
@@ -30,6 +33,9 @@ export default function Fleet() {
     return () => { disposed = true; clearTimeout(initial); clearInterval(poll); unsubscribe(); };
   }, [readyOnly]);
 
+  const fleet = useFleetViewModel();
+  const [editing, setEditing] = useState(null);
+  const [complianceTarget, setComplianceTarget] = useState(null);
   // ViewModel State & Actions
   const {
     // KPI cards
@@ -39,25 +45,18 @@ export default function Fleet() {
     // Vehicles table
     trucks,
     trucksLoading,
-    trucksError,
 
     // Drivers table
     drivers,
     driversLoading,
-    driversError,
 
     // Maintenance table
-    maintenanceRecords,
-    maintenanceLoading,
-    maintenanceError,
 
     // Compliance
     truckComplianceRows,
     truckComplianceLoading,
-    truckComplianceError,
     driverComplianceRows,
     driverComplianceLoading,
-    driverComplianceError,
 
     // Modal lookups
     vehicleTypes,
@@ -69,13 +68,12 @@ export default function Fleet() {
     submitNewTruck,
     isSubmittingDriver,
     isSubmittingTruck,
-    submitError,
-  } = useFleetViewModel();
+  } = fleet;
 
   // Tab and Subview States
-  const [vehicleTab, setVehicleTab] = useState("details");
-  const [driverTab, setDriverTab] = useState("details");
-  const [maintenanceView, setMaintenanceView] = useState("list");
+  const [vehicleTab, setVehicleTab] = useState(() => params.get("view") === "compliance" ? "compliance" : "details");
+  const [driverTab, setDriverTab] = useState(() => params.get("view") === "compliance" ? "compliance" : "details");
+
 
   // Search Filter States
   const [vehicleSearch, setVehicleSearch] = useState("");
@@ -85,12 +83,12 @@ export default function Fleet() {
   // Multi-step Modal States
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
   const [driverStep, setDriverStep] = useState(1); // 1: Info, 2: Documents, 3: Success
-  const [registeredDriverId, setRegisteredDriverId] = useState("DRV-1043");
+  const [registeredDriverId, setRegisteredDriverId] = useState("");
 
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Success
   const [showVehicleSuccess, setShowVehicleSuccess] = useState(false);
-  const [registeredTruckId, setRegisteredTruckId] = useState("TRK-1043");
+  const [registeredTruckId, setRegisteredTruckId] = useState("");
 
   // Form Field States
   const [driverForm, setDriverForm] = useState({
@@ -120,6 +118,8 @@ export default function Fleet() {
     assignedDriver: "",
     orNumber: "",
     crNumber: "",
+    orFile: null,
+    crFile: null,
   });
 
   // Helpers
@@ -133,6 +133,10 @@ export default function Fleet() {
       return dateStr;
     }
   };
+
+  useEffect(() => {
+    if (params.get('view') === 'maintenance') document.getElementById('fleet-maintenance')?.scrollIntoView({ behavior: 'smooth' });
+  }, [params]);
 
   const getDocBadgeClass = (state) => {
     if (state === "valid") return "doc-pill doc-success";
@@ -182,6 +186,8 @@ export default function Fleet() {
       assignedDriver: "",
       orNumber: "",
       crNumber: "",
+      orFile: null,
+      crFile: null,
     });
     setVehicleStep(1);
     setShowVehicleSuccess(false);
@@ -204,6 +210,12 @@ export default function Fleet() {
     setVehicleForm({ ...vehicleForm, [field]: e.target.value });
   };
 
+  const handleFile = (event, key) => {
+    const file = event.target.files[0] || null;
+    try { validateComplianceFile(file); setVehicleForm(previous => ({ ...previous, [key]: file })); }
+    catch (error) { event.target.value = ''; alert(error.message); }
+  };
+
   // Submission Handlers
   const handleDriverSubmit = async () => {
     if (!driverForm.fullName || !driverForm.contactNumber) {
@@ -216,7 +228,7 @@ export default function Fleet() {
     }
     try {
       const created = await submitNewDriver(driverForm);
-      setRegisteredDriverId(created?.id ? `DRV-${created.id.slice(0, 8).toUpperCase()}` : "DRV-1043");
+      setRegisteredDriverId(created?.id ? `DRV-${created.id.slice(0, 8).toUpperCase()}` : "");
       setDriverStep(3);
     } catch (err) {
       console.error("Failed to register driver:", err);
@@ -225,13 +237,13 @@ export default function Fleet() {
   };
 
   const handleVehicleSubmit = async () => {
-    if (!vehicleForm.plateNumber || !vehicleForm.model) {
-      alert("Please provide at least a plate number and model.");
+    if (!vehicleForm.plateNumber.trim() || !vehicleForm.model.trim() || !vehicleForm.type || !(Number(vehicleForm.capacity) > 0)) {
+      alert("Please provide a plate number, model, vehicle type and positive capacity.");
       return;
     }
     try {
       const created = await submitNewTruck(vehicleForm);
-      setRegisteredTruckId(created?.id ? `TRK-${created.id.slice(0, 8).toUpperCase()}` : "TRK-1043");
+      setRegisteredTruckId(created?.id ? `TRK-${created.id.slice(0, 8).toUpperCase()}` : "");
       setShowVehicleSuccess(true);
     } catch (err) {
       console.error("Failed to register vehicle:", err);
@@ -283,37 +295,18 @@ export default function Fleet() {
           </svg>
           <input
             type="text"
-            placeholder="Search..."
-            id="fleetSearch"
+            placeholder="Search vehicles…"
+            id="fleetSearch" aria-label="Search vehicles" value={vehicleSearch}
             onChange={(e) => setVehicleSearch(e.target.value)}
           />
         </div>
-        <div className="topbar-right">
-          <button className="icon-btn" aria-label="Notifications">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-          </button>
-          <button className="icon-btn" aria-label="Settings">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-          <div
-            className="avatar"
-            onClick={() => navigate("/settings/account")}
-            style={{ cursor: "pointer" }}
-            title="Go to Account Settings"
-          >
-            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile View" />
-          </div>
-        </div>
+        <div className="topbar-right"><OfficeTools /></div>
       </header>
 
       {/* Primary Scrolling Content Frame */}
       <section className="content scrollable-panel">
+        {fleet.error && <p role="alert">Could not refresh fleet records. {fleet.hasData ? 'Showing last loaded data.' : 'Data is unavailable.'} <button onClick={fleet.refresh}>Retry</button></p>}
+        <button className="btn-secondary" onClick={fleet.refresh}>Refresh fleet</button>
         {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => setParams({})}>Show all vehicles</button></p>}
 
         {/* HEADER ACTIONS BLOCK */}
@@ -341,7 +334,7 @@ export default function Fleet() {
               <h4>TOTAL VEHICLES</h4>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.total}</h2>
+            <h2>{kpisLoading ? "—" : kpis.total ?? "—"}</h2>
             <p className="growth-indicator positive"><span className="arrow">↗</span> <strong>Total Fleet</strong></p>
           </div>
           <div className="metric-card border-green">
@@ -349,7 +342,7 @@ export default function Fleet() {
               <h4>AVAILABLE</h4>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.available}</h2>
+            <h2>{kpisLoading ? "—" : kpis.available ?? "—"}</h2>
             <p className="growth-indicator target">
               {kpis.total > 0 ? `${Math.round((kpis.available / kpis.total) * 100)}% of total fleet` : "0% of total fleet"}
             </p>
@@ -359,16 +352,16 @@ export default function Fleet() {
               <h4>IN MAINTENANCE</h4>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.maintenance}</h2>
+            <h2>{kpisLoading ? "—" : kpis.maintenance ?? "—"}</h2>
             <p className="growth-indicator ">Currently under maintenance</p>
           </div>
           <div className="metric-card border-blue-accent">
             <div className="metric-header">
-              <h4>IN TRANSIT</h4>
+              <h4>IN USE / RESERVED</h4>
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.onTrip}</h2>
-            <p className="growth-indicator transit">Currently on shipment</p>
+            <h2>{kpisLoading ? "—" : kpis.onTrip ?? "—"}</h2>
+            <p className="growth-indicator transit">Assigned or on shipment</p>
           </div>
         </div>
 
@@ -413,7 +406,7 @@ export default function Fleet() {
                 />
               </div>
             </div>
-            <table className="premium-table">
+            <div className="fleet-table-scroll"><table className="premium-table">
               <thead>
                 <tr>
                   <th>VEHICLE</th>
@@ -434,7 +427,7 @@ export default function Fleet() {
                 ) : filteredTrucks.length === 0 ? (
                   <tr>
                     <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      {vehicleSearch ? "No vehicles matching search filter." : "No vehicles registered in fleet yet."}
+                      {fleet.error ? "Vehicle data unavailable; retry above." : vehicleSearch ? "No vehicles matching search filter." : "No vehicles registered in fleet yet."}
                     </td>
                   </tr>
                 ) : (
@@ -463,24 +456,24 @@ export default function Fleet() {
                       </td>
                       <td>{truck.drivers?.full_name ?? <span style={{ color: "#94A3B8" }}>Unassigned</span>}</td>
                       <td>
-                        {truck.status === "on_trip" ? (
+                        {(truck.displayStatus || truck.status) === "on_trip" ? (
                           <span className="status-pill status-transit">● IN TRANSIT</span>
-                        ) : truck.status === "maintenance" ? (
+                        ) : (truck.displayStatus || truck.status) === "maintenance" ? (
                           <span className="status-pill status-danger">● IN MAINTENANCE</span>
-                        ) : truck.status === "available" ? (
+                        ) : (truck.displayStatus || truck.status) === "available" ? (
                           <span className="status-pill status-active">● AVAILABLE</span>
                         ) : (
                           <span className="status-pill status-warning">● {(truck.status || "OFFLINE").toUpperCase()}</span>
                         )}
                       </td>
                       <td>
-                        <button className="action-dot-btn">⋮</button>
+                        <button className="btn-link" onClick={() => setEditing({ kind: "truck", record: truck })}>Edit vehicle</button><button className="btn-link" onClick={() => setComplianceTarget({ kind: "truck", entity: truck })}>Documents</button>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
-            </table>
+            </table></div>
           </>
         ) : (
           <>
@@ -495,7 +488,7 @@ export default function Fleet() {
                 />
               </div>
             </div>
-            <table className="premium-table">
+            <div className="fleet-table-scroll"><table className="premium-table">
               <thead>
                 <tr>
                   <th>VEHICLE</th>
@@ -516,7 +509,7 @@ export default function Fleet() {
                 ) : filteredTruckCompliance.length === 0 ? (
                   <tr>
                     <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      No vehicle compliance records found.
+                      {fleet.error ? "Compliance data unavailable; retry above." : "No vehicle compliance records found."}
                     </td>
                   </tr>
                 ) : (
@@ -555,14 +548,14 @@ export default function Fleet() {
                           )}
                         </td>
                         <td>
-                          <button className="action-dot-btn">⋮</button>
+                          <button className="btn-link" onClick={() => setComplianceTarget({ kind: "truck", entity: row.truck })}>Manage documents</button>
                         </td>
                       </tr>
                     );
                   })
                 )}
               </tbody>
-            </table>
+            </table></div>
           </>
         )}
 
@@ -593,8 +586,9 @@ export default function Fleet() {
           </div>
         </div>
 
+        <div className="table-filter-bar"><input className="inner-search" placeholder="Search drivers by name, phone or license…" aria-label="Search drivers" value={driverSearch} onChange={event => setDriverSearch(event.target.value)} /></div>
         {driverTab === "details" ? (
-          <table className="premium-table">
+          <div className="fleet-table-scroll"><table className="premium-table">
             <thead>
               <tr>
                 <th>DRIVER DETAILS</th>
@@ -615,7 +609,7 @@ export default function Fleet() {
               ) : filteredDrivers.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    {driverSearch ? "No drivers matching search filter." : "No drivers registered yet."}
+                    {fleet.error ? "Driver data unavailable; retry above." : driverSearch ? "No drivers matching search filter." : "No drivers registered yet."}
                   </td>
                 </tr>
               ) : (
@@ -628,7 +622,7 @@ export default function Fleet() {
                       <td>
                         <strong>{driver.full_name}</strong>
                         <br />
-                        <span className="subtext">{driver.contact_number || "No contact"}</span>
+                        <span className="subtext">{driver.contact_number || "No contact"}</span><button className="btn-link" onClick={() => setEditing({ kind: "driver", record: driver })}>Edit driver</button><button className="btn-link" onClick={() => setComplianceTarget({ kind: "driver", entity: driver })}>Documents</button>
                       </td>
                       <td>
                         {driver.license_number || "—"}
@@ -646,14 +640,14 @@ export default function Fleet() {
                           <span style={{ color: "#94A3B8" }}>Unassigned</span>
                         )}
                       </td>
-                      <td>Depot Center</td>
+                      <td>{driver.location ? <><span>{driver.location.latitude.toFixed(4)}, {driver.location.longitude.toFixed(4)}</span><span className="subtext">{driver.location.stale ? "Last known GPS · " : "GPS · "}{new Date(driver.location.recorded_at).toLocaleString()}</span></> : "No GPS report"}</td>
                       <td>
                         {driver.status === "on_route" || driver.status === "on_trip" ? (
                           <span className="status-pill status-transit">ON ROUTE</span>
                         ) : driver.status === "inactive" ? (
                           <span className="status-pill status-danger">INACTIVE</span>
                         ) : (
-                          <span className="status-pill status-active">{driver.status ? driver.status.toUpperCase() : "AVAILABLE"}</span>
+                          <span className="status-pill status-active">{driver.reserved ? "RESERVED" : driver.status ? driver.status.toUpperCase() : "UNKNOWN"}</span>
                         )}
                       </td>
                       <td>
@@ -668,9 +662,9 @@ export default function Fleet() {
                 })
               )}
             </tbody>
-          </table>
+          </table></div>
         ) : (
-          <table className="premium-table">
+          <div className="fleet-table-scroll"><table className="premium-table">
             <thead>
               <tr>
                 <th>DRIVER DETAILS</th>
@@ -690,11 +684,11 @@ export default function Fleet() {
               ) : driverComplianceRows.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    No driver compliance records found.
+                    {fleet.error ? "Compliance data unavailable; retry above." : "No driver compliance records found."}
                   </td>
                 </tr>
               ) : (
-                driverComplianceRows.map((row) => {
+                driverComplianceRows.filter(row => !driverSearch.trim() || row.driver.full_name.toLowerCase().includes(driverSearch.trim().toLowerCase())).map((row) => {
                   const licenseDoc = row.docs.find((d) => d.docType === "drivers_license");
                   const medicalDoc = row.docs.find((d) => d.docType === "medical_certificate");
                   const nbiDoc = row.docs.find((d) => d.docType === "nbi_clearance");
@@ -702,7 +696,7 @@ export default function Fleet() {
                   return (
                     <tr key={row.driver.id}>
                       <td>
-                        <strong>{row.driver.full_name}</strong>
+                        <strong>{row.driver.full_name}<button className="btn-link" onClick={() => setComplianceTarget({ kind: "driver", entity: row.driver })}>Manage documents</button></strong>
                       </td>
                       <td>
                         <span className={getDocBadgeClass(licenseDoc?.badge?.state)}>
@@ -731,161 +725,14 @@ export default function Fleet() {
                 })
               )}
             </tbody>
-          </table>
+          </table></div>
         )}
 
-        {/* ================= SECTION 3: MAINTENANCE SCHEDULE ================= */}
-        <div className="section-tab-container" style={{ marginTop: "40px" }}>
-          <div className="section-titles">
-            <h3>Maintenance Schedule</h3>
-            <p className="section-subtitle">MONITOR PREVENTIVE SERVICE RUNS AND CRITICAL MECHANICAL REPAIRS.</p>
-          </div>
-          <div className="tab-pill-box">
-            <button
-              className={`tab-pill ${maintenanceView === "list" ? "active" : ""}`}
-              onClick={() => setMaintenanceView("list")}
-              type="button"
-            >
-              List View
-            </button>
-            <button
-              className={`tab-pill ${maintenanceView === "calendar" ? "active" : ""}`}
-              onClick={() => setMaintenanceView("calendar")}
-              type="button"
-            >
-              Calendar View
-            </button>
-          </div>
-        </div>
-
-        {maintenanceView === "list" ? (
-          <table className="premium-table">
-            <thead>
-              <tr>
-                <th>VEHICLE</th>
-                <th>LAST SCHEDULED SERVICE</th>
-                <th>NEXT SCHEDULED SERVICE</th>
-                <th>ASSIGNED WORKSHOP</th>
-                <th>STATUS</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {maintenanceLoading ? (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    Loading maintenance records...
-                  </td>
-                </tr>
-              ) : maintenanceRecords.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    No maintenance records found.
-                  </td>
-                </tr>
-              ) : (
-                maintenanceRecords.map((record) => (
-                  <tr key={record.id}>
-                    <td>
-                      <strong>{record.trucks?.plate_number || "—"}</strong>
-                      <br />
-                      <span className="subtext">{record.trucks?.model || record.kind || "Maintenance"}</span>
-                    </td>
-                    <td>{formatDate(record.scheduled_date)}</td>
-                    <td>{formatDate(record.next_due_date)}</td>
-                    <td>{record.vendor || record.description || "Manila North Logistics Hub Center"}</td>
-                    <td>
-                      {record.status === "completed" || record.status === "scheduled" ? (
-                        <span className="status-pill status-active">● ON SCHEDULE</span>
-                      ) : record.status === "due_soon" ? (
-                        <span className="status-pill status-warning">● DUE SOON</span>
-                      ) : record.status === "in_progress" || record.status === "maintenance" ? (
-                        <span className="status-pill status-danger">● ON MAINTENANCE</span>
-                      ) : (
-                        <span className="status-pill status-active">● {(record.status || "ON SCHEDULE").toUpperCase()}</span>
-                      )}
-                    </td>
-                    <td>
-                      <button className="action-dot-btn">⋮</button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        ) : (
-          <div className="calendar-mock-container">
-            <div className="calendar-header-mock">
-              <h4>June 2026</h4>
-              <div className="calendar-nav-mock">
-                <button type="button">&lt;</button>
-                <button type="button">Today</button>
-                <button type="button">&gt;</button>
-              </div>
-            </div>
-            <div className="calendar-grid-mock">
-              <div className="calendar-day-header">Sun</div>
-              <div className="calendar-day-header">Mon</div>
-              <div className="calendar-day-header">Tue</div>
-              <div className="calendar-day-header">Wed</div>
-              <div className="calendar-day-header">Thu</div>
-              <div className="calendar-day-header">Fri</div>
-              <div className="calendar-day-header">Sat</div>
-
-              {/* Row 1 Mock Days */}
-              <div className="calendar-day text-muted">31</div>
-              <div className="calendar-day">1</div>
-              <div className="calendar-day">2</div>
-              <div className="calendar-day">3</div>
-              <div className="calendar-day">4</div>
-              <div className="calendar-day">5</div>
-              <div className="calendar-day">6</div>
-
-              {/* Row 2 Mock Days */}
-              <div className="calendar-day">7</div>
-              <div className="calendar-day">8</div>
-              <div className="calendar-day">9</div>
-              <div className="calendar-day">10</div>
-              <div className="calendar-day">11</div>
-              <div className="calendar-day event-routine">
-                12<div className="day-event-tag">ON SCHEDULE</div>
-              </div>
-              <div className="calendar-day">13</div>
-
-              {/* Row 3 Mock Days */}
-              <div className="calendar-day">14</div>
-              <div className="calendar-day">15</div>
-              <div className="calendar-day">16</div>
-              <div className="calendar-day">17</div>
-              <div className="calendar-day">18</div>
-              <div className="calendar-day">19</div>
-              <div className="calendar-day">20</div>
-
-              {/* Row 4 Mock Days */}
-              <div className="calendar-day">21</div>
-              <div className="calendar-day">22</div>
-              <div className="calendar-day">23</div>
-              <div className="calendar-day">24</div>
-              <div className="calendar-day event-urgent">
-                25<div className="day-event-tag">DUE SOON</div>
-              </div>
-              <div className="calendar-day">26</div>
-              <div className="calendar-day">27</div>
-
-              {/* Row 5 Mock Days */}
-              <div className="calendar-day">28</div>
-              <div className="calendar-day">29</div>
-              <div className="calendar-day event-danger">
-                30<div className="day-event-tag">ON MAINTENANCE</div>
-              </div>
-              <div className="calendar-day">31</div>
-              <div className="calendar-day text-muted">1</div>
-              <div className="calendar-day text-muted">2</div>
-              <div className="calendar-day text-muted">3</div>
-            </div>
-          </div>
-        )}
+        <MaintenancePanel fleet={fleet} />
       </section>
+
+      {editing && <FleetEditor key={editing.record.id} {...editing} fleet={fleet} onClose={() => setEditing(null)} onSaved={fleet.refresh} />}
+      {complianceTarget && <ComplianceDialog key={complianceTarget.entity.id} {...complianceTarget} onClose={() => setComplianceTarget(null)} onSaved={fleet.refresh} />}
 
       {/* ================= REGISTER DRIVER MULTI-STEP MODAL ================= */}
       {isDriverModalOpen && (
@@ -900,7 +747,7 @@ export default function Fleet() {
                   {driverStep === 3 && "Registration Executed"}
                 </p>
               </div>
-              <button className="close-modal-btn" onClick={() => setIsDriverModalOpen(false)}>×</button>
+              <button className="close-modal-btn" disabled={isSubmittingDriver} onClick={() => setIsDriverModalOpen(false)}>×</button>
             </div>
 
             {/* Steps Progress Metrics Indicator */}
@@ -935,7 +782,7 @@ export default function Fleet() {
                     <input type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
                   </div>
                   <div className="form-group">
-                    <label>DATE HIRED *</label>
+                    <label>DATE HIRED</label>
                     <input type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
                   </div>
                   <div className="form-group">
@@ -978,7 +825,7 @@ export default function Fleet() {
                       <label>CONFIRM PASSWORD</label>
                       <input type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
                     </div>
-                    <p className="notice-text">ℹ System configuration enforces forced password update sequences on initial platform access.</p>
+                    <p className="notice-text">Email and password create a mobile login. Leave both empty to add a roster-only driver.</p>
                   </div>
                 </div>
               )}
@@ -1069,8 +916,8 @@ export default function Fleet() {
                   <h2>Driver Registered Successfully</h2>
                   <span className="system-id-badge">SYSTEM GEN ID: {registeredDriverId}</span>
                   <div className="status-box">
-                    <p>Status: <span className="text-success">ACTIVE & READY FOR DISPATCH</span></p>
-                    <p className="subtext">Account credentials and compliance tracking configurations have been successfully integrated into active scheduling trees.</p>
+                    <p>Status: <span className="text-success">REGISTERED — COMPLIANCE REVIEW PENDING</span></p>
+                    <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
                   </div>
                 </div>
               )}
@@ -1176,7 +1023,7 @@ export default function Fleet() {
                   {vehicleStep === 3 && "Registry Entry Added"}
                 </p>
               </div>
-              <button className="close-modal-btn" onClick={() => setIsVehicleModalOpen(false)}>×</button>
+              <button className="close-modal-btn" disabled={isSubmittingTruck} onClick={() => setIsVehicleModalOpen(false)}>×</button>
             </div>
 
             <div className="modal-steps-indicator">
@@ -1199,7 +1046,7 @@ export default function Fleet() {
                     <input type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
                   </div>
                   <div className="form-group">
-                    <label>MODEL YEAR *</label>
+                    <label>MODEL YEAR</label>
                     <input type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
                   </div>
                   <div className="form-group">
@@ -1210,18 +1057,7 @@ export default function Fleet() {
                     <label>VEHICLE TYPE *</label>
                     <select value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
                       <option value="">Select type...</option>
-                      {vehicleTypes.length > 0 ? (
-                        vehicleTypes.map((vt) => (
-                          <option key={vt.id} value={vt.id}>
-                            {vt.name}
-                          </option>
-                        ))
-                      ) : (
-                        <>
-                          <option value="heavy">Heavy Freight Truck (10w)</option>
-                          <option value="medium">Medium Closed Van (6w)</option>
-                        </>
-                      )}
+                      {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -1233,17 +1069,8 @@ export default function Fleet() {
                   <div className="form-group full-width">
                     <label className="cargo-title-label">CARGO COMPATIBILITY</label>
                     <div className="cargo-options-grid">
-                      {(cargoCategories && cargoCategories.length > 0
-                        ? cargoCategories.map((c) => ({ id: c.id, label: c.name }))
-                        : [
-                          { id: "general", label: "General" },
-                          { id: "bulk", label: "Bulk" },
-                          { id: "cold_chain", label: "Cold Chain" },
-                          { id: "fragile", label: "Fragile" },
-                          { id: "hazardous", label: "Hazardous" },
-                          { id: "flatbed", label: "Flatbed" },
-                        ]
-                      ).map((option) => {
+                      {cargoCategories.length === 0 && <p>No cargo categories configured.</p>}
+                      {cargoCategories.map(c => ({ id: c.id, label: c.name })).map((option) => {
                         const isSelected = vehicleForm.cargoCompatibility?.includes(option.id);
                         return (
                           <button
@@ -1317,11 +1144,11 @@ export default function Fleet() {
                       </div>
                       <div className="upload-text-content">
                         <p className="upload-main-text">
-                          <span>Click to upload</span> or drag and drop
+                          <span>Choose a file</span>
                         </p>
-                        <p className="upload-sub-text">Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)</p>
+                        <p className="upload-sub-text">{vehicleForm.orFile ? vehicleForm.orFile.name + " — ready to upload" : "Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
                       </div>
-                      <input type="file" className="hidden-file-input" onChange={(e) => console.log('OR uploaded', e.target.files[0])} />
+                      <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Official receipt file" onChange={e => handleFile(e, "orFile")} />
                     </div>
 
                     {/* Upload Box 2: CR File */}
@@ -1335,11 +1162,11 @@ export default function Fleet() {
                       </div>
                       <div className="upload-text-content">
                         <p className="upload-main-text">
-                          <span>Click to upload</span> or drag and drop
+                          <span>Choose a file</span>
                         </p>
-                        <p className="upload-sub-text">Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)</p>
+                        <p className="upload-sub-text">{vehicleForm.crFile ? vehicleForm.crFile.name + " — ready to upload" : "Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
                       </div>
-                      <input type="file" className="hidden-file-input" onChange={(e) => console.log('CR uploaded', e.target.files[0])} />
+                      <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Registration file" onChange={e => handleFile(e, "crFile")} />
                     </div>
                   </div>
                 </div>
@@ -1371,7 +1198,7 @@ export default function Fleet() {
                 <>
                   <button
                     className="btn-link"
-                    onClick={() => setVehicleStep(1)}
+                    disabled={isSubmittingTruck} onClick={() => setVehicleStep(1)}
                   >
                     ← BACK
                   </button>
@@ -1382,7 +1209,7 @@ export default function Fleet() {
                       onClick={handleVehicleSubmit}
                       disabled={isSubmittingTruck}
                     >
-                      Upload Later
+                      Save registration
                     </button>
 
                     <button
@@ -1418,14 +1245,11 @@ export default function Fleet() {
                   <div className="success-status-box">
                     <p>
                       Status:
-                      <strong> READY FOR DISPATCH</strong>
+                      <strong> REGISTERED</strong>
                     </p>
 
                     <p>
-                      The credentials and compliance
-                      documentation for the new vehicle
-                      have been verified and integrated
-                      into the Vehicle Directory.
+                      The vehicle has been saved. Any supplied documents are pending review in the Compliance tab.
                     </p>
                   </div>
 

@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let createdUserId = null;
+  let cleanupClient = null;
   try {
     // ---- 1. Verify the caller is an authenticated admin/staff ----
     const authHeader = req.headers.get("Authorization");
@@ -37,6 +39,7 @@ Deno.serve(async (req) => {
 
     // Initialize admin client with service_role key to bypass RLS for administrative checks & actions
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    cleanupClient = adminClient;
 
     // Check caller's role in public.users using adminClient
     const { data: callerProfile, error: profileErr } = await adminClient
@@ -62,7 +65,7 @@ Deno.serve(async (req) => {
     }
 
     // ---- 2. Parse request body ----
-    const { email, password, fullName } = await req.json();
+    const { email, password, fullName, registration } = await req.json();
     if (!email || !password) {
       throw new Error("Email and password are required");
     }
@@ -80,6 +83,7 @@ Deno.serve(async (req) => {
       });
 
     if (createErr) throw createErr;
+    createdUserId = newUser.user.id;
 
     // ---- 4. Ensure public.users row has role='driver' and full_name ----
     // Upsert handles both cases: if a DB trigger already created the row or not.
@@ -95,15 +99,33 @@ Deno.serve(async (req) => {
 
     if (upsertErr) throw upsertErr;
 
-    // ---- 5. Return the new user's UUID ----
+    // Register the roster, optional vehicle and documents in one database transaction.
+    // Use the caller JWT so fleet_save enforces the active office role and RLS.
+    let driverId = null;
+    if (registration) {
+      const { data, error } = await callerClient.rpc("fleet_save", {
+        p_kind: "driver", p_id: null,
+        p_data: { ...registration.payload, user_id: newUser.user.id },
+        p_categories: null, p_documents: registration.documents || [], p_expected: null,
+      });
+      if (error || !data) throw error || new Error("Driver registration was not confirmed.");
+      driverId = data;
+    }
+
+    // ---- 5. Return confirmed IDs ----
     return new Response(
-      JSON.stringify({ userId: newUser.user.id }),
+      JSON.stringify({ userId: newUser.user.id, ...(driverId ? { driverId } : {}) }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       },
     );
   } catch (err) {
+    // Registration failure must not leave a working, unlinked login account.
+    if (createdUserId && cleanupClient) {
+      const { error: cleanupError } = await cleanupClient.auth.admin.deleteUser(createdUserId);
+      if (cleanupError) return new Response(JSON.stringify({ error: "Registration failed and account cleanup needs administrator attention. Do not retry yet." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
+    }
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
       {

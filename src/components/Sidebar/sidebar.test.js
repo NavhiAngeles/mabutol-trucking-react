@@ -101,6 +101,7 @@ test("SIGNED_OUT and explicit clear prevent stale profile restoring protected ac
 test("cached map effect cleanup removes MapLibre instance and disconnects observer", async () => {
   let removed = 0, disconnected = 0;
   const map = await component("../../pages/Dashboard/DashboardTrackingMap.jsx", "DashboardTrackingMap", {
+    useLiveData: () => ({ data: [], loading: false, error: null }), getLiveTracking: () => {}, DASHBOARD_TABLES: [],
     maplibregl: { setWorkerUrl() {}, Map: class { on() {} remove() { removed++; } } },
     maplibreWorkerUrl: "test-worker", LUZON_CENTER: [121, 15], LUZON_BOUNDS: [], LUZON_MIN_ZOOM: 5, LUZON_MAX_ZOOM: 18,
     ResizeObserver: class { observe() {} disconnect() { disconnected++; } },

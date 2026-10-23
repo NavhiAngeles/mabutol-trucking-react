@@ -2,6 +2,18 @@
 // Data-access layer for the Fleet module. No React here — just Supabase calls.
 // Adjust the import path below to wherever your Supabase client actually lives.
 import { supabase } from "./supabaseClient";
+import { complianceState, latestDocuments } from "./dashboardAnalytics.js";
+
+async function allRows(table, columns, configure = q => q) {
+ const rows = [];
+ for (let offset = 0; ; offset += 500) {
+  const { data, error } = await configure(supabase.from(table).select(columns)).order("id").range(offset, offset + 499);
+  if (error) throw error;
+  if (!Array.isArray(data)) throw new Error("Invalid fleet response.");
+  rows.push(...data);
+  if (data.length < 500) return [...new Map(rows.map(row => [row.id, row])).values()];
+ }
+}
 
 /* ============================================================
  * KPIs (the 4 metric cards at the top of Fleet.jsx)
@@ -42,6 +54,8 @@ const TRUCK_SELECT = `
   model,
   model_year,
   capacity_kg,
+  vehicle_type_id,
+  assigned_driver_id,
   status,
   odometer_km,
   notes,
@@ -54,12 +68,7 @@ const TRUCK_SELECT = `
 
 /** Fetch all trucks with vehicle type + assigned driver + cargo categories joined in. */
 export async function getTrucks() {
-    const { data, error } = await supabase
-        .from("trucks")
-        .select(TRUCK_SELECT)
-        .order("created_at", { ascending: false });
-
-    if (error) throw error;
+    const data = await allRows("trucks", TRUCK_SELECT, q => q.order("created_at", { ascending: false }));
     return (data || []).map((t) => ({
         ...t,
         cargoCategories: t.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
@@ -157,12 +166,7 @@ const DRIVER_SELECT = `
 
 /** Fetch all drivers, each with their assigned truck (if any) embedded. */
 export async function getDrivers() {
-    const { data, error } = await supabase
-        .from("drivers")
-        .select(DRIVER_SELECT)
-        .order("created_at", { ascending: false });
-
-    if (error) throw error;
+    const data = await allRows("drivers", DRIVER_SELECT, q => q.order("created_at", { ascending: false }));
 
     // Supabase returns the reverse relationship as an array (trucks[]).
     // Flatten to a single assignedTruck for the UI, since in practice a
@@ -291,18 +295,15 @@ const MAINTENANCE_SELECT = `
   vendor,
   next_due_date,
   next_due_km,
+  updated_at,
   created_at,
   trucks ( id, plate_number, model )
 `;
 
 /** Fetch maintenance records, most recently scheduled first. */
 export async function getMaintenanceRecords() {
-    const { data, error } = await supabase
-        .from("maintenance_records")
-        .select(MAINTENANCE_SELECT)
-        .order("scheduled_date", { ascending: false });
-
-    if (error) throw error;
+    const data = await allRows("maintenance_records", MAINTENANCE_SELECT);
+    data.sort((a,b) => b.scheduled_date.localeCompare(a.scheduled_date));
     return data;
 }
 
@@ -403,47 +404,20 @@ export const DRIVER_COMPLIANCE_DOC_TYPES = [
  * into a UI-friendly badge state. Pure function — safe to reuse in the
  * viewmodel or directly in a component.
  */
-export function getComplianceDocBadge(doc, { expiringSoonDays = 30 } = {}) {
-    if (!doc) return { state: "missing", label: "Missing" };
-
-    if (doc.review_status === "rejected") return { state: "rejected", label: "Rejected" };
-
-    if (doc.expiry_date) {
-        const today = new Date();
-        const expiry = new Date(doc.expiry_date);
-        const daysLeft = Math.floor((expiry - today) / (1000 * 60 * 60 * 24));
-
-        if (daysLeft < 0) return { state: "expired", label: "Expired" };
-        if (daysLeft <= expiringSoonDays) return { state: "expiring_soon", label: "Expiring Soon" };
-    }
-
-    if (doc.review_status === "pending_review") return { state: "pending_review", label: "Pending Review" };
-
-    return { state: "valid", label: doc.expiry_date ? `Valid (${doc.expiry_date})` : "Valid" };
+export function getComplianceDocBadge(doc, { now = Date.now() } = {}) {
+    const state = complianceState(doc, now);
+    const labels = { missing: 'Missing', rejected: 'Rejected', expired: 'Expired', expiring_soon: 'Expiring Soon', pending_review: 'Pending Review', valid: 'Valid' };
+    return { state, label: labels[state] };
 }
 
 /** Fetch all compliance documents for a single truck. */
 export async function getComplianceDocumentsForTruck(truckId) {
-    const { data, error } = await supabase
-        .from("compliance_documents")
-        .select("*")
-        .eq("truck_id", truckId)
-        .order("doc_type", { ascending: true });
-
-    if (error) throw error;
-    return data;
+    return allRows("compliance_documents", "*", q => q.eq("truck_id", truckId).order("created_at", { ascending: false }));
 }
 
 /** Fetch all compliance documents for a single driver. */
 export async function getComplianceDocumentsForDriver(driverId) {
-    const { data, error } = await supabase
-        .from("compliance_documents")
-        .select("*")
-        .eq("driver_id", driverId)
-        .order("doc_type", { ascending: true });
-
-    if (error) throw error;
-    return data;
+    return allRows("compliance_documents", "*", q => q.eq("driver_id", driverId).order("created_at", { ascending: false }));
 }
 
 /**
@@ -453,34 +427,18 @@ export async function getComplianceDocumentsForDriver(driverId) {
  * overall status.
  */
 export async function getTruckComplianceRows() {
-    const [{ data: trucks, error: trucksErr }, { data: docs, error: docsErr }] = await Promise.all([
-        supabase.from("trucks").select("id, plate_number, model, model_year"),
-        supabase
-            .from("compliance_documents")
-            .select("*")
-            .not("truck_id", "is", null)
-            .in(
-                "doc_type",
-                TRUCK_COMPLIANCE_DOC_TYPES.map((d) => d.docType)
-            ),
+    const [trucks, docs] = await Promise.all([
+      allRows("trucks", "id, plate_number, model, model_year"),
+      allRows("compliance_documents", "*", q => q.not("truck_id", "is", null).in("doc_type", TRUCK_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
     ]);
 
-    if (trucksErr) throw trucksErr;
-    if (docsErr) throw docsErr;
-
-    // For each truck+docType, keep only the most recently created doc.
-    const latestByTruckAndType = new Map();
-    for (const doc of docs) {
-        const key = `${doc.truck_id}:${doc.doc_type}`;
-        const existing = latestByTruckAndType.get(key);
-        if (!existing || new Date(doc.created_at) > new Date(existing.created_at)) {
-            latestByTruckAndType.set(key, doc);
-        }
-    }
+    const latest = latestDocuments(docs);
 
     return trucks.map((truck) => {
         const docsForTruck = TRUCK_COMPLIANCE_DOC_TYPES.map(({ docType, label }) => {
-            const doc = latestByTruckAndType.get(`${truck.id}:${docType}`);
+            const matches = latest.filter(d => d.truck_id === truck.id && d.doc_type === docType);
+            const severity = { rejected: 0, expired: 1, missing: 2, pending_review: 3, expiring_soon: 4, valid: 5 };
+            const doc = matches.sort((a, b) => severity[getComplianceDocBadge(a).state] - severity[getComplianceDocBadge(b).state])[0];
             return { docType, label, doc, badge: getComplianceDocBadge(doc) };
         });
 
@@ -496,20 +454,10 @@ export async function getTruckComplianceRows() {
  * getTruckComplianceRows() but for license/medical/NBI.
  */
 export async function getDriverComplianceRows() {
-    const [{ data: drivers, error: driversErr }, { data: docs, error: docsErr }] = await Promise.all([
-        supabase.from("drivers").select("id, full_name"),
-        supabase
-            .from("compliance_documents")
-            .select("*")
-            .not("driver_id", "is", null)
-            .in(
-                "doc_type",
-                DRIVER_COMPLIANCE_DOC_TYPES.map((d) => d.docType)
-            ),
+    const [drivers, docs] = await Promise.all([
+      allRows("drivers", "id, full_name"),
+      allRows("compliance_documents", "*", q => q.not("driver_id", "is", null).in("doc_type", DRIVER_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
     ]);
-
-    if (driversErr) throw driversErr;
-    if (docsErr) throw docsErr;
 
     const latestByDriverAndType = new Map();
     for (const doc of docs) {
