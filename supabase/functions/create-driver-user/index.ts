@@ -41,24 +41,24 @@ Deno.serve(async (req) => {
     // Check caller's role in public.users using adminClient
     const { data: callerProfile, error: profileErr } = await adminClient
       .from("users")
-      .select("role")
+      .select("role, is_active")
       .eq("id", caller.id)
       .single();
 
-    const userRole =
-      callerProfile?.role ||
-      caller.app_metadata?.role ||
-      caller.user_metadata?.role;
-
-    if (!userRole) {
-      const detail = profileErr
-        ? `: ${profileErr.message} (code: ${profileErr.code})`
-        : `: Profile not found for caller ID ${caller.id}`;
-      throw new Error(`Could not verify caller role in users table${detail}`);
-    }
-
-    if (!["admin", "staff"].includes(userRole)) {
-      throw new Error(`Only admin/staff can create driver accounts (current role: ${userRole})`);
+    // Authorization comes exclusively from a successfully loaded, active database profile.
+    if (
+      profileErr ||
+      !callerProfile ||
+      callerProfile.is_active !== true ||
+      !["admin", "staff"].includes(callerProfile.role)
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Only active admin/staff can create driver accounts." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        },
+      );
     }
 
     // ---- 2. Parse request body ----
