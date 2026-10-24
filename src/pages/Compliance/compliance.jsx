@@ -2,11 +2,31 @@ import OfficeTools from "../../components/OfficeTools";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./compliance.css";
+import { useLiveData } from "../../hooks/useLiveData";
+import { getDriverComplianceRows } from "../../services/fleetService";
+import { complianceDirectory, complianceCounts, filterCompliance } from "../../services/complianceDirectory";
+
+const TABLES = ['drivers', 'compliance_documents', 'system_settings'];
+const badgeClass = state => state === 'valid' ? 'valid' : ['expired', 'rejected'].includes(state) ? 'expired' : 'review';
+const formatUpdated = value => value ? new Date(value).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric' }) : 'Unavailable';
 
 export default function Compliance() {
   const navigate = useNavigate();
   const [reportsSubmenuHidden, setReportsSubmenuHidden] = useState(true);
   const [settingsSubmenuHidden, setSettingsSubmenuHidden] = useState(true);
+
+  const [query, setQuery] = useState("");
+  const { data, loading, error, refresh } = useLiveData(getDriverComplianceRows, TABLES);
+  const rows = complianceDirectory(data || []);
+  const filtered = filterCompliance(rows, query);
+  const counts = complianceCounts(rows);
+  const metrics = [
+    ['Fully Compliant', counts.compliant, 'All three documents valid'],
+    ['Expiring Soon', counts.expiring, 'Includes critical due dates'],
+    ['Expired', counts.expired, 'At least one expired document'],
+    ['Pending Review', counts.review, 'At least one document awaiting review'],
+    ['Missing / Rejected', counts.incomplete, 'Requires document attention'],
+  ];
 
   return (
     <div className="dashboard">
@@ -162,7 +182,9 @@ export default function Compliance() {
             type="text"
             placeholder="Search compliance..."
             id="complianceSearch"
-            onChange={(e) => console.log("Searching compliance:", e.target.value)}
+            aria-label="Search driver compliance"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
           />
 
           <div className="topbar-right">
@@ -177,32 +199,14 @@ export default function Compliance() {
             <h2>Driver Compliance</h2>
           </div>
 
-          {/* Stats */}
+          {loading && <p role="status">Loading compliance…</p>}
+          {error && <p role="alert">Unable to refresh compliance. {data ? 'Showing previously loaded records.' : 'Counts and records are unavailable.'} <button type="button" onClick={refresh}>Retry</button></p>}
           <div className="stats">
-            <div className="stat-card">
-              <h4>Fully Compliant</h4>
-              <h2>98</h2>
-              <p className="green">All requirements complete</p>
-            </div>
-            
-            <div className="stat-card">
-              <h4>Expiring Soon</h4>
-              <h2>14</h2>
-              <p className="yellow">Renewal required</p>
-            </div>
-            
-            <div className="stat-card">
-              <h4>Expired</h4>
-              <h2>6</h2>
-              <p className="red">Immediate action needed</p>
-            </div>
-            
-            <div className="stat-card">
-              <h4>Pending Review</h4>
-              <h2>9</h2>
-              <p className="blue">Awaiting approval</p>
-            </div>
+            {metrics.map(([label, count, detail]) => <div className="stat-card" key={label}>
+              <h4>{label}</h4><h2>{data ? count : '—'}</h2><p>{detail}</p>
+            </div>)}
           </div>
+          <p>Counts cover all registered drivers. A driver may appear in more than one attention category. Warning dates follow shared compliance thresholds.</p>
 
           {/* Compliance Table */}
           <div className="compliance-table-card">
@@ -210,6 +214,9 @@ export default function Compliance() {
               <input
                 type="text"
                 className="table-search"
+                aria-label="Filter compliance table"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
                 placeholder="Search compliance..."
               />
             </div>
@@ -227,32 +234,13 @@ export default function Compliance() {
               </thead>
 
               <tbody>
-                <tr>
-                  <td>Jose Dela Cruz</td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="status compliant">Compliant</span></td>
-                  <td>Oct 12, 2023</td>
-                </tr>
-
-                <tr>
-                  <td>Ricardo Bautista</td>
-                  <td><span className="badge expired">Expired</span></td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="status expired-status">Non-Compliant</span></td>
-                  <td>Oct 10, 2023</td>
-                </tr>
-
-                <tr>
-                  <td>Manuel Pascual</td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="badge review">Under Review</span></td>
-                  <td><span className="badge valid">Valid</span></td>
-                  <td><span className="status review-status">Pending Review</span></td>
-                  <td>Oct 15, 2023</td>
-                </tr>
+                {filtered.map(row => <tr key={row.driver.id}>
+                  <td>{row.driver.full_name || 'Unnamed driver'}</td>
+                  {row.docs.map(item => <td key={item.docType}><span className={'badge ' + badgeClass(item.badge.state)}>{item.badge.label}</span></td>)}
+                  <td><span className={'status ' + (row.state === 'valid' ? 'compliant' : ['expired', 'rejected'].includes(row.state) ? 'expired-status' : 'review-status')}>{row.status}</span></td>
+                  <td>{formatUpdated(row.updated)}</td>
+                </tr>)}
+                {data && !filtered.length && <tr><td colSpan={6}>{rows.length ? 'No drivers match your search.' : 'No registered drivers.'}</td></tr>}
               </tbody>
             </table>
           </div>

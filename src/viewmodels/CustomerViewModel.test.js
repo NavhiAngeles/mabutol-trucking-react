@@ -114,7 +114,7 @@ test("customer page renders loading/empty/error/live states and real profile act
   let directory = { customers: [], bookings: [], loading: true, error: "", refresh() {} };
   const scope = {
     ...context.api, useCustomerDirectory: () => directory,
-    useNavigate: () => () => {}, MainLayout: "Layout",
+    useNavigate: () => () => {}, MainLayout: "Layout", OfficeTools: "OfficeTools",
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial; return [states[i], value => states[i] = typeof value === "function" ? value(states[i]) : value]; },
     useMemo: fn => fn(), useRef: () => ({ current: null }), useEffect() {},
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
