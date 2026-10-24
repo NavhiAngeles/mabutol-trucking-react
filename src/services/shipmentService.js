@@ -7,6 +7,19 @@ const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at
 
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
 
+export async function fetchShipmentDetails(id) {
+  const [shipmentResult, deliveryResult] = await Promise.all([
+    supabase.from('shipments')
+      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
+      .eq('id', id).single(),
+    supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id),
+  ]);
+  if (shipmentResult.error) throw shipmentResult.error;
+  if (deliveryResult.error) throw deliveryResult.error;
+  if (!shipmentResult.data?.id) throw new Error('Shipment not found or access denied.');
+  return { ...shipmentResult.data, deliveries: deliveryResult.data || [] };
+}
+
 export async function fetchBookingRequest(id) {
   const { data, error } = await supabase.from('shipments')
     .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')

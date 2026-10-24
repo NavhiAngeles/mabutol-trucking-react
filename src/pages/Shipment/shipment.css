@@ -631,3 +631,6 @@
 .shipment-driver-instructions { margin-top: 8px; max-width: 28rem; }
 .shipment-driver-instructions summary { cursor: pointer; color: #1d4ed8; }
 .shipment-driver-instructions p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
+.shipment-action-explanation { padding: 0 14px 10px; margin: 0; font-size: 12px; color: #64748b; white-space: normal; }
+.action-dropdown button:disabled { cursor: not-allowed; color: #64748b; background: transparent; }
+.shipment-details-notes { white-space: pre-wrap; overflow-wrap: anywhere; }

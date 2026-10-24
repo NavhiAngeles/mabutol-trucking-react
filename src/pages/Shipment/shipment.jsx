@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import BookingReview from "./BookingReview";
+import ShipmentDetails from "./ShipmentDetails";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
@@ -11,6 +12,7 @@ import "./shipment.css";
 export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [reviewShipment, setReviewShipment] = useState(null);
+  const [detailsShipment, setDetailsShipment] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [assignmentMessage, setAssignmentMessage] = useState("");
@@ -61,13 +63,6 @@ export default function Shipment() {
       previous === id ? null : id
     );
 
-  const handleView = (shipment) => {
-    console.log("View shipment:", shipment.dbId);
-    window.alert(
-      `Shipment ${shipment.id}\nDetails page is not implemented yet.`
-    );
-  };
-
   const handleAssign = async (shipment) => {
     if (assigningId) return;
     setAssigningId(shipment.dbId);
@@ -83,16 +78,6 @@ export default function Shipment() {
     } finally {
       setAssigningId(null);
     }
-  };
-
-  const handleEdit = (shipment) => {
-    console.log("Edit shipment:", shipment.dbId);
-    window.alert("Shipment editing is not implemented yet.");
-  };
-
-  const handleCancel = (shipment) => {
-    console.log("Cancel shipment:", shipment.dbId);
-    window.alert("Shipment cancellation is not implemented yet.");
   };
 
   const statusLabel = (status) =>
@@ -144,8 +129,9 @@ export default function Shipment() {
           )}
           <button
             type="button"
-            onClick={() => {
-              handleView(shipment);
+            onClick={event => {
+              reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+              setDetailsShipment(shipment);
               setOpenMenuId(null);
             }}
           >
@@ -156,26 +142,24 @@ export default function Shipment() {
             <>
               <button
                 type="button"
-                onClick={() => {
-                  handleEdit(shipment);
-                  setOpenMenuId(null);
-                }}
+                disabled
+                aria-describedby={`shipment-edit-unavailable-${shipment.dbId}`}
               >
-                <i className="las la-pen" /> Edit
+                <i className="las la-pen" /> Edit (unavailable)
               </button>
+              <p className="shipment-action-explanation" id={`shipment-edit-unavailable-${shipment.dbId}`}>Editing existing shipments is not supported yet.</p>
 
               {shipment.status !== "review" && (
                 <button
                   type="button"
                   className="action-danger"
-                  onClick={() => {
-                    handleCancel(shipment);
-                    setOpenMenuId(null);
-                  }}
+                  disabled
+                  aria-describedby={`shipment-cancel-unavailable-${shipment.dbId}`}
                 >
-                  <i className="las la-times-circle" /> Cancel
+                  <i className="las la-times-circle" /> Cancel (unavailable)
                 </button>
               )}
+              {shipment.status !== 'review' && <p className="shipment-action-explanation" id={`shipment-cancel-unavailable-${shipment.dbId}`}>General cancellation is not supported yet. Pending requests can be rejected through Review booking request.</p>}
             </>
           )}
         </div>
@@ -696,6 +680,8 @@ export default function Shipment() {
       </section>
 
       {/* CREATE SHIPMENT DRAWER */}
+      {detailsShipment && <ShipmentDetails key={detailsShipment.dbId} shipment={detailsShipment}
+        onClose={() => { setDetailsShipment(null); reviewLauncher.current?.focus(); }} />}
       {reviewShipment && <BookingReview key={reviewShipment.dbId} shipment={reviewShipment}
         onClose={() => { setReviewShipment(null); reviewLauncher.current?.focus(); }}
         onReviewed={result => {

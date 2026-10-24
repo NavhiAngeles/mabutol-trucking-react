@@ -83,7 +83,7 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect() {},
-    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', BookingReview: 'BookingReview', CreateShipmentDrawer: 'CreateShipmentDrawer',
+    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', CreateShipmentDrawer: 'CreateShipmentDrawer',
     useShipmentViewModel: () => ({
       visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500, driverNotes }],
       page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab, activeConfig: { label: 'All', title: 'Pending Booking Requests' },
@@ -104,6 +104,16 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   find(render(), node => node.type === 'BookingReview')[0].props.onReviewed({ status: 'cancelled' });
   assert.equal(refreshes, 2); assert.ok(JSON.stringify(render()).includes('rejected and cancelled'));
   rawStatus = 'booked'; openMenu(); assert.equal(button(render(), 'Review booking request'), undefined);
+  for (const label of ['Edit (unavailable)', 'Cancel (unavailable)']) {
+    const unavailable = find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === label))[0];
+    assert.equal(unavailable.props.disabled, true); assert.equal(unavailable.props.onClick, undefined);
+    assert.equal(find(render(), node => node.props.id === unavailable.props['aria-describedby']).length, 1);
+  }
+  find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === 'View Details'))[0]
+    .props.onClick({ currentTarget: { closest: () => null } });
+  const shipmentDetails = find(render(), node => node.type === 'ShipmentDetails')[0];
+  assert.equal(shipmentDetails.props.shipment.dbId, 's'); shipmentDetails.props.onClose();
+  assert.equal(find(render(), node => node.type === 'ShipmentDetails').length, 0);
   for (const status of ['assigned', 'in_transit', 'completed']) {
     rawStatus = status; currentTab = status === 'completed' ? 'completed' : 'all';
     const details = find(render(), node => node.type === 'details' && node.props.className === 'shipment-driver-instructions');
