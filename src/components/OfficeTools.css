@@ -1,0 +1,28 @@
+.office-tools { display: flex; align-items: center; gap: 12px; position: relative; }
+.office-tools > .icon-btn { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; color: #475569; cursor: pointer; }
+.office-tools > .icon-btn:hover,.office-tools > .icon-btn[aria-expanded="true"] { color: #0b2a4a; background: #f1f5f9; border-color: #cbd5e1; }
+.office-tools .office-unread-count { position: absolute; top: -5px; right: -5px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border: 2px solid #fff; border-radius: 20px; background: #dc2626; color: #fff; font: 600 10px/1 system-ui,sans-serif; box-sizing: content-box; }
+.office-tools > .avatar { display: grid; place-items: center; flex: none; width: 38px; height: 38px; padding: 0; border: 1px solid #e2e8f0; border-radius: 50%; background: #f1f5f9; color: #0b2a4a; font: 600 12px/1 system-ui,sans-serif; cursor: pointer; }
+.office-tools :is(button):focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+.office-tools .office-notifications { position: absolute; right: 0; top: calc(100% + 12px); z-index: 100; display: flex; flex-direction: column; width: min(400px,calc(100vw - 32px)); max-height: min(600px,75vh); padding: 0; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 16px 48px #0f172a26; color: #0f172a; text-align: left; font: 400 13px/1.5 system-ui,sans-serif; }
+.office-tools .office-notifications-header { display: flex; align-items: center; justify-content: space-between; flex: none; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #e2e8f0; }
+.office-tools .office-notifications-header h2 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.office-tools .office-notifications-header p { margin: 4px 0 0; color: #64748b; font-size: 12px; }
+.office-tools .office-notifications-close { width: 30px; height: 30px; border: 0; border-radius: 7px; background: #f1f5f9; color: #64748b; cursor: pointer; }
+.office-tools .office-notifications-list { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.office-tools .office-notification { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
+.office-tools .office-notification-unread { background: #f6f9ff; }
+.office-tools .office-notification-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.office-tools .office-notification-title strong { font-weight: 600; overflow-wrap: anywhere; }
+.office-tools .office-notification-dot { width: 7px; height: 7px; margin-top: 6px; flex: none; border-radius: 50%; background: #2563eb; }
+.office-tools .office-notification p { margin: 6px 0 12px; color: #64748b; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.office-tools .office-notification-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.office-tools .office-notification-meta time { color: #94a3b8; font-size: 11px; }
+.office-tools .office-notification-action { display: inline-flex; margin: 0; padding: 5px 9px; border: 1px solid #dbeafe; border-radius: 6px; background: #eff6ff; color: #1e40af; font: 500 12px/18px system-ui,sans-serif; cursor: pointer; }
+.office-tools .office-notification-action:disabled { opacity: .55; cursor: default; }
+.office-tools .office-notification-state { padding: 32px 20px; margin: 0; text-align: center; color: #64748b; }
+.office-tools .office-notification-state strong { display: block; color: #334155; font-size: 14px; }
+.office-tools .office-notification-state p { margin: 6px 0 0; }
+.office-tools .office-notification-error { padding: 12px 16px; margin: 12px; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #991b1b; }
+.office-tools .office-notification-error button { margin-left: 8px; padding: 4px 8px; border: 1px solid #fecaca; border-radius: 5px; background: #fff; color: #991b1b; cursor: pointer; }
+.office-tools .office-notifications-footer { flex: none; padding: 10px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; color: #94a3b8; font-size: 11px; }

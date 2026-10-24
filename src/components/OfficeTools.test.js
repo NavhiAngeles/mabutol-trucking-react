@@ -11,12 +11,14 @@ function find(node, predicate) {
 async function screen(update, loadError = '') {
   const source = await readFile(new URL('./OfficeTools.jsx', import.meta.url), 'utf8');
   const { code } = await transformWithOxc(source, 'OfficeTools.jsx', { jsx: { runtime: 'classic' } });
-  const states = [], refs = [], calls = [], routes = [];
+  const states = [], refs = [], calls = [], routes = [], events = {};
   let si = 0, ri = 0, reloads = 0;
   const context = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(value) { const i = si++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
     useRef(value) { return refs[ri++] ||= { current: value }; },
+    useEffect(effect) { effect(); },
+    document: { addEventListener(name, handler) { events[name] = handler; }, removeEventListener(name) { delete events[name]; } },
     useNavigate: () => path => routes.push(path),
     useAuth: () => ({ user: { id: 'own' } }),
     useLiveData: () => ({ data: { name: 'Office', notifications: [{ id: 'notice', title: 'Update', body: '', shipment_id: 'shipment', created_at: '2026-10-24' }] }, error: loadError, refresh: () => { reloads++; } }),
@@ -29,7 +31,7 @@ async function screen(update, loadError = '') {
   const render = () => { si = ri = 0; return context.renderComponent(); };
   const button = text => find(render(), n => n.type === 'button' && n.children.includes(text))[0];
   find(render(), n => n.type === 'button' && n.props.className === 'icon-btn')[0].props.onClick();
-  return { render, button, calls, routes, reloads: () => reloads };
+  return { render, button, calls, routes, events, reloads: () => reloads };
 }
 
 test('Retry repeats the failed owner-filtered write, clears error, refreshes and navigates only on success', async () => {
@@ -66,4 +68,20 @@ test('load-error Retry reloads without writing notifications', async () => {
   const ui = await screen(() => { throw Error('Unexpected write'); }, 'Offline');
   ui.button('Retry').props.onClick();
   assert.equal(ui.reloads(), 1); assert.equal(ui.calls.length, 0);
+});
+
+test('bell exposes unread count accessibly and dropdown closes on Escape/outside click', async () => {
+  const ui = await screen(async () => ({ data: { id: 'notice' } }));
+  let tree = ui.render();
+  const trigger = find(tree, n => n.type === 'button' && n.props.className === 'icon-btn')[0];
+  assert.equal(trigger.props['aria-label'], 'Notifications, 1 unread');
+  assert.equal(find(trigger, n => n.type === 'svg').length, 1);
+  assert.equal(trigger.children.flat(Infinity).includes('Notifications'), false);
+  assert.equal(find(tree, n => n.props.id === trigger.props['aria-controls']).length, 1);
+  assert.equal(find(tree, n => n.props.className === 'office-notification-dot').length, 1);
+  ui.events.keydown({ key: 'Escape' }); tree = ui.render();
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
+  find(tree, n => n.type === 'button' && n.props.className === 'icon-btn')[0].props.onClick();
+  ui.render(); ui.events.pointerdown({ target: {} });
+  assert.equal(find(ui.render(), n => n.props.id === 'office-notifications-panel').length, 0);
 });
