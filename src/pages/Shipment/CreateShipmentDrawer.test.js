@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { vehicleCanCarry, vehicleFitsShipmentWeight } from "../../services/vehiclePricing.js";
+import { vehicleCanCarry, vehicleFitsShipmentWeight, vehicleBaseRate, bookingDefaults } from "../../services/vehiclePricing.js";
 
 const source = await readFile(new URL("./CreateShipmentDrawer.jsx", import.meta.url), "utf8");
 function handler(name) {
@@ -10,10 +10,60 @@ function handler(name) {
   return `const ${name} = () => {${match[1]}\n};`;
 }
 
+test('actual pricing load initializes allowance and draft baseline without overwriting edited allowance', () => {
+  const start = source.indexOf('const defaults = bookingDefaults(data.settings);');
+  const end = source.indexOf('setHandlingRates(data.settings.handling_surcharges', start);
+  const body = source.slice(start, end);
+  for (const edited of [false, true]) {
+    const state = { form: { cargoDescription: 'Draft', driverAllowance: '0' } };
+    const draftInitial = { current: { driverAllowance: '0' } };
+    const run = new Function('data', 'bookingDefaults', 'setPricingDefaults', 'allowanceEdited', 'draftInitial', 'INITIAL_FORM', 'setForm', body);
+    run({ settings: { minimum_booking_fee: 3000, driver_allowance: 250 } }, bookingDefaults,
+      defaults => { state.defaults = defaults; }, { current: edited }, draftInitial, { driverAllowance: '0' }, update => { state.form = update(state.form); });
+    assert.equal(state.defaults.minimumBookingFee, 3000);
+    assert.equal(state.form.cargoDescription, 'Draft');
+    assert.equal(state.form.driverAllowance, edited ? '0' : '250');
+    assert.equal(draftInitial.current.driverAllowance, edited ? '0' : '250');
+  }
+});
+
+test('submit rechecks global minimum/default allowance and retains explicit allowance override', async () => {
+  const start = source.indexOf('const currentPricing = await fetchPricingData();');
+  const end = source.indexOf('const departureError = validateDeparture', start);
+  const body = source.slice(start, end);
+  for (const edited of [false, true]) {
+    const vehicle = { id: 'v', is_active: true, default_capacity_kg: 2500, pricing: { id: 'r', vehicle_type_id: 'v', is_active: true, min_charge: 2500, per_km_rate: 45 } };
+    const state = { form: { selectedVehicle: 'v', distanceKm: '10', weight: '2000', driverAllowance: edited ? '999' : '100' } };
+    const scope = {
+      fetchPricingData: async () => ({ vehicles: [vehicle], settings: { minimum_booking_fee: edited ? 3000 : 4000, driver_allowance: 200, handling_surcharges: {} } }),
+      bookingDefaults, vehicleBaseRate, vehicleCanCarry,
+      form: state.form, selectedVehicle: vehicle, baseRate: 3000, handlingCharge: 0, handlingCost: () => 0,
+      pricingDefaults: { minimumBookingFee: 3000, driverAllowance: 100 }, allowanceEdited: { current: edited },
+      INITIAL_FORM: {}, draftInitial: { current: {} }, setVehicles() {}, setHandlingRates() {},
+      setPricingDefaults: value => { state.defaults = value; }, setForm: update => { state.form = update(state.form); },
+    };
+    const run = new Function(...Object.keys(scope), `return async () => {${body}};`)(...Object.values(scope));
+    if (edited) { await run(); assert.equal(state.form.driverAllowance, '999'); }
+    else { await assert.rejects(run(), /pricing has changed/); assert.equal(state.form.driverAllowance, '200'); assert.equal(state.defaults.minimumBookingFee, 4000); }
+  }
+});
+
+test('automatic allowance baseline does not make pristine draft dirty', () => {
+  const scope = {
+    isSaving: false, createdShipment: null, INITIAL_FORM: { driverAllowance: '0' },
+    form: { driverAllowance: '250' }, draftInitial: { current: { driverAllowance: '250' } },
+    confirmedPickup: null, confirmedDestination: null,
+    window: { confirm() { assert.fail('Automatic default must not prompt discard'); } },
+    reset() {}, onClose() {},
+  };
+  new Function(...Object.keys(scope), `${handler('handleCloseAll')}\nhandleCloseAll();`)(...Object.values(scope));
+});
+
 function closeFlow({ dirty = false, coordinates = false, saving = false, booked = false, discard = false } = {}) {
   const state = { resets: 0, closes: 0, prompts: 0 };
   const scope = {
     INITIAL_FORM: { cargoDescription: '', driverNotes: '', usesTollRoad: false },
+    draftInitial: { current: { cargoDescription: '', driverNotes: '', usesTollRoad: false } },
     form: { cargoDescription: dirty ? 'Keep my cargo' : '', driverNotes: '', usesTollRoad: false },
     confirmedPickup: coordinates ? { lat: 15, lng: 120 } : null,
     confirmedDestination: null,

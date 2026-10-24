@@ -1,9 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { attachVehiclePricing, vehicleBaseRate, vehicleCanCarry, pricingDate } from "./vehiclePricing.js";
+import { attachVehiclePricing, vehicleBaseRate, vehicleCanCarry, pricingDate, bookingDefaults } from "./vehiclePricing.js";
 const vehicle = { id: "vehicle-a", is_active: true, default_capacity_kg: 2500 };
 const rate = { id: "rate-a", vehicle_type_id: vehicle.id, is_active: true, effective_from: "2026-10-12", effective_to: null, per_km_rate: "45", min_charge: "2500" };
 const priced = { ...vehicle, pricing: rate };
+
+test('global booking minimum combines with vehicle floor and distance; invalid settings never become zero', () => {
+  assert.equal(vehicleBaseRate(priced, 10, 3500), 3500);
+  assert.equal(vehicleBaseRate(priced, 10, 1000), 2500);
+  assert.equal(vehicleBaseRate(priced, 100, 3500), 4500);
+  assert.equal(vehicleBaseRate(priced, 10, 0), 2500);
+  assert.deepEqual(bookingDefaults({ minimum_booking_fee: '3500', driver_allowance: '125.50' }), { minimumBookingFee: 3500, driverAllowance: 125.5 });
+  assert.deepEqual(bookingDefaults({ minimum_booking_fee: 0, driver_allowance: 0 }), { minimumBookingFee: 0, driverAllowance: 0 });
+  for (const value of [undefined, null, '', -1, Infinity, 'invalid']) {
+    assert.equal(vehicleBaseRate(priced, 10, value === undefined ? null : value), null);
+    assert.throws(() => bookingDefaults({ minimum_booking_fee: value, driver_allowance: 100 }), /must be configured/);
+    assert.throws(() => bookingDefaults({ minimum_booking_fee: 2500, driver_allowance: value }), /must be configured/);
+  }
+});
 
 test("enforces database minimum and recalculates with distance or vehicle rate", () => {
   assert.equal(vehicleBaseRate(priced, 10), 2500);

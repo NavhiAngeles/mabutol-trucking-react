@@ -8,7 +8,7 @@ import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
 import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
-import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDate, } from "../../services/vehiclePricing";
+import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDate, bookingDefaults } from "../../services/vehiclePricing";
 import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
 
 const HUBS = [
@@ -102,6 +102,9 @@ export default function CreateShipmentDrawer({
   onCreated,
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [pricingDefaults, setPricingDefaults] = useState(null);
+  const allowanceEdited = useRef(false);
+  const draftInitial = useRef(INITIAL_FORM);
   const [scheduleClock, setScheduleClock] = useState(() => Date.now());
   const [handlingRates, setHandlingRates] = useState(null);
   const [handlingPricingError, setHandlingPricingError] = useState("");
@@ -113,12 +116,19 @@ export default function CreateShipmentDrawer({
     let cancelled = false;
     fetchPricingData().then(data => {
       if (cancelled) return;
+      const defaults = bookingDefaults(data.settings);
+      setPricingDefaults(defaults);
+      if (!allowanceEdited.current) {
+        draftInitial.current = { ...INITIAL_FORM, driverAllowance: String(defaults.driverAllowance) };
+        setForm(previous => ({ ...previous, driverAllowance: String(defaults.driverAllowance) }));
+      }
       setHandlingRates(data.settings.handling_surcharges || null);
       setVehicles(data.vehicles);
       setHandlingPricingError("");
     }).catch(error => {
       if (cancelled) return;
       setHandlingRates(null);
+      setPricingDefaults(null);
       setVehicles([]);
       setHandlingPricingError(error.message || "Unable to load vehicle and handling prices.");
     });
@@ -184,6 +194,7 @@ export default function CreateShipmentDrawer({
 
   // UPDATE FORM FIELDS
   const update = (field, value) => {
+    if (field === "driverAllowance") allowanceEdited.current = true;
     if (field === "pickupLocation" || field === "destination") {
       routeIdRef.current += 1;
       routeControllerRef.current?.abort();
@@ -558,7 +569,7 @@ export default function CreateShipmentDrawer({
   );
 
   // FINANCIAL CALCULATIONS
-  const baseRate = routeGeoJSON ? vehicleBaseRate(selectedVehicle, form.distanceKm) : null;
+  const baseRate = routeGeoJSON && pricingDefaults ? vehicleBaseRate(selectedVehicle, form.distanceKm, pricingDefaults.minimumBookingFee) : null;
 
   const handlingCharge = handlingCost(handlingRates, form.specialHandling, form.distanceKm);
 
@@ -589,7 +600,9 @@ export default function CreateShipmentDrawer({
     routeControllerRef.current?.abort();
     routeControllerRef.current = null;
 
-    setForm(INITIAL_FORM);
+    allowanceEdited.current = false;
+    draftInitial.current = { ...INITIAL_FORM, driverAllowance: String(pricingDefaults?.driverAllowance ?? 0) };
+    setForm(draftInitial.current);
 
     setPickerMode(null);
     setConfirmedPickup(null);
@@ -611,7 +624,7 @@ export default function CreateShipmentDrawer({
     if (isSaving) return;
 
     const hasUnsavedChanges = !createdShipment && (
-      Object.keys(INITIAL_FORM).some(key => form[key] !== INITIAL_FORM[key]) ||
+      Object.keys(INITIAL_FORM).some(key => form[key] !== draftInitial.current[key]) ||
       confirmedPickup !== null || confirmedDestination !== null
     );
     if (hasUnsavedChanges && !window.confirm(
@@ -780,20 +793,28 @@ export default function CreateShipmentDrawer({
 
     try {
       const currentPricing = await fetchPricingData();
+      const currentDefaults = bookingDefaults(currentPricing.settings);
       const currentRates = currentPricing.settings.handling_surcharges;
       const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
-      const currentBaseRate = vehicleBaseRate(currentVehicle, form.distanceKm);
+      const currentBaseRate = vehicleBaseRate(currentVehicle, form.distanceKm, currentDefaults.minimumBookingFee);
       if (!vehicleCanCarry(currentVehicle, form.weight) || currentBaseRate === null) {
         setVehicles(currentPricing.vehicles);
         throw new Error("The selected vehicle or its pricing is no longer available for this shipment.");
       }
       const currentHandlingCharge = handlingCost(currentRates, form.specialHandling, form.distanceKm);
       if (currentHandlingCharge === null) throw new Error("The selected handling price is unavailable. Check pricing settings and route distance.");
-      if (currentHandlingCharge !== handlingCharge || currentBaseRate !== baseRate ||
+      if (currentDefaults.minimumBookingFee !== pricingDefaults.minimumBookingFee ||
+        (!allowanceEdited.current && currentDefaults.driverAllowance !== pricingDefaults.driverAllowance) ||
+        currentHandlingCharge !== handlingCharge || currentBaseRate !== baseRate ||
         currentVehicle.pricing.id !== selectedVehicle.pricing.id ||
         Number(currentVehicle.pricing.per_km_rate) !== Number(selectedVehicle.pricing.per_km_rate) ||
         Number(currentVehicle.pricing.min_charge) !== Number(selectedVehicle.pricing.min_charge)) {
         setHandlingRates(currentRates);
+        setPricingDefaults(currentDefaults);
+        if (!allowanceEdited.current) {
+          draftInitial.current = { ...INITIAL_FORM, driverAllowance: String(currentDefaults.driverAllowance) };
+          setForm(previous => ({ ...previous, driverAllowance: String(currentDefaults.driverAllowance) }));
+        }
         setVehicles(currentPricing.vehicles);
         throw new Error("Shipment pricing has changed. Review the updated total and submit again.");
       }
@@ -1777,7 +1798,7 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="financial-data-row">
-          <span>Allowance (₱)</span>
+          <span>Allowance (₱) — defaults from Pricing; editable</span>
 
           <input
             type="number"

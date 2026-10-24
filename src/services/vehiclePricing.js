@@ -15,11 +15,18 @@ export function attachVehiclePricing(vehicles, rates, today = pricingDate()) {
 const validAmount = value => value != null && String(value).trim() !== "" &&
   Number.isFinite(Number(value)) && Number(value) >= 0;
 
-export function vehicleBaseRate(vehicle, distanceKm) {
+export function vehicleBaseRate(vehicle, distanceKm, minimumBookingFee = 0) {
   const rate = vehicle?.pricing;
   if (!vehicle?.is_active || !rate?.id || !rate.is_active || rate.vehicle_type_id !== vehicle.id ||
-      !validAmount(rate.per_km_rate) || !validAmount(rate.min_charge) || !validAmount(distanceKm)) return null;
-  return Math.round(Math.max(Number(distanceKm) * Number(rate.per_km_rate), Number(rate.min_charge)) * 100) / 100;
+      !validAmount(rate.per_km_rate) || !validAmount(rate.min_charge) || !validAmount(distanceKm) || !validAmount(minimumBookingFee)) return null;
+  return Math.round(Math.max(Number(distanceKm) * Number(rate.per_km_rate), Number(rate.min_charge), Number(minimumBookingFee)) * 100) / 100;
+}
+
+export function bookingDefaults(settings) {
+  if (!validAmount(settings?.minimum_booking_fee) || !validAmount(settings?.driver_allowance)) {
+    throw new Error('Minimum booking fee and default driver allowance must be configured with valid non-negative amounts in Pricing.');
+  }
+  return { minimumBookingFee: Number(settings.minimum_booking_fee), driverAllowance: Number(settings.driver_allowance) };
 }
 
 export function vehicleCanCarry(vehicle, weight) {
