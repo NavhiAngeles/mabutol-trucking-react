@@ -493,12 +493,7 @@
 }
 
 .dr-rate-track::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 90%;
-  border-left: 1px dashed var(--red);
+  content: none;
 }
 
 .dr-rate-bg {
@@ -978,3 +973,11 @@
     flex-wrap: wrap;
   }
 }
+
+/* Live report labels and real UUIDs need room to wrap. */
+.dr-report-live .dr-report-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin-top: 16px; }
+.dr-report-live .dr-driver-id { overflow-wrap: anywhere; }
+.dr-report-live .dr-status { white-space: normal; }
+.dr-report-live .dr-table-tools select { max-width: 150px; padding: 6px; }
+.dr-report-live .dr-inc-name { overflow-wrap: anywhere; }
+.dr-report-live .dr-page-arrow:disabled { opacity: .45; cursor: default; }
