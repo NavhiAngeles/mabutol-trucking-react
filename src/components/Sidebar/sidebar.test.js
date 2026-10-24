@@ -40,6 +40,7 @@ test('sidebar actions are native buttons and disclosures expose expanded state a
   const named = label => actions().find(n => n.children.includes(label));
   assert.ok(actions().every(n => n.type === 'button' && n.props.type === 'button'));
   named('Shipments').props.onClick(); assert.deepEqual(routes, ['/shipment']);
+  named('Compliance').props.onClick(); assert.equal(routes.at(-1), '/compliance');
   for (const label of ['Reports', 'Settings']) {
     assert.equal(named(label).props['aria-expanded'], false);
     named(label).props.onClick();

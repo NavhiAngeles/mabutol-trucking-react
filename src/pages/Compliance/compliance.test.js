@@ -17,7 +17,7 @@ test('Compliance connects stable loader/table subscriptions, both searches, empt
   const context = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(value) { const i = index++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
-    useNavigate: () => () => {}, OfficeTools: () => null,
+    MainLayout: 'SharedLayout', OfficeTools: () => null,
     getDriverComplianceRows: loader, complianceDirectory, complianceCounts, filterCompliance,
     useLiveData(load, tables) {
       assert.equal(load, loader); assert.deepEqual(Array.from(tables), ['drivers', 'compliance_documents', 'system_settings']);
@@ -26,6 +26,8 @@ test('Compliance connects stable loader/table subscriptions, both searches, empt
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Compliance;', context);
   const render = () => { index = 0; return context.render(); };
+  assert.equal(render().type, 'SharedLayout');
+  assert.equal(find(render(), n => n.type === 'aside' || n.type === 'main').length, 0);
   assert.equal(find(render(), n => n.props.role === 'status').length, 1);
   live = { data: null, loading: false, error: Error('Offline') };
   const alert = find(render(), n => n.props.role === 'alert')[0];

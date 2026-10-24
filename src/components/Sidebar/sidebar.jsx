@@ -121,6 +121,16 @@ export default function Sidebar() {
             Customers
           </button>
 
+          <button type="button"
+            className={`nav-item ${isActive("/compliance") ? "active" : ""}`}
+            onClick={() => navigate("/compliance")}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 12l2 2 4-4"/><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/>
+            </svg>
+            Compliance
+          </button>
+
           {/* Reports Dropdown */}
           <div className="nav-group">
             <button type="button"
