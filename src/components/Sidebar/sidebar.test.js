@@ -15,6 +15,7 @@ async function component(path, name, dependencies) {
     useRef(initial) { return refs[refIndex++] ||= { current: initial }; },
     useEffect: fn => effects.push(fn),
     createContext: () => ({ Provider: "provider" }),
+    setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, window: { addEventListener() {}, removeEventListener() {} },
     ...dependencies,
   };
   vm.createContext(scope);
@@ -127,4 +128,35 @@ test("late getSession result after SIGNED_OUT cannot reload the old account", as
   await Promise.resolve(); await Promise.resolve();
   assert.equal(queries, 0);
   assert.equal(auth.render().props.value.user, null);
+});
+
+test('office permission polling applies role changes and blocks deactivated accounts', async () => {
+  let tick; let profile = { role: 'admin', is_active: true };
+  const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
+    setInterval(fn) { tick = fn; return 0; },
+    supabase: {
+      auth: { getSession: async () => ({ data: { session: { user: { id: 'office', user_metadata: { role: 'admin' } } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: profile }) }) }) }),
+    },
+  });
+  auth.render(); auth.effects[0](); await tick();
+  assert.equal(auth.render().props.value.role, 'admin');
+  profile = { role: 'staff', is_active: true }; await tick();
+  assert.equal(auth.render().props.value.role, 'staff');
+  profile = { role: 'staff', is_active: false }; await tick();
+  assert.equal(auth.render().props.value.user, null); assert.equal(auth.render().props.value.role, null);
+});
+
+test('failed profile refresh removes office access rather than keeping stale admin claims', async () => {
+  let tick; let failed = false;
+  const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
+    setInterval(fn) { tick = fn; return 0; },
+    supabase: {
+      auth: { getSession: async () => ({ data: { session: { user: { id: 'office' } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin', is_active: true }, error: failed ? Error('denied') : null }) }) }) }),
+    },
+  });
+  auth.render(); auth.effects[0](); await tick();
+  assert.equal(auth.render().props.value.role, 'admin'); failed = true; await tick();
+  assert.equal(auth.render().props.value.role, null);
 });

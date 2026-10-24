@@ -429,3 +429,9 @@ entrypoint = "./functions/create-driver-user/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/calculate-route/index.js"
+
+[functions.manage-office-users]
+enabled = true
+# Handler verifies Auth.getUser and an active database admin (supports ES256 JWTs).
+verify_jwt = false
+entrypoint = "./functions/manage-office-users/index.ts"

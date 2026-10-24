@@ -21,7 +21,12 @@ do $$ declare n integer; begin
   if n<>0 then raise exception 'Stale write was not blocked'; end if;
 end $$;
 reset role;
-update public.users set role='staff' where id=current_setting('test.threshold_admin')::uuid;
+-- Use a disposable staff fixture; office-management safeguards forbid self-demotion.
+do $$ declare fixture uuid:=gen_random_uuid(); begin
+  insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data)
+  values(fixture,'threshold-rollback-'||fixture||'@example.invalid','{"provisioned_role":"staff"}','{"full_name":"Rollback staff"}');
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',fixture,'role','authenticated')::text,true);
+end $$;
 set local role authenticated;
 do $$ declare n integer; begin
   if not exists(select 1 from public.system_settings where key='compliance_thresholds') then raise exception 'Staff read failed'; end if;

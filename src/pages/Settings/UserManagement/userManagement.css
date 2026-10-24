@@ -883,3 +883,12 @@
   background: #fef2f2;
   color: #b91c1c;
 }
+.office-user-management .um-table-scroll { overflow-x: auto; }
+.office-user-management .um-row-actions { display: flex; gap: 8px; flex-wrap: wrap; min-width: 200px; }
+.office-user-management .um-fieldset { border: 0; padding: 0; margin: 0; }
+.office-user-management .um-pagination { display: flex; gap: 16px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.office-user-management .um-success { color: #166534; margin: 16px 0; }
+.office-user-management .um-error { color: #991b1b; }
+.office-user-management .modal { max-height: 90vh; overflow-y: auto; }
+.office-user-management button:disabled { cursor: not-allowed; opacity: .55; }
+@media (max-width: 900px) { .office-user-management .page-header, .office-user-management .search-row { flex-wrap: wrap; gap: 16px; } }
