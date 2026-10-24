@@ -7,6 +7,29 @@ const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at
 
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
 
+export async function fetchBookingRequest(id) {
+  const { data, error } = await supabase.from('shipments')
+    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
+    .eq('id', id).single();
+  if (error) throw error;
+  if (data?.status !== 'pending') throw new Error('This request is no longer pending. Close and refresh the list.');
+  return data;
+}
+
+export async function reviewBookingRequest(request, decision, reason = '') {
+  if (!request?.id || !request.updated_at || !['approve', 'reject'].includes(decision)) throw new Error('Reload the request before deciding.');
+  if (decision === 'reject' && (!reason.trim() || reason.trim().length > 1000)) throw new Error('Enter a rejection reason of 1 to 1000 characters.');
+  const { data, error } = await supabase.rpc('review_booking_request', {
+    p_shipment: request.id, p_expected_updated_at: request.updated_at,
+    p_decision: decision, p_reason: decision === 'reject' ? reason.trim() : null,
+  });
+  if (error) throw error;
+  if (data?.id !== request.id || !(decision === 'reject' ? ['cancelled'] : ['booked', 'assigned']).includes(data.status)) {
+    throw new Error('Decision was not confirmed. Reload the request before retrying.');
+  }
+  return data;
+}
+
 export async function assignShipmentResources(shipmentId) {
   const { data, error } = await supabase.rpc('assign_shipment_resources', { p_shipment: shipmentId });
   if (error) throw error;

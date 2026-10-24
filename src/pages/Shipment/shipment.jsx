@@ -3,16 +3,19 @@ import OfficeTools from "../../components/OfficeTools";
 import { useEffect, useRef, useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
+import BookingReview from "./BookingReview";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
 
 export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [reviewShipment, setReviewShipment] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [assignmentMessage, setAssignmentMessage] = useState("");
   const menuRef = useRef(null);
+  const reviewLauncher = useRef(null);
 
   const {
     visibleShipments,
@@ -127,6 +130,12 @@ export default function Shipment() {
 
       {openMenuId === shipment.dbId && (
         <div className="action-dropdown">
+          {shipment.rawStatus === 'pending' && (
+            <button type="button" onClick={event => {
+              reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+              setReviewShipment(shipment); setOpenMenuId(null);
+            }}>Review booking request</button>
+          )}
           {shipment.rawStatus === "booked" && !shipment.assignmentId && (
             <button type="button" disabled={Boolean(assigningId)}
               onClick={() => { handleAssign(shipment); setOpenMenuId(null); }}>
@@ -679,6 +688,15 @@ export default function Shipment() {
       </section>
 
       {/* CREATE SHIPMENT DRAWER */}
+      {reviewShipment && <BookingReview key={reviewShipment.dbId} shipment={reviewShipment}
+        onClose={() => { setReviewShipment(null); reviewLauncher.current?.focus(); }}
+        onReviewed={result => {
+          setAssignmentMessage(result.status === 'cancelled' ? 'Booking request rejected and cancelled.'
+            : result.delivery_id ? 'Booking approved. Driver and truck assigned.' : 'Booking approved. Awaiting an available driver and matching truck.');
+          setReviewShipment(null);
+          reviewLauncher.current?.focus();
+          refresh();
+        }} />}
       <CreateShipmentDrawer
         isOpen={isDrawerOpen}
         onClose={() => {

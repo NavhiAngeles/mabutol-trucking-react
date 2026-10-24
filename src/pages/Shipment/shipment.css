@@ -603,3 +603,28 @@
 .retry-btn:hover {
   background: #FEE2E2;
 }
+.booking-review-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgb(15 23 42 / 55%);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.booking-review-dialog {
+  background: white;
+  color: #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  width: min(680px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.booking-review-dialog dt { font-weight: 600; margin-top: 12px; }
+.booking-review-dialog dd { margin: 4px 0; }
+.booking-review-dialog textarea { display: block; width: 100%; min-height: 80px; box-sizing: border-box; }
+.booking-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+.booking-review-actions button { min-height: 40px; cursor: pointer; }
+.booking-review-actions button:disabled { cursor: wait; opacity: .6; }
