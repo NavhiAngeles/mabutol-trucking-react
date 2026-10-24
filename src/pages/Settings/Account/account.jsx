@@ -3,6 +3,7 @@ import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
 import './account.css';
+import '../../../components/accountSecurityDesign.css';
 
 const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
 
@@ -69,9 +70,9 @@ function AccountDetails() {
     } catch (cause) { if (mounted.current) setActionError(cause.message); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
   }
-  if (!profile) return <section className="content"><div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
+  if (!profile) return <section className="content account-settings"><div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
   const initials = (profile.full_name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
-  return <section className="content">
+  return <section className="content account-settings">
     <div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>
     {error && <p role="alert" className="pw-error">{error} <button onClick={() => setReload(value => value + 1)}>Retry</button></p>}
     {success && <p role="status" className="pw-success">{success}</p>}
@@ -85,8 +86,8 @@ function AccountDetails() {
               <div className="info-group"><label>FULL NAME</label><span>{profile.full_name || 'Not set'}</span></div>
               <div className="info-group"><label>EMAIL ADDRESS</label><span>{profile.email}</span><p className="field-hint">Contact support to change your email.</p></div>
               <div className="info-group"><label>ROLE</label><span className="role-badge">{profile.role}</span></div>
+              <div className="info-group"><label>CONTACT NUMBER</label><span>{profile.phone || 'Not set'}</span></div>
             </div>
-            <div className="profile-info"><div className="info-group"><label>CONTACT NUMBER</label><span>{profile.phone || 'Not set'}</span></div></div>
           </div><div className="card-bottom-accent" />
         </div>
         <div className="settings-card"><div className="card-header"><h3>Password & Authentication</h3></div>

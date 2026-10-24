@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
 import { securityApi } from '../../../services/securityService';
 import './security.css';
+import '../../../components/accountSecurityDesign.css';
 
 export default function Security() {
   const { user } = useAuth();
@@ -79,7 +80,7 @@ function SecurityDetails() {
     {loadError && <p role="alert" className="pw-error">{loadError} <button onClick={refresh}>Retry</button></p>}
     {!snapshot && !loadError && <p role="status">Loading security settings...</p>}
     {error && !modal && <p role="alert" className="pw-error">{error}</p>}
-    {snapshot && <>
+    {snapshot && <div className="security-card-grid">
       <div className="settings-card"><h3>Authentication</h3>
         <div className="security-row"><div><strong>Password</strong><p>Password change date is unavailable.</p></div><button className="primary-btn" onClick={() => open('password')}>Update Password</button></div>
         <div className="security-row"><div><strong>Two-Factor Authentication (2FA)</strong><p>{verified.length ? 'Authenticator enabled' : 'No verified authenticator'}</p><p>Authenticator codes are requested before office pages on future sign-ins. Keep access to your authenticator; self-service recovery is unavailable.</p></div>
@@ -89,7 +90,7 @@ function SecurityDetails() {
       </div>
       <div className="settings-card"><h3>Sessions</h3><p>Signed in as {snapshot.email}.</p><p>Device, location, IP address, and individual session history are unavailable here.</p><p>Signing out other sessions revokes their refresh tokens. Existing access tokens may remain valid until expiry.</p><button className="danger-btn" onClick={() => open('sessions')}>Sign Out Other Sessions</button></div>
       <div className="settings-card"><h3>Login Activity</h3><p>Last sign-in: {snapshot.lastSignIn ? new Date(snapshot.lastSignIn).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable'}</p><p>Failed sign-ins and full login history are unavailable here.</p><button onClick={refresh} disabled={busy}>Refresh security settings</button></div>
-    </>}
+    </div>}
     {modal && <div className="pw-backdrop"><form className="pw-modal" role="dialog" aria-modal="true" aria-labelledby="security-dialog-title" onSubmit={submit}>
       <fieldset disabled={busy}><div className="pw-modal-header"><h3 id="security-dialog-title">{modal === 'password' ? 'Update Password' : modal === 'sessions' ? 'Sign Out Other Sessions' : modal === 'remove' ? 'Remove Authenticator' : 'Set Up Authenticator'}</h3></div>
       <div className="pw-modal-body">
