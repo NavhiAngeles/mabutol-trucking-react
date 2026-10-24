@@ -463,7 +463,7 @@ export default function Fleet() {
                         ) : (truck.displayStatus || truck.status) === "available" ? (
                           <span className="status-pill status-active">● AVAILABLE</span>
                         ) : (
-                          <span className="status-pill status-warning">● {(truck.status || "OFFLINE").toUpperCase()}</span>
+                          <span className="status-pill status-warning">● {(truck.displayStatus || truck.status || "OFFLINE").replaceAll('_', ' ').toUpperCase()}</span>
                         )}
                       </td>
                       <td>

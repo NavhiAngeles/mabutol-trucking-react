@@ -563,6 +563,7 @@
 
 .vehicle-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   padding: 14px 16px;
   border-radius: 8px;
@@ -600,6 +601,31 @@
 
 .vehicle-card-details {
   flex: 1;
+  min-width: 0;
+}
+
+.vehicle-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.vehicle-fleet-id-tag {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.vehicle-card > .error-alert-text {
+  position: static;
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+
+.vehicle-card-details .error-alert-text {
+  position: static;
+  margin-top: 6px;
+  color: #EF4444;
 }
 
 .vehicle-card-details h4 {

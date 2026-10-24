@@ -5,6 +5,14 @@ import { dispatchReadyIds } from './operationalStats';
 import { latestTracking } from './dashboardAnalytics.js';
 
 export const FLEET_TABLES = ['trucks', 'drivers', 'deliveries', 'maintenance_records', 'compliance_documents', 'tracking_logs', 'vehicle_types', 'cargo_categories', 'truck_cargo_categories'];
+export function fleetDisplayStatus(truck, deliveries, maintenanceRecords) {
+  if (truck.status === 'maintenance' || maintenanceRecords.some(m => m.truck_id === truck.id && m.status === 'in_progress')) return 'maintenance';
+  const trips = deliveries.filter(d => d.truck_id === truck.id);
+  if (trips.some(d => d.status === 'in_transit')) return 'on_trip';
+  if (trips.some(d => d.status === 'loading')) return 'loading';
+  if (trips.some(d => d.status === 'assigned')) return 'reserved';
+  return truck.status;
+}
 export async function getFleetSnapshot() {
   const [trucks, drivers, maintenanceRecords, vehicleTypes, cargoCategories, truckComplianceRows, driverComplianceRows, deliveries, gps] = await Promise.all([
     getTrucks(), getDrivers(), getMaintenanceRecords(), getVehicleTypes(), getCargoCategories(), getTruckComplianceRows(), getDriverComplianceRows(),
@@ -18,7 +26,7 @@ export async function getFleetSnapshot() {
   const servicing = new Set(maintenanceRecords.filter(m => m.status === 'in_progress').map(m => m.truck_id));
   const assignedDrivers = new Set(trucks.map(t => t.drivers?.id).filter(Boolean));
   return {
-    trucks: trucks.map(t => ({ ...t, displayStatus: t.status === 'maintenance' || servicing.has(t.id) ? 'maintenance' : t.status === 'on_trip' || activeTrucks.has(t.id) ? 'on_trip' : t.status })), drivers: drivers.map(d => ({ ...d, location: locations.find(l => l.driver_id === d.id), reserved: reservedDrivers.has(d.id) })),
+    trucks: trucks.map(t => ({ ...t, displayStatus: fleetDisplayStatus(t, deliveries, maintenanceRecords) })), drivers: drivers.map(d => ({ ...d, location: locations.find(l => l.driver_id === d.id), reserved: reservedDrivers.has(d.id) })),
     maintenanceRecords, vehicleTypes, cargoCategories, truckComplianceRows, driverComplianceRows,
     assignableTrucks: trucks.filter(t => ready.has(t.id) && !t.drivers),
     assignableDrivers: drivers.filter(d => d.status === 'available' && !reservedDrivers.has(d.id) && !assignedDrivers.has(d.id)),

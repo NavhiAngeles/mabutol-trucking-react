@@ -11,10 +11,24 @@ function service({ rpcError = null, uploadError = null, cleanupError = null, sig
   } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL('./fleetWorkspaceService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
-  vm.runInContext(source + '\nthis.api={saveFleetRecord,validateComplianceFile};', context);
+  vm.runInContext(source + '\nthis.api={saveFleetRecord,validateComplianceFile,fleetDisplayStatus};', context);
   return { ...context.api, uploads, removed, saves };
 }
 const file = { type: 'application/pdf', size: 20 };
+test('fleet distinguishes reservations and loading from transit without changing stored status', () => {
+  const { fleetDisplayStatus } = service();
+  const truck = { id: 'truck', status: 'available' };
+  const delivery = status => [{ truck_id: truck.id, status }];
+  assert.equal(fleetDisplayStatus(truck, delivery('assigned'), []), 'reserved');
+  assert.equal(fleetDisplayStatus(truck, delivery('loading'), []), 'loading');
+  assert.equal(fleetDisplayStatus(truck, delivery('in_transit'), []), 'on_trip');
+  assert.equal(fleetDisplayStatus(truck, delivery('completed'), []), 'available');
+  assert.equal(fleetDisplayStatus(truck, delivery('cancelled'), []), 'available');
+  assert.equal(fleetDisplayStatus(truck, [{ truck_id: 'other', status: 'in_transit' }], []), 'available');
+  assert.equal(fleetDisplayStatus(truck, delivery('assigned'), [{ truck_id: truck.id, status: 'in_progress' }]), 'maintenance');
+  assert.equal(fleetDisplayStatus({ ...truck, status: 'on_trip' }, [], []), 'on_trip');
+  assert.equal(truck.status, 'available');
+});
 test('fleet save stages unique private file, atomically links docs and sends optimistic version', async () => {
   const api = service();
   const result = await api.saveFleetRecord('truck', { id: 'truck', updated_at: 'version' }, { model: 'Truck' }, { categories: ['cargo'], documents: [{ doc_type: 'lto_registration', file }] });

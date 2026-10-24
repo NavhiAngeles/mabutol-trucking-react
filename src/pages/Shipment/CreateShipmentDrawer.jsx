@@ -1356,6 +1356,11 @@ export default function CreateShipmentDrawer({
         </div>
 
 
+        {vehicles.length > 0 && vehicles.every(vehicle => vehicleBaseRate(vehicle, 0) === null) && (
+          <p className="field-info-text" role="alert">
+            No current vehicle pricing is configured. Add active vehicle rates in Settings → Pricing before selecting a vehicle.
+          </p>
+        )}
         <div className="vehicle-selection-grid">
           {vehicles.map((truck) => {
             const cargoWeight = Number(form.weight);
