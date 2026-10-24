@@ -332,3 +332,24 @@ MISC
   font-size: 13px;
   padding: 32px 20px;
 }
+/* Real record values and route paging. */
+.revenue-report-live .filters { flex-wrap: wrap; align-items: center; }
+.revenue-report-live .rv-date { color: #64748B; font-size: 13px; }
+.revenue-report-live .rv-notes { color: #64748B; font-size: 13px; line-height: 1.6; margin: 12px 0; }
+.revenue-report-live .stat-card h2 { overflow-wrap: anywhere; }
+.revenue-report-live .stat-card p, .revenue-report-live small { color: #64748B; font-size: 12px; line-height: 1.5; }
+.revenue-report-live small { display: block; }
+.revenue-report-live .rv-trend { width: 100%; height: auto; display: block; }
+.revenue-report-live .rv-trend text { font-size: 11px; fill: #64748B; }
+.revenue-report-live .rv-cost-list { padding: 0; list-style: none; display: grid; gap: 18px; }
+.revenue-report-live .rv-cost-list li > div:first-child { display: flex; justify-content: space-between; gap: 12px; }
+.revenue-report-live .rv-cost-track { height: 12px; background: #E5E7EB; border-radius: 6px; margin-top: 8px; }
+.revenue-report-live .rv-cost-track i { display: block; height: 100%; background: #0F172A; border-radius: inherit; }
+.revenue-report-live .rv-table-scroll { overflow-x: auto; }
+.revenue-report-live .rv-route-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.revenue-report-live .rv-route-search input { border: 1px solid #CBD5E1; border-radius: 6px; padding: 8px; max-width: 100%; }
+.revenue-report-live .rv-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; }
+.revenue-report-live .rv-pager button { padding: 6px 10px; border: 1px solid #CBD5E1; border-radius: 6px; background: white; }
+.revenue-report-live .rv-pager button:disabled { opacity: .45; }
+.revenue-report-live .customer-row { gap: 16px; }
+.revenue-report-live .customer-row span { overflow-wrap: anywhere; }

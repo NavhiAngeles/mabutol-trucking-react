@@ -89,7 +89,18 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const apiKey = Deno.env.get("ORS_API_KEY");
+    let apiKey = Deno.env.get("ORS_API_KEY")?.trim();
+
+    // The provider's example URL includes the key as a query parameter.
+    // Accept that copied format without sending the entire URL as a credential.
+    if (apiKey?.startsWith("https://")) {
+      const example = new URL(apiKey);
+      if (["api.heigit.org", "api.openrouteservice.org"].includes(example.hostname)) {
+        apiKey = example.searchParams.get("api_key")?.trim();
+      } else {
+        return jsonResponse({ error: "Configure ORS_API_KEY with your OpenRouteService API key, not a URL." }, 500);
+      }
+    }
 
     if (!apiKey) {
       return jsonResponse(
@@ -109,7 +120,7 @@ Deno.serve(async (request) => {
 
     // Use the standard JSON endpoint instead of /geojson.
     const response = await fetch(
-      "https://api.openrouteservice.org/v2/directions/driving-hgv",
+      "https://api.heigit.org/openrouteservice/v2/directions/driving-hgv",
       {
         method: "POST",
         headers: {
@@ -157,6 +168,7 @@ Deno.serve(async (request) => {
         {
           error:
             result?.error?.message ||
+            (typeof result?.error === "string" ? result.error : null) ||
             result?.message ||
             `Routing failed (${response.status}).`,
           upstreamStatus: response.status,
