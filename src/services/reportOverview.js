@@ -48,7 +48,7 @@ export function summarizeOverview(rows, range) {
   for (const row of rows.compliance) {
     const states = row.docs.map(d => d.badge.state);
     if (states.every(s => s === 'valid')) compliance.verified++;
-    else if (states.some(s => ['missing', 'expired', 'rejected'].includes(s))) compliance.attention++;
+    else if (states.some(s => ['missing', 'expired', 'rejected', 'critical'].includes(s))) compliance.attention++;
     else if (states.includes('pending_review')) compliance.pending++;
     else compliance.expiring++;
   }

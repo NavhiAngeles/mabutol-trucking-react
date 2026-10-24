@@ -139,6 +139,7 @@ export default function Fleet() {
   }, [params]);
 
   const getDocBadgeClass = (state) => {
+    if (state === "critical") return "doc-pill doc-critical";
     if (state === "valid") return "doc-pill doc-success";
     if (state === "expiring_soon" || state === "pending_review") return "doc-pill doc-warning";
     return "doc-pill doc-warning";

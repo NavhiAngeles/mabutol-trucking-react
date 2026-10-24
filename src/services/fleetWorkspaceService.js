@@ -4,7 +4,7 @@ import { fetchOperationalRows } from './dashboardService';
 import { dispatchReadyIds } from './operationalStats';
 import { latestTracking } from './dashboardAnalytics.js';
 
-export const FLEET_TABLES = ['trucks', 'drivers', 'deliveries', 'maintenance_records', 'compliance_documents', 'tracking_logs', 'vehicle_types', 'cargo_categories', 'truck_cargo_categories'];
+export const FLEET_TABLES = ['trucks', 'drivers', 'deliveries', 'maintenance_records', 'compliance_documents', 'tracking_logs', 'vehicle_types', 'cargo_categories', 'truck_cargo_categories', 'system_settings'];
 export function fleetDisplayStatus(truck, deliveries, maintenanceRecords) {
   if (truck.status === 'maintenance' || maintenanceRecords.some(m => m.truck_id === truck.id && m.status === 'in_progress')) return 'maintenance';
   const trips = deliveries.filter(d => d.truck_id === truck.id);

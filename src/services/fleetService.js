@@ -3,6 +3,8 @@
 // Adjust the import path below to wherever your Supabase client actually lives.
 import { supabase } from "./supabaseClient";
 import { complianceState, latestDocuments } from "./dashboardAnalytics.js";
+import { getComplianceConfiguration } from './complianceThresholdService';
+import { thresholdState } from './complianceThresholds.js';
 
 async function allRows(table, columns, configure = q => q) {
  const rows = [];
@@ -302,9 +304,9 @@ const MAINTENANCE_SELECT = `
 
 /** Fetch maintenance records, most recently scheduled first. */
 export async function getMaintenanceRecords() {
-    const data = await allRows("maintenance_records", MAINTENANCE_SELECT);
+    const [data, configuration] = await Promise.all([allRows("maintenance_records", MAINTENANCE_SELECT), getComplianceConfiguration()]);
     data.sort((a,b) => b.scheduled_date.localeCompare(a.scheduled_date));
-    return data;
+    return data.map(row => ({ ...row, warningState: row.status === 'scheduled' && configuration.thresholds?.maintenance ? thresholdState(row.scheduled_date, 'maintenance', configuration) : null }));
 }
 
 /** Fetch maintenance records for a single truck (e.g. a vehicle detail view). */
@@ -404,9 +406,9 @@ export const DRIVER_COMPLIANCE_DOC_TYPES = [
  * into a UI-friendly badge state. Pure function — safe to reuse in the
  * viewmodel or directly in a component.
  */
-export function getComplianceDocBadge(doc, { now = Date.now() } = {}) {
-    const state = complianceState(doc, now);
-    const labels = { missing: 'Missing', rejected: 'Rejected', expired: 'Expired', expiring_soon: 'Expiring Soon', pending_review: 'Pending Review', valid: 'Valid' };
+export function getComplianceDocBadge(doc, { now = Date.now(), configuration = null } = {}) {
+    const state = complianceState(doc, now, configuration);
+    const labels = { missing: 'Missing', rejected: 'Rejected', expired: 'Expired', critical: 'Critical — Due Soon', expiring_soon: 'Expiring Soon', pending_review: 'Pending Review', valid: 'Valid' };
     return { state, label: labels[state] };
 }
 
@@ -427,9 +429,10 @@ export async function getComplianceDocumentsForDriver(driverId) {
  * overall status.
  */
 export async function getTruckComplianceRows() {
-    const [trucks, docs] = await Promise.all([
+    const [trucks, docs, configuration] = await Promise.all([
       allRows("trucks", "id, plate_number, model, model_year"),
       allRows("compliance_documents", "*", q => q.not("truck_id", "is", null).in("doc_type", TRUCK_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
+      getComplianceConfiguration(),
     ]);
 
     const latest = latestDocuments(docs);
@@ -437,9 +440,9 @@ export async function getTruckComplianceRows() {
     return trucks.map((truck) => {
         const docsForTruck = TRUCK_COMPLIANCE_DOC_TYPES.map(({ docType, label }) => {
             const matches = latest.filter(d => d.truck_id === truck.id && d.doc_type === docType);
-            const severity = { rejected: 0, expired: 1, missing: 2, pending_review: 3, expiring_soon: 4, valid: 5 };
-            const doc = matches.sort((a, b) => severity[getComplianceDocBadge(a).state] - severity[getComplianceDocBadge(b).state])[0];
-            return { docType, label, doc, badge: getComplianceDocBadge(doc) };
+            const severity = { rejected: 0, expired: 1, critical: 2, missing: 3, pending_review: 4, expiring_soon: 5, valid: 6 };
+            const doc = matches.sort((a, b) => severity[getComplianceDocBadge(a, { configuration }).state] - severity[getComplianceDocBadge(b, { configuration }).state])[0];
+            return { docType, label, doc, badge: getComplianceDocBadge(doc, { configuration }) };
         });
 
         const overall =
@@ -454,9 +457,10 @@ export async function getTruckComplianceRows() {
  * getTruckComplianceRows() but for license/medical/NBI.
  */
 export async function getDriverComplianceRows() {
-    const [drivers, docs] = await Promise.all([
+    const [drivers, docs, configuration] = await Promise.all([
       allRows("drivers", "id, full_name"),
       allRows("compliance_documents", "*", q => q.not("driver_id", "is", null).in("doc_type", DRIVER_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
+      getComplianceConfiguration(),
     ]);
 
     const latestByDriverAndType = new Map();
@@ -471,7 +475,7 @@ export async function getDriverComplianceRows() {
     return drivers.map((driver) => {
         const docsForDriver = DRIVER_COMPLIANCE_DOC_TYPES.map(({ docType, label }) => {
             const doc = latestByDriverAndType.get(`${driver.id}:${docType}`);
-            return { docType, label, doc, badge: getComplianceDocBadge(doc) };
+            return { docType, label, doc, badge: getComplianceDocBadge(doc, { configuration }) };
         });
 
         const overall =

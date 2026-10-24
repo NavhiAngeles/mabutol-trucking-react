@@ -116,3 +116,11 @@ INPUTS
   font-size: 13px;
   color: #64748B;
 }
+.compliance-threshold-settings .threshold-row { gap: 20px; }
+.compliance-threshold-settings .threshold-actions { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+.compliance-threshold-settings .threshold-error { color: #991b1b; margin-top: 16px; }
+.compliance-threshold-settings .threshold-success { color: #166534; margin-top: 16px; }
+@media (max-width: 950px) {
+  .compliance-threshold-settings .threshold-row { flex-direction: column; align-items: flex-start; }
+  .compliance-threshold-settings .threshold-inputs { flex-wrap: wrap; gap: 16px; }
+}

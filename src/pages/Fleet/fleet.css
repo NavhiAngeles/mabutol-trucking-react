@@ -1121,3 +1121,4 @@ MODAL STRUCTURAL CONFIGURATIONS
 .fleet-dialog { margin: auto; box-sizing: border-box; }
 .fleet-table-scroll { width: 100%; overflow-x: auto; }
 .fleet-table-scroll .premium-table { min-width: 760px; }
+.doc-pill.doc-critical { background-color: #FEE2E2; color: #991B1B; }

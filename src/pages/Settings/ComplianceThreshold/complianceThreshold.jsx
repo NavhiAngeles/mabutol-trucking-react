@@ -1,210 +1,67 @@
-import MainLayout from "../../../layouts/mainLayout";
-import "./complianceThreshold.css";
+import { useEffect, useRef, useState } from 'react';
+import MainLayout from '../../../layouts/mainLayout';
+import OfficeTools from '../../../components/OfficeTools';
+import { useAuth } from '../../../context/AuthContext';
+import { complianceThresholdApi } from '../../../services/complianceThresholdService';
+import { THRESHOLD_FIELDS, DEFAULT_THRESHOLDS, validateThresholds } from '../../../services/complianceThresholds.js';
+import './complianceThreshold.css';
 
 export default function ComplianceThresholds() {
-  return (
-    <MainLayout>
-      {/* Topbar */}
-      <header className="topbar">
-        <input
-          type="text"
-          placeholder="Search..."
-        />
-
-        <div className="topbar-right">
-          <button>🔔</button>
-          <div className="avatar">
-            <img 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
-              alt="User Profile" 
-              className="avatar-img" />
-          </div>
-        </div>
-      </header>
-
-      {/* Content */}
-      <section className="content">
-        {/* Header */}
-        <div className="page-header">
-          <div>
-            <h2>
-              Settings — Compliance Thresholds
-            </h2>
-            <p>
-              Configure automated warnings
-              for critical operational
-              documents.
-            </p>
-          </div>
-        </div>
-
-        {/* Main Card */}
-        <div className="settings-card">
-          <p className="intro-text">
-            Configure warning lead times
-            for driver and vehicle
-            compliance documents.
-          </p>
-
-          {/* Driver Docs */}
-          <div className="section-block">
-            <div className="section-title">
-              DRIVER DOCUMENTATION
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>Driver’s License</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="60" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="15" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>Medical Certificate</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="45" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="10" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>NBI Clearance</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="30" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="7" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Vehicle Docs */}
-          <div className="section-block">
-            <div className="section-title">
-              VEHICLE DOCUMENTATION
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>OR/CR</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="45" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="15" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>Insurance</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="60" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="15" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>LTFRB Permit</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="60" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="15" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>Emission Test</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="21" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="7" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="threshold-row">
-              <div className="threshold-info">
-                <strong>Maintenance Due</strong>
-              </div>
-              <div className="threshold-inputs">
-                <div className="input-wrap">
-                  <label>First Alert</label>
-                  <input type="text" defaultValue="14" />
-                  <span>days</span>
-                </div>
-                <div className="input-wrap">
-                  <label>Critical Alert</label>
-                  <input type="text" defaultValue="3" />
-                  <span>days</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </MainLayout>
-  );
+  const { user, role } = useAuth();
+  return <MainLayout><header className="topbar"><h1 style={{ fontSize: 18 }}>Compliance Settings</h1><OfficeTools /></header><ThresholdForm key={user?.id} role={role} /></MainLayout>;
+}
+function ThresholdForm({ role }) {
+  const [snapshot, setSnapshot] = useState(null);
+  const [form, setForm] = useState(null);
+  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
+  const operation = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    let disposed = false;
+    complianceThresholdApi.load().then(value => {
+      if (!disposed) { setSnapshot(value); setForm(value.thresholds || DEFAULT_THRESHOLDS); setLoadError(''); }
+    }).catch(cause => { if (!disposed) setLoadError(cause.message); });
+    return () => { disposed = true; };
+  }, [reload]);
+  function refresh() {
+    if (operation.current) return;
+    setSnapshot(null); setForm(null); setError(''); setLoadError(''); setNotice(''); setReload(value => value + 1);
+  }
+  async function submit(event) {
+    event.preventDefault();
+    if (operation.current || role !== 'admin') return;
+    let value;
+    try { value = validateThresholds(form); } catch (cause) { setError(cause.message); return; }
+    operation.current = true; setBusy(true); setError(''); setNotice('');
+    try {
+      const saved = await complianceThresholdApi.save(value, snapshot);
+      if (mounted.current) { setSnapshot(saved); setForm(saved.thresholds); setNotice('Compliance thresholds saved. Dashboard, Fleet and Reports use these on their next refresh.'); }
+    } catch (cause) { if (mounted.current) setError(cause.message); }
+    finally { operation.current = false; if (mounted.current) setBusy(false); }
+  }
+  const dirty = snapshot && JSON.stringify(form) !== JSON.stringify(snapshot.thresholds || DEFAULT_THRESHOLDS);
+  return <section className="content compliance-threshold-settings">
+    <div className="page-header"><h2>Settings — Compliance Thresholds</h2><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div>
+    {loadError ? <div role="alert"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status">Loading compliance thresholds…</p> : <form onSubmit={submit} className="settings-card">
+      <p className="intro-text">First Alert marks an approaching expiry or service date. Critical Alert marks the final warning window, including the due date. Past dates remain expired or overdue. All dates use Philippine time.</p>
+      {!snapshot.thresholds && <p role="status">No per-document thresholds are saved. Documents currently use the existing {snapshot.legacyDays}-day warning window; maintenance warnings currently cover overdue work only. The values below are suggested settings and take effect only after an administrator saves them.</p>}
+      {role !== 'admin' && <p>Only administrators can edit these shared settings.</p>}
+      <p>These settings control on-screen Dashboard, Fleet and Report indicators. They do not send email, SMS or push alerts, or change dispatch eligibility. The standalone Compliance page is not yet connected.</p>
+      <fieldset disabled={busy || role !== 'admin'} style={{ border: 0, padding: 0, margin: 0 }}>
+        {['DRIVER DOCUMENTATION', 'VEHICLE DOCUMENTATION'].map((title, index) => <div className="section-block" key={title}><h3 className="section-title">{title}</h3>{THRESHOLD_FIELDS.slice(index === 0 ? 0 : 3, index === 0 ? 3 : undefined).map(([key, label]) => <div className="threshold-row" key={key}><div className="threshold-info"><strong>{label}</strong></div><div className="threshold-inputs">{[['first', 'First Alert'], ['critical', 'Critical Alert']].map(([field, caption]) => <div className="input-wrap" key={field}><label htmlFor={`${key}-${field}`}>{caption}</label><input id={`${key}-${field}`} aria-label={`${label} ${caption}`} type="number" min={field === 'first' ? 1 : 0} max={365} step={1} required value={form[key][field]} onChange={event => {
+          const raw = event.target.value;
+          setForm(previous => ({ ...previous, [key]: { ...previous[key], [field]: raw === '' ? '' : Number(raw) } })); setNotice('');
+        }} /><span>days</span></div>)}</div></div>)}</div>)}
+      </fieldset>
+      {error && <p role="alert" className="threshold-error">{error}</p>}
+      {notice && <p role="status" className="threshold-success">{notice}</p>}
+      {dirty && <p role="status">Unsaved changes.</p>}
+      <div className="threshold-actions"><button type="submit" disabled={busy || role !== 'admin'}>{busy ? 'Saving…' : 'Save Thresholds'}</button><button type="button" disabled={busy} onClick={refresh}>Reload Saved Values</button></div>
+    </form>}
+  </section>;
 }

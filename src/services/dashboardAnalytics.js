@@ -1,4 +1,5 @@
 import { dispatchReadyIds } from './operationalStats.js';
+import { thresholdState } from './complianceThresholds.js';
 
 export const manilaDate = value => {
   const date = new Date(value);
@@ -6,13 +7,11 @@ export const manilaDate = value => {
     timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(date);
 };
-export function complianceState(doc, now = Date.now()) {
+export function complianceState(doc, now = Date.now(), configuration = null) {
   if (!doc) return 'missing';
   if (doc.review_status === 'rejected') return 'rejected';
-  const today = manilaDate(now);
-  if (doc.expiry_date && doc.expiry_date < today) return 'expired';
-  const cutoff = manilaDate(now + 30 * 86400000);
-  if (doc.expiry_date && doc.expiry_date <= cutoff) return 'expiring_soon';
+  const expiry = thresholdState(doc.expiry_date, doc.doc_type, configuration, now);
+  if (expiry !== 'valid') return expiry;
   return doc.review_status === 'approved' ? 'valid' : 'pending_review';
 }
 export function latestDocuments(docs) {
@@ -23,7 +22,7 @@ export function latestDocuments(docs) {
   }
   return [...latest.values()];
 }
-export function calculateDashboardAnalytics(shipments, trucks, deliveries, maintenance, docs, now = Date.now()) {
+export function calculateDashboardAnalytics(shipments, trucks, deliveries, maintenance, docs, now = Date.now(), configuration = null) {
   const today = manilaDate(now);
   const trends = Array.from({ length: 7 }, (_, index) => {
     const instant = now - (6 - index) * 86400000;
@@ -44,10 +43,12 @@ export function calculateDashboardAnalytics(shipments, trucks, deliveries, maint
     else resources.other++;
   }
   const compliance = { expiring: 0, expired: 0, review: 0 };
+  let criticalDocuments = 0;
   for (const doc of latestDocuments(docs)) {
-    const state = complianceState(doc, now);
+    const state = complianceState(doc, now, configuration);
     if (state === 'expired') compliance.expired++;
-    if (state === 'expiring_soon') compliance.expiring++;
+    if (state === 'critical') criticalDocuments++;
+    if (state === 'expiring_soon' || state === 'critical') compliance.expiring++;
     if (doc.review_status === 'pending_review') compliance.review++;
   }
   const durations = deliveries.filter(d => d.status === 'delivered' && d.departed_at && d.arrived_at)
@@ -55,11 +56,16 @@ export function calculateDashboardAnalytics(shipments, trucks, deliveries, maint
   const alerts = [];
   const delayed = shipments.filter(s => s.status === 'delayed');
   if (delayed.length) alerts.push({ id: 'delays', color: 'red', title: 'Delayed shipments', body: delayed.length + ' shipment(s) need attention.', path: '/shipment?tab=delayed', action: 'View shipments' });
-  if (compliance.expired || compliance.expiring || compliance.review) alerts.push({ id: 'compliance', color: 'orange', title: 'Compliance attention', body: compliance.expired + ' expired · ' + compliance.expiring + ' expiring within 30 days · ' + compliance.review + ' awaiting review', path: '/fleet?view=compliance', action: 'View compliance' });
+  if (compliance.expired || compliance.expiring || compliance.review) alerts.push({ id: 'compliance', color: criticalDocuments ? 'red' : 'orange', title: 'Compliance attention', body: compliance.expired + ' expired · ' + compliance.expiring + ' within warning thresholds (' + criticalDocuments + ' critical) · ' + compliance.review + ' awaiting review', path: '/fleet?view=compliance', action: 'View compliance' });
   const pending = shipments.filter(s => s.status === 'pending');
   if (pending.length) alerts.push({ id: 'bookings', color: 'blue', title: 'Booking requests', body: pending.length + ' booking(s) pending review.', path: '/shipment?tab=all&status=pending', action: 'Review bookings' });
   const overdue = maintenance.filter(m => m.status === 'scheduled' && m.scheduled_date < today);
   if (overdue.length) alerts.push({ id: 'maintenance', color: 'orange', title: 'Overdue maintenance', body: overdue.length + ' scheduled service(s) are overdue.', path: '/fleet?view=maintenance', action: 'View maintenance' });
+  if (configuration?.thresholds?.maintenance) {
+    const upcoming = maintenance.filter(m => m.status === 'scheduled' && ['expiring_soon', 'critical'].includes(thresholdState(m.scheduled_date, 'maintenance', configuration, now)));
+    const critical = upcoming.filter(m => thresholdState(m.scheduled_date, 'maintenance', configuration, now) === 'critical').length;
+    if (upcoming.length) alerts.push({ id: 'maintenance-due', color: critical ? 'red' : 'orange', title: 'Maintenance due soon', body: upcoming.length + ' scheduled service(s) within warning thresholds (' + critical + ' critical).', path: '/fleet?view=maintenance', action: 'View maintenance' });
+  }
   return { trends, resources, compliance, alerts, completedToday: completed.filter(s => manilaDate(s.actual_delivery_at) === today).length,
     onTimeRate: timed.length ? Math.round(timed.filter(s => Date.parse(s.actual_delivery_at) <= Date.parse(s.estimated_arrival)).length / timed.length * 1000) / 10 : null,
     timedDeliveries: timed.length, averageTripHours: durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : null };

@@ -2,7 +2,7 @@ import { fetchOperationalRows } from './dashboardService';
 import { getTruckComplianceRows, getDriverComplianceRows } from './fleetService';
 import { calculateDashboardAnalytics } from './dashboardAnalytics.js';
 
-export const REPORT_TABLES = ['shipments', 'deliveries', 'drivers', 'trucks', 'maintenance_records', 'compliance_documents'];
+export const REPORT_TABLES = ['shipments', 'deliveries', 'drivers', 'trucks', 'maintenance_records', 'compliance_documents', 'system_settings'];
 export async function getReportOverview() {
   const [shipments, deliveries, drivers, trucks, maintenance, truckCompliance, driverCompliance] = await Promise.all([
     fetchOperationalRows('shipments', 'id,status,created_at,estimated_arrival,actual_delivery_at,final_amount'),
