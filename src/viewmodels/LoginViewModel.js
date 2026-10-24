@@ -49,7 +49,7 @@ export function useLoginViewModel() {
     setEmail(value);
 
     if (errors.email) {
-      setErrors((prev) => ({ ...prev, password: "" }));
+      setErrors((prev) => ({ ...prev, email: "" }));
     }
   }
 
