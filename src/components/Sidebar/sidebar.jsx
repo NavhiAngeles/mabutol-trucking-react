@@ -16,8 +16,9 @@ export default function Sidebar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path;
-  const isParentActive = (prefix) => location.pathname.startsWith(prefix);
+  const pathname = location.pathname.toLowerCase();
+  const isActive = (path) => pathname === path.toLowerCase();
+  const isParentActive = (prefix) => pathname.startsWith(prefix.toLowerCase());
 
   // Synchronize menu open states and clean up highlights dynamically
   useEffect(() => {
