@@ -8,6 +8,7 @@ import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
 import { FleetEditor, ComplianceDialog } from "./FleetDialogs";
 import MaintenancePanel from "./MaintenancePanel";
+import { vehicleCategories, vehicleCategoryId } from './vehicleCategories';
 import { validateComplianceFile } from "../../services/fleetWorkspaceService";
 
 export default function Fleet() {
@@ -77,6 +78,7 @@ export default function Fleet() {
 
   // Search Filter States
   const [vehicleSearch, setVehicleSearch] = useState("");
+  const [vehicleCategory, setVehicleCategory] = useState('all');
   const [vehicleComplianceSearch, setVehicleComplianceSearch] = useState("");
   const [driverSearch, setDriverSearch] = useState("");
 
@@ -253,10 +255,14 @@ export default function Fleet() {
   };
 
   // Filtered Lists
-  const filteredTrucks = trucks.filter((truck) => {
-    if (readyOnly && !readyIds?.has(truck.id)) return false;
+  const categoryTrucks = readyOnly ? trucks.filter(truck => readyIds?.has(truck.id)) : trucks;
+  const categories = vehicleCategories(categoryTrucks, vehicleTypes);
+  const activeCategory = categories.some(category => category.id === vehicleCategory) ? vehicleCategory : 'all';
+  const categoryCountsUnavailable = trucksLoading || (readyOnly && !readyIds) || (fleet.error && !fleet.hasData);
+  const filteredTrucks = categoryTrucks.filter((truck) => {
+    if (activeCategory !== 'all' && vehicleCategoryId(truck) !== activeCategory) return false;
     if (!vehicleSearch.trim()) return true;
-    const q = vehicleSearch.toLowerCase();
+    const q = vehicleSearch.trim().toLowerCase();
     return (
       truck.plate_number?.toLowerCase().includes(q) ||
       truck.model?.toLowerCase().includes(q) ||
@@ -407,7 +413,15 @@ export default function Fleet() {
                 />
               </div>
             </div>
-            <div className="fleet-table-scroll"><table className="premium-table">
+            <nav className="fleet-vehicle-categories" aria-label="Vehicle categories">
+              {categories.map(category => <button key={category.id} type="button"
+                className={`fleet-vehicle-category${activeCategory === category.id ? ' active' : ''}`}
+                aria-pressed={activeCategory === category.id} aria-controls="fleet-vehicle-details"
+                onClick={() => setVehicleCategory(category.id)}>
+                {category.label}<span className="fleet-category-count">{categoryCountsUnavailable ? '—' : category.count}</span>
+              </button>)}
+            </nav>
+            <div className="fleet-table-scroll" id="fleet-vehicle-details"><table className="premium-table">
               <thead>
                 <tr>
                   <th>VEHICLE</th>
@@ -428,7 +442,7 @@ export default function Fleet() {
                 ) : filteredTrucks.length === 0 ? (
                   <tr>
                     <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      {fleet.error ? "Vehicle data unavailable; retry above." : vehicleSearch ? "No vehicles matching search filter." : "No vehicles registered in fleet yet."}
+                      {fleet.error ? "Vehicle data unavailable; retry above." : vehicleSearch.trim() || activeCategory !== 'all' ? "No vehicles match this category and search." : readyOnly ? "No dispatch-ready vehicles." : "No vehicles registered in fleet yet."}
                     </td>
                   </tr>
                 ) : (
