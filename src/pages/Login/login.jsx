@@ -15,6 +15,7 @@ export default function Login() {
   } = useLoginViewModel();
 
   const [showPassword, setShowPassword] = useState(false);
+  const isPending = status === "loading" || status === "success";
 
   return (
     <div className="login-page">
@@ -38,7 +39,7 @@ export default function Login() {
             <p>Authenticate to manage fleet operations.</p>
           </header>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} aria-busy={status === "loading"}>
             <div className="form-group">
               <label htmlFor="email">EMAIL ADDRESS</label>
               <div className="input-wrapper">
@@ -48,6 +49,7 @@ export default function Login() {
                   id="email"
                   placeholder="name@domain.com"
                   value={email}
+                  disabled={isPending}
                   onChange={(e) => handleEmailChange(e.target.value)}
                 />
               </div>
@@ -84,6 +86,7 @@ export default function Login() {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   value={password}
+                  disabled={isPending}
                   onChange={(e) => handlePasswordChange(e.target.value)}
                 />
                 <button
@@ -117,9 +120,10 @@ export default function Login() {
               )}
             </div>
 
-            <button type="submit" className="btn-primary">
-              Sign In →
+            <button type="submit" className="btn-primary" disabled={isPending}>
+              {status === "loading" ? "Signing in…" : status === "success" ? "Signed in" : "Sign In →"}
             </button>
+            {status === "loading" && <p role="status">Signing in, please wait…</p>}
           </form>
         </section>
       </main>

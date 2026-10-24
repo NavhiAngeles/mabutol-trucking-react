@@ -2,10 +2,58 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { transformWithOxc } from 'vite';
+
+test('rapid submits make one request, failed request unlocks retry, success stays locked until redirect', async () => {
+  const states = [], lock = { current: false }, timers = [], routes = [];
+  let i = 0, calls = 0, resolve, reject;
+  const context = vm.createContext({
+    useRef: () => lock,
+    useState(initial) { const index = i++; if (!(index in states)) states[index] = initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; },
+    useNavigate: () => path => routes.push(path), setTimeout: fn => timers.push(fn),
+    signIn() { calls++; return new Promise((yes, no) => { resolve = yes; reject = no; }); },
+  });
+  vm.runInContext(fs.readFileSync(new URL('./LoginViewModel.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '') + '\nthis.render = useLoginViewModel;', context);
+  const render = () => { i = 0; return context.render(); };
+  const event = { preventDefault() {} };
+  await render().handleSubmit(event); assert.equal(calls, 0); assert.equal(lock.current, false);
+  render().handleEmailChange('office@example.test'); render().handlePasswordChange('password');
+  const submit = render().handleSubmit;
+  const first = submit(event); await submit(event); await render().handleSubmit(event);
+  assert.equal(calls, 1); assert.equal(render().status, 'loading');
+  reject(Error('Try again')); await first;
+  assert.equal(render().status, 'error'); assert.equal(render().errors.password, 'Try again');
+  const second = render().handleSubmit(event); assert.equal(calls, 2);
+  resolve(); await second; assert.equal(render().status, 'success');
+  await render().handleSubmit(event); assert.equal(calls, 2); assert.equal(timers.length, 1);
+  timers[0](); assert.deepEqual(routes, ['/dashboard']);
+});
+
+test('login page disables fields and submit during loading and success and exposes pending status', async () => {
+  const source = fs.readFileSync(new URL('../pages/Login/login.jsx', import.meta.url), 'utf8');
+  const { code } = await transformWithOxc(source, 'login.jsx', { jsx: { runtime: 'classic' } });
+  function find(node, predicate) {
+    if (!node || typeof node !== 'object') return [];
+    return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
+  }
+  for (const status of ['idle', 'loading', 'error', 'success']) {
+    const context = vm.createContext({
+      React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+      useState: value => [value, () => {}], LoginSuccessToast: () => null,
+      useLoginViewModel: () => ({ status, errors: {}, email: '', password: '' }),
+    });
+    vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Login;', context);
+    const tree = context.render(), pending = status === 'loading' || status === 'success';
+    for (const field of find(tree, n => n.type === 'input' || n.props.type === 'submit')) assert.equal(field.props.disabled, pending);
+    assert.equal(find(tree, n => n.type === 'form')[0].props['aria-busy'], status === 'loading');
+    assert.equal(find(tree, n => n.props.role === 'status').length, status === 'loading' ? 1 : 0);
+  }
+});
 
 test('editing invalid email clears its error while preserving password error and validates again on submit', async () => {
   const states = []; let i = 0, signIns = 0;
   const context = vm.createContext({
+    useRef: value => ({ current: value }),
     useState(initial) { const index = i++; if (!(index in states)) states[index] = initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; },
     useNavigate: () => () => {}, setTimeout: () => 1,
     signIn: async () => { signIns++; },
@@ -32,6 +80,7 @@ test('editing invalid email clears its error while preserving password error and
 test('login trims email but preserves password bytes set by account/security settings', async () => {
   const states = []; let i = 0, credentials;
   const context = vm.createContext({
+    useRef: value => ({ current: value }),
     useState(initial) { const index = i++; if (!(index in states)) states[index] = initial; return [states[index], value => { states[index] = typeof value === 'function' ? value(states[index]) : value; }]; },
     useNavigate: () => () => {}, setTimeout: () => 1,
     signIn: async (...args) => { credentials = args; },

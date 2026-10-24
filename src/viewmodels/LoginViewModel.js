@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signIn } from "../services/authService";
 
@@ -8,6 +8,7 @@ export function useLoginViewModel() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
+  const submissionLocked = useRef(false);
 
   function validateEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -15,6 +16,7 @@ export function useLoginViewModel() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submissionLocked.current) return;
     const trimmedEmail = email.trim();
     // Password whitespace is significant, including passwords set in Settings.
     const loginPassword = password;
@@ -26,12 +28,14 @@ export function useLoginViewModel() {
     setErrors(newErrors);
     if (newErrors.email || newErrors.password) return;
 
+    submissionLocked.current = true;
     setStatus("loading");
     try {
       await signIn(trimmedEmail, loginPassword);
       setStatus("success");
       setTimeout(() => navigate("/dashboard"), 2000);
     } catch (err) {
+      submissionLocked.current = false;
       setStatus("error");
       setErrors((prev) => ({ ...prev, password: err.message }));
     }
