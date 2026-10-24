@@ -17,6 +17,11 @@ export default function Shipment() {
 
   const {
     visibleShipments,
+    pagedShipments,
+    page,
+    pageCount,
+    pageSize,
+    setPage,
     tabs,
     stats,
     activeConfig,
@@ -491,7 +496,7 @@ export default function Shipment() {
                   </thead>
 
                   <tbody>
-                    {visibleShipments.map((s) => (
+                    {pagedShipments.map((s) => (
                       <tr key={s.dbId}>
                         <td>
                           <div className="cell-bold">
@@ -585,7 +590,7 @@ export default function Shipment() {
                   </thead>
 
                   <tbody>
-                    {visibleShipments.map((s) => (
+                    {pagedShipments.map((s) => (
                       <tr key={s.dbId}>
                         <td>
                           <div className="cell-bold">
@@ -675,19 +680,22 @@ export default function Shipment() {
               <span className="pagination-summary">
                 {visibleShipments.length === 0
                   ? "Showing 0"
-                  : `Showing 1–${visibleShipments.length}`}{" "}
+                  : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, visibleShipments.length)}`}{" "}
                 of {visibleShipments.length}{" "}
                 {activeConfig.label} Shipments
               </span>
 
-              <div className="pagination-controls-group">
-                <button
-                  type="button"
-                  className="page-number-btn active"
-                >
-                  1
+              <nav className="pagination-controls-group" aria-label="Shipment pages">
+                <button type="button" className="page-nav-btn" disabled={page === 1}
+                  onClick={() => { setPage(page - 1); setOpenMenuId(null); }}>
+                  Previous
                 </button>
-              </div>
+                <span className="pagination-summary" aria-live="polite">Page {page} of {pageCount}</span>
+                <button type="button" className="page-nav-btn" disabled={page === pageCount}
+                  onClick={() => { setPage(page + 1); setOpenMenuId(null); }}>
+                  Next
+                </button>
+              </nav>
             </div>
           </div>
         )}

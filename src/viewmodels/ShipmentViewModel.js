@@ -57,6 +57,8 @@ export const TAB_CONFIG = {
   },
 };
 
+const SHIPMENT_PAGE_SIZE = 10;
+
 const matchesSearch = (s, q) =>
   [s.id, s.cargo, s.origin, s.destination, s.driver, s.fleet, s.customer]
     .filter(Boolean)
@@ -73,6 +75,9 @@ export function useShipmentViewModel() {
   const statusFilter = params.get('status');
   const setCurrentTab = tab => setParams(previous => { previous.set('tab', tab); previous.delete('record'); previous.delete('status'); return previous; });
   const [searchQuery, setSearchQuery] = useState(params.get("q") || "");
+  const [pagination, setPagination] = useState(() => ({
+    filterKey: JSON.stringify([currentTab, searchQuery, recordFilter, statusFilter]), page: 1,
+  }));
   const loadVersion = useRef(0);
   const invalidateLoads = useCallback(() => { loadVersion.current += 1; }, []);
 
@@ -113,6 +118,16 @@ export function useShipmentViewModel() {
       .filter(s => !statusFilter || s.rawStatus === statusFilter)
       .filter((s) => !q || matchesSearch(s, q));
   }, [shipments, activeConfig, searchQuery, recordFilter, statusFilter]);
+
+  // Reset for a new filter context; clamp when live updates shrink the result set.
+  const filterKey = JSON.stringify([currentTab, searchQuery, recordFilter, statusFilter]);
+  const pageCount = Math.max(1, Math.ceil(visibleShipments.length / SHIPMENT_PAGE_SIZE));
+  const page = Math.min(pagination.filterKey === filterKey ? pagination.page : 1, pageCount);
+  if (pagination.filterKey !== filterKey || pagination.page !== page) {
+    setPagination({ filterKey, page });
+  }
+  const pagedShipments = visibleShipments.slice((page - 1) * SHIPMENT_PAGE_SIZE, page * SHIPMENT_PAGE_SIZE);
+  const setPage = nextPage => setPagination({ filterKey, page: Math.max(1, Math.min(nextPage, pageCount)) });
 
   const tabs = useMemo(
     () =>
@@ -171,6 +186,11 @@ export function useShipmentViewModel() {
   return {
     // data
     visibleShipments,
+    pagedShipments,
+    page,
+    pageCount,
+    pageSize: SHIPMENT_PAGE_SIZE,
+    setPage,
     tabs,
     stats,
     activeConfig,
