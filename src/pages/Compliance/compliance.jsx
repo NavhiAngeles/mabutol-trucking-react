@@ -1,3 +1,4 @@
+import OfficeTools from "../../components/OfficeTools";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./compliance.css";
@@ -165,10 +166,7 @@ export default function Compliance() {
           />
 
           <div className="topbar-right">
-            <button id="notifBtn" onClick={() => alert("No new notifications")}>
-              🔔
-            </button>
-            <div className="avatar"></div>
+            <OfficeTools />
           </div>
         </header>
 

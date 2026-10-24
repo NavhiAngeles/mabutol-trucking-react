@@ -1,11 +1,10 @@
+import OfficeTools from "../../components/OfficeTools";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
 
 export default function Customer() {
-  const navigate = useNavigate();
   const [openMenuId, setOpenMenuId] = useState(null);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
   const [historyCustomerId, setHistoryCustomerId] = useState(null);
@@ -85,19 +84,7 @@ export default function Customer() {
           <input type="text" placeholder="Search customers..." id="customerSearch" value={query} onChange={event => changeSearch(event.target.value)} />
         </div>
         <div className="topbar-right">
-          <button id="notifBtn">🔔</button>
-          <div
-            className="avatar"
-            onClick={() => navigate("/settings/account")}
-            style={{ cursor: "pointer" }}
-            title="Go to Account Settings"
-          >
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60"
-              alt="User Profile"
-              className="avatar-img"
-            />
-          </div>
+          <OfficeTools />
         </div>
       </header>
 

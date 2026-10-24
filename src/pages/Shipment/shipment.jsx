@@ -1,6 +1,6 @@
+import OfficeTools from "../../components/OfficeTools";
 
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
@@ -8,7 +8,6 @@ import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
 
 export default function Shipment() {
-  const navigate = useNavigate();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
@@ -194,29 +193,7 @@ export default function Shipment() {
         </div>
 
         <div className="topbar-right">
-          <button
-            type="button"
-            id="notifBtn"
-            className="notification-btn"
-            onClick={() =>
-              window.alert("No new notifications")
-            }
-          >
-            <i className="las la-bell" />
-          </button>
-
-          <div
-            className="avatar"
-            onClick={() => navigate("/settings/account")}
-            style={{ cursor: "pointer" }}
-            title="Go to Account Settings"
-          >
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60"
-              alt="User Profile"
-              className="avatar-img"
-            />
-          </div>
+          <OfficeTools />
         </div>
       </header>
 
