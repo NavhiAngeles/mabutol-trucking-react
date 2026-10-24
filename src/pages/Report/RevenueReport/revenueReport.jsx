@@ -1,3 +1,6 @@
+import ReportSchedule from '../../../components/ReportSchedule';
+import { useReportRange } from '../../../hooks/useReportRange';
+import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
@@ -55,7 +58,7 @@ export default function RevenueReport() {
       setActiveRange('custom'); setShowCustomPicker(false); setRangeError(''); setPage(1);
     } catch (error) { setRangeError(error.message); }
   }
-  const range = activeRange === 'custom' ? appliedCustom : reportRange(activeRange);
+  const range = useReportRange(activeRange, appliedCustom);
   const report = buildRevenueReport(live.data || EMPTY, range);
   const hasData = !!live.data;
   const routes = report.routes.filter(r => r.route.toLowerCase().includes(search.trim().toLowerCase()));
@@ -76,7 +79,7 @@ export default function RevenueReport() {
     <section className="content revenue-report-live">
       <div className="header-row">
         <div><h2>Reports — Revenue</h2><p>Review recorded charges, payments, costs, customers, and routes.</p></div>
-        <div className="report-actions"><button className="secondary-btn" onClick={live.refresh}>Refresh</button></div>
+        <div className="report-actions"><button className="secondary-btn" onClick={live.refresh}>Refresh</button><button className="primary-btn" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes }, { search })}>Export CSV</button><ReportSchedule type="Revenue" /></div>
       </div>
       <div className="filters">
         {RANGES.map(([key, label]) => <button key={key} className={`filter ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustomPicker(false); setPage(1); }}>{label}</button>)}
@@ -86,7 +89,7 @@ export default function RevenueReport() {
             <div className="custom-range-field"><label htmlFor="rv-start">Start date</label><input id="rv-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div>
             <div className="custom-range-field"><label htmlFor="rv-end">End date</label><input id="rv-end" type="date" min={customStart || undefined} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>
             {rangeError && <p role="alert">{rangeError}</p>}
-            <button className="custom-range-apply-btn" onClick={applyCustom} disabled={!customStart || !customEnd || customStart > customEnd}>Apply</button>
+            <button className="custom-range-apply-btn" onClick={applyCustom} >Apply</button>
           </div>}
         </div>
         <span className="rv-date">{range.start} – {range.end} · Philippine time</span>

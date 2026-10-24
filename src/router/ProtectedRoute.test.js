@@ -7,10 +7,12 @@ import { transformWithOxc } from "vite";
 // Compile actual JSX, retaining real React/router imports and mocking only auth.
 const authUrl = `data:text/javascript,${encodeURIComponent("export const state = {}; export const useAuth = () => state.current;")}`;
 const { state } = await import(authUrl);
+const gateUrl = `data:text/javascript,${encodeURIComponent('export default function MfaGate() {}')}`;
+const { default: MfaGate } = await import(gateUrl);
 const source = await readFile(new URL("./ProtectedRoute.jsx", import.meta.url), "utf8");
 const { code } = await transformWithOxc(source, "ProtectedRoute.jsx", { jsx: { runtime: "automatic" } });
 const executable = code.replace(/from\s+(["'])([^"']+)\1/g, (_, quote, specifier) =>
-  `from ${quote}${specifier === "../context/AuthContext" ? authUrl : import.meta.resolve(specifier)}${quote}`,
+  `from ${quote}${specifier === "../context/AuthContext" ? authUrl : specifier === "../components/MfaGate" ? gateUrl : import.meta.resolve(specifier)}${quote}`,
 );
 const { default: ProtectedRoute } = await import(`data:text/javascript,${encodeURIComponent(executable)}`);
 const children = { marker: "protected content" };
@@ -37,6 +39,9 @@ for (const current of [
 for (const role of ["admin", "staff"]) {
   test(`${role} receives protected children`, () => {
     state.current = { loading: false, user: { id: "office" }, role };
-    assert.equal(ProtectedRoute({ children }), children);
+    const result = ProtectedRoute({ children });
+    assert.equal(result.type, MfaGate);
+    assert.equal(result.props.children, children);
+    assert.equal(result.key, 'office');
   });
 }

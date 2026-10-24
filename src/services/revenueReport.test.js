@@ -77,7 +77,7 @@ test('page renders loading/stale errors, route pagination/search and applied cus
   const { transformWithOxc } = await import('vite');
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
-  const scope = { useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange, buildRevenueReport,
+  const scope = { ReportSchedule() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildRevenueReport,
     Link: 'Link', MainLayout: 'Layout', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
@@ -104,6 +104,7 @@ test('page renders loading/stale errors, route pagination/search and applied cus
   tree = render(); assert.match(JSON.stringify(tree), /2020-01-01/); assert.match(JSON.stringify(tree), /No routes match/);
   find(tree, 'button').find(b => b.children.includes('Custom Range')).props.onClick();
   tree = render(); find(tree, 'input').find(input => input.props.id === 'rv-start').props.onChange({ target: { value: '2021-01-01' } });
-  tree = render(); assert.equal(find(tree, 'button').find(b => b.children.includes('Apply')).props.disabled, true);
+  tree = render(); find(tree, 'button').find(b => b.children.includes('Apply')).props.onClick();
+  assert.match(JSON.stringify(render()), /Choose a valid start and end date/);
   assert.equal(state[3].start, '2020-01-01');
 });

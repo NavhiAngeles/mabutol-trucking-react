@@ -1,3 +1,6 @@
+import ReportSchedule from '../../../components/ReportSchedule';
+import { useReportRange } from '../../../hooks/useReportRange';
+import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect, Fragment } from "react";
 import { Link } from 'react-router-dom';
 import OfficeTools from '../../../components/OfficeTools';
@@ -7,6 +10,7 @@ import { buildDriverReport, DRIVER_STATUSES } from '../../../services/driverRepo
 import { getDriverReportRecords, DRIVER_REPORT_TABLES } from '../../../services/driverReportService';
 import MainLayout from "../../../layouts/mainLayout";
 import "./driverReport.css";
+import '../../../components/reportControls.css';
 
 /* =========================
    ICONS (inline SVG, no extra dependency)
@@ -147,7 +151,7 @@ export default function DriverReport() {
     setShowCustomPicker(false);
   };
 
-  const range = activeRange === 'custom' ? appliedCustom : reportRange(activeRange);
+  const range = useReportRange(activeRange, appliedCustom);
   const report = buildDriverReport(live.data || { drivers: [], shipments: [], deliveries: [], incidents: [] }, range, search, status);
   const hasData = !!live.data;
   const dateLabel = range.start + ' – ' + range.end;
@@ -177,14 +181,14 @@ export default function DriverReport() {
 
         <section className="dr-content">
           {/* Header */}
-          <div className="dr-header-row">
+          <div className="report-controls"><div className="dr-header-row">
             <div>
               <h2>Reports — Drivers</h2>
               <p>Analyze individual driver performance, reliability, and delivery metrics.</p>
             </div>
 
             <div className="dr-actions">
-<button className="dr-btn dr-btn-secondary" onClick={live.refresh}>Refresh</button>
+<button className="dr-btn dr-btn-secondary" onClick={live.refresh}>Refresh</button><button className="dr-btn dr-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Drivers', range, report, { search, status })}>Export CSV</button><ReportSchedule type="Drivers" />
             </div>
           </div>
 
@@ -238,7 +242,7 @@ export default function DriverReport() {
                     <button
                       className="dr-popover-apply"
                       onClick={handleApplyCustomRange}
-                      disabled={!customStart || !customEnd || customStart > customEnd}
+
                     >
                       Apply
                     </button>
@@ -247,9 +251,10 @@ export default function DriverReport() {
               </div>
             </div>
 
-            {dateLabel && <div className="dr-date-pill">{dateLabel}</div>}
+            {dateLabel && <div className="dr-date-pill">{dateLabel} · Philippine time</div>}
           </div>
 
+</div>
 <div className="dr-report-note"><p>Trips are non-cancelled delivery assignments for shipments created in the selected dates (Philippine time). On-time rate compares delivered trip arrival with shipment ETA; {hasData ? report.timed : '—'} trips have both timestamps. Kilometres use valid odometer differences on delivered trips.</p><p>Incidents use their reported dates and the driver linked to the delivery, independently of the shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.</p></div>
           {live.loading && <p role="status">Loading driver report…</p>}
           {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}

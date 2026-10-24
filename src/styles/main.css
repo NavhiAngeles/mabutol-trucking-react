@@ -16,6 +16,8 @@ body::before {
   content: "";
   position: absolute;
   inset: 0;
+  /* Decorative only: never intercept clicks on unpositioned report content. */
+  pointer-events: none;
 }
 
 

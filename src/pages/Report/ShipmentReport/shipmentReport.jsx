@@ -1,3 +1,6 @@
+import ReportSchedule from '../../../components/ReportSchedule';
+import { useReportRange } from '../../../hooks/useReportRange';
+import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import OfficeTools from '../../../components/OfficeTools';
@@ -7,6 +10,7 @@ import { buildShipmentReport } from '../../../services/shipmentReport.js';
 import { getShipmentReportRecords, SHIPMENT_REPORT_TABLES } from '../../../services/shipmentReportService';
 import MainLayout from "../../../layouts/mainLayout";
 import "./shipmentReport.css";
+import '../../../components/reportControls.css';
 
 /* ---------- Icons (inline, no extra dependency) ---------- */
 const paths = {
@@ -103,7 +107,7 @@ export default function ShipmentReport() {
     setPage(1);
   };
 
-  const range = activeRange === 'custom' ? customRange : reportRange(activeRange);
+  const range = useReportRange(activeRange, customRange);
   const report = buildShipmentReport(live.data?.shipments || [], live.data?.deliveries || [], range, search, status);
   const hasData = !!live.data;
   const b = report.breakdown;
@@ -132,13 +136,13 @@ export default function ShipmentReport() {
 
       <section className="sr-content">
         {/* Header */}
-        <div className="sr-header">
+        <div className="report-controls"><div className="sr-header">
           <div>
             <h1>Reports — Shipments</h1>
             <p>Comprehensive analysis of delivery performance and volume.</p>
           </div>
           <div className="sr-actions">
-            <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button>
+            <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button><button className="sr-btn sr-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Shipments', range, report, { search, status })}>Export CSV</button><ReportSchedule type="Shipments" />
           </div>
         </div>
 
@@ -171,14 +175,15 @@ export default function ShipmentReport() {
                   </div>
                   {rangeError && <p role="alert">{rangeError}</p>}
                   <button className="sr-apply" onClick={handleApplyCustomRange}
-                    disabled={!customStart || !customEnd || customStart > customEnd}>Apply</button>
+                    >Apply</button>
                 </div>
               )}
             </div>
           </div>
-          <span className="sr-date-pill">{dateLabel}</span>
+          <span className="sr-date-pill">{dateLabel} · Philippine time</span>
         </div>
 
+</div>
 <p>Shipments created in the selected dates (Philippine time), using current status. Search and status filters apply to totals, charts and ledger. On-time rates use {hasData ? report.timed : '—'} completed shipments with both arrival timestamps.</p>
         {live.loading && <p role="status">Loading shipment report…</p>}
         {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}

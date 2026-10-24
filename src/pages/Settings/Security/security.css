@@ -446,3 +446,8 @@ TOGGLE TRANSITIONS
 .toggle-circle {
   transition: left 0.2s ease;
 }
+.security-settings fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.security-settings .security-qr { width: 220px; height: 220px; align-self: center; }
+.security-settings .pw-modal { max-height: 90vh; overflow-y: auto; }
+.security-settings .security-row { gap: 20px; flex-wrap: wrap; }
+.security-settings [role="status"], .security-settings [role="alert"] { margin-bottom: 16px; }

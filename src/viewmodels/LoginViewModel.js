@@ -16,18 +16,19 @@ export function useLoginViewModel() {
   async function handleSubmit(e) {
     e.preventDefault();
     const trimmedEmail = email.trim();
-    const trimmedPassword = password.trim();
+    // Password whitespace is significant, including passwords set in Settings.
+    const loginPassword = password;
 
     const newErrors = { email: "", password: "" };
     if (!trimmedEmail) newErrors.email = "Email is required.";
     else if (!validateEmail(trimmedEmail)) newErrors.email = "Please enter a valid email address.";
-    if (!trimmedPassword) newErrors.password = "Password is required.";
+    if (!loginPassword) newErrors.password = "Password is required.";
     setErrors(newErrors);
     if (newErrors.email || newErrors.password) return;
 
     setStatus("loading");
     try {
-      await signIn(trimmedEmail, trimmedPassword);
+      await signIn(trimmedEmail, loginPassword);
       setStatus("success");
       setTimeout(() => navigate("/dashboard"), 2000);
     } catch (err) {

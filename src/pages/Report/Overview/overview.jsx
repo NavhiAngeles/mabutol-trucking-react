@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import ReportSchedule from '../../../components/ReportSchedule';
+import { useReportRange } from '../../../hooks/useReportRange';
+import { downloadReport } from '../../../services/reportExport.js';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
 import OfficeTools from '../../../components/OfficeTools';
@@ -7,6 +10,7 @@ import { useLiveData } from '../../../hooks/useLiveData';
 import { getReportOverview, REPORT_TABLES } from '../../../services/reportOverviewService';
 import { reportRange, summarizeOverview } from '../../../services/reportOverview.js';
 import './overview.css';
+import '../../../components/reportControls.css';
 
 const money = value => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(value);
 const ranges = [['today', 'Today'], ['thisWeek', 'This Week'], ['thisMonth', 'This Month'], ['last3Months', 'Last 3 Months']];
@@ -30,7 +34,15 @@ export default function Overview() {
   const [custom, setCustom] = useState(null);
   const [showCustom, setShowCustom] = useState(false);
   const [rangeError, setRangeError] = useState('');
-  const range = activeRange === 'custom' ? custom : reportRange(activeRange);
+  const customRef = useRef(null);
+  useEffect(() => {
+    const outside = event => { if (!customRef.current?.contains(event.target)) setShowCustom(false); };
+    const escape = event => { if (event.key === 'Escape') setShowCustom(false); };
+    document.addEventListener('mousedown', outside);
+    document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); };
+  }, []);
+  const range = useReportRange(activeRange, custom);
   const report = live.data && summarizeOverview(live.data, range);
   const percent = report?.complianceTotal ? Math.round(report.compliance.verified / report.complianceTotal * 100) : null;
   const stats = report ? [
@@ -46,8 +58,9 @@ export default function Overview() {
   return <MainLayout>
     <header className="ov-topbar"><span>Reports</span><OfficeTools /></header>
     <section className="ov-content">
-      <div className="ov-header"><div><h1>Reports — Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button></div></div>
-      <div className="ov-filters"><div className="ov-tabs">{ranges.map(([key, label]) => <button key={key} className={`ov-tab ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustom(false); }}>{label}</button>)}<div className="ov-custom-wrap"><button className={`ov-tab ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustom} onClick={() => setShowCustom(!showCustom)}>Custom Range</button>{showCustom && <div className="ov-popover"><div className="ov-field"><label htmlFor="ov-start">Start date</label><input id="ov-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div><div className="ov-field"><label htmlFor="ov-end">End date</label><input id="ov-end" type="date" min={customStart} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>{rangeError && <p role="alert">{rangeError}</p>}<button className="ov-apply" onClick={applyRange} disabled={!customStart || !customEnd || customStart > customEnd}>Apply</button></div>}</div></div><span className="ov-date-pill">{range.start} – {range.end}</span></div>
+      <div className="report-controls"><div className="ov-header"><div><h1>Reports — Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><button className="ov-btn ov-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {})}>Export CSV</button><ReportSchedule type="Overview" /></div></div>
+      <div className="ov-filters"><div className="ov-tabs">{ranges.map(([key, label]) => <button key={key} className={`ov-tab ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustom(false); }}>{label}</button>)}<div className="ov-custom-wrap" ref={customRef}><button className={`ov-tab ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustom} onClick={() => setShowCustom(!showCustom)}>Custom Range</button>{showCustom && <form className="ov-popover" onSubmit={event => { event.preventDefault(); applyRange(); }}><div className="ov-field"><label htmlFor="ov-start">Start date</label><input id="ov-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div><div className="ov-field"><label htmlFor="ov-end">End date</label><input id="ov-end" type="date" min={customStart} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>{rangeError && <p role="alert">{rangeError}</p>}<button className="ov-apply" type="submit">Apply</button></form>}</div></div><span className="ov-date-pill">{range.start} – {range.end} · Philippine time</span></div>
+</div>
       <p>Period metrics use shipments created in the selected dates (Philippine time) and their current status. Fleet and compliance show the current snapshot.</p>
       {live.loading && <p role="status">Loading report…</p>}
       {live.error && <p role="alert">Unable to refresh the report. {live.data ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}

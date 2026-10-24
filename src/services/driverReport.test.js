@@ -67,7 +67,7 @@ test('driver page renders pagination, search/status resets, real expanded incide
   const { transformWithOxc } = await import('vite');
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
-  const scope = { useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange, buildDriverReport,
+  const scope = { ReportSchedule() {}, useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildDriverReport,
     Link: 'Link', MainLayout: 'Layout', OfficeTools: 'Tools', Fragment: 'Fragment', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { Fragment: 'Fragment', createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
