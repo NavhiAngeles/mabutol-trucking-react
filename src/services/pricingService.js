@@ -67,70 +67,25 @@ export async function fetchPricingData() {
   return { vehicles, settings };
 }
 
-export async function saveVehicleRates(vehicles, editedRates) {
-  for (const vehicle of vehicles) {
-    if (!vehicle.pricing) continue;
+const amount = (value, label) => {
+  if (value == null || String(value).trim() === '' || !Number.isFinite(Number(value)) || Number(value) < 0) throw new Error('Invalid amount: ' + label);
+  return Number(value);
+};
 
-    const newRate = Number(editedRates[vehicle.id]);
-
-    if (!Number.isFinite(newRate) || newRate < 0) {
-      throw new Error(`Invalid rate for ${vehicle.name}`);
-    }
-
-    if (newRate === Number(vehicle.pricing.per_km_rate)) {
-      continue;
-    }
-
-    const { data, error } = await supabase
-      .from("pricing_rates")
-      .update({ per_km_rate: newRate })
-      .eq("id", vehicle.pricing.id)
-      .select("id");
-
-    if (error) throw error;
-
-    if (!data?.length) {
-      throw new Error(
-        `Unable to update ${vehicle.name}. Check pricing permissions.`
-      );
-    }
-  }
-}
-
-export async function savePricingSettings(fees, surcharges) {
-  const settings = [
-    {
-      key: "minimum_booking_fee",
-      value: Number(fees.minBooking),
-      description: "Minimum booking fee for every shipment",
-    },
-    {
-      key: "driver_allowance",
-      value: Number(fees.driver),
-      description: "Default driver allowance per trip",
-    },
-    {
-      key: "handling_surcharges",
-      value: Object.fromEntries(
-        Object.entries(surcharges).map(([key, value]) => [
-          key,
-          Number(value),
-        ])
-      ),
-      description: "Special handling surcharge configuration",
-    },
-  ];
-
-  const { data, error } = await supabase
-    .from("system_settings")
-    .upsert(settings, { onConflict: "key" })
-    .select("key");
-
+export async function savePricing(vehicles, editedRates, fees, surcharges) {
+  const rates = vehicles.filter(vehicle => vehicle.pricing).map(vehicle => ({
+    id: vehicle.pricing.id,
+    vehicle_type_id: vehicle.id,
+    expected_rate: amount(vehicle.pricing.per_km_rate, vehicle.name),
+    per_km_rate: amount(editedRates[vehicle.id], vehicle.name),
+  })).filter(rate => rate.per_km_rate !== rate.expected_rate);
+  const settings = {
+    minimum_booking_fee: amount(fees.minBooking, 'Minimum booking fee'),
+    driver_allowance: amount(fees.driver, 'Driver allowance'),
+    handling_surcharges: Object.fromEntries(Object.entries(surcharges).map(([key, value]) => [key, amount(value, key)])),
+  };
+  const { data, error } = await supabase.rpc('save_pricing', { p_rates: rates, p_settings: settings });
   if (error) throw error;
-
-  if (data?.length !== settings.length) {
-    throw new Error(
-      "Some settings were not saved. Check Supabase permissions."
-    );
-  }
+  if (data?.saved !== true || data.rates !== rates.length || data.settings !== 3) throw new Error('Save was not confirmed. Reload pricing before retrying.');
+  return data;
 }

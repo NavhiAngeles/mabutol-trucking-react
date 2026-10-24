@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../../../layouts/mainLayout";
 import {
   fetchPricingData,
-  saveVehicleRates,
-  savePricingSettings,
+  savePricing,
 } from "../../../services/pricingService";
 import { getCurrentPricingUser } from "../../../services/tollGateService";
 import TollGateManager from "./TollGateManager";
@@ -245,8 +244,7 @@ export default function Pricing() {
     setSaving(true);
 
     try {
-      await saveVehicleRates(vehicles, rates);
-      await savePricingSettings(fees, surcharges);
+      await savePricing(vehicles, rates, fees, surcharges);
 
       await loadPricing();
 
@@ -256,7 +254,7 @@ export default function Pricing() {
 
       setError(
         `${err.message || "Unable to save pricing."} ` +
-          "Some updates may have succeeded. Reload and verify."
+          "Reload pricing before retrying if the save result is uncertain."
       );
     } finally {
       setSaving(false);
