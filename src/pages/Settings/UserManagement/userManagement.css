@@ -892,3 +892,68 @@
 .office-user-management .modal { max-height: 90vh; overflow-y: auto; }
 .office-user-management button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 900px) { .office-user-management .page-header, .office-user-management .search-row { flex-wrap: wrap; gap: 16px; } }
+/* Current connected directory: scoped so its controls cannot affect other pages. */
+.office-user-management .um-info-banner { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px; margin: 0 0 24px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 12px; color: #475569; font-size: 13px; line-height: 1.6; }
+.office-user-management .um-info-banner p { margin: 0; }
+.office-user-management .um-info-icon { flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-top: 1px; border: 1px solid #93c5fd; border-radius: 50%; color: #1d4ed8; font-weight: 700; }
+.office-user-management .um-directory { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 1px 3px #0f172a05; overflow: hidden; }
+.office-user-management .um-directory-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 24px 0; }
+.office-user-management .um-directory-heading h3 { margin: 0 0 4px; color: #0f172a; font-size: 18px; }
+.office-user-management .um-directory-heading p { margin: 0; color: #64748b; font-size: 13px; }
+.office-user-management .um-directory-count { flex: none; padding: 5px 10px; border-radius: 20px; background: #f1f5f9; color: #475569; font-size: 12px; }
+.office-user-management .um-toolbar { display: flex; justify-content: flex-start; align-items: flex-end; flex-wrap: wrap; gap: 16px; padding: 20px 24px 24px; margin: 0; }
+.office-user-management .um-toolbar label { display: grid; gap: 7px; font-size: 12px; font-weight: 600; color: #475569; }
+.office-user-management .um-search { flex: 1; min-width: min(260px,100%); max-width: 480px; }
+.office-user-management .um-status-filter { min-width: 170px; }
+.office-user-management .um-toolbar :is(input,select) { width: 100%; max-width: 100%; height: 42px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font: 400 14px/20px system-ui, sans-serif; }
+.office-user-management .um-toolbar button,
+.office-user-management .um-row-actions button,
+.office-user-management .um-pagination button,
+.office-user-management .um-error-banner button,
+.office-user-management .modal-footer > button { min-height: 36px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 7px; background: #fff; color: #334155; font: 500 12px/18px system-ui, sans-serif; cursor: pointer; transition: background .15s, border-color .15s; }
+.office-user-management .um-toolbar .um-refresh { margin-left: auto; min-height: 42px; background: #f1f5f9; font-size: 13px; }
+.office-user-management .um-row-actions { min-width: 280px; max-width: 480px; gap: 6px; }
+.office-user-management .um-row-actions button:not(:disabled):hover,
+.office-user-management .um-pagination button:not(:disabled):hover { background: #f1f5f9; border-color: #cbd5e1; }
+.office-user-management .um-row-actions .um-action-danger:not(:disabled) { color: #b91c1c; border-color: #fecaca; background: #fff7f7; }
+.office-user-management .um-table-scroll { border: 0; border-top: 1px solid #e2e8f0; border-radius: 0; }
+.office-user-management .user-table { min-width: 980px; }
+.office-user-management .user-table th { padding: 14px 24px; background: #f8fafc; font-size: 11px; letter-spacing: .05em; white-space: nowrap; }
+.office-user-management .user-table td { padding: 20px 24px; vertical-align: middle; color: #334155; font-size: 13px; }
+.office-user-management .user-table tbody tr:hover { background: #fafcff; }
+.office-user-management .user-cell { min-width: 220px; }
+.office-user-management .user-cell strong { color: #0f172a; font-size: 14px; }
+.office-user-management .user-cell p { margin: 4px 0; color: #64748b; overflow-wrap: anywhere; }
+.office-user-management .user-avatar { width: 40px; height: 40px; background: #eaf1fb; color: #0b2a4a; border-radius: 10px; }
+.office-user-management .um-self-badge { color: #64748b; font-size: 11px; }
+.office-user-management :is(.um-role-badge,.um-status-badge) { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 6px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.office-user-management .um-role-admin { background: #eaf1fb; color: #0b2a4a; }
+.office-user-management .um-status-active { background: #ecfdf5; color: #047857; }
+.office-user-management .um-pagination { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 24px; margin: 0; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px; }
+.office-user-management .user-table .um-empty { text-align: center; padding: 40px 24px; color: #64748b; }
+.office-user-management :is(.um-success,.um-error-banner) { padding: 14px 18px; border: 1px solid #bbf7d0; border-radius: 10px; background: #f0fdf4; margin: 0 0 20px; }
+.office-user-management .um-error-banner { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.office-user-management button:disabled { cursor: not-allowed; opacity: .5; }
+.office-user-management :is(button,input,select):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.office-user-management .modal-overlay { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 20px; background: #0f172a66; }
+.office-user-management .modal { width: min(600px,100%); max-height: 90vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 64px #0f172a33; padding: 0; }
+.office-user-management .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
+.office-user-management .modal-header h3 { font-size: 20px; color: #0f172a; margin: 0; }
+.office-user-management .modal-header button { border: 0; border-radius: 6px; background: #f1f5f9; width: 32px; height: 32px; cursor: pointer; }
+.office-user-management .modal-body { padding: 24px; display: grid; gap: 16px; }
+.office-user-management .modal-body p { margin: 0; color: #64748b; line-height: 1.6; font-size: 13px; }
+.office-user-management .form-field { display: grid; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; color: #334155; }
+.office-user-management .form-field :is(input,select) { width: 100%; box-sizing: border-box; height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; background: #fff; font: 400 14px/20px system-ui, sans-serif; }
+.office-user-management .form-field :is(input:read-only,select:disabled) { background: #f8fafc; color: #64748b; }
+.office-user-management .modal-body dt { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #64748b; }
+.office-user-management .modal-body dd { margin: 0 0 16px; color: #0f172a; overflow-wrap: anywhere; }
+.office-user-management .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; }
+.office-user-management .modal-footer .primary-btn { background: #0f172a; border-color: #0f172a; color: #fff; }
+@media (max-width: 700px) {
+ .office-user-management .um-toolbar { align-items: stretch; gap: 14px; }
+ .office-user-management .um-search { flex-basis: 100%; max-width: none; }
+ .office-user-management .um-status-filter { flex: 1; }
+ .office-user-management .um-toolbar .um-refresh { align-self: flex-end; }
+ .office-user-management .um-pagination { justify-content: center; }
+ .office-user-management .modal-overlay { padding: 12px; }
+}
