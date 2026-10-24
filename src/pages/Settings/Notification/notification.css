@@ -155,3 +155,14 @@ ALERT ROWS & VISIBLE CHECKBOX INTERACTIONS
   z-index: 2;
   pointer-events: auto; /* Guarantees the mouse event registration stays on top */
 }
+/* Scope interaction and responsive rules to notification settings. */
+.notification-settings .toggle { border: 0; padding: 0; flex-shrink: 0; }
+.notification-settings .toggle:disabled { cursor: not-allowed; opacity: .55; }
+.notification-settings .toggle:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.notification-settings .toggle-row { gap: 16px; }
+.notification-settings .toggle-row p { max-width: 46ch; }
+.notification-settings .notification-refresh { margin: 16px 0; }
+.notification-settings .notification-success { color: #166534; margin: 16px 0; }
+.notification-settings .notification-error { color: #991b1b; margin: 16px 0; }
+.notification-settings .notification-error button { margin: 8px 12px 8px 0; }
+@media (max-width: 900px) { .notification-settings .notification-grid { grid-template-columns: 1fr; } }
