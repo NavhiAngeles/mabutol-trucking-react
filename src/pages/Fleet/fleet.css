@@ -1122,3 +1122,15 @@ MODAL STRUCTURAL CONFIGURATIONS
 .fleet-table-scroll { width: 100%; overflow-x: auto; }
 .fleet-table-scroll .premium-table { min-width: 760px; }
 .doc-pill.doc-critical { background-color: #FEE2E2; color: #991B1B; }
+#fleet-maintenance .maintenance-toolbar { margin-top: 40px; align-items: center; flex-wrap: wrap; gap: 16px; }
+#fleet-maintenance .maintenance-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+#fleet-maintenance .maintenance-view-switch { gap: 4px; }
+#fleet-maintenance .maintenance-view-switch .tab-pill { min-height: 36px; white-space: nowrap; }
+#fleet-maintenance .maintenance-view-switch .tab-pill[aria-pressed="true"] { background: #fff; color: #0f172a; font-weight: 600; box-shadow: 0 1px 3px #0f172a26; }
+#fleet-maintenance .maintenance-actions > .btn-primary { min-height: 44px; margin: 0; white-space: nowrap; }
+#fleet-maintenance .maintenance-actions button:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+@media (max-width: 700px) {
+  #fleet-maintenance .maintenance-actions { width: 100%; }
+  #fleet-maintenance .maintenance-view-switch { flex: 1; }
+  #fleet-maintenance .maintenance-view-switch .tab-pill { flex: 1; justify-content: center; }
+}
