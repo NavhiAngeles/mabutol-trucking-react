@@ -3,7 +3,7 @@ import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect, Fragment } from "react";
 import { Link } from 'react-router-dom';
-import OfficeTools from '../../../components/OfficeTools';
+import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { reportRange } from '../../../services/reportOverview.js';
 import { buildDriverReport, DRIVER_STATUSES } from '../../../services/driverReport.js';
@@ -168,16 +168,14 @@ export default function DriverReport() {
 
   return (
     <MainLayout>
-      <div className="dr-page dr-report-live">
+      <div className="dr-page dr-report-live reports-page">
         {/* Topbar */}
-        <header className="dr-topbar">
+        <ReportTopbar>
           <label className="dr-search">
             <SearchIcon size={18} />
             <input type="search" placeholder="Search driver name or ID" aria-label="Search drivers" value={search} onChange={e => { setSearch(e.target.value); setPage(1); setExpandedId(null); }} />
           </label>
-
-          <OfficeTools />
-        </header>
+        </ReportTopbar>
 
         <section className="dr-content">
           {/* Header */}
@@ -255,7 +253,7 @@ export default function DriverReport() {
           </div>
 
 </div>
-<div className="dr-report-note"><p>Trips are non-cancelled delivery assignments for shipments created in the selected dates (Philippine time). On-time rate compares delivered trip arrival with shipment ETA; {hasData ? report.timed : '—'} trips have both timestamps. Kilometres use valid odometer differences on delivered trips.</p><p>Incidents use their reported dates and the driver linked to the delivery, independently of the shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.</p></div>
+<div className="dr-report-note report-scope-note"><p>Trips are non-cancelled delivery assignments for shipments created in the selected dates (Philippine time). On-time rate compares delivered trip arrival with shipment ETA; {hasData ? report.timed : '—'} trips have both timestamps. Kilometres use valid odometer differences on delivered trips.</p><p>Incidents use their reported dates and the driver linked to the delivery, independently of the shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.</p></div>
           {live.loading && <p role="status">Loading driver report…</p>}
           {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
           {/* Stats */}

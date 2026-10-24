@@ -78,7 +78,7 @@ test('page renders loading/stale errors, route pagination/search and applied cus
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = { ReportSchedule() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildRevenueReport,
-    Link: 'Link', MainLayout: 'Layout', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
+    Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
   const path = new URL('../pages/Report/RevenueReport/revenueReport.jsx', import.meta.url);

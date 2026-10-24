@@ -3,7 +3,7 @@ import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect } from "react";
 import { Link } from 'react-router-dom';
-import OfficeTools from '../../../components/OfficeTools';
+import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { reportRange } from '../../../services/reportOverview.js';
 import { buildShipmentReport } from '../../../services/shipmentReport.js';
@@ -124,15 +124,14 @@ export default function ShipmentReport() {
   const variantClass = v => v.startsWith('-') ? 'good' : v.startsWith('+') ? 'bad' : 'muted';
 
   return (
-    <MainLayout>
+    <MainLayout><div className="reports-page">
       {/* Topbar */}
-      <header className="sr-topbar">
+      <ReportTopbar>
         <label className="sr-search">
           <Icon name="search" size={18} />
           <input type="search" placeholder="Search shipments, customers, routes, drivers" aria-label="Search shipments" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </label>
-        <OfficeTools />
-      </header>
+        </ReportTopbar>
 
       <section className="sr-content">
         {/* Header */}
@@ -184,7 +183,7 @@ export default function ShipmentReport() {
         </div>
 
 </div>
-<p>Shipments created in the selected dates (Philippine time), using current status. Search and status filters apply to totals, charts and ledger. On-time rates use {hasData ? report.timed : '—'} completed shipments with both arrival timestamps.</p>
+<p className="report-scope-note">Shipments created in the selected dates (Philippine time), using current status. Search and status filters apply to totals, charts and ledger. On-time rates use {hasData ? report.timed : '—'} completed shipments with both arrival timestamps.</p>
         {live.loading && <p role="status">Loading shipment report…</p>}
         {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
         {/* Stats */}
@@ -283,6 +282,6 @@ export default function ShipmentReport() {
           </div>
         </div>
       </section>
-    </MainLayout>
+    </div></MainLayout>
   );
 }

@@ -4,7 +4,7 @@ import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
-import OfficeTools from '../../../components/OfficeTools';
+import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { reportRange } from '../../../services/reportOverview.js';
 import { buildRevenueReport } from '../../../services/revenueReport.js';
@@ -74,10 +74,10 @@ export default function RevenueReport() {
   ];
   const missing = stats.reduce((sum, [, summary]) => sum + summary.missing, 0) + report.fuel.missing;
 
-  return <MainLayout>
-    <header className="topbar"><span>Reports</span><OfficeTools /></header>
+  return <MainLayout><div className="reports-page">
+    <ReportTopbar />
     <section className="content revenue-report-live">
-      <div className="header-row">
+      <div className="report-controls"><div className="header-row">
         <div><h2>Reports — Revenue</h2><p>Review recorded charges, payments, costs, customers, and routes.</p></div>
         <div className="report-actions"><button className="secondary-btn" onClick={live.refresh}>Refresh</button><button className="primary-btn" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes }, { search })}>Export CSV</button><ReportSchedule type="Revenue" /></div>
       </div>
@@ -94,7 +94,8 @@ export default function RevenueReport() {
         </div>
         <span className="rv-date">{range.start} – {range.end} · Philippine time</span>
       </div>
-      <div className="rv-notes">
+      </div>
+      <div className="rv-notes report-scope-note">
         <p>Charges, customer rankings, and routes use shipments created in the selected dates with current completed status. Payments use their payment dates; approved expenses use creation dates; maintenance uses completion dates. These are separate record totals.</p>
         <p>Fuel logs and repair expenses may overlap other cost records. Net profit and route margins are unavailable without reconciled costs. Verified payments exclude currently pending, rejected, and refunded records.</p>
       </div>
@@ -137,5 +138,5 @@ export default function RevenueReport() {
         </div>
       </>}
     </section>
-  </MainLayout>;
+  </div></MainLayout>;
 }

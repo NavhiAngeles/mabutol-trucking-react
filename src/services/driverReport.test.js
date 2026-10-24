@@ -68,7 +68,7 @@ test('driver page renders pagination, search/status resets, real expanded incide
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = { ReportSchedule() {}, useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildDriverReport,
-    Link: 'Link', MainLayout: 'Layout', OfficeTools: 'Tools', Fragment: 'Fragment', useRef: () => ({ current: null }), useEffect() {},
+    Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', Fragment: 'Fragment', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { Fragment: 'Fragment', createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
   const path = new URL('../pages/Report/DriverReport/driverReport.jsx', import.meta.url);

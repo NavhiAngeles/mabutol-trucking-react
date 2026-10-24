@@ -4,7 +4,7 @@ import { downloadReport } from '../../../services/reportExport.js';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
-import OfficeTools from '../../../components/OfficeTools';
+import ReportTopbar from '../../../components/ReportTopbar';
 import OperationsFeed from '../../Dashboard/OperationsFeed';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { getReportOverview, REPORT_TABLES } from '../../../services/reportOverviewService';
@@ -55,13 +55,13 @@ export default function Overview() {
     try { setCustom(reportRange('custom', customStart, customEnd)); setActiveRange('custom'); setShowCustom(false); setRangeError(''); }
     catch (error) { setRangeError(error.message); }
   }
-  return <MainLayout>
-    <header className="ov-topbar"><span>Reports</span><OfficeTools /></header>
+  return <MainLayout><div className="reports-page">
+    <ReportTopbar />
     <section className="ov-content">
       <div className="report-controls"><div className="ov-header"><div><h1>Reports — Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><button className="ov-btn ov-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {})}>Export CSV</button><ReportSchedule type="Overview" /></div></div>
       <div className="ov-filters"><div className="ov-tabs">{ranges.map(([key, label]) => <button key={key} className={`ov-tab ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustom(false); }}>{label}</button>)}<div className="ov-custom-wrap" ref={customRef}><button className={`ov-tab ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustom} onClick={() => setShowCustom(!showCustom)}>Custom Range</button>{showCustom && <form className="ov-popover" onSubmit={event => { event.preventDefault(); applyRange(); }}><div className="ov-field"><label htmlFor="ov-start">Start date</label><input id="ov-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div><div className="ov-field"><label htmlFor="ov-end">End date</label><input id="ov-end" type="date" min={customStart} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>{rangeError && <p role="alert">{rangeError}</p>}<button className="ov-apply" type="submit">Apply</button></form>}</div></div><span className="ov-date-pill">{range.start} – {range.end} · Philippine time</span></div>
 </div>
-      <p>Period metrics use shipments created in the selected dates (Philippine time) and their current status. Fleet and compliance show the current snapshot.</p>
+      <p className="report-scope-note">Period metrics use shipments created in the selected dates (Philippine time) and their current status. Fleet and compliance show the current snapshot.</p>
       {live.loading && <p role="status">Loading report…</p>}
       {live.error && <p role="alert">Unable to refresh the report. {live.data ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
       {report && <>
@@ -73,5 +73,5 @@ export default function Overview() {
         <div className="ov-lower"><div className="ov-card ov-fleet"><div className="ov-card-head"><h3>Current Fleet Summary</h3><Link className="ov-link" to="/fleet">Manage Fleet</Link></div><div className="ov-fleet-grid">{[['TOTAL FLEET', live.data.resources.total], ['DISPATCH READY', live.data.resources.available], ['ON TRIP / RESERVED', live.data.resources.inUse], ['MAINTENANCE', live.data.resources.maintenance], ['OTHER', live.data.resources.other], ['OVERDUE SERVICE RECORDS', live.data.overdue]].map(([label, value]) => <div className="ov-tile" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></div><div className="ov-card ov-activity"><OperationsFeed /></div></div></div>
       </>}
     </section>
-  </MainLayout>;
+  </div></MainLayout>;
 }

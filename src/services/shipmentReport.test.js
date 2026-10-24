@@ -42,7 +42,7 @@ test('ledger renders ten rows per page, filters/reset page, clamps after refresh
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = { ReportSchedule() {}, useLiveData: () => data, getShipmentReportRecords() {}, SHIPMENT_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildShipmentReport,
-    Link: 'Link', MainLayout: 'Layout', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
+    Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
   const path = new URL('../pages/Report/ShipmentReport/shipmentReport.jsx', import.meta.url);
