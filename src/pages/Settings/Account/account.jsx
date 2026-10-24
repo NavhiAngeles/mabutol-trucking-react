@@ -1,646 +1,128 @@
-import { useState } from "react";
-import MainLayout from "../../../layouts/mainLayout";
-import "./account.css";
+import { useEffect, useRef, useState } from 'react';
+import MainLayout from '../../../layouts/mainLayout';
+import { useAuth } from '../../../context/AuthContext';
+import { accountApi } from '../../../services/accountService';
+import './account.css';
 
-/* Small inline icons (stroke-based, matches outline icon style) */
-const EditIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-  </svg>
-);
-const CameraIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z" />
-    <circle cx="12" cy="13" r="3.2" />
-  </svg>
-);
-const ClockIcon = ({ size = 13 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);
-const CheckCircleIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-    <polyline points="22 4 12 14.01 9 11.01" />
-  </svg>
-);
-const SmartphoneIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-    <line x1="12" y1="18" x2="12.01" y2="18" />
-  </svg>
-);
-const MapPinIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-    <circle cx="12" cy="10" r="3" />
-  </svg>
-);
-const LogOutIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
+const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
 
 export default function Account() {
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [currentPw, setCurrentPw]     = useState("");
-  const [newPw, setNewPw]             = useState("");
-  const [confirmPw, setConfirmPw]     = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew]         = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [pwError, setPwError]         = useState("");
-  const [pwSuccess, setPwSuccess]     = useState(false);
+  const { user } = useAuth();
+  return <MainLayout><AccountDetails key={user?.id} /></MainLayout>;
+}
 
-  // Profile state
-  const [profile, setProfile] = useState({
-    firstName: "Juan",
-    lastName: "dela Cruz",
-    email: "juan.delacruz@tanaw.ph",
-    contact: "0917 123 4567",
-    role: "Super Admin",
-  });
-  const [showEditProfile, setShowEditProfile]   = useState(false);
-  const [editForm, setEditForm]                 = useState({ ...profile });
-  const [photoPreview, setPhotoPreview]         = useState(null);
-  const [editSuccess, setEditSuccess]           = useState(false);
-  const [editError, setEditError]               = useState("");
-
-  // Sessions state
-  const [otherSessions, setOtherSessions] = useState([
-    { id: 1, device: "Safari on iPhone", time: "Yesterday, 10:15 PM" },
-  ]);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [loggingOutSessions, setLoggingOutSessions] = useState(false);
-  const [logoutDone, setLogoutDone] = useState(false);
-
-  const handleLogoutSession = (id) => {
-    setOtherSessions((prev) => prev.filter((s) => s.id !== id));
-  };
-
-  const handleLogoutAllOtherSessions = () => {
-    setLoggingOutSessions(true);
-    // Simulate API call to revoke other sessions
-    setTimeout(() => {
-      setOtherSessions([]);
-      setLoggingOutSessions(false);
-      setLogoutDone(true);
-      setShowLogoutConfirm(false);
-      setTimeout(() => setLogoutDone(false), 2500);
-    }, 1200);
-  };
-
-  const handleOpenEdit = () => {
-    setEditForm({ ...profile });
-    setPhotoPreview(null);
-    setEditError("");
-    setEditSuccess(false);
-    setShowEditProfile(true);
-  };
-
-  const handleCloseEdit = () => {
-    setShowEditProfile(false);
-    setEditError("");
-    setEditSuccess(false);
-  };
-
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { setEditError("Photo must be under 2MB."); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhotoPreview(ev.target.result);
-    reader.readAsDataURL(file);
-    setEditError("");
-  };
-
-  const handleSaveProfile = () => {
-    setEditError("");
-    if (!editForm.firstName.trim()) { setEditError("First name is required."); return; }
-    if (!editForm.lastName.trim())  { setEditError("Last name is required."); return; }
-    if (!editForm.email.trim())     { setEditError("Email address is required."); return; }
-    if (!/\S+@\S+\.\S+/.test(editForm.email)) { setEditError("Enter a valid email address."); return; }
-    setProfile({ ...editForm });
-    setEditSuccess(true);
-    setTimeout(() => { handleCloseEdit(); }, 1400);
-  };
-
-  const initials = `${profile.firstName[0] || ""}${profile.lastName[0] || ""}`.toUpperCase();
-
-  const getStrength = (pw) => {
-    if (!pw) return { label: "", level: 0 };
-    let score = 0;
-    if (pw.length >= 8)  score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    if (score <= 1) return { label: "WEAK",   level: 1 };
-    if (score === 2) return { label: "FAIR",   level: 2 };
-    if (score === 3) return { label: "GOOD",   level: 3 };
-    return              { label: "STRONG", level: 4 };
-  };
-
-  const strength = getStrength(newPw);
-
-  const handleUpdatePassword = () => {
-    setPwError("");
-    if (!currentPw) { setPwError("Please enter your current password."); return; }
-    if (newPw.length < 8) { setPwError("New password must be at least 8 characters."); return; }
-    if (newPw !== confirmPw) { setPwError("Passwords do not match."); return; }
-    // Simulate success
-    setPwSuccess(true);
-    setTimeout(() => {
-      setShowPasswordModal(false);
-      setCurrentPw(""); setNewPw(""); setConfirmPw("");
-      setPwSuccess(false); setPwError("");
-    }, 1500);
-  };
-
-  const handleCloseModal = () => {
-    setShowPasswordModal(false);
-    setCurrentPw(""); setNewPw(""); setConfirmPw("");
-    setPwError(""); setPwSuccess(false);
-    setShowCurrent(false); setShowNew(false); setShowConfirm(false);
-  };
-  return (
-    <MainLayout>
-      {/* Topbar */}
-      <header className="topbar">
-        <input
-          type="text"
-          placeholder="Search..."
-        />
-
-        <div className="topbar-right">
-          <button>🔔</button>
-          <div className="avatar">
-            <img 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60" 
-              alt="User Profile" 
-              className="avatar-img" />
-          </div>
+function AccountDetails() {
+  const [profile, setProfile] = useState(null);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({ fullName: '', contact: '' });
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [success, setSuccess] = useState('');
+  const operation = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  useEffect(() => {
+    let disposed = false;
+    const load = () => accountApi.load().then(value => {
+      if (!disposed) { setProfile(value); setError(''); }
+    }).catch(cause => { if (!disposed) setError(cause.message); });
+    load();
+    // Refresh signed photo URLs and recover changes made in another tab.
+    const timer = setInterval(load, 30 * 60 * 1000);
+    window.addEventListener('focus', load);
+    return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', load); };
+  }, [reload]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  function open(kind) {
+    setForm({ fullName: profile.full_name || '', contact: profile.phone || '' });
+    setFile(null); setPreview(null); setPasswords({ current: '', next: '', confirm: '' });
+    setActionError(''); setSuccess(''); setModal(kind);
+  }
+  function close() {
+    if (operation.current) return;
+    setModal(null); setFile(null); setPreview(null);
+    setPasswords({ current: '', next: '', confirm: '' }); setActionError('');
+  }
+  async function submit(event) {
+    event.preventDefault();
+    if (operation.current) return;
+    if (modal === 'password' && passwords.next !== passwords.confirm) { setActionError('Passwords do not match.'); return; }
+    operation.current = true; setBusy(true); setActionError('');
+    try {
+      if (modal === 'profile') {
+        const saved = await accountApi.save(form, file, profile.updated_at);
+        if (mounted.current) setProfile(saved);
+      } else if (modal === 'password') await accountApi.changePassword(passwords.current, passwords.next);
+      else await accountApi.revokeOthers();
+      if (mounted.current) {
+        setSuccess(modal === 'profile' ? 'Profile saved.' : modal === 'password' ? 'Password updated.' : 'Other sessions revoked. Existing access may continue until their access tokens expire.');
+        setModal(null); setFile(null); setPreview(null); setPasswords({ current: '', next: '', confirm: '' });
+      }
+    } catch (cause) { if (mounted.current) setActionError(cause.message); }
+    finally { operation.current = false; if (mounted.current) setBusy(false); }
+  }
+  if (!profile) return <section className="content"><h2>Settings — Account</h2>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
+  const initials = (profile.full_name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
+  return <section className="content">
+    <div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>
+    {error && <p role="alert" className="pw-error">{error} <button onClick={() => setReload(value => value + 1)}>Retry</button></p>}
+    {success && <p role="status" className="pw-success">{success}</p>}
+    <div className="settings-grid">
+      <div className="left-column">
+        <div className="settings-card">
+          <div className="card-header ep-card-header"><h3>Profile Information</h3><button className="primary-btn" onClick={() => open('profile')}>Edit Profile</button></div>
+          <div className="profile-layout">
+            <div className="avatar-box">{profile.photo ? <img src={profile.photo} alt="Your profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} /> : initials}</div>
+            <div className="profile-info">
+              <div className="info-group"><label>FULL NAME</label><span>{profile.full_name || 'Not set'}</span></div>
+              <div className="info-group"><label>EMAIL ADDRESS</label><span>{profile.email}</span><p className="field-hint">Contact support to change your email.</p></div>
+              <div className="info-group"><label>ROLE</label><span className="role-badge">{profile.role}</span></div>
+            </div>
+            <div className="profile-info"><div className="info-group"><label>CONTACT NUMBER</label><span>{profile.phone || 'Not set'}</span></div></div>
+          </div><div className="card-bottom-accent" />
         </div>
-      </header>
-
-      {/* Content */}
-      <section className="content">
-        {/* Header */}
-        <div className="page-header">
-          <div>
-            <h2>Settings — Account</h2>
-            <p>
-              Manage your personal details,
-              contact information, and
-              account preferences.
-            </p>
-          </div>
+        <div className="settings-card"><div className="card-header"><h3>Password & Authentication</h3></div>
+          <p>Your current password strength and last change date are unavailable. Use a strong, unique password.</p>
+          <button className="primary-btn" onClick={() => open('password')}>Change Password</button>
         </div>
-
-        {/* Grid */}
-        <div className="settings-grid">
-          {/* Left */}
-          <div className="left-column">
-            {/* Profile */}
-            <div className="settings-card">
-              <div className="card-header ep-card-header">
-                <h3>Profile Information</h3>
-                <button className="icon-only-btn" onClick={handleOpenEdit} aria-label="Edit profile">
-                  <EditIcon />
-                </button>
-              </div>
-
-              <div className="profile-layout">
-                <div className="avatar-box">
-                  {photoPreview
-                    ? <img src={photoPreview} alt="avatar" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "18px" }} />
-                    : initials
-                  }
-                  <button className="avatar-camera-btn" onClick={handleOpenEdit} aria-label="Change photo">
-                    <CameraIcon />
-                  </button>
-                </div>
-
-                <div className="profile-info">
-                  <div className="info-group">
-                    <label>FULL NAME</label>
-                    <span>{profile.firstName} {profile.lastName}</span>
-                  </div>
-
-                  <div className="info-group">
-                    <label>EMAIL ADDRESS</label>
-                    <span>{profile.email}</span>
-                    <p className="field-hint">Contact support to change your email.</p>
-                  </div>
-
-                  <div className="info-group">
-                    <label>ROLE</label>
-                    <div className="role-badge">{profile.role}</div>
-                  </div>
-                </div>
-
-                <div className="profile-info">
-                  <div className="info-group">
-                    <label>CONTACT NUMBER</label>
-                    <span>{profile.contact}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="card-bottom-accent"></div>
-            </div>
-
-            {/* Password */}
-            <div className="settings-card">
-              <div className="card-header">
-                <div>
-                  <h3>Password & Authentication</h3>
-                  <p>
-                    Manage your password
-                    to secure your account.
-                  </p>
-                </div>
-              </div>
-
-              <div className="password-grid">
-                <div>
-                  <label>PASSWORD STRENGTH</label>
-                  <div className="strength-row">
-                    <div className="strength-bar">
-                      <div className="strength-fill"></div>
-                    </div>
-                    <span className="green">Strong</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label>LAST CHANGED</label>
-                  <span className="inline-icon-text"><ClockIcon /> 30 days ago</span>
-                </div>
-
-                <div>
-                  <label>STATUS</label>
-                  <span className="green inline-icon-text">
-                    <CheckCircleIcon /> Secure
-                  </span>
-                </div>
-              </div>
-
-              <button className="primary-btn" onClick={() => setShowPasswordModal(true)}>
-                Change Password
-              </button>
-            </div>
-          </div>
-
-          {/* Right */}
-          <div className="right-column">
-            {/* Login Security */}
-            <div className="settings-card">
-              <div className="card-header">
-                <h3>Login & Security</h3>
-              </div>
-
-              <div className="section-label"><ClockIcon size={14} /> Recent Activity</div>
-              <div className="security-box">
-                <div className="session-top-row">
-                  <strong>Today, 08:30 AM</strong>
-                  <span className="current-badge">Current</span>
-                </div>
-                <span>Chrome on Windows</span>
-                <small className="session-location"><MapPinIcon /> Cabanatuan City</small>
-              </div>
-
-              <div className="section-label" style={{ marginTop: "20px" }}>Other Sessions</div>
-
-              {otherSessions.length > 0 ? (
-                otherSessions.map((session) => (
-                  <div className="session-box session-row" key={session.id}>
-                    <div className="session-row-main">
-                      <span className="session-icon"><SmartphoneIcon /></span>
-                      <div>
-                        <strong>{session.device}</strong>
-                        <span>{session.time}</span>
-                      </div>
-                    </div>
-                    <button
-                      className="session-logout-link"
-                      onClick={() => handleLogoutSession(session.id)}
-                    >
-                      Log Out
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className="session-box">
-                  <strong>No other active sessions</strong>
-                  <span>You're only signed in on this device</span>
-                </div>
-              )}
-
-              {logoutDone && (
-                <p className="pw-success" style={{ marginBottom: "12px" }}>
-                  ✓ All other sessions have been logged out
-                </p>
-              )}
-
-              <button
-                className="logout-btn"
-                onClick={() => setShowLogoutConfirm(true)}
-                disabled={otherSessions.length === 0}
-              >
-                <LogOutIcon /> Log Out All Other Sessions
-              </button>
-
-              <div className="account-details-box">
-                <div className="section-label">ACCOUNT DETAILS</div>
-                <div className="ad-row">
-                  <span>Account ID:</span>
-                  <strong>ADM-0001</strong>
-                </div>
-                <div className="ad-row">
-                  <span>Member Since:</span>
-                  <strong>Jan 15, 2025</strong>
-                </div>
-              </div>
-            </div>
-          </div>
+      </div>
+      <div className="right-column"><div className="settings-card">
+        <div className="card-header"><h3>Login & Security</h3></div>
+        <div className="section-label">Last Account Sign-in</div><div className="security-box"><strong>{dateLabel(profile.lastSignIn)}</strong><span>Philippine time. Device and location details are unavailable.</span></div>
+        <div className="section-label" style={{ marginTop: 20 }}>Other Sessions</div><div className="session-box"><span>Other device sessions cannot be listed here. You can sign out all other sessions below.</span></div>
+        <button className="logout-btn" onClick={() => open('sessions')}>Log Out All Other Sessions</button>
+        <div className="account-details-box"><div className="section-label">ACCOUNT DETAILS</div>
+          <div className="ad-row"><span>Account ID:</span><strong style={{ overflowWrap: 'anywhere', minWidth: 0 }}>{profile.id}</strong></div>
+          <div className="ad-row"><span>Member Since:</span><strong>{dateLabel(profile.created_at)}</strong></div>
         </div>
-      </section>
-      {/* ===== CHANGE PASSWORD MODAL ===== */}
-      {showPasswordModal && (
-        <div className="pw-backdrop" onClick={handleCloseModal}>
-          <div className="pw-modal" onClick={(e) => e.stopPropagation()}>
-
-            {/* Header */}
-            <div className="pw-modal-header">
-              <h3 className="pw-modal-title">Change Password</h3>
-              <button className="pw-close-btn" onClick={handleCloseModal}>✕</button>
-            </div>
-
-            {/* Body */}
-            <div className="pw-modal-body">
-
-              {/* Current Password */}
-              <div className="pw-field-group">
-                <label className="pw-label">CURRENT PASSWORD</label>
-                <div className="pw-input-wrap">
-                  <input
-                    type={showCurrent ? "text" : "password"}
-                    className="pw-input"
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    placeholder="Enter current password"
-                  />
-                  <button className="pw-eye-btn" onClick={() => setShowCurrent(!showCurrent)}>
-                    {showCurrent ? "👁" : "🙈"}
-                  </button>
-                </div>
-              </div>
-
-              {/* New Password */}
-              <div className="pw-field-group">
-                <label className="pw-label">NEW PASSWORD</label>
-                <div className="pw-input-wrap">
-                  <input
-                    type={showNew ? "text" : "password"}
-                    className="pw-input"
-                    value={newPw}
-                    onChange={(e) => setNewPw(e.target.value)}
-                    placeholder="Enter new password"
-                  />
-                  <button className="pw-eye-btn" onClick={() => setShowNew(!showNew)}>
-                    {showNew ? "👁" : "🙈"}
-                  </button>
-                </div>
-                {/* Strength bar */}
-                {newPw && (
-                  <div className="pw-strength-wrap">
-                    <div className="pw-strength-bars">
-                      {[1,2,3,4].map(lvl => (
-                        <div
-                          key={lvl}
-                          className={`pw-strength-seg ${strength.level >= lvl ? `seg-${strength.label.toLowerCase()}` : ""}`}
-                        />
-                      ))}
-                    </div>
-                    <span className={`pw-strength-label str-${strength.label.toLowerCase()}`}>
-                      {strength.label}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm New Password */}
-              <div className="pw-field-group">
-                <label className="pw-label">CONFIRM NEW PASSWORD</label>
-                <div className="pw-input-wrap">
-                  <input
-                    type={showConfirm ? "text" : "password"}
-                    className="pw-input"
-                    value={confirmPw}
-                    onChange={(e) => setConfirmPw(e.target.value)}
-                    placeholder="Confirm Password"
-                  />
-                  <button className="pw-eye-btn" onClick={() => setShowConfirm(!showConfirm)}>
-                    {showConfirm ? "👁" : "🙈"}
-                  </button>
-                </div>
-                {confirmPw && newPw && (
-                  <p className={`pw-match-hint ${newPw === confirmPw ? "match" : "no-match"}`}>
-                    {newPw === confirmPw ? "✓ Passwords match" : "✗ Passwords do not match"}
-                  </p>
-                )}
-              </div>
-
-              {/* Error */}
-              {pwError && <p className="pw-error">{pwError}</p>}
-
-              {/* Success */}
-              {pwSuccess && <p className="pw-success">✓ Password updated successfully!</p>}
-            </div>
-
-            {/* Footer */}
-            <div className="pw-modal-footer">
-              <button
-                className={`pw-update-btn ${pwSuccess ? "pw-update-btn--success" : ""}`}
-                onClick={handleUpdatePassword}
-                disabled={pwSuccess}
-              >
-                {pwSuccess ? "✓ Password Updated" : "Update Password"}
-              </button>
-              <button className="pw-cancel-btn" onClick={handleCloseModal}>Cancel</button>
-            </div>
-
-          </div>
-        </div>
-      )}
-      {/* ===== LOG OUT OTHER SESSIONS CONFIRM MODAL ===== */}
-      {showLogoutConfirm && (
-        <div className="pw-backdrop" onClick={() => !loggingOutSessions && setShowLogoutConfirm(false)}>
-          <div className="pw-modal" onClick={(e) => e.stopPropagation()}>
-
-            {/* Header */}
-            <div className="pw-modal-header">
-              <h3 className="pw-modal-title">Log Out Other Sessions?</h3>
-              <button
-                className="pw-close-btn"
-                onClick={() => setShowLogoutConfirm(false)}
-                disabled={loggingOutSessions}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="pw-modal-body">
-              <p style={{ fontSize: "14px", color: "#475569", margin: 0 }}>
-                This will sign you out of all devices and browsers except this one
-                {otherSessions.length > 0 && (
-                  <> — including <strong>{otherSessions.map(s => s.device).join(", ")}</strong></>
-                )}.
-                You'll need to log in again on those devices.
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="pw-modal-footer">
-              <button
-                className="pw-update-btn"
-                style={{ background: "#DC2626" }}
-                onClick={handleLogoutAllOtherSessions}
-                disabled={loggingOutSessions}
-              >
-                {loggingOutSessions ? "Logging out..." : "Yes, Log Out Other Sessions"}
-              </button>
-              <button
-                className="pw-cancel-btn"
-                onClick={() => setShowLogoutConfirm(false)}
-                disabled={loggingOutSessions}
-              >
-                Cancel
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-      {/* ===== EDIT PROFILE MODAL ===== */}
-      {showEditProfile && (
-        <div className="ep-backdrop" onClick={handleCloseEdit}>
-          <div className="ep-modal" onClick={(e) => e.stopPropagation()}>
-
-            {/* Header */}
-            <div className="ep-modal-header">
-              <h3 className="ep-modal-title">Edit Profile Information</h3>
-              <button className="ep-close-btn" onClick={handleCloseEdit}>✕</button>
-            </div>
-
-            {/* Body */}
-            <div className="ep-modal-body">
-
-              {/* Photo Upload */}
-              <div className="ep-photo-row">
-                <label className="ep-photo-box" htmlFor="ep-photo-input">
-                  {photoPreview
-                    ? <img src={photoPreview} alt="preview" className="ep-photo-preview" />
-                    : <span className="ep-photo-icon">📷</span>
-                  }
-                </label>
-                <input
-                  id="ep-photo-input"
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  style={{ display: "none" }}
-                  onChange={handlePhotoChange}
-                />
-                <div className="ep-photo-meta">
-                  <span className="ep-photo-label">Change Photo</span>
-                  <span className="ep-photo-hint">JPG OR PNG, MAX 2MB</span>
-                </div>
-              </div>
-
-              {/* First + Last Name */}
-              <div className="ep-row-2">
-                <div className="ep-field-group">
-                  <label className="ep-label">FIRST NAME</label>
-                  <input
-                    type="text"
-                    className="ep-input"
-                    value={editForm.firstName}
-                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                    placeholder="First name"
-                  />
-                </div>
-                <div className="ep-field-group">
-                  <label className="ep-label">LAST NAME</label>
-                  <input
-                    type="text"
-                    className="ep-input"
-                    value={editForm.lastName}
-                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                    placeholder="Last name"
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="ep-field-group">
-                <label className="ep-label">EMAIL ADDRESS</label>
-                <input
-                  type="email"
-                  className="ep-input ep-input--muted"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  placeholder="Email address"
-                />
-              </div>
-
-              {/* Contact + Role */}
-              <div className="ep-row-2">
-                <div className="ep-field-group">
-                  <label className="ep-label">CONTACT NUMBER</label>
-                  <input
-                    type="text"
-                    className="ep-input"
-                    value={editForm.contact}
-                    onChange={(e) => setEditForm({ ...editForm, contact: e.target.value })}
-                    placeholder="Contact number"
-                  />
-                </div>
-                <div className="ep-field-group">
-                  <label className="ep-label">ROLE</label>
-                  <input
-                    type="text"
-                    className="ep-input ep-input--role"
-                    value={editForm.role}
-                    readOnly
-                  />
-                </div>
-              </div>
-
-              {/* Error / Success */}
-              {editError   && <p className="pw-error">{editError}</p>}
-              {editSuccess && <p className="pw-success">✓ Profile updated successfully!</p>}
-            </div>
-
-            {/* Footer */}
-            <div className="ep-modal-footer">
-              <button className="ep-cancel-btn" onClick={handleCloseEdit}>Cancel</button>
-              <button
-                className={`ep-save-btn ${editSuccess ? "ep-save-btn--success" : ""}`}
-                onClick={handleSaveProfile}
-                disabled={editSuccess}
-              >
-                {editSuccess ? "✓ Saved" : "Save Changes"}
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-    </MainLayout>
-  );
+      </div></div>
+    </div>
+    {modal && <div className="ep-backdrop" onClick={close}><form className="ep-modal" role="dialog" aria-modal="true" aria-label={modal === 'profile' ? 'Edit profile' : modal === 'password' ? 'Change password' : 'Log out other sessions'} onClick={event => event.stopPropagation()} onSubmit={submit}>
+      <div className="ep-modal-header"><h3 className="ep-modal-title">{modal === 'profile' ? 'Edit Profile Information' : modal === 'password' ? 'Change Password' : 'Log Out Other Sessions?'}</h3><button type="button" className="ep-close-btn" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
+      <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className="ep-modal-body">
+        {modal === 'profile' && <>
+          <div className="ep-photo-row">{(preview || profile.photo) && <img className="ep-photo-preview" style={{ width: 64, height: 64, objectFit: 'cover' }} src={preview || profile.photo} alt="Profile preview" />}<label className="ep-label">PHOTO (JPG OR PNG, MAX 2MB)<input type="file" accept="image/jpeg,image/png" onChange={event => {
+            const selected = event.target.files[0];
+            if (selected && (!['image/jpeg', 'image/png'].includes(selected.type) || selected.size <= 0 || selected.size > 2097152)) { setActionError('Choose a JPG or PNG photo under 2MB.'); event.target.value = ''; return; }
+            setFile(selected || null); setPreview(selected ? URL.createObjectURL(selected) : null); setActionError('');
+          }} /></label></div>
+          <label className="ep-field-group"><span className="ep-label">FULL NAME</span><input className="ep-input" required maxLength={200} value={form.fullName} onChange={event => setForm({ ...form, fullName: event.target.value })} /></label>
+          <label className="ep-field-group"><span className="ep-label">EMAIL ADDRESS</span><input className="ep-input ep-input--muted" value={profile.email || ''} readOnly /></label>
+          <label className="ep-field-group"><span className="ep-label">CONTACT NUMBER</span><input className="ep-input" type="tel" maxLength={40} value={form.contact} onChange={event => setForm({ ...form, contact: event.target.value })} /></label>
+          <label className="ep-field-group"><span className="ep-label">ROLE</span><input className="ep-input ep-input--role" value={profile.role} readOnly /></label>
+        </>}
+        {modal === 'password' && <>{[['current', 'CURRENT PASSWORD'], ['next', 'NEW PASSWORD'], ['confirm', 'CONFIRM NEW PASSWORD']].map(([key, label]) => <label key={key} className="ep-field-group"><span className="ep-label">{label}</span><input type="password" className="ep-input" required minLength={key === 'current' ? undefined : 8} autoComplete={key === 'current' ? 'current-password' : 'new-password'} value={passwords[key]} onChange={event => setPasswords({ ...passwords, [key]: event.target.value })} /></label>)}<p className="field-hint">Use at least 8 characters. Your current password is verified before the update.</p></>}
+        {modal === 'sessions' && <p>This signs out all devices and browsers except this session. Other devices may retain access until their current access tokens expire.</p>}
+        {actionError && <p className="pw-error" role="alert">{actionError}</p>}
+      </div><div className="ep-modal-footer"><button type="button" className="ep-cancel-btn" onClick={close}>Cancel</button><button type="submit" className="ep-save-btn">{busy ? 'Saving…' : modal === 'profile' ? 'Save Changes' : modal === 'password' ? 'Update Password' : 'Log Out Other Sessions'}</button></div></fieldset>
+    </form></div>}
+  </section>;
 }
