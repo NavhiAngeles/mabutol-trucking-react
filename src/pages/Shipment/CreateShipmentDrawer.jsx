@@ -610,6 +610,14 @@ export default function CreateShipmentDrawer({
   const handleCloseAll = () => {
     if (isSaving) return;
 
+    const hasUnsavedChanges = !createdShipment && (
+      Object.keys(INITIAL_FORM).some(key => form[key] !== INITIAL_FORM[key]) ||
+      confirmedPickup !== null || confirmedDestination !== null
+    );
+    if (hasUnsavedChanges && !window.confirm(
+      "Discard this shipment draft? Your entered details will be lost."
+    )) return;
+
     reset();
     onClose?.();
   };

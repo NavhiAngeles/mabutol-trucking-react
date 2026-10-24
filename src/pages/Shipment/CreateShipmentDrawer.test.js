@@ -9,6 +9,44 @@ function handler(name) {
   assert.ok(match, `Actual ${name} handler found`);
   return `const ${name} = () => {${match[1]}\n};`;
 }
+
+function closeFlow({ dirty = false, coordinates = false, saving = false, booked = false, discard = false } = {}) {
+  const state = { resets: 0, closes: 0, prompts: 0 };
+  const scope = {
+    INITIAL_FORM: { cargoDescription: '', driverNotes: '', usesTollRoad: false },
+    form: { cargoDescription: dirty ? 'Keep my cargo' : '', driverNotes: '', usesTollRoad: false },
+    confirmedPickup: coordinates ? { lat: 15, lng: 120 } : null,
+    confirmedDestination: null,
+    isSaving: saving,
+    createdShipment: booked ? { id: 'saved' } : null,
+    window: { confirm(message) { assert.match(message, /Discard.*draft/); state.prompts++; return discard; } },
+    reset() { state.resets++; },
+    onClose() { state.closes++; },
+  };
+  const close = new Function(...Object.keys(scope), `${handler('handleCloseAll')}\nreturn handleCloseAll;`)(...Object.values(scope));
+  return { state, close };
+}
+
+test('Back preserves dirty draft when discard is canceled and closes only after confirmation', () => {
+  const canceled = closeFlow({ dirty: true }); canceled.close();
+  assert.deepEqual(canceled.state, { resets: 0, closes: 0, prompts: 1 });
+  const discarded = closeFlow({ dirty: true, discard: true }); discarded.close();
+  assert.deepEqual(discarded.state, { resets: 1, closes: 1, prompts: 1 });
+});
+
+test('confirmed coordinates also trigger discard protection', () => {
+  const flow = closeFlow({ coordinates: true }); flow.close();
+  assert.deepEqual(flow.state, { resets: 0, closes: 0, prompts: 1 });
+});
+
+test('pristine and successfully booked forms close without discard prompt; saving blocks close', () => {
+  for (const options of [{}, { dirty: true, booked: true }]) {
+    const flow = closeFlow(options); flow.close();
+    assert.deepEqual(flow.state, { resets: 1, closes: 1, prompts: 0 });
+  }
+  const saving = closeFlow({ dirty: true, saving: true }); saving.close();
+  assert.deepEqual(saving.state, { resets: 0, closes: 0, prompts: 0 });
+});
 // Execute actual validator/Next bodies with real capacity helpers and isolated UI state.
 function booking({ step = 2, weight = "3000", capacity = 4000, busy = false, routeError = "", baseRate = 500, description = "Cargo", vehicle = true } = {}) {
   const state = { step, error: "previous error" };
