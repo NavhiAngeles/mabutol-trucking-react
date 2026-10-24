@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import MainLayout from '../../../layouts/mainLayout';
-import OfficeTools from '../../../components/OfficeTools';
+import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { userManagementApi } from '../../../services/userManagementService';
 import './userManagement.css';
@@ -8,7 +7,7 @@ import './userManagement.css';
 const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
 export default function UserManagement() {
   const { user, role } = useAuth();
-  return <MainLayout><header className="topbar"><h1 style={{ fontSize: 18 }}>Office User Management</h1><OfficeTools /></header>{role === 'admin' ? <OfficeUsers key={user?.id} /> : <section className="content"><h2>User Management</h2><p>Only active administrators can manage office accounts.</p></section>}</MainLayout>;
+  return <SettingsLayout>{role === 'admin' ? <OfficeUsers key={user?.id} /> : <section className="content"><div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div></div><p>Only active administrators can manage office accounts.</p></section>}</SettingsLayout>;
 }
 function OfficeUsers() {
   const [snapshot, setSnapshot] = useState(null);

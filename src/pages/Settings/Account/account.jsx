@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import MainLayout from '../../../layouts/mainLayout';
+import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
 import './account.css';
@@ -8,7 +8,7 @@ const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { tim
 
 export default function Account() {
   const { user } = useAuth();
-  return <MainLayout><AccountDetails key={user?.id} /></MainLayout>;
+  return <SettingsLayout><AccountDetails key={user?.id} /></SettingsLayout>;
 }
 
 function AccountDetails() {
@@ -69,7 +69,7 @@ function AccountDetails() {
     } catch (cause) { if (mounted.current) setActionError(cause.message); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
   }
-  if (!profile) return <section className="content"><h2>Settings — Account</h2>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
+  if (!profile) return <section className="content"><div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
   const initials = (profile.full_name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
   return <section className="content">
     <div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>

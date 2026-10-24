@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import MainLayout from "../../../layouts/mainLayout";
+import SettingsLayout from '../../../components/SettingsLayout';
 import {
   fetchPricingData,
   savePricing,
@@ -37,12 +37,6 @@ const SearchIcon = () => (
   </Svg>
 );
 
-const BellIcon = () => (
-  <Svg size={20}>
-    <path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8" />
-    <path d="M10.3 21a1.9 1.9 0 003.4 0" />
-  </Svg>
-);
 
 const WarningIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
@@ -268,46 +262,31 @@ export default function Pricing() {
   );
 
   return (
-    <MainLayout>
-      <div className="pricing-page">
-        {/* TOPBAR */}
-        <header className="topbar">
-          <label className="search-box">
+    <SettingsLayout search={<label className="settings-search">
             <SearchIcon />
 
             <input
-              type="text"
+              type="search"
+              aria-label="Search vehicle types"
               placeholder="Search vehicle types..."
               value={search}
               onChange={(event) =>
                 setSearch(event.target.value)
               }
             />
-          </label>
-
-          <div className="topbar-right">
-            <button
-              className="icon-btn"
-              type="button"
-              aria-label="Notifications"
-              disabled
-            >
-              <BellIcon />
-            </button>
-
-            <span className="topbar-divider" />
-
-            <div className="avatar">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=60"
-                alt="User Profile"
-                className="avatar-img"
-              />
-            </div>
-          </div>
-        </header>
-
+          </label>}>
+      <div className="pricing-page">
         <section className="content">
+          {/* HEADER */}
+          <div className="page-header"><div>
+            <h2>Settings — Pricing &amp; Rates</h2>
+
+            <p>
+              Configure vehicle rates, fixed trip fees,
+              handling surcharges, and toll gate presets.
+            </p>
+          </div></div>
+
           {/* ADMIN NOTICE */}
           <div className="notice-box">
             <div className="notice-title">
@@ -319,16 +298,6 @@ export default function Pricing() {
               Only active Admin accounts can modify Pricing
               &amp; Rates. Other authenticated users have
               read-only access where permitted by Supabase.
-            </p>
-          </div>
-
-          {/* HEADER */}
-          <div className="page-header">
-            <h2>Settings — Pricing &amp; Rates</h2>
-
-            <p>
-              Configure vehicle rates, fixed trip fees,
-              handling surcharges, and toll gate presets.
             </p>
           </div>
 
@@ -667,6 +636,6 @@ export default function Pricing() {
           )}
         </section>
       </div>
-    </MainLayout>
+    </SettingsLayout>
   );
 }

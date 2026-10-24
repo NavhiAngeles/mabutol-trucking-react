@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import MainLayout from '../../../layouts/mainLayout';
+import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
 import { securityApi } from '../../../services/securityService';
-import OfficeTools from '../../../components/OfficeTools';
 import './security.css';
 
 export default function Security() {
   const { user } = useAuth();
-  return <MainLayout><SecurityDetails key={user?.id} /></MainLayout>;
+  return <SettingsLayout><SecurityDetails key={user?.id} /></SettingsLayout>;
 }
 function SecurityDetails() {
   const [snapshot, setSnapshot] = useState(null);
@@ -74,8 +73,8 @@ function SecurityDetails() {
     });
   }
   const verified = snapshot?.factors.filter(f => f.status === 'verified') || [];
-  return <><header className="topbar"><OfficeTools /></header><section className="content security-settings">
-    <div className="page-header"><h2>Settings - Security</h2><p>Manage your password, authenticator, and signed-in sessions.</p></div>
+  return <><section className="content security-settings">
+    <div className="page-header"><div><h2>Settings — Security</h2><p>Manage your password, authenticator, and signed-in sessions.</p></div></div>
     {notice && <p role="status" className="pw-success">{notice}</p>}
     {loadError && <p role="alert" className="pw-error">{loadError} <button onClick={refresh}>Retry</button></p>}
     {!snapshot && !loadError && <p role="status">Loading security settings...</p>}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import MainLayout from '../../../layouts/mainLayout';
-import OfficeTools from '../../../components/OfficeTools';
+import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { complianceThresholdApi } from '../../../services/complianceThresholdService';
 import { THRESHOLD_FIELDS, DEFAULT_THRESHOLDS, validateThresholds } from '../../../services/complianceThresholds.js';
@@ -8,7 +7,7 @@ import './complianceThreshold.css';
 
 export default function ComplianceThresholds() {
   const { user, role } = useAuth();
-  return <MainLayout><header className="topbar"><h1 style={{ fontSize: 18 }}>Compliance Settings</h1><OfficeTools /></header><ThresholdForm key={user?.id} role={role} /></MainLayout>;
+  return <SettingsLayout><ThresholdForm key={user?.id} role={role} /></SettingsLayout>;
 }
 function ThresholdForm({ role }) {
   const [snapshot, setSnapshot] = useState(null);
@@ -46,7 +45,7 @@ function ThresholdForm({ role }) {
   }
   const dirty = snapshot && JSON.stringify(form) !== JSON.stringify(snapshot.thresholds || DEFAULT_THRESHOLDS);
   return <section className="content compliance-threshold-settings">
-    <div className="page-header"><h2>Settings — Compliance Thresholds</h2><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div>
+    <div className="page-header"><div><h2>Settings — Compliance Thresholds</h2><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div></div>
     {loadError ? <div role="alert"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status">Loading compliance thresholds…</p> : <form onSubmit={submit} className="settings-card">
       <p className="intro-text">First Alert marks an approaching expiry or service date. Critical Alert marks the final warning window, including the due date. Past dates remain expired or overdue. All dates use Philippine time.</p>
       {!snapshot.thresholds && <p role="status">No per-document thresholds are saved. Documents currently use the existing {snapshot.legacyDays}-day warning window; maintenance warnings currently cover overdue work only. The values below are suggested settings and take effect only after an administrator saves them.</p>}

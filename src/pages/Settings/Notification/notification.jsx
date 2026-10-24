@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import MainLayout from '../../../layouts/mainLayout';
-import OfficeTools from '../../../components/OfficeTools';
+import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { notificationPreferencesApi } from '../../../services/notificationPreferencesService';
 import './notification.css';
@@ -24,7 +23,7 @@ const GROUPS = [
 
 export default function Notifications() {
   const { user } = useAuth();
-  return <MainLayout><header className="topbar"><h1 style={{ fontSize: 18 }}>Notification Settings</h1><OfficeTools /></header><NotificationPreferences key={user?.id} /></MainLayout>;
+  return <SettingsLayout><NotificationPreferences key={user?.id} /></SettingsLayout>;
 }
 
 function NotificationPreferences() {
