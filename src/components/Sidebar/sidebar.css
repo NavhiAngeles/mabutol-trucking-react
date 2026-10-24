@@ -61,6 +61,22 @@
   overflow-y: auto;
 }
 
+:where(.sidebar) button:where(.nav-item, .submenu-item) {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+}
+
+.sidebar button.nav-item:focus-visible,
+.sidebar button.submenu-item:focus-visible {
+  outline: 2px solid #1A4B9C;
+  outline-offset: -2px;
+}
+
 .nav-item {
   display: flex;
   align-items: center;

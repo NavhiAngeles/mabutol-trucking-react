@@ -73,7 +73,7 @@ export default function Sidebar() {
 
         {/* Nav */}
         <nav className="sidebar-nav">
-          <div
+          <button type="button"
             className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
             onClick={() => navigate("/dashboard")}
           >
@@ -82,9 +82,9 @@ export default function Sidebar() {
               <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
             </svg>
             Dashboard
-          </div>
+          </button>
 
-          <div
+          <button type="button"
             className={`nav-item ${isActive("/shipment") ? "active" : ""}`}
             onClick={() => navigate("/shipment")}
           >
@@ -94,9 +94,9 @@ export default function Sidebar() {
               <circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             </svg>
             Shipments
-          </div>
+          </button>
 
-          <div
+          <button type="button"
             className={`nav-item ${isActive("/fleet") ? "active" : ""}`}
             onClick={() => navigate("/fleet")}
           >
@@ -106,9 +106,9 @@ export default function Sidebar() {
               <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
             </svg>
             Fleet Management
-          </div>
+          </button>
 
-          <div
+          <button type="button"
             className={`nav-item ${isActive("/customer") ? "active" : ""}`}
             onClick={() => navigate("/customer")}
           >
@@ -119,11 +119,13 @@ export default function Sidebar() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
             Customers
-          </div>
+          </button>
 
           {/* Reports Dropdown */}
           <div className="nav-group">
-            <div
+            <button type="button"
+              aria-expanded={reportsOpen}
+              aria-controls="sidebar-reports"
               className={`nav-item ${isParentActive("/report") || reportsOpen ? "active" : ""}`}
               onClick={() => {
                 setReportsOpen((prev) => !prev);
@@ -143,21 +145,23 @@ export default function Sidebar() {
               >
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
-            </div>
+            </button>
             
             {reportsOpen && (
-              <div className="submenu" onClick={(e) => e.stopPropagation()}>
-                <div className={`submenu-item ${isActive("/report/overview") ? "active" : ""}`} onClick={() => navigate("/report/overview")}>Overview</div>
-                <div className={`submenu-item ${isActive("/report/shipmentReport") ? "active" : ""}`} onClick={() => navigate("/report/shipmentReport")}>Shipments</div>
-                <div className={`submenu-item ${isActive("/report/driverReport") ? "active" : ""}`} onClick={() => navigate("/report/driverReport")}>Drivers</div>
-                <div className={`submenu-item ${isActive("/report/revenueReport") ? "active" : ""}`} onClick={() => navigate("/report/revenueReport")}>Revenue</div>
+              <div id="sidebar-reports" className="submenu">
+                <button type="button" className={`submenu-item ${isActive("/report/overview") ? "active" : ""}`} onClick={() => navigate("/report/overview")}>Overview</button>
+                <button type="button" className={`submenu-item ${isActive("/report/shipmentReport") ? "active" : ""}`} onClick={() => navigate("/report/shipmentReport")}>Shipments</button>
+                <button type="button" className={`submenu-item ${isActive("/report/driverReport") ? "active" : ""}`} onClick={() => navigate("/report/driverReport")}>Drivers</button>
+                <button type="button" className={`submenu-item ${isActive("/report/revenueReport") ? "active" : ""}`} onClick={() => navigate("/report/revenueReport")}>Revenue</button>
               </div>
             )}
           </div>
 
           {/* Settings Dropdown */}
           <div className="nav-group">
-            <div
+            <button type="button"
+              aria-expanded={settingsOpen}
+              aria-controls="sidebar-settings"
               className={`nav-item ${isParentActive("/settings") || settingsOpen ? "active" : ""}`}
               onClick={() => {
                 setSettingsOpen((prev) => !prev);
@@ -177,16 +181,16 @@ export default function Sidebar() {
               >
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
-            </div>
+            </button>
 
             {settingsOpen && (
-              <div className="submenu" onClick={(e) => e.stopPropagation()}>
-                <div className={`submenu-item ${isActive("/settings/account") ? "active" : ""}`} onClick={() => navigate("/settings/account")}>Account</div>
-                <div className={`submenu-item ${isActive("/settings/notification") ? "active" : ""}`} onClick={() => navigate("/settings/notification")}>Notifications</div>
-                <div className={`submenu-item ${isActive("/settings/pricing") ? "active" : ""}`} onClick={() => navigate("/settings/pricing")}>Pricing</div>
-                <div className={`submenu-item ${isActive("/settings/complianceThreshold") ? "active" : ""}`} onClick={() => navigate("/settings/complianceThreshold")}>Compliance thresholds</div>
-                <div className={`submenu-item ${isActive("/settings/userManagement") ? "active" : ""}`} onClick={() => navigate("/settings/userManagement")}>User management</div>
-                <div className={`submenu-item ${isActive("/settings/security") ? "active" : ""}`} onClick={() => navigate("/settings/security")}>Security</div>
+              <div id="sidebar-settings" className="submenu">
+                <button type="button" className={`submenu-item ${isActive("/settings/account") ? "active" : ""}`} onClick={() => navigate("/settings/account")}>Account</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/notification") ? "active" : ""}`} onClick={() => navigate("/settings/notification")}>Notifications</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/pricing") ? "active" : ""}`} onClick={() => navigate("/settings/pricing")}>Pricing</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/complianceThreshold") ? "active" : ""}`} onClick={() => navigate("/settings/complianceThreshold")}>Compliance thresholds</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/userManagement") ? "active" : ""}`} onClick={() => navigate("/settings/userManagement")}>User management</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/security") ? "active" : ""}`} onClick={() => navigate("/settings/security")}>Security</button>
               </div>
             )}
           </div>
@@ -203,14 +207,14 @@ export default function Sidebar() {
             <span>Help Center <span className="sidebar-help-status">Unavailable</span></span>
           </div>
           
-          <div className="nav-item logout-button" onClick={() => { setLogoutError(""); setIsLogoutModalOpen(true); }}>
+          <button type="button" className="nav-item logout-button" onClick={() => { setLogoutError(""); setIsLogoutModalOpen(true); }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
               <polyline points="16 17 21 12 16 7"/>
               <line x1="21" y1="12" x2="9" y2="12"/>
             </svg>
             Log Out
-          </div>
+          </button>
         </div>
       </aside>
 

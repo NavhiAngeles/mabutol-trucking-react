@@ -27,6 +27,33 @@ function find(node, predicate) {
   return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
 }
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
+
+test('sidebar actions are native buttons and disclosures expose expanded state and matching panels', async () => {
+  const routes = [];
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => path => routes.push(path),
+    useLocation: () => ({ pathname: '/dashboard' }),
+    useAuth: () => ({ clearAuth() {} }),
+    supabase: { auth: { signOut: async () => ({}) } },
+  });
+  const actions = () => find(ui.render(), n => typeof n.props.onClick === 'function');
+  const named = label => actions().find(n => n.children.includes(label));
+  assert.ok(actions().every(n => n.type === 'button' && n.props.type === 'button'));
+  named('Shipments').props.onClick(); assert.deepEqual(routes, ['/shipment']);
+  for (const label of ['Reports', 'Settings']) {
+    assert.equal(named(label).props['aria-expanded'], false);
+    named(label).props.onClick();
+    assert.equal(named(label).props['aria-expanded'], true);
+    assert.equal(find(ui.render(), n => n.props.id === named(label).props['aria-controls']).length, 1);
+    assert.ok(actions().every(n => n.type === 'button'));
+  }
+  assert.equal(named('Reports').props['aria-expanded'], false);
+  named('Security').props.onClick(); assert.equal(routes.at(-1), '/settings/security');
+  named('Settings').props.onClick();
+  assert.equal(named('Settings').props['aria-expanded'], false);
+  assert.equal(find(ui.render(), n => n.props.className?.includes('submenu-item')).length, 0);
+  assert.equal(find(ui.render(), n => n.props.className === 'sidebar-help-unavailable')[0].props.tabIndex, undefined);
+});
 async function sidebar(signOut) {
   const events = [];
   const ui = await component("./sidebar.jsx", "Sidebar", {
@@ -46,7 +73,8 @@ test("logout waits, disables both actions, deduplicates rapid confirmation, clea
   const click = confirm().props.onClick;
   const work = click(); await click();
   assert.equal(calls, 1); assert.equal(events.length, 0);
-  const buttons = find(ui.render(), node => node.type === "button");
+  const dialog = find(ui.render(), node => node.props.role === "dialog")[0];
+  const buttons = find(dialog, node => node.type === "button");
   assert.ok(buttons.every(button => button.props.disabled));
   assert.ok(JSON.stringify(ui.render()).includes("Logging out"));
   pending.resolve({ error: null }); await work;
