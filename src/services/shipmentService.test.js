@@ -3,6 +3,27 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+test('weekly count distinguishes confirmed zero from query errors, rejection and missing counts, then recovers', async () => {
+  const results = [{ count: 0 }, { error: Error('Denied') }, Error('Offline'), { count: null }, {}, { count: 7 }];
+  const context = vm.createContext({ console: { error() {} }, supabase: {
+    from(table) {
+      assert.equal(table, 'shipments');
+      return {
+        select(column, options) { assert.equal(column, 'id'); assert.equal(options.count, 'exact'); assert.equal(options.head, true); return this; },
+        async gte(column, since) {
+          assert.equal(column, 'created_at'); assert.ok(Number.isFinite(Date.parse(since)));
+          const result = results.shift();
+          if (result instanceof Error) throw result;
+          return result;
+        },
+      };
+    },
+  } });
+  const source = fs.readFileSync(new URL('./shipmentService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.fetchCount = fetchWeeklyTripCount;', context);
+  for (const expected of [0, null, null, null, null, 7]) assert.equal(await context.fetchCount(), expected);
+});
+
 function service({ insertError, lookupError, assignment = null, throws = false, rpcData = null, rpcError = null } = {}) {
   let inserts = 0;
   const context = { console, supabase: {

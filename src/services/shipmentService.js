@@ -422,17 +422,17 @@ export async function fetchWeeklyTripCount() {
 
       // Do not prevent the shipment table
       // from loading if this count fails.
-      return 0;
+      return null;
     }
 
-    return count ?? 0;
+    return Number.isInteger(count) && count >= 0 ? count : null;
   } catch (error) {
     console.error(
       "Failed to fetch weekly trips:",
       error
     );
 
-    return 0;
+    return null;
   }
 }
 

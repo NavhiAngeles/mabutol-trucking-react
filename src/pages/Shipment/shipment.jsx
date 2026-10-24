@@ -395,7 +395,7 @@ export default function Shipment() {
               <i className="las la-chart-bar stat-icon" />
             </div>
             <h2>{stats.weeklyTrips}</h2>
-            <p>Shipments created this week</p>
+            <p>{stats.weeklyTrips === "—" ? (isLoading ? "Loading count…" : "Count unavailable") : "Shipments created this week"}</p>
           </div>
         </div>
 
