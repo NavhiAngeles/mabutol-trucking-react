@@ -67,6 +67,15 @@ test('no availability is a successful booked shipment', async () => {
   assert.equal(api.mapShipmentRow(created).driver, 'Unassigned');
 });
 
+test('shipment mapping exposes stored instructions on assigned, in-transit and completed deliveries', () => {
+  const api = service();
+  for (const status of ['pending', 'booked', 'assigned', 'in_transit', 'completed']) {
+    const row = api.mapShipmentRow({ id: 's', status, driver_notes: 'Call first.\nUse rear gate.' });
+    assert.equal(row.driverNotes, 'Call first.\nUse rear gate.');
+  }
+  for (const driver_notes of [null, undefined, '']) assert.equal(api.mapShipmentRow({ id: 's', driver_notes }).driverNotes, '');
+});
+
 test('lookup failure after insert preserves success instead of inviting duplicate submission', async () => {
   for (const options of [{ lookupError: Error('denied') }, { throws: true }]) {
     const api = service(options);

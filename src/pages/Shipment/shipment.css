@@ -628,3 +628,6 @@
 .booking-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 .booking-review-actions button { min-height: 40px; cursor: pointer; }
 .booking-review-actions button:disabled { cursor: wait; opacity: .6; }
+.shipment-driver-instructions { margin-top: 8px; max-width: 28rem; }
+.shipment-driver-instructions summary { cursor: pointer; color: #1d4ed8; }
+.shipment-driver-instructions p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }

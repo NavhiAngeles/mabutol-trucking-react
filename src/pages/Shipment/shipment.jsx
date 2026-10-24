@@ -491,6 +491,10 @@ export default function Shipment() {
                           <div className="cell-sub">
                             {s.cargo}
                           </div>
+                          <details className="shipment-driver-instructions">
+                            <summary>Driver instructions</summary>
+                            <p>{s.driverNotes || 'None recorded'}</p>
+                          </details>
                         </td>
 
                         <td>
@@ -585,6 +589,10 @@ export default function Shipment() {
                           <div className="cell-sub">
                             {s.cargo}
                           </div>
+                          <details className="shipment-driver-instructions">
+                            <summary>Driver instructions</summary>
+                            <p>{s.driverNotes || 'None recorded'}</p>
+                          </details>
                         </td>
 
                         <td>

@@ -78,15 +78,15 @@ test('service submits one versioned RPC, validates reasons and rejects unconfirm
 test('Shipment pending menu opens review and confirmed decisions refresh the list', async () => {
   const { code } = await transformWithOxc(fs.readFileSync(new URL('./shipment.jsx', import.meta.url), 'utf8'), 'shipment.jsx', { jsx: { runtime: 'classic' } });
   const states = [], refs = []; let index = 0, refIndex = 0, refreshes = 0;
-  let rawStatus = 'pending';
+  let rawStatus = 'pending', currentTab = 'all', driverNotes = 'Call first.\nUse rear gate.';
   const context = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect() {},
     MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', BookingReview: 'BookingReview', CreateShipmentDrawer: 'CreateShipmentDrawer',
     useShipmentViewModel: () => ({
-      visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500 }],
-      page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab: 'all', activeConfig: { label: 'All', title: 'Pending Booking Requests' },
+      visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500, driverNotes }],
+      page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab, activeConfig: { label: 'All', title: 'Pending Booking Requests' },
       refresh: () => refreshes++,
     }),
   });
@@ -104,4 +104,13 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   find(render(), node => node.type === 'BookingReview')[0].props.onReviewed({ status: 'cancelled' });
   assert.equal(refreshes, 2); assert.ok(JSON.stringify(render()).includes('rejected and cancelled'));
   rawStatus = 'booked'; openMenu(); assert.equal(button(render(), 'Review booking request'), undefined);
+  for (const status of ['assigned', 'in_transit', 'completed']) {
+    rawStatus = status; currentTab = status === 'completed' ? 'completed' : 'all';
+    const details = find(render(), node => node.type === 'details' && node.props.className === 'shipment-driver-instructions');
+    assert.equal(details.length, 1);
+    assert.equal(find(details[0], node => node.type === 'summary')[0].children[0], 'Driver instructions');
+    assert.equal(find(details[0], node => node.type === 'p')[0].children[0], driverNotes);
+  }
+  driverNotes = '';
+  assert.ok(JSON.stringify(render()).includes('None recorded'));
 });

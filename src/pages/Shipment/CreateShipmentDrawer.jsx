@@ -840,6 +840,7 @@ export default function CreateShipmentDrawer({
         weight_kg: Number(form.weight),
 
         special_handling: form.specialHandling,
+        driver_notes: form.driverNotes.trim() || null,
         requested_vehicle_type_id: currentVehicle.id,
         pricing_rate_id: currentVehicle.pricing.id,
         distance_km: Number(form.distanceKm),

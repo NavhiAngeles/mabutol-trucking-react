@@ -269,6 +269,7 @@ export function mapShipmentRow(row) {
     ),
 
     weightKg: row.weight_kg ?? 0,
+    driverNotes: row.driver_notes ?? '',
 
     bookingSource:
       row.booking_source ?? "—",

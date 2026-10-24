@@ -4,6 +4,26 @@ import { readFile } from "node:fs/promises";
 import { vehicleCanCarry, vehicleFitsShipmentWeight, vehicleBaseRate, bookingDefaults } from "../../services/vehiclePricing.js";
 
 const source = await readFile(new URL("./CreateShipmentDrawer.jsx", import.meta.url), "utf8");
+
+test('actual booking payload persists driver instructions, preserves multiline text and normalizes blank notes', async () => {
+  const start = source.indexOf('const shipmentData = {');
+  const end = source.indexOf('setCreatedShipment(data);', start);
+  assert.ok(start > 0 && end > start);
+  const notes = ['  Call before arrival.\nUse the rear loading gate.  ', '', '   \n  ', '<script>plain text only</script>'];
+  for (const driverNotes of notes) {
+    let payload;
+    const scope = {
+      form: { driverNotes, cargoDescription: 'Boxes', weight: '500', specialHandling: 'None', distanceKm: '10', overrideAmount: '' },
+      selectedCustomer: { id: 'customer' }, currentVehicle: { id: 'vehicle', pricing: { id: 'rate' } },
+      detailedAddress: () => 'Test address', departure: new Date('2026-10-25T00:00:00Z'), suggestedCharge: 2500,
+      createShipment: async value => { payload = value; return { id: 'shipment', ...value }; },
+    };
+    const run = new Function(...Object.keys(scope), `return async () => {${source.slice(start, end)}};`)(...Object.values(scope));
+    await run();
+    assert.equal(payload.driver_notes, driverNotes.trim() || null);
+    assert.equal(payload.status, 'booked');
+  }
+});
 function handler(name) {
   const match = source.match(new RegExp(`const ${name} = \\(\\) => \\{([\\s\\S]*?)\\n  \\};`));
   assert.ok(match, `Actual ${name} handler found`);
