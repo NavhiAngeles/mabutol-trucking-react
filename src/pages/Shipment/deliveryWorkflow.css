@@ -1,0 +1,14 @@
+.delivery-workflow-panel { display: grid; gap: 14px; padding: 20px; margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; color: #0f172a; }
+.delivery-workflow-panel h3,.delivery-workflow-panel h4 { margin: 0; }
+.delivery-workflow-panel p { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.delivery-workflow-panel label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
+.delivery-workflow-panel input,.delivery-workflow-panel select,.delivery-workflow-panel textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; font: inherit; }
+.delivery-workflow-panel button { min-height: 44px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #0b2a4a; font-weight: 600; cursor: pointer; }
+.delivery-workflow-panel button.btn-primary { background: #0b2a4a; color: white; }
+.delivery-workflow-panel button:disabled { opacity: .5; cursor: not-allowed; }
+.delivery-workflow-panel :is(button,input,select,textarea):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.delivery-workflow-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.delivery-timeline { display: grid; gap: 14px; padding-left: 22px; }
+.delivery-timeline span { display: block; font-size: 12px; color: #64748b; }
+.delivery-proof-image { width: 100%; max-height: 500px; object-fit: contain; }
+@media(max-width:600px) { .delivery-workflow-grid { grid-template-columns: minmax(0,1fr); } .delivery-workflow-panel { padding: 14px; } }

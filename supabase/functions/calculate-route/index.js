@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.114.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -89,6 +91,16 @@ Deno.serve(async (request) => {
   }
 
   try {
+    const authorization=request.headers.get('Authorization');
+    if(!authorization) return jsonResponse({error:'Sign in to calculate a route.'},401);
+    const caller=createClient(Deno.env.get('SUPABASE_URL'),Deno.env.get('SUPABASE_ANON_KEY'),{global:{headers:{Authorization:authorization}}});
+    const {data:identity,error:authError}=await caller.auth.getUser();
+    if(authError || !identity?.user) return jsonResponse({error:'Sign in to calculate a route.'},401);
+    const {data:profile,error:profileError}=await caller.from('users').select('role,is_active').eq('id',identity.user.id).single();
+    const input = await request.json();
+    const office = ['admin','staff'].includes(profile?.role);
+    const customerPreview = profile?.role === 'customer' && input?.preview === true;
+    if(profileError || !profile?.is_active || !(office || customerPreview)) return jsonResponse({error:'An active office account or customer route preview is required.'},403);
     let apiKey = Deno.env.get("ORS_API_KEY")?.trim();
 
     // The provider's example URL includes the key as a query parameter.
@@ -109,7 +121,7 @@ Deno.serve(async (request) => {
       );
     }
 
-    const { pickup, destination } = await request.json();
+    const { pickup, destination } = input;
 
     if (!validPoint(pickup) || !validPoint(destination)) {
       return jsonResponse(
@@ -181,9 +193,6 @@ Deno.serve(async (request) => {
     const route = result.routes?.[0];
     const summary = route?.summary;
 
-    console.log("ORS route summary:", summary);
-    console.log("ORS geometry type:", typeof route?.geometry);
-    console.log("ORS requested coordinates:", { pickup, destination });
 
     if (
       !route ||

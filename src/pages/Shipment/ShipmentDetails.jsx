@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchShipmentDetails } from '../../services/shipmentService';
+import DeliveryOperations from './DeliveryOperations';
 
 const timestamp = value => value && Number.isFinite(Date.parse(value))
   ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
@@ -27,7 +28,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
   const onKeyDown = event => {
     if (event.key === 'Escape') { event.preventDefault(); onClose(); }
     if (event.key !== 'Tab') return;
-    const controls = Array.from(dialog.current.querySelectorAll('button:not(:disabled)'));
+    const controls = Array.from(dialog.current.querySelectorAll('button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled)'));
     const first = controls[0], last = controls.at(-1);
     if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) { event.preventDefault(); first?.focus(); }
@@ -70,6 +71,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
         {details.deliveries.length ? <ul>{details.deliveries.map(delivery => <li key={delivery.id}>
           {delivery.driver?.full_name || 'Driver unavailable'} · {delivery.truck?.plate_number || 'Vehicle unavailable'} · {status(delivery.status)}
         </li>)}</ul> : <p>No delivery assignment recorded.</p>}
+        <DeliveryOperations shipmentId={details.id} shipmentStatus={details.status} onChanged={reload} />
       </>}
       <div className="booking-review-actions">
         <button type="button" onClick={onClose}>Close</button>

@@ -25,7 +25,7 @@ async function mount(load) {
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
     useEffect(effect, deps) { const i = effectIndex++; const old = effects[i];
       if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
-    }, fetchShipmentDetails: load,
+    }, fetchShipmentDetails: load, DeliveryOperations:'DeliveryOperations',
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
   const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, onClose: () => closes++ }); pending.forEach(run => run()); return tree; };

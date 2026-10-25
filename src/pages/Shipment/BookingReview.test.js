@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { setImmediate } from 'node:timers';
 import { transformWithOxc } from 'vite';
 
-const request = { id: 's', status: 'pending', updated_at: '2026-10-24T00:00:00Z', quoted_amount: 2500, override_amount: 0, cargo_description: 'Boxes', weight_kg: 500, pickup_address: 'Pickup', dropoff_address: 'Destination' };
+const request = { id: 's', status: 'pending', updated_at: '2026-10-24T00:00:00Z', distance_km:10, quoted_amount: 2500, override_amount: 0, cargo_description: 'Boxes', weight_kg: 500, pickup_address: 'Pickup', dropoff_address: 'Destination' };
 function find(node, predicate) {
   if (!node || typeof node !== 'object') return [];
   return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
@@ -20,7 +20,7 @@ async function mount({ load = async () => request, save = async () => ({ id: 's'
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
     useEffect(effect) { if (!mounted) effects.push(effect); },
-    fetchBookingRequest: load, reviewBookingRequest: save,
+    fetchBookingRequest: load, reviewBookingRequest: save, OfficeQuoteForm:'OfficeQuoteForm',
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
   const render = () => { index = 0; refIndex = 0; return context.render({ shipment: { dbId: 's', id: 'BOOK-1', customer: 'Customer' }, onClose: () => closes++, onReviewed: result => reviewed.push(result) }); };

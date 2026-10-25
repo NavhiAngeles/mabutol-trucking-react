@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchBookingRequest, reviewBookingRequest } from '../../services/shipmentService';
+import OfficeQuoteForm from './OfficeQuoteForm';
+import './deliveryWorkflow.css';
 
 const money = value => value == null ? 'Unavailable' : new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
 const departure = value => value && Number.isFinite(Date.parse(value))
@@ -46,7 +48,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
   const onKeyDown = event => {
     if (event.key === 'Escape' && !busy.current) { event.preventDefault(); onClose(); }
     if (event.key !== 'Tab') return;
-    const controls = Array.from(dialog.current.querySelectorAll('button:not(:disabled), textarea:not(:disabled)'));
+    const controls = Array.from(dialog.current.querySelectorAll('button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled)'));
     const first = controls[0], last = controls.at(-1);
     if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
     else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) { event.preventDefault(); first?.focus(); }
@@ -55,7 +57,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
   return <div className="booking-review-backdrop">
     <div className="booking-review-dialog" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="booking-review-title" aria-busy={saving} onKeyDown={onKeyDown}>
       <h2 id="booking-review-title">Review booking {shipment.id}</h2>
-      <p>Customer: {shipment.customer}</p>
+      <p>Customer: {request?.customer?.name || shipment.customer || 'Not recorded'}</p>
       {loading && <p role="status">Loading current request…</p>}
       {error && <p role="alert">{error}</p>}
       {request && !loading && <>
@@ -72,6 +74,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
           <dt>Handling</dt><dd>{request.special_handling || 'None'}</dd>
           <dt>Driver instructions</dt><dd>{request.driver_notes || 'None recorded'}</dd>
         </dl>
+        <OfficeQuoteForm key={request.updated_at} request={request} onQuoted={reload} disabled={saving || needsReload} />
         <p>Approval accepts this charge and attempts to assign an available driver and matching truck. Without availability, the approved booking waits for assignment.</p>
         <label htmlFor="booking-rejection-reason">Rejection reason (required to reject)</label>
         <textarea id="booking-rejection-reason" maxLength={1000} value={reason} disabled={saving} onChange={event => setReason(event.target.value)} />
@@ -81,7 +84,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
         <button type="button" disabled={saving} onClick={onClose}>Close</button>
         <button type="button" disabled={saving || loading} onClick={reload}>Reload request</button>
         <button type="button" disabled={saving || loading || !request || needsReload || !reason.trim()} onClick={() => decide('reject')}>Reject request</button>
-        <button type="button" className="btn-primary" disabled={saving || loading || !request || needsReload} onClick={() => decide('approve')}>{saving ? 'Saving decision…' : 'Approve request'}</button>
+        <button type="button" className="btn-primary" disabled={saving || loading || !request || needsReload || request.quoted_amount==null || !(request.distance_km>0)} onClick={() => decide('approve')}>{saving ? 'Saving decision…' : 'Approve request'}</button>
       </div>
     </div>
   </div>;

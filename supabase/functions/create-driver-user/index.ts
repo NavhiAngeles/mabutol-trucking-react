@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         email,
         password,
         email_confirm: true, // Skip email verification for admin-provisioned accounts
+        app_metadata: { role: "driver" },
         user_metadata: {
           full_name: fullName || "",
           role: "driver",

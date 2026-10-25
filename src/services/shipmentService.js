@@ -22,7 +22,7 @@ export async function fetchShipmentDetails(id) {
 
 export async function fetchBookingRequest(id) {
   const { data, error } = await supabase.from('shipments')
-    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
+    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
     .eq('id', id).single();
   if (error) throw error;
   if (data?.status !== 'pending') throw new Error('This request is no longer pending. Close and refresh the list.');
