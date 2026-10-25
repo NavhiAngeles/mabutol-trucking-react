@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { vehicleCanCarry, vehicleFitsShipmentWeight, vehicleBaseRate, bookingDefaults } from "../../services/vehiclePricing.js";
+import { shipmentRouteFields } from "../../services/shipmentRoute.js";
 
 const source = await readFile(new URL("./CreateShipmentDrawer.jsx", import.meta.url), "utf8");
 
@@ -13,7 +14,9 @@ test('actual booking payload persists driver instructions, preserves multiline t
   for (const driverNotes of notes) {
     let payload;
     const scope = {
-      form: { driverNotes, cargoDescription: 'Boxes', weight: '500', specialHandling: 'None', distanceKm: '10', overrideAmount: '' },
+      form: { driverNotes, cargoDescription: 'Boxes', weight: '500', specialHandling: 'None', distanceKm: '10', estimatedMinutes: '30', overrideAmount: '' },
+      shipmentRouteFields, confirmedPickup: { lat: 14.6, lng: 120.96 }, confirmedDestination: { lat: 14.8, lng: 121.1 },
+      routeGeoJSON: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[120.96, 14.6], [121.1, 14.8]] } }] },
       selectedCustomer: { id: 'customer' }, currentVehicle: { id: 'vehicle', pricing: { id: 'rate' } },
       detailedAddress: () => 'Test address', departure: new Date('2026-10-25T00:00:00Z'), suggestedCharge: 2500,
       createShipment: async value => { payload = value; return { id: 'shipment', ...value }; },
@@ -22,6 +25,13 @@ test('actual booking payload persists driver instructions, preserves multiline t
     await run();
     assert.equal(payload.driver_notes, driverNotes.trim() || null);
     assert.equal(payload.status, 'booked');
+    assert.equal(payload.pickup_lat, 14.6);
+    assert.equal(payload.pickup_lng, 120.96);
+    assert.equal(payload.dropoff_lat, 14.8);
+    assert.equal(payload.dropoff_lng, 121.1);
+    assert.equal(payload.route_duration_minutes, 30);
+    assert.equal(payload.route_source, 'provider');
+    assert.equal(payload.route_geometry.type, 'FeatureCollection');
   }
 });
 function handler(name) {

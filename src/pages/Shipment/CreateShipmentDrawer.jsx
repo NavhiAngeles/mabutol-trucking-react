@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
 import { createShipment } from "../../services/shipmentService";
+import { shipmentRouteFields } from "../../services/shipmentRoute";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
 import { LUZON_BOUNDS } from "../../config/mapBound";
@@ -823,6 +824,7 @@ export default function CreateShipmentDrawer({
       const departure = parsePhilippineDeparture(form.departureDate, form.departureTime);
 
       const shipmentData = {
+        ...shipmentRouteFields(confirmedPickup, confirmedDestination, routeGeoJSON, form.estimatedMinutes),
         customer_id: selectedCustomer.id,
 
         pickup_address:
