@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { deliveryWorkflowService } from '../../services/deliveryWorkflowService';
 import './deliveryWorkflow.css';
+import DeliveryRouteReview from './DeliveryRouteReview';
+import DeliveryConversation from './DeliveryConversation';
 const service = deliveryWorkflowService();
 const time = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not recorded';
 export default function DeliveryOperations({ shipmentId, shipmentStatus, onChanged }) {
@@ -31,7 +33,28 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
       {data.documents.map(doc=><button type="button" key={doc.id} disabled={busy} onClick={async()=>{try{setProof({url:await service.proofUrl(shipmentId,doc.id),label:`Attempt ${doc.proof_attempt} · ${doc.kind.replaceAll('_',' ')}`});}catch(err){setError(err.message);}}}>View attempt {doc.proof_attempt}: {doc.kind.replaceAll('_',' ')}</button>)}
       {proof && <figure><figcaption>{proof.label}</figcaption><img className="delivery-proof-image" src={proof.url} alt={proof.label} /><button type="button" onClick={()=>setProof(null)}>Close private proof</button></figure>}
       <label>Office review / resolution reason<textarea maxLength={1000} value={reason} disabled={busy} onChange={event=>setReason(event.target.value)} /></label>
+      <h4>Incident evidence</h4>
+      {!data.incident_evidence?.length && <p>No incident photos submitted.</p>}
+      {data.incident_evidence?.map(photo=><div key={photo.id}>
+        <p>{data.incidents.find(incident=>incident.id===photo.incident_id)?.description || 'Incident report'}</p>
+        <button type="button" disabled={busy} onClick={async()=>{try{setProof({url:await service.evidenceUrl(shipmentId,'incident',photo.id),label:`Incident photo ${photo.slot}`});}catch(err){setError(err.message);}}}>View private incident photo {photo.slot}</button>
+      </div>)}
+      <h4>Trip expense review</h4>
+      {!data.expenses?.length && <p>No expenses submitted.</p>}
+      {data.expenses?.map(expense=><div key={expense.id} className="delivery-workflow-panel">
+        <p>{expense.description || expense.category} · {Number(expense.amount).toLocaleString('en-PH',{style:'currency',currency:'PHP'})} · {expense.status}</p>
+        <p>Submitted {time(expense.created_at)}{expense.reviewed_at && ` · Reviewed ${time(expense.reviewed_at)}`}</p>
+        {expense.review_reason && <p>Office feedback: {expense.review_reason}</p>}
+        {expense.receipt_path ? <button type="button" disabled={busy} onClick={async()=>{try{setProof({url:await service.evidenceUrl(shipmentId,'expense',expense.id),label:`Expense receipt · ${expense.description || expense.category}`});}catch(err){setError(err.message);}}}>View private receipt</button> : <p>No receipt attached.</p>}
+        {expense.status==='pending' && <div className="booking-review-actions">
+          <button type="button" disabled={busy || reason.trim().length<5} onClick={()=>run(()=>service.reviewExpense(expense,'approved',reason))}>Approve expense</button>
+          <button type="button" disabled={busy || reason.trim().length<5} onClick={()=>run(()=>service.reviewExpense(expense,'rejected',reason))}>Reject expense</button>
+        </div>}
+      </div>)}
+      {data.deliveries.filter(delivery=>delivery.status==='cancelled').map(delivery=><DeliveryConversation key={delivery.id} delivery={delivery} />)}
       {data.deliveries.filter(delivery=>delivery.status!=='cancelled').map(delivery=><div key={delivery.id} className="delivery-workflow-panel">
+        <DeliveryRouteReview delivery={delivery} onSaved={()=>{setRevision(value=>value+1);onChanged?.();}} />
+        <DeliveryConversation delivery={delivery} />
         <p>Delivery: {delivery.status.replaceAll('_',' ')} · Proof: {delivery.proof_review_status.replaceAll('_',' ')}</p>
         {delivery.proof_review_reason && <p>{delivery.proof_review_reason}</p>}
         {delivery.pickup_arrived_at && <p>Pickup arrival {time(delivery.pickup_arrived_at)} · Grace ends {time(delivery.grace_ends_at)} · Wait threshold {time(delivery.auto_cancel_at)}</p>}

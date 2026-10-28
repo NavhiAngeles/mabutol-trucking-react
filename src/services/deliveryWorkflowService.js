@@ -18,7 +18,7 @@ export function deliveryWorkflowService(client = supabase) {
   return {
     watch(shipmentId, changed) {
       const channel=client.channel(`office-delivery-${shipmentId}`);
-      for(const table of ['deliveries','shipments','tracking_logs','notifications']) {
+      for(const table of ['deliveries','shipments','tracking_logs','notifications','delivery_expenses','delivery_incidents','incident_attachments']) {
         channel.on('postgres_changes',{event:'*',schema:'public',table},changed);
       }
       channel.subscribe();
@@ -42,10 +42,11 @@ export function deliveryWorkflowService(client = supabase) {
     async load(shipmentId) {
       const [record, result] = await Promise.all([
         rpc('mobile_shipment_details', { p_shipment: shipmentId }),
-        client.from('deliveries').select('id,status,updated_at,proof_attempt,proof_review_status,proof_review_reason,route_started_at,pickup_arrived_at,customer_showed_at,grace_ends_at,auto_cancel_at').eq('shipment_id', shipmentId).order('assigned_at', { ascending: false }),
+        client.from('deliveries').select('id,driver_id,status,updated_at,proof_attempt,proof_review_status,proof_review_reason,route_started_at,pickup_arrived_at,customer_showed_at,grace_ends_at,auto_cancel_at').eq('shipment_id', shipmentId).order('assigned_at', { ascending: false }),
       ]);
       if (result.error) throw result.error;
-      return { ...record, deliveries: result.data || [] };
+      const evidence = result.data?.length ? await rpc('mobile_driver_evidence', { p_shipment: shipmentId }) : { expenses: [], incident_evidence: [] };
+      return { ...record, ...evidence, deliveries: result.data || [] };
     },
     async proofUrl(shipmentId, documentId) {
       const details = await rpc('mobile_shipment_details', { p_shipment: shipmentId });
@@ -56,6 +57,14 @@ export function deliveryWorkflowService(client = supabase) {
       return data.signedUrl;
     },
     action: (delivery, action, reason) => rpc('office_delivery_action', { p_delivery: delivery.id, p_expected: delivery.updated_at, p_action: action, p_reason: reason?.trim() || null }),
+    async evidenceUrl(shipmentId, kind, recordId) {
+      const path = await rpc('mobile_delivery_evidence_file', { p_shipment: shipmentId, p_kind: kind, p_record: recordId });
+      if (typeof path !== 'string' || !path || path.startsWith('/') || path.split('/').includes('..')) throw Error('Recorded file not found.');
+      const { data, error } = await client.storage.from('delivery-documents').createSignedUrl(path, 300);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    reviewExpense: (expense, status, reason) => rpc('office_review_expense', { p_expense: expense.id, p_expected: expense.updated_at, p_status: status, p_reason: reason?.trim() || '' }),
     resolveIncident: (incident, delivery, reason) => rpc('office_resolve_incident', { p_incident: incident.id, p_expected: delivery.updated_at, p_reason: reason?.trim() || '' }),
   };
 }

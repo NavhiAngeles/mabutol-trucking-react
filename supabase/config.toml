@@ -435,3 +435,9 @@ enabled = true
 # Handler verifies Auth.getUser and an active database admin (supports ES256 JWTs).
 verify_jwt = false
 entrypoint = "./functions/manage-office-users/index.ts"
+
+[functions.delivery-routing]
+enabled = true
+# Handler verifies Auth.getUser, active DB role, and RLS-scoped delivery context.
+verify_jwt = false
+entrypoint = "./functions/delivery-routing/index.js"
