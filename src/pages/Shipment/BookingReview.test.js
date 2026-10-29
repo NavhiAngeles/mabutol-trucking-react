@@ -83,7 +83,7 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect() {},
-    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', CreateShipmentDrawer: 'CreateShipmentDrawer',
+    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', CreateShipmentDrawer: 'CreateShipmentDrawer',
     useShipmentViewModel: () => ({
       visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500, driverNotes }],
       page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab, activeConfig: { label: 'All', title: 'Pending Booking Requests' },

@@ -1,5 +1,6 @@
 import OfficeTools from "../../components/OfficeTools";
 import DeliveryConversationInbox from "./DeliveryConversationInbox";
+import ReturnLoadPlanner from "./ReturnLoadPlanner";
 
 import { useEffect, useRef, useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
@@ -209,6 +210,7 @@ export default function Shipment() {
         </div>
 
         <DeliveryConversationInbox />
+        <ReturnLoadPlanner onInspect={setDetailsShipment} />
         {/* DATABASE ERROR */}
         {assignmentMessage && <p role="status">{assignmentMessage}</p>}
         {recordFilter && <p role="status">{!isLoading && !error && !visibleShipments.length ? 'The selected shipment is unavailable or does not match your search.' : 'Showing the shipment selected from Operations Feed.'} <button onClick={() => setCurrentTab('all')}>Show all shipments</button></p>}
