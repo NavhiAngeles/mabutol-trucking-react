@@ -100,7 +100,19 @@ Deno.serve(async (request) => {
     const input = await request.json();
     const office = ['admin','staff'].includes(profile?.role);
     const customerPreview = profile?.role === 'customer' && input?.preview === true;
-    if(profileError || !profile?.is_active || !(office || customerPreview)) return jsonResponse({error:'An active office account or customer route preview is required.'},403);
+    const driverPreview = profile?.role === 'driver' && input?.preview === true && typeof input.delivery_id === 'string';
+    if(profileError || !profile?.is_active || !(office || customerPreview || driverPreview)) return jsonResponse({error:'An active account with routing access is required.'},403);
+    if(driverPreview) {
+      const {data:context,error:accessError}=await caller.rpc('delivery_routing_context',{p_delivery:input.delivery_id});
+      if(accessError || !context || !['assigned','loading','in_transit'].includes(context.delivery?.status) || ['completed','cancelled'].includes(context.shipment?.status))return jsonResponse({error:'This active delivery is unavailable to your account.'},403);
+      const shipment=context.shipment;
+      const pickup={lat:Number(shipment.pickup_lat),lng:Number(shipment.pickup_lng)};
+      const destination={lat:Number(shipment.dropoff_lat),lng:Number(shipment.dropoff_lng)};
+      if(['pickup_lat','pickup_lng','dropoff_lat','dropoff_lng'].some(key=>shipment[key]==null) || !validPoint(pickup) || !validPoint(destination))return jsonResponse({error:'The office must record the pickup and destination pins first.'},422);
+      if(!validPoint(input.pickup) || !validPoint(input.destination) || input.pickup.lat!==pickup.lat || input.pickup.lng!==pickup.lng || input.destination.lat!==destination.lat || input.destination.lng!==destination.lng)return jsonResponse({error:'Assignment pins changed. Refresh the trip before previewing.'},409);
+      // Driver requests are bound to the own-delivery RLS context, never arbitrary caller coordinates.
+      input.pickup=pickup;input.destination=destination;
+    }
     let apiKey = Deno.env.get("ORS_API_KEY")?.trim();
 
     // The provider's example URL includes the key as a query parameter.
@@ -174,6 +186,7 @@ Deno.serve(async (request) => {
     }
 
     if (!response.ok) {
+      if(driverPreview)return jsonResponse({error:'Road preview provider unavailable. Reconnect and retry.'},502);
       console.error("OpenRouteService error:", result);
 
       return jsonResponse(
@@ -231,6 +244,11 @@ Deno.serve(async (request) => {
 
     const coordinates = decodePolyline(route.geometry, 5);
 
+    if(driverPreview) {
+      const near=(coordinate,point)=>Array.isArray(coordinate) && Math.hypot((coordinate[0]-point.lng)*Math.cos(point.lat*Math.PI/180),coordinate[1]-point.lat)*111320<=1000;
+      if(!coordinates.every(row=>validPoint({lng:row[0],lat:row[1]})) || !near(coordinates[0],pickup) || !near(coordinates.at(-1),destination))return jsonResponse({error:'The road provider could not match the saved entrances. Ask the office to verify the pins.'},422);
+    }
+
     if (coordinates.length < 2) {
       return jsonResponse(
         { error: "Route geometry has insufficient points." },
@@ -257,6 +275,7 @@ Deno.serve(async (request) => {
 
     return jsonResponse({
       roadOnlyVerified: true,
+      ...(driverPreview ? { preview: true, truckRestrictionsVerified: false } : {}),
       geojson,
       distanceKm: Number(
         (summary.distance / 1000).toFixed(1)

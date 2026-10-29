@@ -42,6 +42,7 @@ export default function RevenueReport() {
   const [rangeError, setRangeError] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [costPage, setCostPage] = useState(1);
   const customPickerRef = useRef(null);
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function RevenueReport() {
   function applyCustom() {
     try {
       setAppliedCustom(reportRange('custom', customStart, customEnd));
-      setActiveRange('custom'); setShowCustomPicker(false); setRangeError(''); setPage(1);
+      setActiveRange('custom'); setShowCustomPicker(false); setRangeError(''); setPage(1); setCostPage(1);
     } catch (error) { setRangeError(error.message); }
   }
   const range = useReportRange(activeRange, appliedCustom);
@@ -65,14 +66,17 @@ export default function RevenueReport() {
   const pageCount = Math.max(1, Math.ceil(routes.length / 10));
   const currentPage = Math.min(page, pageCount);
   const visibleRoutes = routes.slice((currentPage - 1) * 10, currentPage * 10);
-  const maxCost = Math.max(1, ...report.costBreakdown.map(c => c.amount));
+  const costPages = Math.max(1, Math.ceil(report.costRecords.length / 5));
+  const currentCostPage = Math.min(costPage, costPages);
+  const visibleCosts = report.costRecords.slice((currentCostPage - 1) * 5, currentCostPage * 5);
   const stats = [
     ['Completed Charges', report.charges, 'Current completed shipments created in this period'],
     ['Verified Payments', report.payments, 'Currently verified payments dated in this period'],
     ['Approved Trip Expenses', report.expenses, 'Currently approved expenses created in this period'],
+    ['Recorded Fuel Costs', report.fuel, 'Actual fuel purchases logged in this period. Separate from approved trip expenses.', 'rv-fuel-card'],
     ['Completed Maintenance Costs', report.maintenance, 'Completed service records dated in this period'],
   ];
-  const missing = stats.reduce((sum, [, summary]) => sum + summary.missing, 0) + report.fuel.missing;
+  const missing = stats.reduce((sum, [, summary]) => sum + summary.missing, 0);
 
   return <MainLayout><div className="reports-page">
     <ReportTopbar />
@@ -82,7 +86,7 @@ export default function RevenueReport() {
         <div className="report-actions"><button className="secondary-btn" onClick={live.refresh}>Refresh</button><button className="primary-btn" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes }, { search })}>Export CSV</button><ReportSchedule type="Revenue" /></div>
       </div>
       <div className="filters">
-        {RANGES.map(([key, label]) => <button key={key} className={`filter ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustomPicker(false); setPage(1); }}>{label}</button>)}
+        {RANGES.map(([key, label]) => <button key={key} className={`filter ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustomPicker(false); setPage(1); setCostPage(1); }}>{label}</button>)}
         <div className="custom-range-wrapper" ref={customPickerRef}>
           <button className={`filter ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustomPicker} aria-pressed={activeRange === 'custom'} onClick={() => setShowCustomPicker(!showCustomPicker)}>Custom Range</button>
           {showCustomPicker && <div className="custom-range-popover">
@@ -104,7 +108,7 @@ export default function RevenueReport() {
       {hasData && missing > 0 && <p role="status">{missing} record(s) have missing or invalid amounts and are excluded from monetary totals; {report.charges.missing} are completed shipment charges.</p>}
       {hasData && report.undatedPayments > 0 && <p>{report.undatedPayments} verified payment(s) lack a valid payment date and cannot be included in a date range.</p>}
       <div className="stats">
-        {stats.map(([label, summary, explanation]) => <div className="stat-card" key={label}><h4>{label}</h4><h2>{hasData ? money(summary.amount) : '—'}</h2><p>{explanation}</p><small>{hasData ? summary.count : '—'} records{summary.missing ? ` · ${summary.missing} without valid amounts` : ''}</small></div>)}
+        {stats.map(([label, summary, explanation, variant]) => <div className={`stat-card${variant ? ` ${variant}` : ''}`} key={label}><h4>{label}</h4><h2>{hasData ? money(summary.amount) : '—'}</h2><p>{explanation}</p><small>{hasData ? summary.count : '—'} records{summary.missing ? ` · ${summary.missing} without valid amounts` : ''}</small></div>)}
       </div>
       {hasData && <>
         <div className="analytics-grid">
@@ -115,9 +119,17 @@ export default function RevenueReport() {
             <p className="rv-notes">Average per priced completed shipment: {report.averageCharge == null ? '—' : money(report.averageCharge)}. Missing charge amounts are excluded.</p>
           </div>
           <div className="chart-card">
-            <div className="card-header"><h3>Approved Expense Breakdown</h3></div>
-            {!report.costBreakdown.length ? <p className="empty-state-text">No approved expenses with valid amounts in this period.</p> : <ul className="rv-cost-list">{report.costBreakdown.map(cost => <li key={cost.category}><div><span>{cost.category}</span><strong>{money(cost.amount)}</strong></div><div className="rv-cost-track"><i style={{ width: `${cost.amount / maxCost * 100}%` }} /></div></li>)}</ul>}
-            <p className="rv-notes">Fuel log total: {money(report.fuel.amount)} across {report.fuel.count} logs dated in this period. Shown separately because fuel may also appear in approved expenses.</p>
+            <div className="card-header"><h3>Recorded Costs</h3><span className="rv-record-count">{report.costRecords.length} records</span></div>
+            <p className="rv-notes">Fuel purchases and approved trip expenses, listed individually with the newest first. Separate sources may describe the same purchase; they are not added together.</p>
+            {!visibleCosts.length ? <p className="empty-state-text">No fuel purchases or approved trip expenses recorded in this period.</p> : <ol className="rv-record-list" aria-label="Individual cost records">
+              {visibleCosts.map(record => <li className={`rv-cost-record${record.source === 'Fuel purchase' ? ' rv-cost-record-fuel' : ''}`} key={record.id}>
+                <div className="rv-record-heading"><span className="rv-record-source">{record.source}</span><strong className="rv-record-amount">{record.amount == null ? 'Amount unavailable' : money(record.amount)}</strong></div>
+                <h4>{record.category}</h4><p>{record.description}</p>
+                {record.source === 'Fuel purchase' && <p className="rv-record-detail">{record.liters == null ? 'Liters unavailable' : `${record.liters} L`} · {record.pricePerLiter == null ? 'Unit price unavailable' : `${money(record.pricePerLiter)}/L`} · {record.odometer == null ? 'Odometer unavailable' : `${record.odometer} km`}</p>}
+                <div className="rv-record-meta"><span>{record.reference}</span><time dateTime={record.date}>{new Date(record.date).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' })}</time></div>
+              </li>)}
+            </ol>}
+            {costPages > 1 && <nav className="rv-pager" aria-label="Cost record pages"><button disabled={currentCostPage === 1} onClick={() => setCostPage(currentCostPage - 1)}>Previous costs</button><span>Page {currentCostPage} of {costPages}</span><button disabled={currentCostPage === costPages} onClick={() => setCostPage(currentCostPage + 1)}>Next costs</button></nav>}
           </div>
         </div>
         <div className="bottom-grid">

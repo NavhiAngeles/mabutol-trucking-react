@@ -27,6 +27,12 @@ export function buildRevenueReport(records, range) {
   const payments = unique(records.payments).filter(p => p.status === 'verified' && inRange(p.paid_at, range));
   const maintenance = unique(records.maintenance).filter(m => m.status === 'completed' && /^\d{4}-\d{2}-\d{2}$/.test(m.completed_date || '') && dateInRange(m.completed_date, range));
   const fuel = unique(records.fuel).filter(f => inRange(f.logged_at, range));
+  const shipmentRefs = new Map(records.shipments.map(row => [row.id, row.tracking_number]));
+  const costRecords = [
+    ...expenses.map(row => ({ id: `expense:${row.id}`, source: 'Approved expense', category: String(row.category || 'other').replaceAll('_', ' '), description: row.description || 'No description recorded', date: row.created_at, value: cents(row.amount), delivery: row.delivery_id })),
+    ...fuel.map(row => ({ id: `fuel:${row.id}`, source: 'Fuel purchase', category: 'Fuel', description: row.station || 'Station not recorded', date: row.logged_at, value: cents(row.total_cost), delivery: row.delivery_id, liters: row.liters, pricePerLiter: row.price_per_liter, odometer: row.odometer_km })),
+  ].map(row => ({ ...row, amount: row.value == null ? null : row.value / 100, reference: shipmentRefs.get(deliveries.get(row.delivery)?.shipment_id) || 'Trip reference unavailable' }))
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date) || a.id.localeCompare(b.id));
   const expensesByShipment = new Map();
   for (const expense of expenses) {
     const shipmentId = deliveries.get(expense.delivery_id)?.shipment_id;
@@ -66,7 +72,7 @@ export function buildRevenueReport(records, range) {
   const charges = sumAmounts(shipments, 'final_amount');
   const ranked = [...customerTotals.values()].filter(c => c.priced).sort((a, b) => b.cents - a.cents || String(a.id).localeCompare(String(b.id)));
   return { charges, payments: sumAmounts(payments, 'amount'), expenses: sumAmounts(expenses, 'amount'),
-    maintenance: sumAmounts(maintenance, 'cost'), fuel: sumAmounts(fuel, 'total_cost'),
+    maintenance: sumAmounts(maintenance, 'cost'), fuel: sumAmounts(fuel, 'total_cost'), costRecords,
     averageCharge: charges.count > charges.missing ? charges.amount / (charges.count - charges.missing) : null,
     undatedPayments: unique(records.payments).filter(p => p.status === 'verified' && (!p.paid_at || !Number.isFinite(Date.parse(p.paid_at)))).length,
     topCustomers: ranked.slice(0, 5).map(c => ({ ...c, revenue: c.cents / 100 })),

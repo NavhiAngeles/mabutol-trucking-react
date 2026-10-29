@@ -1,14 +1,15 @@
 -- Fictional fixtures and all effects roll back. Run after driver_operational_records.sql.
 BEGIN;
 DO $$
-DECLARE driver_user uuid:=gen_random_uuid(); other_user uuid:=gen_random_uuid(); customer_user uuid:=gen_random_uuid();
+DECLARE driver_user uuid:=gen_random_uuid(); other_user uuid:=gen_random_uuid(); customer_user uuid:=gen_random_uuid(); office_user uuid:=gen_random_uuid();
  driver uuid; other_driver uuid; customer uuid; vehicle uuid; truck uuid; other_truck uuid;
  shipment uuid; delivery uuid; first_delivery uuid; first_shipment uuid; request uuid:=gen_random_uuid(); result jsonb; again jsonb;
  marker text:='operations-test-'||gen_random_uuid(); i integer; start_at timestamptz;
 BEGIN
  INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data) VALUES
- (driver_user,marker||'-driver@example.invalid','{}','{}'),(other_user,marker||'-other@example.invalid','{}','{}'),(customer_user,marker||'-customer@example.invalid','{}','{}');
+ (driver_user,marker||'-driver@example.invalid','{}','{}'),(other_user,marker||'-other@example.invalid','{}','{}'),(customer_user,marker||'-customer@example.invalid','{}','{}'),(office_user,marker||'-office@example.invalid','{}','{}');
  UPDATE public.users SET role='driver' WHERE id IN (driver_user,other_user);
+ UPDATE public.users SET role='staff' WHERE id=office_user;
  SELECT id INTO customer FROM public.customers WHERE user_id=customer_user;
  INSERT INTO public.drivers(user_id,full_name,license_number) VALUES(driver_user,marker,marker) RETURNING id INTO driver;
  INSERT INTO public.drivers(user_id,full_name,license_number) VALUES(other_user,marker||'-other',marker||'-other') RETURNING id INTO other_driver;
@@ -45,6 +46,19 @@ BEGIN
  again:=public.mobile_driver_log_fuel(request,first_delivery,10.25,66.78,12000.1,'Station');
  IF again->>'id'<>result->>'id' OR (SELECT count(*) FROM public.fuel_logs WHERE id=request)<>1 THEN RAISE EXCEPTION 'Fuel replay duplicated'; END IF;
  IF jsonb_array_length(public.mobile_driver_fuel_history(first_shipment))<>1 THEN RAISE EXCEPTION 'Fuel history not connected'; END IF;
+ -- The office Revenue report reads fuel_logs directly, separately from expenses.
+ EXECUTE 'RESET ROLE';
+ PERFORM set_config('request.jwt.claim.sub',office_user::text,true);
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',office_user,'role','authenticated')::text,true);
+ EXECUTE 'SET LOCAL ROLE authenticated';
+ IF (SELECT count(*) FROM public.fuel_logs WHERE id=request AND delivery_id=first_delivery AND truck_id=truck AND driver_id=driver AND liters=10.25 AND price_per_liter=66.78 AND odometer_km=12000.1)<>1
+    OR (SELECT sum(total_cost) FROM public.fuel_logs WHERE delivery_id=first_delivery) IS DISTINCT FROM 684.50::numeric THEN RAISE EXCEPTION 'Office cannot read actual fuel quantities/cost'; END IF;
+ IF EXISTS(SELECT 1 FROM public.delivery_expenses WHERE delivery_id=first_delivery) THEN RAISE EXCEPTION 'Fuel purchase duplicated as an expense'; END IF;
+ BEGIN PERFORM public.mobile_driver_log_fuel(gen_random_uuid(),first_delivery,1,60,1000,'');RAISE EXCEPTION 'Office used driver fuel RPC';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
+ EXECUTE 'RESET ROLE';
+ PERFORM set_config('request.jwt.claim.sub',driver_user::text,true);
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',driver_user,'role','authenticated')::text,true);
+ EXECUTE 'SET LOCAL ROLE authenticated';
  BEGIN PERFORM public.mobile_driver_log_fuel(request,first_delivery,11,66.78,12000.1,'Station');RAISE EXCEPTION 'Changed replay accepted';EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'FUEL_REQUEST_CONFLICT' THEN RAISE;END IF;END;
  BEGIN PERFORM public.mobile_driver_log_fuel(gen_random_uuid(),first_delivery,1.234,66,12000,'');RAISE EXCEPTION 'Unsupported precision accepted';EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'INVALID_FUEL_RECORD' THEN RAISE;END IF;END;
  BEGIN INSERT INTO public.fuel_logs(delivery_id,driver_id,truck_id,liters,price_per_liter,total_cost,odometer_km) VALUES(first_delivery,driver,other_truck,1,60,60,1000);RAISE EXCEPTION 'Wrong truck accepted';EXCEPTION WHEN insufficient_privilege THEN NULL;END;

@@ -65,6 +65,26 @@ test('route expense joins never multiply shipment charges or include unrelated c
   assert.equal(result.routes[0].expenses, 300); assert.equal(result.expenses.amount, 350);
   assert.equal(result.expenses.missing, 1);
 });
+
+test('individual costs keep fuel and approved expenses distinct, dated and linked without inventing amounts', () => {
+  const records = empty();
+  records.shipments = [{ id: 's', status: 'in_transit', tracking_number: 'TRIP-1' }];
+  records.deliveries = [{ id: 'd', shipment_id: 's' }];
+  records.expenses = [
+    { id: 'same', delivery_id: 'd', category: 'toll', description: 'Expressway toll', status: 'approved', amount: 120, created_at: stamp },
+    { id: 'pending', status: 'pending', amount: 999, created_at: stamp },
+  ];
+  const fuel = { id: 'same', delivery_id: 'd', total_cost: '684.50', liters: '10.25', price_per_liter: '66.78', odometer_km: '12000.1', station: 'Test station', logged_at: stamp };
+  records.fuel = [fuel, fuel, { id: 'bad', logged_at: stamp, total_cost: null }, { id: 'old', logged_at: '2020-01-01T00:00:00Z', total_cost: 999 }];
+  const report = buildRevenueReport(records, range);
+  assert.equal(report.costRecords.length, 3);
+  const purchase = report.costRecords.find(row => row.id === 'fuel:same');
+  assert.equal(purchase.reference, 'TRIP-1'); assert.equal(purchase.description, 'Test station');
+  assert.equal(purchase.amount, 684.5); assert.equal(purchase.liters, '10.25');
+  assert.equal(report.costRecords.find(row => row.id === 'fuel:bad').amount, null);
+  assert.equal(report.costRecords.find(row => row.id === 'expense:same').description, 'Expressway toll');
+  assert.equal(report.fuel.amount, 684.5); assert.equal(report.expenses.amount, 120);
+});
 test('loader propagates an unavailable financial table', async () => {
   const source = fs.readFileSync(new URL('./revenueReportService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
   const scope = { fetchOperationalRows: async () => [] };
@@ -89,8 +109,14 @@ test('page renders loading/stale errors, route pagination/search and applied cus
   const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
   assert.match(JSON.stringify(render()), /Loading revenue report/);
   data.loading = false; data.error = 'Denied'; assert.match(JSON.stringify(render()), /Report data is unavailable/);
-  data.data = { ...empty(), shipments: Array.from({ length: 12 }, (_, i) => ({ id: String(i), status: 'completed', created_at: new Date().toISOString(), final_amount: 100, pickup_address: 'Route ' + i, dropoff_address: 'Depot' })) };
+  data.data = { ...empty(), fuel: Array.from({ length: 6 }, (_, i) => ({ id: `fuel-${i}`, total_cost: '684.50', station: `Station ${i}`, liters: '10.25', price_per_liter: '66.78', odometer_km: '12000.1', logged_at: new Date().toISOString() })), shipments: Array.from({ length: 12 }, (_, i) => ({ id: String(i), status: 'completed', created_at: new Date().toISOString(), final_amount: 100, pickup_address: 'Route ' + i, dropoff_address: 'Depot' })) };
   let tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 10);
+  assert.match(JSON.stringify(tree), /Recorded Costs/);
+  const costList = find(tree, 'ol').find(list => list.props['aria-label'] === 'Individual cost records');
+  assert.equal(costList.children.flat(Infinity).length, 5);
+  assert.match(JSON.stringify(costList), /684.50/); assert.match(JSON.stringify(costList), /Fuel purchase/);
+  find(tree, 'button').find(b => b.children.includes('Next costs')).props.onClick();
+  tree = render(); assert.equal(find(tree, 'ol').find(list => list.props['aria-label'] === 'Individual cost records').children.flat(Infinity).length, 1);
   find(tree, 'button').find(b => b.children.includes('Next')).props.onClick();
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 2);
   find(tree, 'input').find(input => input.props.type === 'search').props.onChange({ target: { value: 'Route 11' } });
