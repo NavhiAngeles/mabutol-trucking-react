@@ -3,6 +3,7 @@ DO $$
 DECLARE office uuid:=gen_random_uuid();office2 uuid:=gen_random_uuid();du uuid:=gen_random_uuid();outsider uuid:=gen_random_uuid();cu uuid:=gen_random_uuid();
  customer uuid;driver uuid;other_driver uuid;vehicle uuid;truck uuid;shipment uuid;delivery uuid;other_delivery uuid;request uuid:=gen_random_uuid();
  marker text:='conversation-test-'||gen_random_uuid();sent jsonb;reply jsonb;page jsonb;initial_request uuid:=request;i integer;
+ assignment_alert public.notifications%ROWTYPE;
 BEGIN
  INSERT INTO auth.users(id,email,raw_app_meta_data,raw_user_meta_data) VALUES
  (office,marker||'-office@example.invalid','{}','{}'),(office2,marker||'-office2@example.invalid','{}','{}'),
@@ -17,6 +18,12 @@ BEGIN
  INSERT INTO public.deliveries(shipment_id,driver_id,truck_id,status) VALUES(shipment,driver,truck,'assigned') RETURNING id INTO delivery;
  PERFORM set_config('request.jwt.claim.sub',du::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',du,'role','authenticated')::text,true);
  EXECUTE 'SET LOCAL ROLE authenticated';
+ SELECT * INTO assignment_alert FROM public.notifications
+ WHERE user_id=du AND shipment_id=shipment AND type='assignment' ORDER BY created_at DESC LIMIT 1;
+ IF assignment_alert.id IS NULL OR assignment_alert.read_at IS NOT NULL THEN RAISE EXCEPTION 'Own unread assignment alert missing';END IF;
+ IF EXISTS(SELECT 1 FROM public.notifications WHERE user_id<>du) THEN RAISE EXCEPTION 'Another account alert leaked';END IF;
+ UPDATE public.notifications SET read_at=now() WHERE id=assignment_alert.id AND user_id=du;
+ IF NOT EXISTS(SELECT 1 FROM public.notifications WHERE id=assignment_alert.id AND read_at IS NOT NULL) THEN RAISE EXCEPTION 'Assignment alert mark-read failed';END IF;
  sent:=public.send_delivery_message(delivery,request,' Driver update ',driver);
  IF sent->>'body'<>'Driver update' OR sent->>'sender_id'<>du::text OR sent->>'sender_role'<>'driver' THEN RAISE EXCEPTION 'Sender/body mismatch';END IF;
  IF public.send_delivery_message(delivery,request,'Driver update',driver)->>'id'<>sent->>'id' THEN RAISE EXCEPTION 'Duplicate retry';END IF;
@@ -57,6 +64,9 @@ BEGIN
  FOREACH request IN ARRAY ARRAY[outsider,cu] LOOP
  PERFORM set_config('request.jwt.claim.sub',request::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',request,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
  IF EXISTS(SELECT 1 FROM public.delivery_messages) THEN RAISE EXCEPTION 'Other account message leak';END IF;
+ IF EXISTS(SELECT 1 FROM public.notifications WHERE id=assignment_alert.id) THEN RAISE EXCEPTION 'Other account reads driver alert';END IF;
+ UPDATE public.notifications SET read_at=NULL WHERE id=assignment_alert.id;
+ IF FOUND THEN RAISE EXCEPTION 'Other account changed driver alert';END IF;
  BEGIN PERFORM public.delivery_conversation(delivery);RAISE EXCEPTION 'Other account RPC leak';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
  BEGIN PERFORM public.send_delivery_message(delivery,gen_random_uuid(),'Unauthorized',driver);RAISE EXCEPTION 'Other account sent';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
  BEGIN PERFORM public.read_delivery_messages(delivery,ARRAY[(sent->>'id')::bigint]);RAISE EXCEPTION 'Other account read';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
@@ -81,4 +91,4 @@ BEGIN
  EXECUTE 'RESET ROLE';
 END $$;
 ROLLBACK;
-SELECT 'PASS: two-way send/read/unread, per-office and exact displayed receipts, immutable identity/body, safe retries/stale composer guard, 124-message pagination, reassignment, closed/inactive/customer/other-driver/anonymous isolation; fixtures rolled back' result;
+SELECT 'PASS: own assignment alert generation/mark-read/isolation, two-way send/read/unread, per-office and exact displayed receipts, immutable identity/body, safe retries/stale composer guard, 124-message pagination, reassignment, closed/inactive/customer/other-driver/anonymous isolation; fixtures rolled back' result;

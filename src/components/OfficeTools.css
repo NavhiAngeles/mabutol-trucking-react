@@ -1,3 +1,4 @@
+.main > .topbar:has(.office-tools) { position: relative; z-index: 40; } /* Keep the entire header above page actions; dropdown z-index cannot escape a lower parent layer. */
 .office-tools { display: flex; align-items: center; gap: 12px; position: relative; }
 .office-tools > .icon-btn { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; color: #475569; cursor: pointer; }
 .office-tools > .icon-btn:hover,.office-tools > .icon-btn[aria-expanded="true"] { color: #0b2a4a; background: #f1f5f9; border-color: #cbd5e1; }

@@ -1,0 +1,78 @@
+.driver-messages-inbox { margin-top: 20px; padding: 20px; border: 1px solid #dce5f1; border-radius: 14px; background: #fff; color: #0b2a4a; }
+.driver-messages-inbox-header,.driver-messages-inbox-title,.conversation-heading,.conversation-header-top,.conversation-header-meta,.conversation-send-row { display: flex; align-items: center; gap: 12px; }
+.driver-messages-inbox-header { justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.driver-messages-inbox h3 { margin: 0; font-size: 18px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.driver-messages-inbox-title p { margin: 5px 0 0; color: #64748b; font-size: 13px; }
+.conversation-inbox-icon { width: 44px; height: 44px; display: grid; place-items: center; color: #1d4ed8; background: #eff6ff; border-radius: 12px; flex-shrink: 0; }
+.conversation-inbox-icon svg { width: 24px; height: 24px; }
+.conversation-inbox-refresh,.driver-message-drawer button { min-height: 40px; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0b2a4a; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.conversation-inbox-refresh { display: flex; gap: 7px; align-items: center; }
+.conversation-inbox-refresh:hover,.conversation-toolbar button:hover { background: #f1f5f9; }
+.conversation-thread-list { display: grid; gap: 10px; }
+.conversation-thread-list:not(:empty) { margin-top: 18px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.conversation-thread,.conversation-launcher { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid #dce5f1; border-radius: 10px; background: #f8fafc; color: #0b2a4a; text-align: left; font: inherit; cursor: pointer; }
+.conversation-thread:hover,.conversation-launcher:hover { border-color: #93b4e4; background: #eff6ff; }
+.conversation-thread-copy,.conversation-launcher-copy { min-width: 0; flex: 1; display: grid; gap: 5px; }
+.conversation-thread-copy strong,.conversation-launcher-copy strong { font-size: 14px; overflow-wrap: anywhere; }
+.conversation-thread-copy > span,.conversation-launcher-copy > span { color: #64748b; font-size: 12px; font-weight: 400; }
+.conversation-thread-arrow { color: #2563eb; font-size: 20px; }
+.conversation-avatar { width: 42px; height: 42px; border-radius: 50%; display: inline-grid; place-items: center; background: #e2ebf8; color: #0b2a4a; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.conversation-unread { display: inline-flex; align-items: center; border-radius: 20px; padding: 5px 9px; background: #e8f0ff; color: #1d4ed8; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.conversation-inbox-empty { margin: 18px 0 0; padding: 16px; background: #f8fafc; border-radius: 8px; color: #64748b; font-size: 13px; line-height: 1.6; }
+.driver-message-drawer { position: fixed; inset: 0 0 0 auto; width: min(560px,100vw); height: 100%; height: 100dvh; max-width: 100vw; max-height: 100dvh; margin: 0; padding: 0; border: 0; color: #0f172a; background: #f8fafc; box-sizing: border-box; box-shadow: -12px 0 48px #0f172a33; font-family: inherit; }
+.driver-message-drawer::backdrop { background: #0f172a70; backdrop-filter: blur(2px); }
+.driver-message-drawer[open] { animation: conversation-drawer-in .2s ease-out; }
+.conversation-drawer-layout { display: grid; grid-template-rows: auto auto minmax(0,1fr) auto; height: 100%; min-height: 0; }
+.conversation-drawer-header { padding: 20px 24px; background: #0b2a4a; color: #fff; }
+.conversation-header-top { justify-content: space-between; margin-bottom: 15px; }
+.conversation-eyebrow { color: #cbdcf0; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+.driver-message-drawer .conversation-icon-button { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; background: #ffffff14; border-color: #ffffff30; color: #fff; font-size: 26px; font-weight: 400; line-height: 1; }
+.driver-message-drawer .conversation-icon-button:hover { background: #ffffff28; }
+.conversation-heading h2 { margin: 0; font-size: 21px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.conversation-heading p { margin: 5px 0 0; color: #cbdcf0; font-size: 12px; }
+.conversation-heading .conversation-avatar { background: #fff; width: 46px; height: 46px; }
+.conversation-header-meta { margin-top: 18px; flex-wrap: wrap; font-size: 11px; color: #cbdcf0; }
+.conversation-toolbar { display: flex; gap: 8px; padding: 10px 24px; border-bottom: 1px solid #e2e8f0; background: #fff; flex-wrap: wrap; }
+.conversation-toolbar button { display: inline-flex; align-items: center; gap: 6px; border-color: transparent; }
+.conversation-history { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 18px 24px; }
+.conversation-privacy { margin: 0 0 22px; color: #64748b; font-size: 11px; line-height: 1.6; text-align: center; }
+.conversation-message-list { list-style: none; display: flex; flex-direction: column; gap: 18px; padding: 0; margin: 18px 0 4px; }
+.conversation-message { max-width: 86%; align-self: flex-start; }
+.conversation-message-meta { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin: 0 2px 6px; font-size: 11px; color: #64748b; }
+.conversation-message-meta strong { color: #334155; font-size: 12px; }
+.conversation-message > p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 12px 15px; border-radius: 0 12px 12px; border: 1px solid #dce5f1; background: #fff; color: #0f172a; font-size: 14px; line-height: 1.65; box-shadow: 0 2px 3px #0f172a04; }
+.conversation-message.from-office { align-self: flex-end; }
+.conversation-message.from-office > p { background: #0b2a4a; color: #fff; border-color: #0b2a4a; border-radius: 12px 0 12px 12px; }
+.conversation-message.from-office .conversation-message-meta { justify-content: flex-end; }
+.driver-message-drawer .conversation-older { display: block; margin: 0 auto; border-radius: 20px; font-size: 11px; }
+.conversation-empty { color: #64748b; font-size: 13px; text-align: center; padding: 30px 12px; line-height: 1.7; }
+.conversation-empty strong { display: block; color: #0b2a4a; font-size: 15px; }
+.conversation-empty p { margin: 7px 0 0; }
+.conversation-composer { padding: 14px 24px 20px; border-top: 1px solid #dce5f1; background: #fff; display: grid; gap: 10px; max-height: 50dvh; overflow-y: auto; }
+.conversation-composer .conversation-feedback button { display: block; margin-top: 8px; }
+.conversation-composer label { color: #0b2a4a; font-size: 13px; font-weight: 700; }
+.driver-message-drawer textarea { display: block; box-sizing: border-box; width: 100%; min-height: 82px; max-height: 160px; resize: vertical; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; background: #f8fafc; color: #0f172a; font: inherit; font-size: 14px; line-height: 1.5; }
+.driver-message-drawer textarea::placeholder { color: #7b8ba0; }
+.conversation-send-row { justify-content: space-between; }
+.conversation-send-row > span { color: #64748b; font-size: 10px; line-height: 1.5; max-width: 220px; }
+.driver-message-drawer .conversation-send { background: #0b2a4a; color: #fff; border-color: #0b2a4a; padding: 11px 18px; white-space: nowrap; font-size: 13px; }
+.conversation-feedback { padding: 10px 12px; margin: 0; border: 1px solid #bbdfd0; background: #effaf4; color: #166534; border-radius: 8px; line-height: 1.6; font-size: 12px; overflow-wrap: anywhere; }
+.conversation-feedback-error { border-color: #fecaca; background: #fff1f2; color: #9f1239; }
+.driver-messages-inbox > .conversation-feedback { margin-top: 15px; }
+.driver-message-drawer button:disabled { opacity: .45; cursor: not-allowed; }
+.driver-messages-inbox :is(button,textarea):focus-visible,.driver-message-drawer :is(button,textarea):focus-visible,.conversation-launcher:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+@keyframes conversation-drawer-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@media(max-width:600px) {
+  .driver-messages-inbox { padding: 16px; }
+  .conversation-inbox-refresh { width: 100%; justify-content: center; }
+  .conversation-thread { gap: 10px; padding: 12px; flex-wrap: wrap; }
+  .conversation-thread .conversation-unread { margin-left: auto; }
+  .conversation-drawer-header { padding: 16px 18px; }
+  .conversation-toolbar { padding: 8px 14px; }
+  .conversation-history { padding: 16px 18px; }
+  .conversation-composer { padding: 12px 18px 16px; }
+  .conversation-heading h2 { font-size: 18px; }
+  .conversation-message { max-width: 92%; }
+  .conversation-send-row { align-items: flex-end; gap: 12px; }
+}
+@media(prefers-reduced-motion:reduce) { .driver-message-drawer[open] { animation: none; } }
