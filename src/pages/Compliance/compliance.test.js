@@ -17,7 +17,7 @@ test('Compliance connects stable loader/table subscriptions, both searches, empt
   const context = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(value) { const i = index++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
-    MainLayout: 'SharedLayout', OfficeTools: () => null,
+    MainLayout: 'SharedLayout', OfficeTools: () => null, ComplianceDialog: 'ComplianceDialog',
     getDriverComplianceRows: loader, complianceDirectory, complianceCounts, filterCompliance,
     useLiveData(load, tables) {
       assert.equal(load, loader); assert.deepEqual(Array.from(tables), ['drivers', 'compliance_documents', 'system_settings']);
@@ -35,6 +35,11 @@ test('Compliance connects stable loader/table subscriptions, both searches, empt
   assert.ok(JSON.stringify(render()).includes('Counts and records are unavailable.'));
   live = { data: [{ driver: { id: 'one', full_name: 'Driver One' }, docs: ['valid', 'valid', 'valid'].map((state, i) => ({ docType: String(i), badge: { state, label: 'Valid' }, doc: null })) }], loading: false, error: null };
   assert.ok(JSON.stringify(render()).includes('Driver One'));
+  find(render(), n => n.props['aria-label'] === 'Open compliance for Driver One')[0].props.onClick();
+  let dialog = find(render(), n => n.type === 'ComplianceDialog')[0];
+  assert.equal(dialog.props.entity.id, 'one'); assert.equal(dialog.props.kind, 'driver');
+  dialog.props.onSaved(); assert.equal(refreshes, 2);
+  dialog.props.onClose(); assert.equal(find(render(), n => n.type === 'ComplianceDialog').length, 0);
   find(render(), n => n.props.id === 'complianceSearch')[0].props.onChange({ target: { value: 'absent' } });
   assert.ok(JSON.stringify(render()).includes('No drivers match your search.'));
   const tableSearch = find(render(), n => n.props.className === 'table-search')[0];

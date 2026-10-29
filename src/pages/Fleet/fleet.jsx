@@ -287,7 +287,7 @@ export default function Fleet() {
       driver.full_name?.toLowerCase().includes(q) ||
       driver.contact_number?.toLowerCase().includes(q) ||
       driver.license_number?.toLowerCase().includes(q) ||
-      driver.assignedTruck?.plate_number?.toLowerCase().includes(q)
+      (driver.assignedTrucks || (driver.assignedTruck ? [driver.assignedTruck] : [])).some(truck => truck.plate_number?.toLowerCase().includes(q))
     );
   });
 
@@ -631,13 +631,14 @@ export default function Fleet() {
                 filteredDrivers.map((driver) => {
                   const complianceRow = driverComplianceRows.find((r) => r.driver.id === driver.id);
                   const isVerified = complianceRow?.overallStatus === "verified";
+                  const assignedTrucks = driver.assignedTrucks || (driver.assignedTruck ? [driver.assignedTruck] : []);
 
                   return (
                     <tr key={driver.id}>
                       <td>
                         <strong>{driver.full_name}</strong>
                         <br />
-                        <span className="subtext">{driver.contact_number || "No contact"}</span><button className="btn-link" onClick={() => setEditing({ kind: "driver", record: driver })}>Edit driver</button><button className="btn-link" onClick={() => setComplianceTarget({ kind: "driver", entity: driver })}>Documents</button>
+                        <span className="subtext driver-contact">{driver.contact_number || "No contact"}</span><button className="btn-link" onClick={() => setEditing({ kind: "driver", record: driver })}>Edit driver</button><button className="btn-link" onClick={() => setComplianceTarget({ kind: "driver", entity: driver })}>Documents</button>
                       </td>
                       <td>
                         {driver.license_number || "—"}
@@ -649,9 +650,9 @@ export default function Fleet() {
                         )}
                       </td>
                       <td>
-                        {driver.assignedTruck ? (
-                          `${driver.assignedTruck.model || "Truck"} (${driver.assignedTruck.plate_number})`
-                        ) : (
+                        {assignedTrucks.map(truck => <div key={truck.id}>{truck.model || "Truck"} ({truck.plate_number})</div>)}
+                        {driver.vehicleAssignmentUnavailable && <span className="subtext">Assigned vehicle unavailable</span>}
+                        {assignedTrucks.length === 0 && !driver.vehicleAssignmentUnavailable && (
                           <span style={{ color: "#94A3B8" }}>Unassigned</span>
                         )}
                       </td>

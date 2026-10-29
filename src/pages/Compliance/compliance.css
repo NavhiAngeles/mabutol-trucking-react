@@ -80,3 +80,6 @@
   color: #2563EB;
   font-weight: 600;
 }
+.compliance-driver-link { border: 0; background: transparent; padding: 8px 0; color: #123b69; font: inherit; font-weight: 600; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.compliance-driver-link:hover { color: #0064b5; }
+.compliance-driver-link:focus-visible { outline: 2px solid #0064b5; outline-offset: 4px; border-radius: 3px; }

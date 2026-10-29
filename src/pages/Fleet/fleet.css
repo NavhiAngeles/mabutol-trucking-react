@@ -1116,6 +1116,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 .fleet-calendar-day button { display: block; text-align: left; font-size: 12px; margin-top: 5px; overflow-wrap: anywhere; width: 100%; }
 
 .premium-table td > .btn-link { margin-right: 10px; }
+.premium-table .driver-contact { margin-inline-end: 10px; }
 .fleet-calendar-day button { padding: 5px 7px; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px; cursor: pointer; }
 
 .fleet-dialog { margin: auto; box-sizing: border-box; }

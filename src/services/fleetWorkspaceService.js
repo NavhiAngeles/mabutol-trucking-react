@@ -25,8 +25,25 @@ export async function getFleetSnapshot() {
   const activeTrucks = new Set(deliveries.filter(d => ['assigned', 'loading', 'in_transit'].includes(d.status)).map(d => d.truck_id));
   const servicing = new Set(maintenanceRecords.filter(m => m.status === 'in_progress').map(m => m.truck_id));
   const assignedDrivers = new Set(trucks.map(t => t.drivers?.id).filter(Boolean));
+  const trucksById = new Map(trucks.map(t => [t.id, t]));
+  const tripsByDriver = new Map();
+  for (const delivery of deliveries) {
+    if (!['assigned', 'loading', 'in_transit'].includes(delivery.status)) continue;
+    if (!tripsByDriver.has(delivery.driver_id)) tripsByDriver.set(delivery.driver_id, []);
+    tripsByDriver.get(delivery.driver_id).push(delivery);
+  }
+  const driverRows = drivers.map(driver => {
+    const trips = tripsByDriver.get(driver.id) || [];
+    // A booking reserves a truck without changing its permanent driver link.
+    const assignedTrucks = trips.length
+      ? [...new Set(trips.map(trip => trip.truck_id))].map(id => trucksById.get(id)).filter(Boolean)
+      : driver.trucks?.length ? driver.trucks : driver.assignedTruck ? [driver.assignedTruck] : [];
+    return { ...driver, assignedTrucks, assignedTruck: assignedTrucks[0] || null,
+      vehicleAssignmentUnavailable: trips.some(trip => !trucksById.has(trip.truck_id)),
+      location: locations.find(l => l.driver_id === driver.id), reserved: reservedDrivers.has(driver.id) };
+  });
   return {
-    trucks: trucks.map(t => ({ ...t, displayStatus: fleetDisplayStatus(t, deliveries, maintenanceRecords) })), drivers: drivers.map(d => ({ ...d, location: locations.find(l => l.driver_id === d.id), reserved: reservedDrivers.has(d.id) })),
+    trucks: trucks.map(t => ({ ...t, displayStatus: fleetDisplayStatus(t, deliveries, maintenanceRecords) })), drivers: driverRows,
     maintenanceRecords, vehicleTypes, cargoCategories, truckComplianceRows, driverComplianceRows,
     assignableTrucks: trucks.filter(t => ready.has(t.id) && !t.drivers),
     assignableDrivers: drivers.filter(d => d.status === 'available' && !reservedDrivers.has(d.id) && !assignedDrivers.has(d.id)),

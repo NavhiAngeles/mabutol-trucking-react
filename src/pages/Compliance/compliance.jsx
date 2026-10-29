@@ -1,6 +1,7 @@
 import OfficeTools from "../../components/OfficeTools";
 import { useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
+import { ComplianceDialog } from "../Fleet/FleetDialogs";
 import "./compliance.css";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getDriverComplianceRows } from "../../services/fleetService";
@@ -13,6 +14,7 @@ const formatUpdated = value => value ? new Date(value).toLocaleDateString('en-PH
 export default function Compliance() {
 
   const [query, setQuery] = useState("");
+  const [selectedDriver, setSelectedDriver] = useState(null);
   const { data, loading, error, refresh } = useLiveData(getDriverComplianceRows, TABLES);
   const rows = complianceDirectory(data || []);
   const filtered = filterCompliance(rows, query);
@@ -88,7 +90,7 @@ export default function Compliance() {
 
               <tbody>
                 {filtered.map(row => <tr key={row.driver.id}>
-                  <td>{row.driver.full_name || 'Unnamed driver'}</td>
+                  <td><button type="button" className="compliance-driver-link" aria-label={`Open compliance for ${row.driver.full_name || 'Unnamed driver'}`} onClick={() => setSelectedDriver(row.driver)}>{row.driver.full_name || 'Unnamed driver'}</button></td>
                   {row.docs.map(item => <td key={item.docType}><span className={'badge ' + badgeClass(item.badge.state)}>{item.badge.label}</span></td>)}
                   <td><span className={'status ' + (row.state === 'valid' ? 'compliant' : ['expired', 'rejected'].includes(row.state) ? 'expired-status' : 'review-status')}>{row.status}</span></td>
                   <td>{formatUpdated(row.updated)}</td>
@@ -98,6 +100,7 @@ export default function Compliance() {
             </table>
           </div>
         </section>
+        {selectedDriver && <ComplianceDialog key={selectedDriver.id} kind="driver" entity={selectedDriver} onClose={() => setSelectedDriver(null)} onSaved={refresh} />}
     </MainLayout>
   );
 }

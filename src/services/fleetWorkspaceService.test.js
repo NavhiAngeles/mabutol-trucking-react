@@ -2,19 +2,67 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-function service({ rpcError = null, uploadError = null, cleanupError = null, signedIn = true } = {}) {
+function service({ rpcError = null, uploadError = null, cleanupError = null, signedIn = true, trucks = [], drivers = [], deliveries = [] } = {}) {
   const uploads = [], removed = [], saves = [];
-  const context = { crypto: { randomUUID: () => 'unique-file' }, supabase: {
+  const context = { getTrucks: async () => trucks, getDrivers: async () => drivers,
+    getMaintenanceRecords: async () => [], getVehicleTypes: async () => [], getCargoCategories: async () => [],
+    getTruckComplianceRows: async () => [], getDriverComplianceRows: async () => [],
+    fetchOperationalRows: async table => table === 'deliveries' ? deliveries : [],
+    latestTracking: () => [], dispatchReadyIds: () => [],
+    crypto: { randomUUID: () => 'unique-file' }, supabase: {
     auth: { getUser: async () => ({ data: { user: signedIn ? { id: 'office' } : null }, error: null }) },
     storage: { from: () => ({ upload: async path => { uploads.push(path); return { error: uploadError }; }, remove: async paths => { removed.push(...paths); return { error: cleanupError }; } }) },
     rpc: async (name, args) => { saves.push({ name, args }); return { data: rpcError ? null : 'saved-id', error: rpcError }; },
   } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL('./fleetWorkspaceService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
-  vm.runInContext(source + '\nthis.api={saveFleetRecord,validateComplianceFile,fleetDisplayStatus};', context);
+  vm.runInContext(source + '\nthis.api={saveFleetRecord,validateComplianceFile,fleetDisplayStatus,getFleetSnapshot};', context);
   return { ...context.api, uploads, removed, saves };
 }
 const file = { type: 'application/pdf', size: 20 };
+test('driver vehicle display follows the active booking truck without changing permanent assignments', async () => {
+  const truck = { id: 'trip-truck', plate_number: 'TRIP-101', model: 'Trip truck' };
+  const permanent = { id: 'home-truck', plate_number: 'HOME-101' };
+  for (const status of ['assigned', 'loading', 'in_transit']) {
+    for (const assignedTruck of [null, permanent]) {
+      const driver = { id: 'driver', status: 'available', assignedTruck };
+      const { drivers } = await service({ trucks: [truck, permanent], drivers: [driver],
+        deliveries: [{ id: 'trip', driver_id: driver.id, truck_id: truck.id, status }] }).getFleetSnapshot();
+      assert.equal(drivers[0].assignedTruck?.id, truck.id);
+      assert.deepEqual(Array.from(drivers[0].assignedTrucks, t => t.id), [truck.id]);
+      assert.equal(drivers[0].reserved, true);
+      assert.equal(driver.assignedTruck, assignedTruck);
+      assert.equal(truck.assigned_driver_id, undefined);
+    }
+  }
+});
+test('driver vehicle display ignores closed/other-driver trips and falls back to permanent trucks', async () => {
+  const permanent = { id: 'home-truck' }, other = { id: 'other-truck' };
+  const drivers = [{ id: 'driver', assignedTruck: permanent }, { id: 'unassigned', assignedTruck: null }];
+  const snapshot = await service({ trucks: [permanent, other], drivers, deliveries: [
+    { driver_id: 'driver', truck_id: other.id, status: 'delivered' },
+    { driver_id: 'driver', truck_id: other.id, status: 'cancelled' },
+    { driver_id: 'another-driver', truck_id: other.id, status: 'assigned' },
+  ] }).getFleetSnapshot();
+  assert.equal(snapshot.drivers[0].assignedTruck.id, permanent.id);
+  assert.equal(snapshot.drivers[1].assignedTruck, null);
+  assert.equal(snapshot.drivers[0].vehicleAssignmentUnavailable, false);
+});
+test('driver vehicle display deduplicates active trucks and reports missing records instead of a stale permanent truck', async () => {
+  const driver = { id: 'driver', assignedTruck: { id: 'old-truck' } };
+  const truck = { id: 'trip-truck' };
+  const deliveries = [
+    { driver_id: driver.id, truck_id: truck.id, status: 'assigned' },
+    { driver_id: driver.id, truck_id: truck.id, status: 'loading' },
+    { driver_id: driver.id, truck_id: 'missing-truck', status: 'in_transit' },
+  ];
+  const snapshot = await service({ trucks: [truck], drivers: [driver], deliveries }).getFleetSnapshot();
+  assert.deepEqual(Array.from(snapshot.drivers[0].assignedTrucks, t => t.id), [truck.id]);
+  assert.equal(snapshot.drivers[0].vehicleAssignmentUnavailable, true);
+  const missing = await service({ trucks: [], drivers: [driver], deliveries }).getFleetSnapshot();
+  assert.equal(missing.drivers[0].assignedTruck, null);
+  assert.equal(missing.drivers[0].vehicleAssignmentUnavailable, true);
+});
 test('fleet distinguishes reservations and loading from transit without changing stored status', () => {
   const { fleetDisplayStatus } = service();
   const truck = { id: 'truck', status: 'available' };
