@@ -1,10 +1,16 @@
 import OfficeTools from "../../components/OfficeTools";
+import CustomerEditDialog from "./CustomerEditDialog";
+import { useAuth } from "../../context/AuthContext";
 import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
 
 export default function Customer() {
+  const { user, role } = useAuth();
+  const canEdit = ["admin", "staff"].includes(role);
+  const [editing, setEditing] = useState(null);
+  const [saveMessage, setSaveMessage] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
   const [historyCustomerId, setHistoryCustomerId] = useState(null);
@@ -120,6 +126,7 @@ export default function Customer() {
         </div>
 
         {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button className="filter-btn" onClick={refresh}>Retry</button></div>}
+        {saveMessage && <div className="customer-save-success" role="status">{saveMessage} <button type="button" className="filter-btn" onClick={() => setSaveMessage("")}>Dismiss</button></div>}
         <div className="customer-table-card" aria-busy={loading}>
           <table className="customer-table">
             <thead>
@@ -158,12 +165,19 @@ export default function Customer() {
                     <div className="action-menu-wrapper" ref={openMenuId === cust.id ? menuRef : null}>
                       <button
                         className="action-dots-btn"
+                        aria-label={`Actions for ${cust.name}`}
+                        aria-expanded={openMenuId === cust.id}
                         onClick={() => setOpenMenuId(openMenuId === cust.id ? null : cust.id)}
                       >
                         ⋮
                       </button>
                       {openMenuId === cust.id && (
                         <div className="action-dropdown">
+                          {canEdit && <button className="dropdown-item" onClick={() => {
+                            const record = records.find(item => item.id === cust.id);
+                            if (record) { setEditing({ customer: { ...record }, owner: user.id }); setSaveMessage(""); }
+                            setOpenMenuId(null);
+                          }}>Edit Customer</button>}
                           <button className="dropdown-item" onClick={() => handleViewProfile(cust)}>
                             View Profile
                           </button>
@@ -196,6 +210,9 @@ export default function Customer() {
       </section>
 
       {/* ===== CUSTOMER PROFILE MODAL ===== */}
+      {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} onClose={() => setEditing(null)} onSaved={() => {
+        setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
+      }} />}
       {profileModal && profile && (
         <div className="cp-backdrop" onClick={() => setProfileModal(null)}>
           <div className="cp-modal" onClick={(e) => e.stopPropagation()}>

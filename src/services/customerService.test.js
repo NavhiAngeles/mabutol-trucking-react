@@ -39,3 +39,50 @@ test("booking subscription cleanup removes its own channel", () => {
   cleanup();
   assert.equal(api.removed[0], api.channel);
 });
+
+function editor(result = { data: { id: "customer-a", name: "Updated" }, error: null }) {
+  const requests = [];
+  const query = {
+    update(payload) { requests.push(["update", payload]); return query; },
+    eq(key, value) { requests.push([key, value]); return query; },
+    select() { return query; },
+    maybeSingle: async () => result,
+  };
+  const scope = { supabase: { from(table) { requests.push(["table", table]); return query; } } };
+  vm.createContext(scope);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.updateCustomer=updateCustomer;this.customerEditValues=customerEditValues;", scope);
+  return { ...scope, requests };
+}
+const original = { id: "customer-a", updated_at: "2026-10-30T10:00:00Z" };
+
+test("customer edit updates only allowed fields, guards version and returns confirmed row", async () => {
+  const api = editor();
+  const result = await api.updateCustomer(original, { name: " Updated ", phone: "+63 917 123 4567", email: "", barangay: " Sample Barangay ", city: " Manila ", user_id: "attacker", is_active: false });
+  assert.equal(result.name, "Updated");
+  const payload = api.requests.find(item => item[0] === "update")[1];
+  assert.deepEqual(JSON.parse(JSON.stringify(payload)), { name: "Updated", email: null, phone: "+63 917 123 4567", address: null, barangay: "Sample Barangay", city: "Manila", province: null });
+  assert.ok(api.requests.some(item => item[0] === "id" && item[1] === original.id));
+  assert.ok(api.requests.some(item => item[0] === "updated_at" && item[1] === original.updated_at));
+});
+
+test("customer edit rejects invalid input before sending requests", async () => {
+  const api = editor();
+  await assert.rejects(api.updateCustomer(original, { name: " " }), /name is required/);
+  await assert.rejects(api.updateCustomer(original, { name: "Valid", email: "broken" }), /valid email/);
+  await assert.rejects(api.updateCustomer(original, { name: "Valid", phone: "abc1234" }), /valid contact/);
+  await assert.rejects(api.updateCustomer({ id: "customer-a" }, { name: "Valid" }), /Refresh/);
+  assert.equal(api.requests.length, 0);
+});
+
+test("customer edit never reports success for conflicts, deleted rows or permission failures", async () => {
+  await assert.rejects(editor({ data: null, error: null }).updateCustomer(original, { name: "Valid" }), /changed or is no longer editable/);
+  await assert.rejects(editor({ data: null, error: { message: "private database details" } }).updateCustomer(original, { name: "Valid" }), /Unable to save customer details/);
+});
+
+test("customer edit uses raw nullable fields rather than display placeholders or joined addresses", () => {
+  const values = editor().customerEditValues({ name: "Name", email: null, phone: null, address: "Street", city: "City", province: "Province", is_active: true });
+  assert.equal(values.email, "");
+  assert.equal(values.address, "Street");
+  assert.equal(Object.hasOwn(values, "is_active"), false);
+});

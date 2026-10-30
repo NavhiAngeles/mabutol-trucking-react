@@ -798,5 +798,25 @@
 }
 
 .customer-table-message { text-align: center; padding: 32px !important; color: #64748B; }
+.customer-edit-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; border: 1px solid #E2E8F0; border-radius: 16px; padding: 0; width: min(600px, calc(100% - 32px)); max-width: calc(100% - 32px); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; color: #1E3A8A; background: white; box-shadow: 0 20px 50px #0F172A33; }
+.customer-edit-dialog .cp-modal-header { position: sticky; top: 0; z-index: 1; background: white; }
+.customer-edit-dialog::backdrop { background: #0F172A66; }
+.customer-edit-body { padding: 24px; }
+.customer-edit-body > p { margin: 0 0 20px; font-size: 14px; }
+.customer-edit-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.customer-edit-fields label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; }
+.customer-edit-fields input { box-sizing: border-box; width: 100%; border: 1px solid #CBD5E1; border-radius: 8px; padding: 10px 12px; font: inherit; color: #334155; }
+.customer-edit-fields input:focus-visible { outline: 2px solid #2563EB; outline-offset: 2px; }
+.customer-edit-footer { position: sticky; bottom: 0; background: white; padding: 18px 24px; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.customer-edit-dialog button:disabled { opacity: .5; cursor: not-allowed; }
+.customer-edit-body .customer-edit-error { margin: 18px 0 0; color: #B91C1C; }
+.customer-save-success { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding: 12px; color: #166534; background: #DCFCE7; border-radius: 6px; }
+@media (max-width: 560px) {
+  .customer-edit-fields { grid-template-columns: 1fr; gap: 14px; }
+  .customer-edit-body, .customer-edit-dialog .cp-modal-header { padding: 18px; }
+  .customer-edit-footer { padding: 14px 18px; }
+  .customer-edit-footer button { flex: 1; justify-content: center; }
+  .customer-edit-fields input { font-size: 16px; }
+}
 .customer-load-error { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding: 12px; color: #B91C1C; background: #FEF2F2; border-radius: 6px; }
 .customer-table-card button:disabled, .cp-suspend-btn:disabled, .dropdown-item:disabled { cursor: not-allowed; opacity: .5; }

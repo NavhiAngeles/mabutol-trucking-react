@@ -105,14 +105,14 @@ export function buildCustomerRows(customers, bookings) {
     return {
       ...customer,
       name: text(customer.name) || "Unnamed customer", email: text(customer.email) || "—", phone: text(customer.phone) || "—",
-      address: [customer.address, customer.city, customer.province].filter(Boolean).join(", ") || "—",
+      address: [customer.address, customer.barangay, customer.city, customer.province].filter(Boolean).join(", ") || "—",
       status: customer.is_active === true ? "ACTIVE" : customer.is_active === false ? "SUSPENDED" : "UNKNOWN",
       bookings: `${records.length} ${records.length === 1 ? "booking" : "bookings"}`,
       bookingCount: records.length, lastBookingAt: records[0]?.created_at || null,
       bookingDates: records.map(record => record.created_at),
       lastBooking: records.length ? dateLabel(records[0].created_at) : "No bookings",
       memberSince: dateLabel(customer.created_at),
-      profile: { id: customer.customer_code || customer.id, address: [customer.address, customer.city, customer.province].filter(Boolean).join(", ") || "—", bookingSummary: summary, recentBookings },
+      profile: { id: customer.customer_code || customer.id, address: [customer.address, customer.barangay, customer.city, customer.province].filter(Boolean).join(", ") || "—", bookingSummary: summary, recentBookings },
     };
   });
 }

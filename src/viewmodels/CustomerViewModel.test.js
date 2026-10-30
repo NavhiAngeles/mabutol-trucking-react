@@ -34,6 +34,8 @@ test("maps actual customer IDs, nullable contacts and real booking summaries", (
   assert.equal(rows[2].name, "Unnamed customer");
   assert.equal(rows[2].email, "—");
   assert.equal(rows[2].lastBooking, "No bookings");
+  const address = buildCustomerRows([{ id: "address-test", address: "13 Sample St", barangay: "Sample Barangay", city: "Pandi", province: "Bulacan" }], [])[0];
+  assert.equal(address.profile.address, "13 Sample St, Sample Barangay, Pandi, Bulacan");
 });
 
 test("statistics use full database rows and Philippine week/month boundaries", () => {
@@ -111,10 +113,12 @@ test("directory loads, refreshes changed/deleted records, exposes errors, and cl
 test("customer page renders loading/empty/error/live states and real profile actions", async () => {
   const { transformWithOxc } = await import("vite");
   let states = [], cursor = 0;
+  let officeRole = "staff";
   let directory = { customers: [], bookings: [], loading: true, error: "", refresh() {} };
   const scope = {
     ...context.api, useCustomerDirectory: () => directory,
-    useNavigate: () => () => {}, MainLayout: "Layout", OfficeTools: "OfficeTools",
+    useNavigate: () => () => {}, MainLayout: "Layout", OfficeTools: "OfficeTools", CustomerEditDialog: "CustomerEditDialog",
+    useAuth: () => ({ user: { id: "office-a" }, role: officeRole }),
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial; return [states[i], value => states[i] = typeof value === "function" ? value(states[i]) : value]; },
     useMemo: fn => fn(), useRef: () => ({ current: null }), useEffect() {},
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
@@ -137,6 +141,20 @@ test("customer page renders loading/empty/error/live states and real profile act
   find(tree, "select")[0].props.onChange({ target: { value: "SUSPENDED" } });
   tree = render(); assert.equal(find(tree, "tr").length, 2);
   find(tree, "button").find(button => button.props.className === "action-dots-btn").props.onClick();
+  tree = render();
+  officeRole = "customer";
+  assert.ok(!find(render(), "button").some(button => button.children.includes("Edit Customer")));
+  officeRole = "admin";
+  assert.ok(find(render(), "button").some(button => button.children.includes("Edit Customer")));
+  officeRole = "staff";
+  find(tree, "button").find(button => button.children.includes("Edit Customer")).props.onClick();
+  tree = render();
+  const editor = find(tree, "CustomerEditDialog")[0];
+  assert.equal(editor.props.customer.id, "customer-b");
+  assert.equal(editor.props.customer.email, customers[1].email);
+  editor.props.onSaved();
+  assert.ok(JSON.stringify(render()).includes("Customer details saved successfully."));
+  find(render(), "button").find(button => button.props.className === "action-dots-btn").props.onClick();
   tree = render();
   find(tree, "button").find(button => button.children.includes("View Profile")).props.onClick();
   tree = render(); assert.ok(JSON.stringify(tree).includes("Customer Profile"));
