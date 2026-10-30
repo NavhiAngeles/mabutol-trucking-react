@@ -1,0 +1,11 @@
+.sign-in-success-box {
+  position: fixed; top: 24px; right: 24px; z-index: 2000;
+  display: flex; align-items: flex-start; gap: 20px;
+  max-width: min(360px, calc(100vw - 48px)); padding: 18px 20px;
+  border: 1px solid #86bda0; border-radius: 12px;
+  background: #f0fdf4; color: #14532d; box-shadow: 0 8px 28px #052a181f;
+}
+.sign-in-success-box p { margin: 6px 0 0; font-size: 14px; }
+.sign-in-success-box button { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 24px; }
+.login-page .sign-in-failure-box { padding: 14px 16px; margin-bottom: 18px; border: 1px solid #fca5a5; border-radius: 10px; color: #991b1b; background: #fef2f2; }
+.login-page .sign-in-failure-box p { margin: 6px 0 0; font-size: 13px; }

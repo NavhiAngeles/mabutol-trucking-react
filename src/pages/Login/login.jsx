@@ -1,5 +1,5 @@
 import { useState } from "react";
-import LoginSuccessToast from "../../components/Toast/loginsuccesstoast";
+import '../../components/signInFeedback.css';
 import { useLoginViewModel } from "../../viewmodels/LoginViewModel";
 import "./login.css";
 
@@ -29,7 +29,6 @@ export default function Login() {
             </svg>
           </div>
           <h1>TANAW</h1>
-          {status === "success" && <LoginSuccessToast/>}
         </div>
 
         {/* Auth Card */}
@@ -40,6 +39,10 @@ export default function Login() {
           </header>
 
           <form onSubmit={handleSubmit} aria-busy={status === "loading"}>
+            {status === 'error' && <div className="sign-in-failure-box" role="alert">
+              <strong>Sign-in unsuccessful</strong>
+              <p>Please check the details below and try again.</p>
+            </div>}
             <div className="form-group">
               <label htmlFor="email">EMAIL ADDRESS</label>
               <div className="input-wrapper">
@@ -120,10 +123,9 @@ export default function Login() {
               )}
             </div>
 
-            <button type="submit" className="btn-primary" disabled={isPending}>
+            <button type="submit" className="btn-primary" disabled={isPending} aria-live="polite">
               {status === "loading" ? "Signing in…" : status === "success" ? "Signed in" : "Sign In →"}
             </button>
-            {status === "loading" && <p role="status">Signing in, please wait…</p>}
           </form>
         </section>
       </main>

@@ -159,6 +159,27 @@ test("late getSession result after SIGNED_OUT cannot reload the old account", as
   assert.equal(auth.render().props.value.user, null);
 });
 
+test('verified sign-in publishes office access before redirect and ignores a late anonymous startup read', async () => {
+  const pending = deferred();
+  const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
+    supabase: {
+      auth: { getSession: () => pending.promise, onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      from() { throw Error('Old startup must not load a profile'); },
+    },
+  });
+  auth.render(); auth.effects[0]();
+  auth.render().props.value.completeSignIn({ user: { id: 'office' }, role: 'admin' });
+  assert.equal(auth.render().props.value.user.id, 'office');
+  assert.equal(auth.render().props.value.loading, false);
+  pending.resolve({ data: { session: null } });
+  await Promise.resolve(); await Promise.resolve();
+  assert.equal(auth.render().props.value.user.id, 'office');
+  assert.equal(auth.render().props.value.role, 'admin');
+  assert.equal(auth.render().props.value.signInMessage, 'You have successfully signed in.');
+  auth.render().props.value.dismissSignInMessage();
+  assert.equal(auth.render().props.value.signInMessage, null);
+});
+
 test('office permission polling applies role changes and blocks deactivated accounts', async () => {
   let tick; let profile = { role: 'admin', is_active: true };
   const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
