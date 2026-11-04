@@ -8,6 +8,7 @@ import "./dashboard.css";
 import { DashboardMapSlot } from './DashboardMapProvider';
 import OperationsFeed from "./OperationsFeed";
 import { useDashboardViewModel } from "../../viewmodels/DashboardViewModel";
+import { snapshotStatus } from '../../services/snapshotStatus';
 import { comparisonLabel } from '../../services/operationalStats';
 
 /* ---- Inline icons (no external icon package required) ---- */
@@ -72,6 +73,7 @@ export default function Dashboard() {
 
   const {
     stats,
+    lastUpdated,
     loading,
     error,
     refresh,
@@ -106,9 +108,12 @@ export default function Dashboard() {
           </p>
         </div>
 
+        <p className="dashboard-refresh-status">Sections refresh independently; their times may differ.</p>
+        <p className="dashboard-refresh-status">{snapshotStatus('Details (analytics, alerts and resources)', details.lastUpdated, details.error)}</p>
         {details.loading && <p role="status">Loading dashboard details…</p>}
         {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button onClick={details.refresh}>Retry</button></p>}
         {/* Stats */}
+        <p className="dashboard-refresh-status">{snapshotStatus('Operational statistics', lastUpdated, error)}</p>
         {loading && <p role="status">Loading operational statistics…</p>}
         {error && <p role="alert">Could not load statistics: {error} <button onClick={refresh}>Retry</button></p>}
         <div className="stats">

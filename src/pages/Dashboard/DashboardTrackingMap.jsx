@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getLiveTracking, DASHBOARD_TABLES } from "../../services/dashboardDetailService";
 import { absoluteEventTime } from "../../services/operationsFeed";
+import { snapshotStatus } from "../../services/snapshotStatus";
 import { watchTrackingFreshness } from "../../services/trackingFreshness";
 import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
@@ -168,6 +169,7 @@ export default function DashboardTrackingMap() {
       )}
 
       <div className="dashboard-tracking-note">
+        <p>{snapshotStatus('GPS tracking', tracking.lastUpdated, tracking.error)} Position timestamps show when each GPS fix was recorded.</p>
         {tracking.loading ? 'Loading vehicle positions…' : tracking.error ? 'Unable to refresh GPS positions.' : tracking.data?.length ? tracking.data.length + ' tracked vehicle(s); select a marker for its timestamp.' : 'No GPS positions for active deliveries.'}
         {tracking.error && <button onClick={tracking.refresh}>Retry GPS</button>}
       </div>
