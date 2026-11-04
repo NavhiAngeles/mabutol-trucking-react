@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
-import { userManagementApi } from '../../../services/userManagementService';
+import { userManagementApi, validateOfficeCreation } from '../../../services/userManagementService';
 import './userManagement.css';
 
 const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
@@ -22,6 +22,7 @@ function OfficeUsers() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [recoveryLoaded, setRecoveryLoaded] = useState(false);
   const guard = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -34,20 +35,39 @@ function OfficeUsers() {
   function refresh() { if (guard.current) return; setSnapshot(null); setLoadError(''); setReload(value => value + 1); }
   function close() { if (guard.current) return; setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '' })); setError(''); }
   function open(kind, row = null) {
+    if (guard.current) return;
     setTarget(row); setError('');
     setForm({ fullName: row?.full_name || '', email: row?.email || '', phone: row?.phone || '', role: row?.role || 'staff', active: row?.is_active ?? true, password: '', confirm: '' });
     setModal(kind);
   }
+  async function openRecovery(row) {
+    if (guard.current) return;
+    open('recovery', row); setRecoveryLoaded(false);
+    guard.current = true; setBusy(true);
+    try {
+      const phone = await userManagementApi.recoveryPhone(row);
+      if (mounted.current) { setForm(previous => ({ ...previous, recoveryPhone: phone || '', expectedPhone: phone })); setRecoveryLoaded(true); }
+    } catch (cause) { if (mounted.current) setError(cause.message); }
+    finally { guard.current = false; if (mounted.current) setBusy(false); }
+  }
   async function submit(event) {
     event.preventDefault(); if (guard.current) return;
     if (['create','password'].includes(modal) && form.password !== form.confirm) { setError('Passwords do not match.'); return; }
+    if (modal === 'create') {
+      if (!snapshot?.provisioningReady) { setError('Account was not created. Refresh users after the SMS account-management backend is ready.'); return; }
+      try { validateOfficeCreation(form); } catch (cause) { setError(cause.message); return; }
+    }
     guard.current = true; setBusy(true); setError(''); setNotice('');
     try {
       if (modal === 'create') await userManagementApi.create(form);
       else if (modal === 'password') await userManagementApi.setPassword({ userId: target.id, password: form.password });
+      else if (modal === 'recovery') {
+        if (!recoveryLoaded) throw new Error('Close and reopen recovery enrollment before saving.');
+        await userManagementApi.recoveryPhone(target, form);
+      }
       else await userManagementApi.save(target, modal === 'activation' ? { ...form, active: !target.is_active } : form);
       if (mounted.current) {
-        setNotice(modal === 'create' ? 'Office account created. No email was sent; share the initial credentials securely.' : modal === 'password' ? 'Password changed. No email was sent.' : 'Account updated. Office permissions refresh on focus or within 30 seconds. Existing Auth access tokens may remain valid until expiry.');
+        setNotice(modal === 'create' ? 'Office account created with an SMS recovery phone. No email was sent; share the initial credentials securely.' : modal === 'password' ? 'Password changed. No email was sent.' : modal === 'recovery' ? 'Recovery phone registered. SMS code verification is required when resetting the password.' : 'Account updated. Office permissions refresh on focus or within 30 seconds. Existing Auth access tokens may remain valid until expiry.');
         setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '' }));
         setSnapshot(null); setReload(value => value + 1);
       }
@@ -59,28 +79,36 @@ function OfficeUsers() {
   const currentPage = Math.min(page, pages - 1);
   const self = target?.id === snapshot?.callerId;
   return <section className="content office-user-management">
-    <div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div><div className="header-actions"><button className="secondary-btn" onClick={() => open('roles')}>Role Summary</button><button className="primary-btn" disabled={!snapshot || busy} onClick={() => open('create')}>Add Office User</button></div></div>
+    <div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div><div className="header-actions"><button className="secondary-btn" onClick={() => open('roles')}>Role Summary</button><button className="primary-btn" disabled={!snapshot?.provisioningReady || busy} onClick={() => open('create')}>Add Office User</button></div></div>
     <div className="um-info-banner"><span className="um-info-icon" aria-hidden="true">i</span><p>Custom module permissions and the “Super Admin” role are not supported. Permanent deletion is unavailable to preserve operational and audit records; deactivate accounts instead. Sign-in history is unavailable here.</p></div>
     {notice && <p role="status" className="um-success">{notice}</p>}
+    {snapshot?.provisioningError && <p role="alert" className="um-error-banner">{snapshot.provisioningError}</p>}
     {loadError && <div role="alert" className="um-error-banner"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div>}
     {!snapshot && !loadError && <p role="status">Loading office users…</p>}
     {snapshot && <><div className="um-directory"><div className="um-directory-heading"><div><h3>Office accounts</h3><p>Manage access for your office team.</p></div><span className="um-directory-count">{snapshot.users.length} accounts</span></div><div className="search-row um-toolbar"><label className="um-search"><span>Search users</span><input aria-label="Search users" placeholder="Search by name or login email" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label><label className="um-status-filter"><span>Account status</span><select aria-label="Account status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label><button className="um-refresh" disabled={busy} onClick={refresh}>Refresh users</button></div>
       <div className="table-card um-table-scroll"><table className="user-table"><thead><tr><th>User / Login Email</th><th>Role</th><th>Created (Philippine time)</th><th>Status</th><th>Actions</th></tr></thead><tbody>
         {!filtered.length && <tr><td colSpan={5} className="um-empty">No matching office users.</td></tr>}
-        {filtered.slice(currentPage * 20, currentPage * 20 + 20).map(row => <tr key={row.id}><td><div className="user-cell"><span className="user-avatar" aria-hidden="true">{(row.full_name || row.email || '?').slice(0, 2).toUpperCase()}</span><div><strong>{row.full_name || 'Name not set'}</strong><p>{row.email}</p>{row.id === snapshot.callerId && <small className="um-self-badge">Your account</small>}</div></div></td><td><span className={`um-role-badge ${row.role === 'admin' ? 'um-role-admin' : ''}`}>{row.role === 'admin' ? 'Admin' : 'Staff'}</span></td><td>{dateLabel(row.created_at)}</td><td><span className={`um-status-badge ${row.is_active ? 'um-status-active' : ''}`}><span aria-hidden="true">●</span>{row.is_active ? 'Active' : 'Inactive'}</span></td><td><div className="um-row-actions"><button onClick={() => open('details',row)}>View</button><button onClick={() => open('edit',row)}>Edit / Role</button><button title={row.id === snapshot.callerId ? 'Change your password in Account settings' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('password',row)}>Set Password</button><button className={row.is_active ? 'um-action-danger' : ''} title={row.id === snapshot.callerId ? 'Your own account cannot be deactivated here' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('activation',row)}>{row.is_active ? 'Deactivate' : 'Activate'}</button><button disabled title="Deactivate to preserve linked records">Delete unavailable</button></div></td></tr>)}
+        {filtered.slice(currentPage * 20, currentPage * 20 + 20).map(row => <tr key={row.id}><td><div className="user-cell"><span className="user-avatar" aria-hidden="true">{(row.full_name || row.email || '?').slice(0, 2).toUpperCase()}</span><div><strong>{row.full_name || 'Name not set'}</strong><p>{row.email}</p>{row.id === snapshot.callerId && <small className="um-self-badge">Your account</small>}</div></div></td><td><span className={`um-role-badge ${row.role === 'admin' ? 'um-role-admin' : ''}`}>{row.role === 'admin' ? 'Admin' : 'Staff'}</span></td><td>{dateLabel(row.created_at)}</td><td><span className={`um-status-badge ${row.is_active ? 'um-status-active' : ''}`}><span aria-hidden="true">●</span>{row.is_active ? 'Active' : 'Inactive'}</span></td><td><div className="um-row-actions"><button onClick={() => open('details',row)}>View</button><button onClick={() => open('edit',row)}>Edit / Role</button><button title={row.id === snapshot.callerId ? 'Change your password in Account settings' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('password',row)}>Set Password</button><button className={row.is_active ? 'um-action-danger' : ''} title={row.id === snapshot.callerId ? 'Your own account cannot be deactivated here' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('activation',row)}>{row.is_active ? 'Deactivate' : 'Activate'}</button><button disabled={busy} onClick={() => openRecovery(row)}>Recovery Phone</button><button disabled title="Deactivate to preserve linked records">Delete unavailable</button></div></td></tr>)}
       </tbody></table></div><div className="um-pagination"><button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button><span>Page {currentPage + 1} of {pages} · {filtered.length} users</span><button disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>Next</button></div></div></>}
-    {modal && <div className="modal-overlay" onClick={close}><form className="modal" role="dialog" aria-modal="true" aria-label={modal === 'create' ? 'Create office account' : modal === 'password' ? 'Set account password' : 'Office account details'} onClick={event => event.stopPropagation()} onSubmit={submit}>
-      <div className="modal-header"><h3>{({create:'Add Office User',edit:'Edit Office Account',password:'Set New Password',activation:target?.is_active?'Deactivate Account?':'Activate Account?',details:'Account Details',roles:'Role Summary'})[modal]}</h3><button type="button" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
+    {modal && <div className="modal-overlay" onClick={close}><form className="modal" role="dialog" aria-modal="true" noValidate={modal === 'create'} aria-label={modal === 'create' ? 'Create office account' : modal === 'password' ? 'Set account password' : 'Office account details'} onClick={event => event.stopPropagation()} onSubmit={submit}>
+      <div className="modal-header"><h3>{({create:'Add Office User',edit:'Edit Office Account',password:'Set New Password',activation:target?.is_active?'Deactivate Account?':'Activate Account?',details:'Account Details',roles:'Role Summary',recovery:'SMS Recovery Phone'})[modal]}</h3><button type="button" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
       <fieldset disabled={busy} className="um-fieldset"><div className="modal-body">
         {modal === 'roles' && <><p><strong>Admin:</strong> Manages office users and shared settings, with operational access governed by database policies.</p><p><strong>Staff:</strong> Uses operational workflows under existing backend permissions; cannot manage office accounts or admin-only settings.</p><p>No custom per-user permission matrix is implemented.</p></>}
         {modal === 'details' && <dl><dt>Account ID</dt><dd style={{overflowWrap:'anywhere'}}>{target.id}</dd><dt>Name</dt><dd>{target.full_name || 'Not set'}</dd><dt>Email</dt><dd>{target.email}</dd><dt>Contact</dt><dd>{target.phone || 'Not set'}</dd><dt>Role</dt><dd>{target.role}</dd><dt>Created</dt><dd>{dateLabel(target.created_at)}</dd><dt>Updated</dt><dd>{dateLabel(target.updated_at)}</dd></dl>}
         {['create','edit'].includes(modal) && <>
           <label className="form-field">Full Name<input required maxLength={200} value={form.fullName} onChange={event => setForm({...form,fullName:event.target.value})} /></label>
           <label className="form-field">Login Email<input type="email" required value={form.email} readOnly={modal === 'edit'} onChange={event => setForm({...form,email:event.target.value})} /></label>
-          {modal === 'edit' && <label className="form-field">Contact Number<input type="tel" maxLength={40} value={form.phone} onChange={event => setForm({...form,phone:event.target.value})} /></label>}
+          <label className="form-field">{modal === 'create' ? 'Recovery Mobile Number' : 'Contact Number'}<input type="tel" autoComplete="tel" required={modal === 'create'} maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.phone} onChange={event => setForm({...form,phone:event.target.value})} /></label>
+          <p>{modal === 'create' ? 'Use this user’s own Philippine mobile number. Whoever receives its SMS codes can reset this account’s password.' : 'Contact edits do not change the authentication recovery number. Use Recovery Phone to enroll or replace it.'}</p>
           <label className="form-field">Role<select value={form.role} disabled={self} onChange={event => setForm({...form,role:event.target.value})}><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
           {modal === 'edit' && <label className="form-field">Status<select value={form.active?'active':'inactive'} disabled={self} onChange={event => setForm({...form,active:event.target.value==='active'})}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>}
           {self && <p>Use Account settings for your password. Your own role and activation status cannot be changed here.</p>}
+        </>}
+        {modal === 'recovery' && <>
+          <p>Register the recovery number for <strong>{target.email}</strong>. Whoever receives its SMS codes can reset this account’s password. Confirm this is the user’s own number before saving.</p>
+          {!recoveryLoaded && !error && <p role="status">Loading registered recovery phone…</p>}
+          {recoveryLoaded && <label className="form-field">Recovery Mobile Number<input type="tel" autoComplete="tel" required maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.recoveryPhone || ''} onChange={event => setForm({ ...form, recoveryPhone: event.target.value })} /></label>}
+          <p>This changes the Auth recovery number. The profile’s contact number remains separate. No SMS is sent when an administrator registers a number; possession is checked during recovery.</p>
         </>}
         {modal === 'activation' && <><p>{target.is_active?'Deactivate':'Activate'} <strong>{target.full_name || target.email}</strong> ({target.email})?</p><p>Deactivation blocks office access after the next permission refresh. Existing Auth access tokens may remain valid until expiry. Operational records are retained.</p></>}
         {['create','password'].includes(modal) && <>
@@ -90,7 +118,7 @@ function OfficeUsers() {
           <p>Use 12–128 characters. Share credentials securely; the user can change them under Account settings.</p>
         </>}
         {error && <p role="alert" className="um-error">{error}</p>}
-      </div><div className="modal-footer"><button type="button" onClick={close}>Close</button>{!['details','roles'].includes(modal) && <button className="primary-btn" type="submit">{busy?'Saving…':modal==='create'?'Create Account':modal==='password'?'Set New Password':modal==='activation'?'Confirm':'Save Changes'}</button>}</div></fieldset>
+      </div><div className="modal-footer"><button type="button" onClick={close}>Close</button>{!['details','roles'].includes(modal) && <button className="primary-btn" type="submit" disabled={modal === 'recovery' && !recoveryLoaded}>{busy?'Saving…':modal==='create'?'Create Account':modal==='password'?'Set New Password':modal==='activation'?'Confirm':'Save Changes'}</button>}</div></fieldset>
     </form></div>}
   </section>;
 }

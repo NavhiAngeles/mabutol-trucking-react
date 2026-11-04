@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { Link } from 'react-router-dom';
 import '../../components/signInFeedback.css';
 import { useLoginViewModel } from "../../viewmodels/LoginViewModel";
 import "./login.css";
+import './passwordRecovery.css';
 
 export default function Login() {
   const {
@@ -127,6 +129,7 @@ export default function Login() {
               {status === "loading" ? "Signing in…" : status === "success" ? "Signed in" : "Sign In →"}
             </button>
           </form>
+          {!isPending && <Link className="forgot-password-link" to="/forgot-password">Forgot password?</Link>}
         </section>
       </main>
     </div>

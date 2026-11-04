@@ -1,4 +1,15 @@
 import { supabase } from './supabaseClient';
+import { normalizeOfficePhone } from '../../supabase/functions/_shared/officePhone.js';
+
+export function validateOfficeCreation(form) {
+  const fullName = form.fullName?.trim();
+  const email = form.email?.trim();
+  if (!fullName || fullName.length > 200) throw new Error('Enter the staff member’s full name (up to 200 characters).');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid login email address.');
+  if (!['admin', 'staff'].includes(form.role)) throw new Error('Choose Admin or Staff.');
+  if (typeof form.password !== 'string' || form.password.length < 12 || form.password.length > 128) throw new Error('Account was not created. The initial password must be between 12 and 128 characters.');
+  return { action: 'create', fullName, email, role: form.role, password: form.password, phone: normalizeOfficePhone(form.phone) };
+}
 
 export function userManagementService(client = supabase) {
   async function adminIdentity() {
@@ -18,7 +29,13 @@ export function userManagementService(client = supabase) {
       users.push(...data);
       if (data.length < 500) break;
     }
-    return { callerId, users };
+    let provisioningReady = false;
+    try {
+      const { data, error } = await client.functions.invoke('manage-office-users', { body: { action: 'capabilities' } });
+      provisioningReady = !error && data?.officePhoneEnrollment === true;
+    } catch { /* Keep the directory readable when provisioning is unavailable. */ }
+    return { callerId, users, provisioningReady,
+      provisioningError: provisioningReady ? '' : 'New office accounts cannot be created yet. The SMS account-management backend is unavailable or needs its approved deployment. Existing accounts can still be viewed. Refresh users after the backend is ready.' };
   }
   async function save(target, form) {
     await adminIdentity();
@@ -31,7 +48,7 @@ export function userManagementService(client = supabase) {
     await adminIdentity();
     if (typeof form.password !== 'string' || form.password.length < 12 || form.password.length > 128) throw new Error('Use a password between 12 and 128 characters.');
     // Explicit fields keep UI-only permissions/status out of the privileged request.
-    const body = action === 'create' ? { action, email: form.email?.trim(), fullName: form.fullName?.trim(), role: form.role, password: form.password }
+    const body = action === 'create' ? validateOfficeCreation(form)
       : { action: 'set_password', userId: form.userId, password: form.password };
     const { data, error } = await client.functions.invoke('manage-office-users', { body });
     if (error || data?.error || !data?.userId) {
@@ -39,8 +56,27 @@ export function userManagementService(client = supabase) {
       if (!detail && error?.context?.json) { try { detail = (await error.context.json()).error; } catch { /* generic error below */ } }
       throw new Error(detail || 'Account action was not confirmed. Reload the directory before retrying.');
     }
+    if (action === 'create' && data.recoveryPhone !== body.phone) throw new Error('Account creation did not confirm SMS recovery enrollment. Reload the directory and check Recovery Phone before retrying creation.');
+    if (action === 'create') {
+      const { data: saved, error: readError } = await client.from('users').select('id,email,role,is_active').eq('id', data.userId).single();
+      if (readError || saved?.id !== data.userId || saved.email?.toLowerCase() !== body.email.toLowerCase() || saved.role !== body.role || saved.is_active !== true) {
+        throw new Error('The server accepted the request, but the saved office account could not be verified. Refresh the directory before attempting creation again.');
+      }
+    }
     return data.userId;
   }
-  return { load, save, create: form => provision('create', form), setPassword: form => provision('set_password', form) };
+  async function recoveryPhone(target, form = null) {
+    await adminIdentity();
+    const body = form ? { action: 'set_recovery_phone', userId: target.id, phone: normalizeOfficePhone(form.recoveryPhone), expectedPhone: form.expectedPhone }
+      : { action: 'get_recovery_phone', userId: target.id };
+    const { data, error } = await client.functions.invoke('manage-office-users', { body });
+    if (error || data?.error || data?.userId !== target.id || !Object.hasOwn(data, 'phone')) {
+      let detail = data?.error;
+      if (!detail && error?.context?.json) { try { detail = (await error.context.json()).error; } catch { /* safe fallback */ } }
+      throw new Error(detail || 'Recovery enrollment was not confirmed. Close and reopen this dialog before retrying.');
+    }
+    return data.phone ? normalizeOfficePhone(data.phone) : null;
+  }
+  return { load, save, recoveryPhone, create: form => provision('create', form), setPassword: form => provision('set_password', form) };
 }
 export const userManagementApi = userManagementService();

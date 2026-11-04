@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 
 import Login from "../pages/Login/login";
+import { ForgotPassword, ResetPassword } from '../pages/Login/PasswordRecovery';
 import Dashboard from "../pages/Dashboard/dashboard";
 import Shipment from "../pages/Shipment/shipment";
 import Fleet from "../pages/Fleet/fleet";
@@ -23,6 +24,8 @@ function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/shipment" element={<ProtectedRoute><Shipment /></ProtectedRoute>} />

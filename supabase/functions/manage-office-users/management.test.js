@@ -3,25 +3,37 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { transformWithOxc } from 'vite';
+import { normalizeOfficePhone } from '../_shared/officePhone.js';
 
 const { code } = await transformWithOxc(fs.readFileSync(new URL('./index.ts',import.meta.url),'utf8'),'index.ts');
 async function invoke(options = {}) {
-  const calls = { create: [], reset: [], cleanup: [] }; let handler;
+  const calls = { create: [], reset: [], cleanup: [], finalize: [], customerCleanup: [] }; let handler;
+  let createdRole = options.initialRole || 'customer';
   const caller = { auth: { getUser: async () => ({ data: { user: options.noUser ? null : { id: 'caller', user_metadata: { role: 'admin' } } }, error: options.authError }) } };
   const admin = {
-    from: () => { let id; const q = { select: () => q, eq: (_, value) => { id = value; return q; }, single: async () => ({
-      data: id === 'caller' ? { role: options.role || 'admin', is_active: options.active !== false } : id === 'created' ? { id, role: options.profileMismatch ? 'customer' : 'staff', is_active: true } : { role: options.targetRole || 'staff', is_active: true },
-      error: options.profileError,
-    }) }; return q; },
+    from: table => {
+      let id, update, deleting = false;
+      const q = { select: () => q, update: payload => {update=payload;return q;}, delete: () => {deleting=true;return q;},
+        eq: (key,value) => {
+          if(deleting){assert.equal(table,'customers');assert.equal(key,'user_id');assert.equal(value,'created');calls.customerCleanup.push(value);return Promise.resolve({error:options.customerCleanupError});}
+          if(key==='id') id=value; else {assert.equal(key,'role');assert.equal(value,'customer');}return q;
+        },
+        single:async()=>{
+          if(update){assert.equal(id,'created');calls.finalize.push({id,...update});if(options.finalizeError)return{error:Error('finalize denied')};createdRole=update.role;}
+          return{data:id==='caller'?{role:options.role||'admin',is_active:options.active!==false}:id==='created'?{id,role:createdRole,is_active:true}:{role:options.targetRole||'staff',is_active:true},error:options.profileError};
+        },
+      };return q;
+    },
     auth: { admin: {
-      createUser: async payload => { calls.create.push(payload); return { data: { user: { id: 'created' } }, error: options.createError }; },
-      updateUserById: async (...args) => { calls.reset.push(args); return { error: options.resetError }; },
+      createUser: async payload => { calls.create.push(payload); return { data: { user: { id: 'created',phone:payload.phone } }, error: options.createError }; },
+      getUserById: async id => ({data:{user:{id,phone:options.authPhone || null}},error:options.authPhoneError}),
+      updateUserById: async (...args) => { calls.reset.push(args); return { data:{user:{id:args[0],phone:args[1].phone}},error: options.resetError }; },
       deleteUser: async id => { calls.cleanup.push(id); return { error: options.cleanupError }; },
     } },
   };
-  const scope = vm.createContext({ Response, Request, Deno: { env: { get: key => key }, serve: fn => { handler = fn; } }, createClient: (_, key, config) => config ? caller : admin });
+  const scope = vm.createContext({ Response, Request, normalizeOfficePhone, Deno: { env: { get: key => key }, serve: fn => { handler = fn; } }, createClient: (_, key, config) => config ? caller : admin });
   vm.runInContext(code.replace(/^import .*;$/gm,''),scope);
-  const body = options.body || { action: 'create', fullName: 'Fixture Staff', email: 'fixture@example.test', role: 'staff', password: ' fixture-password ' };
+  const body = options.body || { action: 'create', fullName: 'Fixture Staff', email: 'fixture@example.test', phone:'09171234567', role: 'staff', password: ' fixture-password ' };
   const response = await handler(new Request('https://example.test',{method:options.method || 'POST',headers:options.noHeader ? {} : { Authorization:'Bearer fixture','Content-Type':'application/json' },body:['OPTIONS','GET'].includes(options.method) ? undefined : JSON.stringify(body)}));
   return { calls, response, body: response.headers.get('Content-Type')?.includes('application/json') ? await response.json() : null };
 }
@@ -29,6 +41,7 @@ test('creates confirmed office user from trusted app metadata; preserves passwor
   const {calls,response,body}=await invoke();assert.equal(response.status,200);assert.equal(body.userId,'created');
   assert.equal(calls.create[0].app_metadata.provisioned_role,'staff');assert.equal(calls.create[0].user_metadata.role,undefined);
   assert.equal(calls.create[0].password,' fixture-password ');assert.equal(calls.create[0].email_confirm,true);
+  assert.equal(calls.create[0].phone,'+639171234567');assert.equal(calls.create[0].phone_confirm,true);
 });
 for(const options of [{role:'staff'},{role:'customer'},{active:false},{profileError:Error('denied')},{noUser:true},{noHeader:true}]){
   test('privileged endpoint fails closed '+JSON.stringify(options),async()=>{const {response,calls}=await invoke(options);assert.ok([401,403].includes(response.status));assert.equal(calls.create.length,0);assert.equal(calls.reset.length,0);});
@@ -39,8 +52,18 @@ test('rejects unknown roles, short passwords and unsupported actions',async()=>{
   }
 });
 test('failed profile provisioning compensates new account; cleanup failure is explicit',async()=>{
-  const result=await invoke({profileMismatch:true});assert.equal(result.response.status,400);assert.deepEqual(result.calls.cleanup,['created']);
-  const failed=await invoke({profileMismatch:true,cleanupError:Error('failed')});assert.equal(failed.response.status,500);assert.match(failed.body.error,/Do not retry/);
+  const result=await invoke({finalizeError:true});assert.equal(result.response.status,400);assert.deepEqual(result.calls.cleanup,['created']);assert.match(result.body.error,/office profile/);
+  const failed=await invoke({finalizeError:true,cleanupError:Error('failed')});assert.equal(failed.response.status,500);assert.match(failed.body.error,/Do not retry/);
+});
+
+test('real Auth ordering starts with customer profile and finalizes only newly created office id',async()=>{
+  const result=await invoke();assert.equal(result.response.status,200);assert.deepEqual(result.calls.finalize,[{id:'created',role:'staff'}]);
+  assert.deepEqual(result.calls.customerCleanup,['created']);assert.equal(result.calls.cleanup.length,0);
+});
+test('already-correct profile is retained, unexpected roles and temporary-customer cleanup errors fail safely',async()=>{
+  const correct=await invoke({initialRole:'staff'});assert.equal(correct.response.status,200);assert.equal(correct.calls.finalize.length,0);
+  const unexpected=await invoke({initialRole:'driver'});assert.equal(unexpected.response.status,400);assert.equal(unexpected.calls.finalize.length,0);
+  const failed=await invoke({customerCleanupError:Error('dependent records')});assert.equal(failed.response.status,400);assert.match(failed.body.error,/temporary customer cleanup/);assert.deepEqual(failed.calls.cleanup,['created']);
 });
 test('duplicate email/create error never claims success or deletes unrelated users',async()=>{
   const {response,calls}=await invoke({createError:Error('duplicate')});assert.equal(response.status,409);assert.equal(calls.cleanup.length,0);
@@ -55,4 +78,30 @@ test('password replacement targets only another office account; rejects self and
 test('CORS succeeds; non-POST methods cannot provision',async()=>{
   assert.equal((await invoke({method:'OPTIONS',noHeader:true})).response.status,200);
   assert.equal((await invoke({method:'GET'})).response.status,405);
+});
+
+test('new office users require a valid recovery phone without creating orphan accounts',async()=>{
+  for(const phone of [undefined,'','123','+12025550123']){
+    const {response,calls}=await invoke({body:{action:'create',fullName:'Fixture',email:'fixture@example.test',role:'staff',password:'fixture-password',phone}});
+    assert.equal(response.status,400);assert.equal(calls.create.length,0);
+  }
+});
+test('capability check requires active admin and never creates/resets an account',async()=>{
+  const result=await invoke({body:{action:'capabilities'}});assert.equal(result.response.status,200);assert.equal(result.body.officePhoneEnrollment,true);
+  assert.equal(result.calls.create.length,0);assert.equal(result.calls.reset.length,0);
+  assert.equal((await invoke({role:'staff',body:{action:'capabilities'}})).response.status,403);
+});
+test('admin loads actual recovery phone separately from public contact field',async()=>{
+  const result=await invoke({authPhone:'639171234567',body:{action:'get_recovery_phone',userId:'target'}});
+  assert.equal(result.response.status,200);assert.equal(result.body.phone,'+639171234567');assert.equal(result.calls.reset.length,0);
+  assert.equal((await invoke({role:'staff',body:{action:'get_recovery_phone',userId:'target'}})).response.status,403);
+  assert.equal((await invoke({targetRole:'customer',body:{action:'get_recovery_phone',userId:'target'}})).response.status,404);
+});
+test('admin recovery enrollment allows own office account, normalizes phone and enforces expected value',async()=>{
+  const body={action:'set_recovery_phone',userId:'caller',phone:'09171234567',expectedPhone:null};
+  const result=await invoke({body});assert.equal(result.response.status,200);
+  assert.equal(result.calls.reset[0][1].phone,'+639171234567');assert.equal(result.calls.reset[0][1].phone_confirm,true);
+  const stale=await invoke({body,authPhone:'639181234567'});assert.equal(stale.response.status,409);assert.equal(stale.calls.reset.length,0);
+  const duplicate=await invoke({body,resetError:Error('duplicate phone')});assert.equal(duplicate.response.status,409);assert.equal(duplicate.calls.cleanup.length,0);
+  assert.equal((await invoke({body:{...body,phone:'bad'}})).response.status,400);
 });
