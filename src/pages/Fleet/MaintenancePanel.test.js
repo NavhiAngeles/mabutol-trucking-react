@@ -34,7 +34,7 @@ test('view selector changes the rendered panel and selected state; schedule acti
   assert.equal(find(tree, n => n.props.role === 'region')[0].props['aria-label'], 'Maintenance calendar view');
   button(tree, 'List view').props.onClick(); assert.equal(find(ui.render(), n => n.type === 'table').length, 1);
 });
-
+ 
 test('calendar month controls filter scheduled records and Today restores them; clicking service opens editor', async () => {
   const ui = await screen(); button(ui.render(), 'Calendar view').props.onClick(); let tree = ui.render();
   assert.ok(JSON.stringify(tree).includes('TEST-01'));

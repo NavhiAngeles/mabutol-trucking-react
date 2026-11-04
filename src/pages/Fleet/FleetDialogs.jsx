@@ -32,7 +32,7 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
     guard.current = true; setBusy(true); setError('');
     try { await saveFleetRecord(kind, record, form, { categories: kind === 'truck' ? categories : null }); onSaved(); onClose(); }
     catch (error) { setError(error.message); } finally { guard.current = false; setBusy(false); }
-  }
+  } 
   const field = (name, label, props = {}) => <Field key={name} name={name} label={label} form={form} setForm={setForm} {...props} />;
   return <dialog {...dialog} className="fleet-dialog">
     <form onSubmit={save}><h3>{record ? 'Edit' : 'Schedule'} {kind === 'truck' ? 'vehicle' : kind}</h3>

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getLiveTracking, DASHBOARD_TABLES } from "../../services/dashboardDetailService";
 import { absoluteEventTime } from "../../services/operationsFeed";
+import { watchTrackingFreshness } from "../../services/trackingFreshness";
 import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -87,13 +88,23 @@ export default function DashboardTrackingMap() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !tracking.data) return;
-    const markers = tracking.data.map(row => {
+    const entries = tracking.data.map(row => ({ row, marker: null, stale: null }));
+    const stop = watchTrackingFreshness(tracking.data, states => {
+      entries.forEach((entry, index) => {
+      const { row } = entry;
+      const stale = states[index];
+      if (entry.marker && entry.stale === stale) return;
+      const open = entry.marker?.getPopup().isOpen();
+      entry.marker?.remove();
       const text = document.createElement('div');
-      text.textContent = row.plate + ' · ' + absoluteEventTime(row.recorded_at) + ' PHT' + (row.stale ? ' · Last known position (older than 5 minutes)' : ' · Recent GPS');
-      return new maplibregl.Marker({ color: row.stale ? '#64748b' : '#16a34a' })
+      text.textContent = row.plate + ' · ' + absoluteEventTime(row.recorded_at) + ' PHT' + (stale ? ' · Last known position (older than 5 minutes)' : ' · Recent GPS');
+      entry.marker = new maplibregl.Marker({ color: stale ? '#64748b' : '#16a34a' })
         .setLngLat([row.longitude, row.latitude]).setPopup(new maplibregl.Popup().setDOMContent(text)).addTo(map);
+      entry.stale = stale;
+      if (open) entry.marker.togglePopup();
+      });
     });
-    return () => markers.forEach(marker => marker.remove());
+    return () => { stop(); entries.forEach(entry => entry.marker?.remove()); };
   }, [tracking.data]);
 
   function changeStyle(event) {

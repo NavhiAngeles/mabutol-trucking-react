@@ -37,3 +37,4 @@ export default function MaintenancePanel({ fleet }) {
     {editing !== undefined && <FleetEditor kind="maintenance" record={editing} fleet={fleet} onClose={() => setEditing(undefined)} onSaved={fleet.refresh} />}
   </section>;
 }
+
