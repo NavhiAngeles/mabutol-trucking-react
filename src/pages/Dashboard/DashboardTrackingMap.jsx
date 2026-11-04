@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getLiveTracking, DASHBOARD_TABLES } from "../../services/dashboardDetailService";
+import { absoluteEventTime } from "../../services/operationsFeed";
 import * as maplibregl from "maplibre-gl";
 import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -88,7 +89,7 @@ export default function DashboardTrackingMap() {
     if (!map || !tracking.data) return;
     const markers = tracking.data.map(row => {
       const text = document.createElement('div');
-      text.textContent = row.plate + ' · ' + new Date(row.recorded_at).toLocaleString() + (row.stale ? ' · Last known position (older than 5 minutes)' : ' · Recent GPS');
+      text.textContent = row.plate + ' · ' + absoluteEventTime(row.recorded_at) + ' PHT' + (row.stale ? ' · Last known position (older than 5 minutes)' : ' · Recent GPS');
       return new maplibregl.Marker({ color: row.stale ? '#64748b' : '#16a34a' })
         .setLngLat([row.longitude, row.latitude]).setPopup(new maplibregl.Popup().setDOMContent(text)).addTo(map);
     });
