@@ -73,9 +73,9 @@ test('completed timing is unknown for missing or invalid timestamps, preserving 
 
 test('completed-day metrics exclude unknown timing from on-time denominator and late count', () => {
   const source = fs.readFileSync(new URL('../viewmodels/ShipmentViewModel.js', import.meta.url), 'utf8');
-  const body = source.split('const stats = useMemo(() => {')[1].split('}, [shipments, weeklyTrips]);')[0];
+  const body = source.split('const stats = useMemo(() => {')[1].split('}, [shipments, weeklyTrips, clock]);')[0];
   const scope = vm.createContext({ shipments: ['ON TIME', 'LATE', 'UNKNOWN'].map(deliveryStatus => ({ status: 'completed', deliveryStatus, actualAt: new Date() })),
-    isToday: () => true, formatDuration: () => '', weeklyTrips: 0 });
+    isToday: () => true, formatDuration: () => '', reviewAgeLabel: () => 'Unavailable', weeklyTrips: 0, clock: 0 });
   const compute = () => vm.runInContext('(function(){'+body+'})()', scope);
   assert.equal(compute().completedToday, 3); assert.equal(compute().onTimePct, 50); assert.equal(compute().lateToday, 1);
   scope.shipments = [scope.shipments[2]];
@@ -153,6 +153,13 @@ test('shipment mapping exposes stored instructions on assigned, in-transit and c
     assert.equal(row.driverNotes, 'Call first.\nUse rear gate.');
   }
   for (const driver_notes of [null, undefined, '']) assert.equal(api.mapShipmentRow({ id: 's', driver_notes }).driverNotes, '');
+});
+
+test('review mapping preserves missing timestamps as unknown instead of inventing the current time', () => {
+  const api = service();
+  assert.equal(api.mapShipmentRow({ id: 'missing', status: 'under_review' }).flaggedAt, null);
+  const timestamp = '2026-11-05T04:00:00Z';
+  assert.equal(api.mapShipmentRow({ id: 'known', status: 'under_review', updated_at: timestamp }).flaggedAt.getTime(), Date.parse(timestamp));
 });
 
 test('lookup failure after insert preserves success instead of inviting duplicate submission', async () => {

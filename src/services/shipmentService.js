@@ -294,8 +294,7 @@ export function mapShipmentRow(row) {
 
     actualAt,
 
-    flaggedAt:
-      updatedAt ?? new Date(),
+    flaggedAt: updatedAt,
 
     delayMinutes,
   };

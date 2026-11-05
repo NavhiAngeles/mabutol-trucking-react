@@ -58,6 +58,16 @@ export const TAB_CONFIG = {
 };
 
 const SHIPMENT_PAGE_SIZE = 10;
+const REVIEW_CLOCK_INTERVAL_MS = 60000;
+
+export function reviewAgeLabel(shipments, now) {
+  const ages = shipments.map(shipment => shipment.flaggedAt?.getTime?.())
+    .filter(timestamp => Number.isFinite(timestamp))
+    .map(timestamp => Math.max(0, now - timestamp));
+  if (!ages.length) return 'Unavailable';
+  const averageDays = ages.reduce((sum, age) => sum + age, 0) / ages.length / 86400000;
+  return `${averageDays.toFixed(1)} days`;
+}
 
 const matchesSearch = (s, q) =>
   [s.id, s.cargo, s.origin, s.destination, s.driver, s.fleet, s.customer]
@@ -69,6 +79,7 @@ export function useShipmentViewModel() {
   const [weeklyTrips, setWeeklyTrips] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clock, setClock] = useState(() => Date.now());
   const [params, setParams] = useSearchParams();
   const currentTab = Object.hasOwn(TAB_CONFIG, params.get('tab')) ? params.get('tab') : 'active';
   const recordFilter = params.get('record');
@@ -106,6 +117,13 @@ export function useShipmentViewModel() {
     const poll = setInterval(() => load({ silent: true }), 15000);
     return () => { invalidateLoads(); clearTimeout(initial); clearInterval(poll); unsubscribe(); };
   }, [load, invalidateLoads]);
+
+  useEffect(() => {
+    const updateClock = () => setClock(Date.now());
+    const timer = setInterval(updateClock, REVIEW_CLOCK_INTERVAL_MS);
+    window.addEventListener('focus', updateClock);
+    return () => { clearInterval(timer); window.removeEventListener('focus', updateClock); };
+  }, []);
 
   /* ----------------------------- derived data ---------------------------- */
   const activeConfig = useMemo(() => statusFilter === 'pending' ? { ...TAB_CONFIG[currentTab], title: 'Pending Booking Requests', description: 'Customer booking requests awaiting review. Select a tab to clear this filter.' } : TAB_CONFIG[currentTab], [statusFilter, currentTab]);
@@ -155,12 +173,6 @@ export function useShipmentViewModel() {
       : 0;
     const worst = delayed.reduce((w, s) => (s.delayMinutes > (w?.delayMinutes ?? -1) ? s : w), null);
 
-    const avgReviewDays = review.length
-      ? review.reduce((sum, s) => sum + (Date.now() - s.flaggedAt.getTime()), 0) /
-      review.length /
-      (1000 * 60 * 60 * 24)
-      : 0;
-
     return {
       transitCount: withStatus("transit").length,
       loadingCount: withStatus("loading").length + withStatus("assigned").length,
@@ -179,11 +191,11 @@ export function useShipmentViewModel() {
         : null,
       lateToday: lateToday.length,
 
-      avgReviewAgeLabel: `${avgReviewDays.toFixed(1)} days`,
+      avgReviewAgeLabel: reviewAgeLabel(review, clock),
 
       weeklyTrips: weeklyTrips ?? "—",
     };
-  }, [shipments, weeklyTrips]);
+  }, [shipments, weeklyTrips, clock]);
 
   return {
     // data
