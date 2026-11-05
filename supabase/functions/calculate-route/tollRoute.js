@@ -55,3 +55,52 @@ export function chooseExpresswayRoute(routes, decode) {
   candidates.sort((a, b) => b.coverage.share - a.coverage.share || a.route.summary.duration - b.route.summary.duration);
   return candidates[0] || null;
 }
+
+function highwayCode(name) {
+  if (/nlex.*connector|connector.*nlex/i.test(name)) return 'NLEX_CONNECTOR';
+  if (/\bnlex\b|north luzon expressway/i.test(name)) return 'NLEX';
+  if (/\bsctex\b|subic.clark.tarlac/i.test(name)) return 'SCTEX';
+  if (/\btplex\b|tarlac.pangasinan.la union/i.test(name)) return 'TPLEX';
+  if (/skyway/i.test(name)) return 'SKYWAY';
+  if (/\bslex\b|south luzon expressway/i.test(name)) return 'SLEX';
+  if (/\bcalax\b|cavite.laguna expressway/i.test(name)) return 'CALAX';
+  if (/\bcavitex\b|manila.cavite expressway/i.test(name)) return 'CAVITEX';
+  if (/\bstar\b|southern tagalog arterial/i.test(name)) return 'STAR';
+  if (/\bmcx\b|muntinlupa.cavite expressway/i.test(name)) return 'MCX';
+  if (/\bnaiax\b|naia expressway/i.test(name)) return 'NAIAX';
+  if (/c.?5 southlink/i.test(name)) return 'C5 SOUTHLINK';
+  return null;
+}
+
+export function tollSections(route, decode) {
+  const coordinates = decode(route.geometry), masks = Array(coordinates.length - 1).fill(0);
+  const roads = Array(masks.length).fill(null);
+  for (const [start, end, mask] of route.extras.waycategory.values) for (let i = start; i < end; i++) masks[i] = mask;
+  for (const step of (route.segments || []).flatMap(segment => segment.steps || [])) {
+    const code = highwayCode(step.name || '');
+    if (!code || !Array.isArray(step.way_points)) continue;
+    const [start, end] = step.way_points;
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > masks.length) continue;
+    for (let i = start; i < end; i++) if (masks[i] & 2) roads[i] = code;
+  }
+  // Resolve unnamed plaza/ramp edges only inside a continuous toll run. Never
+  // carry a highway identity across a toll-free connecting road.
+  for (let start = 0; start < masks.length;) {
+    if (!(masks[start] & 2)) { start++; continue; }
+    let end = start;
+    while (end < masks.length && (masks[end] & 2)) end++;
+    let previous = null;
+    for (let i = start; i < end; i++) { if (roads[i]) previous = roads[i]; else if (previous) roads[i] = previous; }
+    let next = null;
+    for (let i = end - 1; i >= start; i--) { if (roads[i]) next = roads[i]; else if (next) roads[i] = next; }
+    start = end;
+  }
+  const sections = [];
+  for (let i = 0; i < masks.length;) {
+    if (!(masks[i] & 2)) { i++; continue; }
+    const start = i, highway = roads[i] || 'UNKNOWN';
+    while (i < masks.length && (masks[i] & 2) && (roads[i] || 'UNKNOWN') === highway) i++;
+    sections.push({ highway, entry: coordinates[start], exit: coordinates[i] });
+  }
+  return sections;
+}

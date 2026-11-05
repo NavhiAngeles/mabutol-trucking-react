@@ -1319,6 +1319,42 @@
 .shipment-toll-rate strong { white-space: nowrap; color: #1e3a8a; }
 .shipment-toll-rates button { padding: 6px 10px; margin-top: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e3a8a; font: inherit; font-size: 12px; cursor: pointer; }
 .shipment-toll-rates :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.shipment-toll-rates { padding: 16px; margin: 8px 0 14px; font-size: 12px; color: #475569; }
+.shipment-toll-rates legend { font-size: 11px; letter-spacing: .02em; }
+.toll-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.toll-panel-heading strong { display: block; font-size: 13px; line-height: 1.4; color: #0f172a; }
+.toll-panel-heading p { margin: 3px 0 0; font-size: 11px; line-height: 1.5; color: #64748b; }
+.toll-price-chip { flex-shrink: 0; padding: 4px 8px; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 11px; font-weight: 600; }
+.toll-price-chip.is-pending { background: #fff7ed; color: #9a3412; }
+.shipment-toll-rates > label { font-size: 11px; font-weight: 600; margin-bottom: 7px; }
+.shipment-toll-rates select { font-size: 13px; line-height: 1.4; padding: 10px; }
+.shipment-toll-rates .toll-panel-hint { margin: 7px 0 12px; font-size: 11px; line-height: 1.6; color: #64748b; }
+.toll-panel-message { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; line-height: 1.6; background: #f8fafc; }
+.toll-panel-message.is-warning { border-color: #fde4b8; background: #fffbf2; color: #854d0e; }
+.toll-panel-message strong { display: block; font-size: 12px; line-height: 1.5; font-weight: 600; }
+.toll-panel-message p { margin: 4px 0 0; font-size: 11px; line-height: 1.6; }
+.toll-message-icon { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 7px; background: #fef0cf; color: #92400e; font-size: 15px; font-weight: 700; }
+.toll-panel-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.toll-panel-actions a { color: #1e40af; font-size: 11px; line-height: 1.5; font-weight: 600; text-decoration: none; }
+.toll-panel-actions a:hover { text-decoration: underline; }
+.toll-panel-actions button { margin-top: 0; font-size: 11px; padding: 7px 9px; }
+.toll-link-context { font-weight: 400; color: #64748b; }
+.shipment-toll-rates .toll-draft-hint { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+.financial-data-row strong.toll-pending-text { color: #b45309; font-size: 11px; font-weight: 600; }
+.cost-charge-blue .toll-total-notice { margin: 8px 0 0; color: #92400e; font-size: 11px; line-height: 1.6; }
+.toll-profit-pending h3 { margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #64748b; }
+.toll-profit-pending p { margin: 0; font-size: 11px; line-height: 1.6; color: #64748b; }
+.toll-auto-summary { margin: 0 0 14px; }
+.toll-auto-summary > div { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #edf2f7; }
+.toll-auto-summary dt { color: #64748b; font-size: 11px; }
+.toll-auto-summary dd { margin: 0; color: #1e293b; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.toll-auto-summary small { display: block; margin-top: 3px; font-size: 10px; font-weight: 400; color: #64748b; }
+.shipment-review .financial-data-row { align-items: center; gap: 12px; }
+.shipment-review .financial-data-row > span { flex: 1; min-width: 0; line-height: 1.5; }
+.shipment-review .financial-data-row > input { width: 128px; max-width: 48%; flex-shrink: 0; text-align: right; }
+.shipment-review .financial-data-row > strong { flex-shrink: 0; text-align: right; }
+.shipment-review .financial-total-row { gap: 16px; }
+.shipment-review .financial-total-row > span:last-child { flex-shrink: 0; }
 @media (max-width: 600px) {
   .drawer-container.shipment-review { width: 100vw; }
   .shipment-review .drawer-form-panel { width: 100%; min-width: 0; }

@@ -5,6 +5,7 @@ import { createShipment } from "../../services/shipmentService";
 import { shipmentRouteFields } from "../../services/shipmentRoute";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
+import TollPricingPanel from './TollPricingPanel';
 import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
 import { fetchPricingData } from "../../services/pricingService";
@@ -13,7 +14,7 @@ import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDat
 import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
 import { fetchBillingCustomers } from '../../services/customerService';
 import { getTollGates } from '../../services/tollGateService';
-import { tollQuote, sameTollQuote, withBookingPricing } from '../../services/tollPricing';
+import { automaticTollQuote, vehicleTollClass, sameTollQuote, withBookingPricing } from '../../services/tollPricing';
 
 const HUBS = [
   {
@@ -61,8 +62,6 @@ const INITIAL_FORM = {
   estimatedMinutes: "",
   usesTollRoad: false,
   overrideAmount: "",
-  tollVehicleClass: "",
-  selectedTollRateIds: [],
   driverAllowance: "0",
 };
 
@@ -224,8 +223,7 @@ export default function CreateShipmentDrawer({
     setForm((previous) => ({
       ...previous,
       [field]: value,
-      ...(["pickupLocation", "destination", "usesTollRoad"].includes(field) ? { distanceKm: "", estimatedMinutes: "", selectedTollRateIds: [] } : {}),
-      ...(['selectedVehicle', 'tollVehicleClass'].includes(field) ? { selectedTollRateIds: [] } : {}),
+      ...(["pickupLocation", "destination", "usesTollRoad"].includes(field) ? { distanceKm: "", estimatedMinutes: "" } : {}),
     }));
 
     if (field === "pickupLocation") {
@@ -446,7 +444,6 @@ export default function CreateShipmentDrawer({
       ...previous,
       distanceKm: "",
       estimatedMinutes: "",
-      selectedTollRateIds: [],
     }));
 
     // Both locations must have confirmed coordinates.
@@ -606,9 +603,11 @@ export default function CreateShipmentDrawer({
   let tollEstimate = null;
   let tollEstimateError = '';
   try {
-    tollEstimate = tollQuote(form.usesTollRoad, form.tollVehicleClass, form.selectedTollRateIds, tollRates);
+    tollEstimate = automaticTollQuote(form.usesTollRoad, selectedVehicle, routeGeoJSON, tollRates);
   } catch (error) { tollEstimateError = error.message; }
   const tollCost = tollEstimate?.total ?? null;
+  const tollPending = form.usesTollRoad && (tollCost === null || tollRatesLoading || Boolean(tollRatesError));
+  const shipmentSubtotal = baseRate === null || handlingCharge === null ? null : baseRate + handlingCharge;
 
   const suggestedCharge =
     handlingCharge === null || baseRate === null || tollCost === null ? null : baseRate + handlingCharge + tollCost;
@@ -835,17 +834,18 @@ export default function CreateShipmentDrawer({
         throw new Error('The selected customer is no longer eligible for billing. Choose an active customer from Customer Billing.');
       }
       const currentPricing = await fetchPricingData();
+      const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
       if (form.usesTollRoad) {
         const currentTollRates = await getTollGates();
         setTollRates(currentTollRates);
-        const currentTollQuote = tollQuote(true, form.tollVehicleClass, form.selectedTollRateIds, currentTollRates);
+        const currentTollQuote = automaticTollQuote(true, currentVehicle, routeGeoJSON, currentTollRates);
+        setVehicles(currentPricing.vehicles);
         if (!sameTollQuote(tollEstimate, currentTollQuote)) {
           throw new Error('Toll rates have changed. Review the updated total and submit again.');
         }
       }
       const currentDefaults = bookingDefaults(currentPricing.settings);
       const currentRates = currentPricing.settings.handling_surcharges;
-      const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
       const currentBaseRate = vehicleBaseRate(currentVehicle, form.distanceKm, currentDefaults.minimumBookingFee);
       if (!vehicleCanCarry(currentVehicle, form.weight) || currentBaseRate === null) {
         setVehicles(currentPricing.vehicles);
@@ -1212,7 +1212,7 @@ export default function CreateShipmentDrawer({
           Use toll roads / expressways
         </label>
         <p className="field-info-text">{form.usesTollRoad
-          ? 'Recalculate using a verified toll expressway. Select its entry–exit fees and the actual truck toll class in Review & Pricing.'
+          ? 'Use a verified toll expressway. Toll class and matching entry–exit fees are calculated automatically from your selected truck and route.'
           : 'Avoid toll roads. Changing this option recalculates the route, distance and travel time.'}</p>
       </div>
 
@@ -1522,6 +1522,7 @@ export default function CreateShipmentDrawer({
                   <p>
                     Standard type capacity: {truckCapacity.toLocaleString()} kg
                   </p>
+                  <p>Toll class: {vehicleTollClass(truck) || 'Not configured'}</p>
 
                   <p>
                     {!truck.fleetCapacityKnown
@@ -1794,45 +1795,30 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="financial-data-row">
-          <span>Toll road fees</span><strong>{currency(tollCost)}</strong>
+          <span>Toll road fees</span><strong className={tollPending ? 'toll-pending-text' : undefined}>{tollPending ? 'Fee pending' : currency(tollCost)}</strong>
         </div>
         {form.usesTollRoad && (
-          <fieldset className="shipment-toll-rates" disabled={isSaving}>
-            <legend>Toll rates from Pricing</legend>
-            <label htmlFor="shipment-toll-class">Actual truck toll class</label>
-            <select id="shipment-toll-class" value={form.tollVehicleClass} onChange={event => update('tollVehicleClass', event.target.value)}>
-              <option value="">Select toll class</option>
-              {['Class 1', 'Class 2', 'Class 3'].map(value => <option key={value}>{value}</option>)}
-            </select>
-            <p className="field-info-text">Confirm the class from the actual truck's axle/height classification. Select each applicable entry–exit charge once; fees are added to the customer quote.</p>
-            {tollRatesLoading && <p role="status">Loading toll rates…</p>}
-            {tollRatesError && <p role="alert">Unable to load toll rates. <button type="button" onClick={() => { setTollRatesLoading(true); setTollRatesError(''); setTollReload(value => value + 1); }}>Retry toll rates</button></p>}
-            {!tollRatesLoading && !tollRatesError && tollRates.length === 0 && <p role="status">No toll rates configured. Ask an administrator to add the applicable highway, entry–exit pair, class and fee in Settings → Pricing → Toll Gates.</p>}
-            {form.tollVehicleClass && tollRates.filter(rate => rate.vehicle_class === form.tollVehicleClass).map(rate => (
-              <label className="shipment-toll-rate" key={rate.id}>
-                <input type="checkbox" checked={form.selectedTollRateIds.includes(rate.id)}
-                  onChange={event => update('selectedTollRateIds', event.target.checked
-                    ? [...form.selectedTollRateIds, rate.id] : form.selectedTollRateIds.filter(id => id !== rate.id))} />
-                <span>{rate.highway} · {rate.gate_name}<small>{rate.vehicle_class}</small></span><strong>{currency(rate.fee)}</strong>
-              </label>
-            ))}
-            {form.tollVehicleClass && !tollRatesLoading && !tollRatesError && tollRates.length > 0 && !tollRates.some(rate => rate.vehicle_class === form.tollVehicleClass) && <p>No rates configured for this toll class.</p>}
-            {tollEstimateError && <p className="field-info-text">{tollEstimateError}</p>}
-            <button type="button" disabled={tollRatesLoading} onClick={() => { setTollRatesLoading(true); setTollRatesError(''); setTollReload(value => value + 1); }}>Refresh toll rates</button>
-          </fieldset>
+          <TollPricingPanel rates={tollRates} loading={tollRatesLoading} error={tollRatesError}
+            vehicleClass={vehicleTollClass(selectedVehicle)} vehicleName={selectedVehicle?.name}
+            sections={routeGeoJSON?.features?.find(feature => feature.properties?.expressway)?.properties.expressway.sections || []}
+            matchedRates={tollEstimate?.rates || []} total={tollPending ? null : tollCost}
+            validationError={tollEstimateError} disabled={isSaving} currency={currency}
+            onRefresh={() => { setTollRatesLoading(true); setTollRatesError(''); setTollReload(value => value + 1); }} />
         )}
 
         <div className="financial-total-row">
           <span>
-            Total Suggested Charge
+            {tollPending ? 'Subtotal before tolls' : 'Total Suggested Charge'}
           </span>
 
           <span className="total-price-text">
             {currency(
-              suggestedCharge
+              tollPending ? shipmentSubtotal : suggestedCharge
             )}
           </span>
         </div>
+
+        {tollPending && <p className="toll-total-notice">The final charge waits for a matching entry–exit toll rate. Truck class and expressways are identified automatically.</p>}
 
         <div className="override-input-group">
           <label className="override-label">
@@ -1844,7 +1830,8 @@ export default function CreateShipmentDrawer({
             min="0"
             step="0.01"
             className="override-text-field"
-            placeholder={`Suggested: ${suggestedCharge?.toFixed(2) ?? "Unavailable"}`}
+            placeholder={tollPending ? 'Waiting for matching toll fee' : `Suggested: ${suggestedCharge?.toFixed(2) ?? "Unavailable"}`}
+            disabled={tollPending || isSaving}
             value={form.overrideAmount}
             onChange={(e) =>
               update(
@@ -1874,7 +1861,7 @@ export default function CreateShipmentDrawer({
         <div className="financial-data-row">
           <span>Tolls (₱)</span>
 
-          <strong>{currency(tollCost)}</strong>
+          <strong className={tollPending ? 'toll-pending-text' : undefined}>{tollPending ? 'Fee pending' : currency(tollCost)}</strong>
         </div>
 
         <div className="financial-data-row">
@@ -1897,18 +1884,21 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-total-row">
           <span>
-            TOTAL OPERATIONAL COST
+            {tollPending ? 'Allowance subtotal · before tolls' : 'TOTAL OPERATIONAL COST'}
           </span>
 
           <span className="total-price-text-sm">
             {currency(
-              operationalCost
+              tollPending ? driverAllowance : operationalCost
             )}
           </span>
         </div>
       </div>
 
       {/* PROFIT */}
+      {tollPending ? <div className="financial-statement-card toll-profit-pending">
+        <h3>Profit estimate pending</h3><p>Available once the toll fees are confirmed.</p>
+      </div> : (
       <div className="financial-statement-card profit-panel-white">
         <div className="financial-header-row border-none no-margin">
           <label className="review-section-title">
@@ -1965,6 +1955,7 @@ export default function CreateShipmentDrawer({
           costs may differ.
         </p>
       </div>
+      )}
     </div>
   );
 
@@ -2194,6 +2185,7 @@ export default function CreateShipmentDrawer({
                   onClick={handleCreateShipment}
                   disabled={
                     isSaving ||
+                    tollPending ||
                     baseRate === null ||
                     handlingCharge === null ||
                     Boolean(handlingPricingError) ||
@@ -2216,7 +2208,7 @@ export default function CreateShipmentDrawer({
 
                   {isSaving
                     ? "Saving Shipment..."
-                    : "Confirm Shipment Booking"}
+                    : tollPending ? "Toll fee required to confirm" : "Confirm Shipment Booking"}
                 </button>
 
                 <span className="footer-notice-subtext">

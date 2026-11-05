@@ -28,7 +28,7 @@ export async function getCurrentPricingUser() {
 export async function getTollGates() {
   const { data, error } = await supabase
     .from(TABLE)
-    .select("id, gate_name, highway, vehicle_class, fee")
+    .select("id, gate_name, highway, vehicle_class, fee, entry_lat, entry_lng, exit_lat, exit_lng, bidirectional")
     .order("highway")
     .order("gate_name");
 
@@ -54,7 +54,15 @@ function validateTollGate(toll) {
     throw new Error("Enter a valid, non-negative toll fee.");
   }
 
-  return { gate_name, highway, vehicle_class, fee };
+  const coordinateKeys = ['entry_lat', 'entry_lng', 'exit_lat', 'exit_lng'];
+  const provided = coordinateKeys.filter(key => toll[key] != null && String(toll[key]).trim() !== '');
+  if (provided.length && (provided.length !== 4 || coordinateKeys.some(key =>
+    !Number.isFinite(Number(toll[key])) || Math.abs(Number(toll[key])) > (key.endsWith('lat') ? 90 : 180)))) {
+    throw new Error('Enter valid latitude and longitude for both toll entry and exit, or leave all four blank.');
+  }
+  return { gate_name, highway, vehicle_class, fee,
+    ...Object.fromEntries(coordinateKeys.map(key => [key, provided.length ? Number(toll[key]) : null])),
+    bidirectional: toll.bidirectional === true };
 }
 
 export async function addTollGate(toll) {

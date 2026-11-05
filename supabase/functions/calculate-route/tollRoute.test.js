@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseExpresswayRoute, expresswayCoverage } from './tollRoute.js';
+import { chooseExpresswayRoute, expresswayCoverage, tollSections } from './tollRoute.js';
 
 // Controlled polylines: lengths/category boundaries matter, not road-name text.
 const points = {
@@ -35,4 +35,21 @@ test('no substantive alternative rejects tiny links instead of returning success
 test('short legitimate expressway trips retain proportional coverage without a fixed five-kilometer minimum', () => {
   const short = { ...motorway, summary: { distance: 1000, duration: 180 } };
   assert.equal(chooseExpresswayRoute([short], decode).route, short);
+});
+
+test('identifies actual named toll corridors and entry/exit coordinates from provider instructions', () => {
+  assert.deepEqual(tollSections(motorway, decode), [{ highway: 'NLEX', entry: points.expressway[1], exit: points.expressway[2] }]);
+  const route = { ...motorway, extras: { waycategory: { values: [[0,3,3]] } }, segments: [{ steps: [
+    { name: 'North Luzon Expressway', way_points: [0,1] }, { name: 'Skyway Stage 3', way_points: [1,3] },
+  ] }] };
+  const sections = tollSections(route, decode);
+  assert.deepEqual(sections.map(row => row.highway), ['NLEX','SKYWAY']);
+  assert.deepEqual(sections[1].entry, points.expressway[1]);
+  assert.deepEqual(sections[1].exit, points.expressway[3]);
+});
+test('does not invent highway identity for unnamed toll roads or carry it across toll-free roads', () => {
+  const route = { ...motorway, extras: { waycategory: { values: [[0,1,3],[1,2,0],[2,3,3]] } }, segments: [{ steps: [
+    { name: 'NLEX Connector', way_points: [0,1] },
+  ] }] };
+  assert.deepEqual(tollSections(route,decode).map(row => row.highway), ['NLEX_CONNECTOR','UNKNOWN']);
 });
