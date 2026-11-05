@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchShipmentDetails } from '../../services/shipmentService';
 import DeliveryOperations from './DeliveryOperations';
+import AssignmentManager from './AssignmentManager';
 
 const timestamp = value => value && Number.isFinite(Date.parse(value))
   ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
@@ -77,6 +78,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
         {details.deliveries.length ? <ul>{details.deliveries.map(delivery => <li key={delivery.id}>
           {delivery.driver?.full_name || 'Driver unavailable'} · {delivery.truck?.plate_number || 'Vehicle unavailable'} · {status(delivery.status)}
         </li>)}</ul> : <p>No delivery assignment recorded.</p>}
+        <AssignmentManager shipmentId={details.id} onChanged={reload} />
         <DeliveryOperations shipmentId={details.id} shipmentStatus={details.status} onChanged={reload} />
       </>}
       <div className="booking-review-actions">

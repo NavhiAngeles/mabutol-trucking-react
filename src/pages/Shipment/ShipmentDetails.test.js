@@ -25,7 +25,7 @@ async function mount(load) {
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
     useEffect(effect, deps) { const i = effectIndex++; const old = effects[i];
       if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
-    }, fetchShipmentDetails: load, DeliveryOperations:'DeliveryOperations',
+    }, fetchShipmentDetails: load, AssignmentManager:'AssignmentManager', DeliveryOperations:'DeliveryOperations',
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
   const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, onClose: () => closes++ }); pending.forEach(run => run()); return tree; };
@@ -40,6 +40,7 @@ test('details shows saved fields, zero override, unknown charge, notes and cance
   const text = JSON.stringify(tree); assert.ok(text.includes('₱0.00')); assert.ok(text.includes('Customer requested'));
   assert.equal(find(tree, n => n.props.className === 'shipment-details-notes')[0].children[0], record.driver_notes);
   assert.ok(text.includes('No delivery assignment recorded.')); assert.ok(text.includes('Unavailable')); assert.ok(ui.focused() > 0);
+  assert.equal(find(tree, n => n.type === 'AssignmentManager').length, 1);
   find(tree, n => n.props.role === 'dialog')[0].props.onKeyDown({ key: 'Escape', preventDefault() {} }); assert.equal(ui.closes(), 1);
 });
 

@@ -636,3 +636,10 @@
 .shipment-action-explanation { padding: 0 14px 10px; margin: 0; font-size: 12px; color: #64748b; white-space: normal; }
 .action-dropdown button:disabled { cursor: not-allowed; color: #64748b; background: transparent; }
 .shipment-details-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.assignment-manager { margin-top: 20px; padding: 16px; border: 1px solid #dbe4ee; border-radius: 10px; background: #f8fafc; }
+.assignment-manager form { display: grid; gap: 12px; }
+.assignment-manager label { display: grid; gap: 5px; font-weight: 600; }
+.assignment-manager select, .assignment-manager textarea { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; }
+.assignment-manager textarea { min-height: 72px; resize: vertical; }
+.assignment-manager button { min-height: 38px; }
+.assignment-blocked { padding: 10px; border-radius: 6px; background: #fff7ed; color: #9a3412; }
