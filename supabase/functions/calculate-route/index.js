@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.114.0";
 import { chooseExpresswayRoute, tollSections } from './tollRoute.js';
+import { metroManilaRoads } from './metroManilaRoads.js';
+import { northLuzonRoads } from './northLuzonRoads.js';
+
+const luzonRoads = [...metroManilaRoads, ...northLuzonRoads];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -303,7 +307,7 @@ Deno.serve(async (request) => {
               distanceKm: Number((expresswaySelection.coverage.highwayMeters / 1000).toFixed(1)),
               tollDistanceKm: Number((expresswaySelection.coverage.tollMeters / 1000).toFixed(1)),
               roadNames: expresswaySelection.coverage.roadNames,
-              sections: tollSections(route, decodePolyline),
+              sections: tollSections(route, decodePolyline, luzonRoads),
             } } : {}),
           },
           geometry: {

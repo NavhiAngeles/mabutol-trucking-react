@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { automaticTollQuote } from '../../../src/services/tollPricing.js';
 function setup({role='admin',active=true,authError=false,providerStatus=200,preview=false,deliveryId,routeContext,accessError=false,geometry='_qbxA__haV_|Bo}@ozDo}@',routes,providerStatuses}={}) {
  let handler,calls=0,sent;
  const context=vm.createContext({Request,Response,URL,AbortSignal,console:{error(){}},fetch:async(url,options)=>{calls++;sent=JSON.parse(options.body);const status=providerStatuses?.[calls-1] ?? providerStatus;return new Response(JSON.stringify(status===200?{routes:routes || [{summary:{distance:10000,duration:600},geometry,extras:{waycategory:{values:[[0,1,0]]}}}]}:{error:'Provider denied'}),{status});},
   Deno:{env:{get:()=> 'fixture'},serve:callback=>{handler=callback;}},
   createClient:()=>({auth:{getUser:async()=>({data:{user:authError?null:{id:'office'}},error:authError})},rpc:async(name,args)=>({data:routeContext,error:accessError || args.p_delivery!=='own-delivery'}),from:()=>({select(){return this;},eq(){return this;},single:async()=>({data:{role,is_active:active}})})})});
+ vm.runInContext(fs.readFileSync(new URL('./metroManilaRoads.js',import.meta.url),'utf8').replace(/^export /gm,''),context);
+ vm.runInContext(fs.readFileSync(new URL('./northLuzonRoads.js',import.meta.url),'utf8').replace(/^export /gm,''),context);
  vm.runInContext(fs.readFileSync(new URL('./tollRoute.js',import.meta.url),'utf8').replace(/^export /gm,''),context);
  vm.runInContext(fs.readFileSync(new URL('./index.js',import.meta.url),'utf8').replace(/^import .*;$/gm,''),context);
  return {call:(authorization='Bearer fixture',overrides={})=>handler(new Request('https://example.invalid',{method:'POST',headers:{...(authorization?{Authorization:authorization}:{}),'Content-Type':'application/json'},body:JSON.stringify({preview,...(deliveryId?{delivery_id:deliveryId}:{}),pickup:{lat:14.6,lng:120.96},destination:{lat:14.65,lng:120.98},...overrides})})),calls:()=>calls,sent:()=>sent};
@@ -82,4 +85,27 @@ test('driver preview rejects mismatched provider geometry and redacts provider e
  assert.equal((await setup({...args,geometry:'_p~iF~ps|U_ulLnnqC_mqNvxq`@'}).call()).status,422);
  const failed=await setup({...args,providerStatus:403}).call();assert.equal(failed.status,502);
  assert.doesNotMatch(JSON.stringify(await failed.json()),/Provider denied|details|upstreamStatus/);
+});
+
+test('real Balagtas–Star City HGV response identifies unnamed NLEX and prices its actual Balintawak exit',async()=>{
+ const route=JSON.parse(fs.readFileSync(new URL('./fixtures/balagtas-star-city.json',import.meta.url),'utf8'));
+ const response=await setup({routes:[route]}).call('Bearer fixture',{usesTollRoad:true});
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.geojson.features[0].properties.expressway.sections[0].highway,'NLEX');
+ const rate={id:'real-stretch',gate_name:'Meycauayan to Balintawak [2026 matrix]',highway:'NLEX',vehicle_class:'Class 2',fee:211,
+   entry_lat:14.743141,entry_lng:120.973984,exit_lat:14.66056,exit_lng:121.00011,bidirectional:true};
+ // The old cloverleaf pin lay ~422m beyond the routed exit and caused Fee pending.
+ assert.throws(()=>automaticTollQuote(true,{toll_class:'Class 2'},body.geojson,[{...rate,exit_lat:14.656763,exit_lng:121.000032}]),/entry and exit/);
+ assert.equal(automaticTollQuote(true,{toll_class:'Class 2'},body.geojson,[rate]).total,211);
+ assert.equal(automaticTollQuote(true,{toll_class:'Class 3'},body.geojson,[{...rate,vehicle_class:'Class 3',fee:254}]).total,254);
+});
+
+test('real Harbor Link alternative does not add Connector fees from a short stacked-ramp overlap',async()=>{
+ const route=JSON.parse(fs.readFileSync(new URL('./fixtures/balagtas-harbor-link.json',import.meta.url),'utf8'));
+ const response=await setup({routes:[route]}).call('Bearer fixture',{usesTollRoad:true});
+ const body=await response.json();
+ assert.deepEqual(body.geojson.features[0].properties.expressway.sections.map(row=>row.highway),['NLEX_HARBOR_LINK']);
+ const rates=[{id:'harbor',gate_name:'Standalone Harbor Link',highway:'NLEX_HARBOR_LINK',vehicle_class:'Class 2',fee:199,pricing_scope:'flat'}];
+ assert.equal(automaticTollQuote(true,{toll_class:'Class 2'},body.geojson,rates).total,199);
 });

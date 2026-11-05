@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseExpresswayRoute, expresswayCoverage, tollSections } from './tollRoute.js';
+import { chooseExpresswayRoute, expresswayCoverage, tollSections, highwayCode, mappedHighway } from './tollRoute.js';
+import { metroManilaRoads } from './metroManilaRoads.js';
+import { northLuzonRoads } from './northLuzonRoads.js';
 
 // Controlled polylines: lengths/category boundaries matter, not road-name text.
 const points = {
@@ -52,4 +54,40 @@ test('does not invent highway identity for unnamed toll roads or carry it across
     { name: 'NLEX Connector', way_points: [0,1] },
   ] }] };
   assert.deepEqual(tollSections(route,decode).map(row => row.highway), ['NLEX_CONNECTOR','UNKNOWN']);
+});
+
+test('Harbor Link, NLEX mainline and Connector are separate toll systems', () => {
+  assert.equal(highwayCode('NLEX Harbor Link Segment 10'), 'NLEX_HARBOR_LINK');
+  assert.equal(highwayCode('NLEX-SLEX Connector Road'), 'NLEX_CONNECTOR');
+  assert.equal(highwayCode('Manila North Expressway'), 'NLEX');
+});
+
+test('continuous motorway identity survives missing toll tags, while approach ramps do not move tariff endpoints', () => {
+  const coordinates = [[120.9,14.8],[120.91,14.8],[120.92,14.8],[120.93,14.8],[120.94,14.8],[120.95,14.8]];
+  const route = {geometry:'fixture',extras:{waycategory:{values:[[0,1,1],[1,2,3],[2,3,1],[3,4,3],[4,5,1]]}},segments:[{steps:[{name:'North Luzon Expressway',way_points:[1,4]}]}]};
+  assert.deepEqual(tollSections(route,()=>coordinates),[{highway:'NLEX',entry:coordinates[1],exit:coordinates[4]}]);
+});
+
+test('unnamed routed motorway edges are identified by actual map centerlines, with no regional guess', () => {
+  for (const highway of ['NLEX','SKYWAY','NLEX_HARBOR_LINK','NLEX_CONNECTOR']) {
+    const road = metroManilaRoads.find(row=>row.highway===highway);
+    const a=road.coordinates[0],b=road.coordinates[1];
+    assert.equal(mappedHighway(a,b,metroManilaRoads),highway);
+    const route = {geometry:'fixture',extras:{waycategory:{values:[[0,road.coordinates.length-1,3]]}}};
+    assert.equal(tollSections(route,()=>road.coordinates,metroManilaRoads)[0].highway,highway);
+    assert.equal(mappedHighway([a[0]+0.02,a[1]],[b[0]+0.02,b[1]],metroManilaRoads),null);
+    assert.equal(tollSections({...route,extras:{waycategory:{values:[[0,1,0]]}}},()=>[a,b],metroManilaRoads).length,0);
+  }
+});
+
+test('unnamed north Luzon routing identifies NLEX, SCTEX and TPLEX from mapped edges', () => {
+  for (const highway of ['NLEX', 'SCTEX', 'TPLEX']) {
+    const road = northLuzonRoads.find(row => row.highway === highway);
+    const route = { geometry: 'fixture', extras: { waycategory: { values: [[0, road.coordinates.length - 1, 3]] } } };
+    const sections = tollSections(route, () => road.coordinates, northLuzonRoads);
+    assert.equal(sections.length, 1);
+    assert.equal(sections[0].highway, highway);
+    assert.deepEqual(sections[0].entry, road.coordinates[0]);
+    assert.deepEqual(sections[0].exit, road.coordinates.at(-1));
+  }
 });

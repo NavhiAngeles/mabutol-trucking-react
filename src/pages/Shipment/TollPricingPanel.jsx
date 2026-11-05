@@ -1,6 +1,6 @@
 export default function TollPricingPanel({ rates, loading, error, vehicleClass, vehicleName, sections, matchedRates, total,
   validationError, disabled, onRefresh, currency }) {
-  const highways = [...new Set(sections.map(section => section.highway.replaceAll('_', ' ')))];
+  const highways = [...new Set(sections.filter(section => section.highway && section.highway !== 'UNKNOWN').map(section => section.highway.replaceAll('_', ' ')))];
   return <fieldset className="shipment-toll-rates" disabled={disabled}>
     <legend>Expressway tolls</legend>
     <div className="toll-panel-heading">
@@ -20,7 +20,7 @@ export default function TollPricingPanel({ rates, loading, error, vehicleClass, 
         <p>{validationError || 'An administrator must configure the fee for this exact route.'}</p></div>
     </div>}
     {!loading && !error && matchedRates.map(rate => <div className="shipment-toll-rate" key={rate.id}>
-      <span>{rate.highway} · {rate.gate_name}<small>{rate.vehicle_class} · Entry and exit matched automatically</small></span><strong>{currency(rate.fee)}</strong>
+      <span>{rate.highway.replaceAll('_', ' ')} · {rate.gate_name}<small>{rate.vehicle_class} · {rate.pricing_scope === 'flat' ? 'Fixed toll system fee' : 'Entry and exit matched automatically'}</small></span><strong>{currency(rate.fee)}</strong>
     </div>)}
     <div className="toll-panel-actions">
       <a href="/Settings/pricing#toll-gates" target="_blank" rel="noopener noreferrer">Open toll pricing <span aria-hidden="true">↗</span><span className="toll-link-context"> (new tab)</span></a>

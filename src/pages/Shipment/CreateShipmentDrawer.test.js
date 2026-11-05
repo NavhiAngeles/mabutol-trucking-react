@@ -109,11 +109,11 @@ function closeFlow({ dirty = false, coordinates = false, saving = false, booked 
     confirmedDestination: null,
     isSaving: saving,
     createdShipment: booked ? { id: 'saved' } : null,
-    window: { confirm(message) { assert.match(message, /Discard.*draft/); state.prompts++; return discard; } },
+    setShowDiscardDialog(open) { if (open) state.prompts++; },
     reset() { state.resets++; },
     onClose() { state.closes++; },
   };
-  const close = new Function(...Object.keys(scope), `${handler('handleCloseAll')}\nreturn handleCloseAll;`)(...Object.values(scope));
+  const close = new Function(...Object.keys(scope), `${handler('handleDiscard')}\n${handler('handleCloseAll')}\nreturn () => { handleCloseAll(); ${discard ? 'handleDiscard();' : ''} };`)(...Object.values(scope));
   return { state, close };
 }
 

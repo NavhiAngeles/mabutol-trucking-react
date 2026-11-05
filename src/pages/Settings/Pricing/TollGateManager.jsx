@@ -12,6 +12,7 @@ const EMPTY_FORM = {
   highway: "NLEX",
   vehicle_class: "Class 2",
   fee: "",
+  pricing_scope: 'entry_exit',
   entry_lat: '', entry_lng: '', exit_lat: '', exit_lng: '', bidirectional: false,
 };
 
@@ -127,6 +128,7 @@ export default function TollGateManager() {
       highway: toll.highway,
       vehicle_class: toll.vehicle_class,
       fee: String(toll.fee),
+      pricing_scope: toll.pricing_scope || 'entry_exit',
       entry_lat: String(toll.entry_lat ?? ''), entry_lng: String(toll.entry_lng ?? ''),
       exit_lat: String(toll.exit_lat ?? ''), exit_lng: String(toll.exit_lng ?? ''), bidirectional: toll.bidirectional === true,
     });
@@ -300,7 +302,7 @@ export default function TollGateManager() {
                   <td className="toll-name">
                     {toll.gate_name}
                     <small style={{ display: 'block', color: '#64748b', fontWeight: 400, marginTop: 4 }}>
-                      {toll.entry_lat != null && toll.exit_lat != null ? 'Automatic route matching ready' : 'Entry and exit plaza locations needed for automatic pricing'}
+                      {toll.pricing_scope === 'flat' ? 'Fixed fee for this toll system' : toll.entry_lat != null && toll.exit_lat != null ? 'Automatic route matching ready' : 'Entry and exit plaza locations needed for automatic pricing'}
                     </small>
                   </td>
 
@@ -479,6 +481,8 @@ export default function TollGateManager() {
                   }
                 >
                   <option value="NLEX">NLEX</option>
+                  <option value="NLEX_CONNECTOR">NLEX Connector</option>
+                  <option value="NLEX_HARBOR_LINK">NLEX Harbor Link</option>
                   <option value="SLEX">SLEX</option>
                   <option value="SKYWAY">SKYWAY</option>
                   <option value="SCTEX">SCTEX</option>
@@ -532,6 +536,12 @@ export default function TollGateManager() {
 
               <fieldset style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: 14, marginBottom: 16 }}>
                 <legend>Automatic route matching</legend>
+                <label style={labelStyle}>Tariff basis
+                  <select style={inputStyle} value={form.pricing_scope} onChange={event => updateField('pricing_scope', event.target.value)}>
+                    <option value="entry_exit">Exact entry and exit</option>
+                    {['NLEX_CONNECTOR', 'NLEX_HARBOR_LINK'].includes(form.highway) && <option value="flat">Fixed toll system fee</option>}
+                  </select>
+                </label>
                 <p style={{ fontSize: 12, lineHeight: 1.6, color: '#64748b' }}>Set the actual toll entry and exit plaza locations. The calculated route must match both before this fee can be added automatically.</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {['entry_lat', 'entry_lng', 'exit_lat', 'exit_lng'].map(key => <label key={key} style={{ ...labelStyle, marginBottom: 6 }}>

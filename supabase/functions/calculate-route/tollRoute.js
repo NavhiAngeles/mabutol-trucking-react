@@ -56,9 +56,10 @@ export function chooseExpresswayRoute(routes, decode) {
   return candidates[0] || null;
 }
 
-function highwayCode(name) {
+export function highwayCode(name) {
+  if (/nlex.*harbo[u]?r|harbo[u]?r.*link/i.test(name)) return 'NLEX_HARBOR_LINK';
   if (/nlex.*connector|connector.*nlex/i.test(name)) return 'NLEX_CONNECTOR';
-  if (/\bnlex\b|north luzon expressway/i.test(name)) return 'NLEX';
+  if (/\bnlex\b|north luzon expressway|manila north (?:tollway|expressway)/i.test(name)) return 'NLEX';
   if (/\bsctex\b|subic.clark.tarlac/i.test(name)) return 'SCTEX';
   if (/\btplex\b|tarlac.pangasinan.la union/i.test(name)) return 'TPLEX';
   if (/skyway/i.test(name)) return 'SKYWAY';
@@ -72,7 +73,25 @@ function highwayCode(name) {
   return null;
 }
 
-export function tollSections(route, decode) {
+// Match the actual routed edge, not a city/bounding box. Both endpoints and the
+// midpoint must follow the same mapped expressway within 25m. ORS categories
+// still decide whether this is a motorway, excluding surface roads below it.
+export function mappedHighway(a, b, centerlines) {
+  const distance = (p, x, y) => {
+    const sx = 111320 * Math.cos(p[1] * Math.PI / 180), sy = 111320;
+    const dx = (y[0] - x[0]) * sx, dy = (y[1] - x[1]) * sy;
+    const px = (p[0] - x[0]) * sx, py = (p[1] - x[1]) * sy;
+    const t = Math.max(0, Math.min(1, (px * dx + py * dy) / (dx * dx + dy * dy || 1)));
+    return Math.hypot(px - t * dx, py - t * dy);
+  };
+  const samples = [a, b, [(a[0]+b[0])/2, (a[1]+b[1])/2]];
+  const matches = new Set(centerlines.filter(road => samples.every(p =>
+    road.coordinates.slice(1).some((end, i) => distance(p, road.coordinates[i], end) <= 25)
+  )).map(road => road.highway));
+  return matches.size === 1 ? [...matches][0] : null;
+}
+
+export function tollSections(route, decode, centerlines = []) {
   const coordinates = decode(route.geometry), masks = Array(coordinates.length - 1).fill(0);
   const roads = Array(masks.length).fill(null);
   for (const [start, end, mask] of route.extras.waycategory.values) for (let i = start; i < end; i++) masks[i] = mask;
@@ -81,14 +100,38 @@ export function tollSections(route, decode) {
     if (!code || !Array.isArray(step.way_points)) continue;
     const [start, end] = step.way_points;
     if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > masks.length) continue;
-    for (let i = start; i < end; i++) if (masks[i] & 2) roads[i] = code;
+    for (let i = start; i < end; i++) if (masks[i] & 3) roads[i] = code;
   }
+  const explicitlyNamed = [...roads];
+  for (let i = 0; i < masks.length; i++) {
+    if (!roads[i] && (masks[i] & 1)) roads[i] = mappedHighway(coordinates[i], coordinates[i+1], centerlines);
+  }
+  // At stacked interchanges an unnamed ramp can shadow another expressway.
+  // A short overlap is not enough to identify a second chargeable corridor.
+  // Require 600m of actual centerline support per continuous motorway run;
+  // explicit provider names are unaffected by this fallback threshold.
+  for (let start = 0; start < masks.length;) {
+    if (!(masks[start] & 3)) { start++; continue; }
+    let end = start;
+    const support = new Map();
+    while (end < masks.length && (masks[end] & 3)) {
+      if (roads[end] && !explicitlyNamed[end]) {
+        const a=coordinates[end],b=coordinates[end+1];
+        const meters=Math.hypot((b[0]-a[0])*111320*Math.cos(a[1]*Math.PI/180),(b[1]-a[1])*111320);
+        support.set(roads[end],(support.get(roads[end]) || 0)+meters);
+      }
+      end++;
+    }
+    for (let i=start;i<end;i++) if (!explicitlyNamed[i] && (support.get(roads[i]) || 0)<600) roads[i]=null;
+    start=end;
+  }
+  const identified = [...roads];
   // Resolve unnamed plaza/ramp edges only inside a continuous toll run. Never
   // carry a highway identity across a toll-free connecting road.
   for (let start = 0; start < masks.length;) {
-    if (!(masks[start] & 2)) { start++; continue; }
+    if (!(masks[start] & 3)) { start++; continue; }
     let end = start;
-    while (end < masks.length && (masks[end] & 2)) end++;
+    while (end < masks.length && (masks[end] & 3)) end++;
     let previous = null;
     for (let i = start; i < end; i++) { if (roads[i]) previous = roads[i]; else if (previous) roads[i] = previous; }
     let next = null;
@@ -96,11 +139,19 @@ export function tollSections(route, decode) {
     start = end;
   }
   const sections = [];
+  let previousEnd = -1;
   for (let i = 0; i < masks.length;) {
-    if (!(masks[i] & 2)) { i++; continue; }
+    if (!(masks[i] & 3)) { i++; continue; }
     const start = i, highway = roads[i] || 'UNKNOWN';
-    while (i < masks.length && (masks[i] & 2) && (roads[i] || 'UNKNOWN') === highway) i++;
-    sections.push({ highway, entry: coordinates[start], exit: coordinates[i] });
+    while (i < masks.length && (masks[i] & 3) && (roads[i] || 'UNKNOWN') === highway) i++;
+    if (masks.slice(start,i).some(mask => (mask & 2) !== 0)) {
+      const known = Array.from({length:i-start}, (_, offset) => start+offset).filter(index => identified[index] === highway);
+      // Canonical motorway access points exclude unnamed approach ramps, whose
+      // category boundaries can be hundreds of meters before the merge/plaza.
+      sections.push({ highway, entry: coordinates[known[0] ?? start], exit: coordinates[known.length ? known.at(-1)+1 : i],
+        ...(previousEnd === start ? { connectedToPrevious: true } : {}) });
+      previousEnd = i;
+    }
   }
   return sections;
 }

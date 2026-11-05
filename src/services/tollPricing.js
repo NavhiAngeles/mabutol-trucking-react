@@ -13,7 +13,7 @@ export function tollQuote(usesTollRoad, vehicleClass, selectedIds, rates) {
         !Number.isFinite(Number(rate.fee)) || Number(rate.fee) < 0) {
       throw new Error('A selected toll rate is unavailable or does not match the truck toll class. Review Pricing.');
     }
-    return { id: rate.id, gate_name: rate.gate_name, highway: rate.highway, vehicle_class: rate.vehicle_class, fee: Number(rate.fee) };
+    return { id: rate.id, gate_name: rate.gate_name, highway: rate.highway, vehicle_class: rate.vehicle_class, fee: Number(rate.fee), ...(rate.pricing_scope === 'flat' ? { pricing_scope: 'flat' } : {}) };
   });
   return { total: selected.reduce((sum, row) => sum + Math.round(row.fee * 100), 0) / 100, rates: selected };
 }
@@ -42,13 +42,20 @@ export function automaticTollQuote(usesTollRoad, vehicle, geometry, rates) {
   const sections = geometry?.features?.find(feature => feature.properties?.expressway?.verified)?.properties.expressway.sections;
   if (!Array.isArray(sections) || !sections.length) throw new Error('Recalculate the route to identify its expressways and toll entry–exit points.');
   const selected = [];
-  for (const section of sections) {
+  for (const [index, section] of sections.entries()) {
     if (!section.highway || section.highway === 'UNKNOWN' || !Array.isArray(section.entry) || !Array.isArray(section.exit) ||
         !point(section.entry[1], section.entry[0]) || !point(section.exit[1], section.exit[0])) {
       throw new Error('A toll section could not be identified. Recalculate the route before confirming.');
     }
+    // Harbor Link shares NLEX's paid open system when entered directly from
+    // the mainline. The standalone Harbor Link tariff must not be added again.
+    if (section.highway === 'NLEX_HARBOR_LINK' &&
+        ((section.connectedToPrevious === true && sections[index-1]?.highway === 'NLEX') ||
+         (sections[index+1]?.connectedToPrevious === true && sections[index+1]?.highway === 'NLEX'))) continue;
     const matches = rates.filter(rate => {
-      if (rate.vehicle_class !== vehicleClass || rateHighway(rate) !== section.highway ||
+      if (rate.vehicle_class !== vehicleClass || rateHighway(rate) !== section.highway) return false;
+      if (rate.pricing_scope === 'flat' && ['NLEX_CONNECTOR', 'NLEX_HARBOR_LINK'].includes(section.highway)) return true;
+      if (
           !point(rate.entry_lat, rate.entry_lng) || !point(rate.exit_lat, rate.exit_lng)) return false;
       const entry = [Number(rate.entry_lng), Number(rate.entry_lat)], exit = [Number(rate.exit_lng), Number(rate.exit_lat)];
       return (near(section.entry, entry) && near(section.exit, exit)) ||
@@ -56,7 +63,8 @@ export function automaticTollQuote(usesTollRoad, vehicle, geometry, rates) {
     });
     if (matches.length === 0) throw new Error(`No ${vehicleClass} rate matches the ${section.highway.replaceAll('_', ' ')} toll entry and exit. Configure that exact stretch in Pricing.`);
     if (matches.length > 1) throw new Error(`Multiple rates match the ${section.highway.replaceAll('_', ' ')} toll section. An administrator must resolve the duplicate pricing.`);
-    selected.push(matches[0].id);
+    // A flat barrier-system charge applies once even if map tags split it.
+    if (matches[0].pricing_scope !== 'flat' || !selected.includes(matches[0].id)) selected.push(matches[0].id);
   }
   return { ...tollQuote(true, vehicleClass, selected, rates), vehicleClass, sections };
 }

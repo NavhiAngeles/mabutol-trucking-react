@@ -27,7 +27,11 @@ const tables = {
   trucks: [{ id: 'truck', vehicle_type_id: 'vehicle', capacity_kg: 4000, status: 'available' }],
   system_settings: [{ key: 'minimum_booking_fee', value: 2500 }, { key: 'driver_allowance', value: 100 }, { key: 'handling_surcharges', value: { none: 0 } }],
 };
-let changeFee = false, emptyRates = false, failRates = false, rejectToll = false, delayed = false, incidentalToll = false, unmappedRates = false;
+let changeFee = false, emptyRates = false, failRates = false, rejectToll = false, delayed = false, incidentalToll = false, unmappedRates = false, fixedSystem = false;
+const fixedRates = [
+ {id:'harbor-flat',highway:'NLEX_HARBOR_LINK',gate_name:'Karuhatan to C3',vehicle_class:'Class 2',fee:199,pricing_scope:'flat'},
+ {id:'connector-flat',highway:'NLEX_CONNECTOR',gate_name:'Caloocan to España',vehicle_class:'Class 2',fee:299,pricing_scope:'flat'},
+];
 const requests = [], saved = [], errors = [], checks = [];
 const geometry = usesTollRoad => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: usesTollRoad ? { expressway: { verified: true, distanceKm: 25, tollDistanceKm: 24, roadNames: ['NLEX'], sections:[{highway:'NLEX',entry:[120.906,14.817],exit:[121,14.72]},{highway:'SKYWAY',entry:[121,14.72],exit:[120.985,14.555]}] } } : {}, geometry: { type: 'LineString', coordinates: usesTollRoad ? [[120.906, 14.817], [121.0, 14.72], [120.985, 14.555]] : [[120.906, 14.817], [120.94, 14.7], [120.985, 14.555]] } }] });
 async function main() {
@@ -55,6 +59,10 @@ async function main() {
     if (delayed) await new Promise(resolve => setTimeout(resolve, body.usesTollRoad ? 600 : 50));
     if (rejectToll && body.usesTollRoad) return reply({ error: 'The provider could not verify a toll expressway route between these pins.' }, 422);
     const geojson = geometry(body.usesTollRoad);
+    if (fixedSystem && body.usesTollRoad) geojson.features[0].properties.expressway.sections = [
+     {highway:'NLEX_HARBOR_LINK',entry:[120.96966,14.684589],exit:[120.975568,14.649357]},
+     {highway:'NLEX_CONNECTOR',entry:[120.975568,14.649357],exit:[120.992064,14.61744]},
+    ];
     if (incidentalToll && body.usesTollRoad) geojson.features[0].properties = {};
     return reply({ roadOnlyVerified: true, usesTollRoad: body.usesTollRoad, tollPreference: body.usesTollRoad ? 'expressway' : 'avoid', geojson, distanceKm: body.usesTollRoad ? 50 : 35, estimatedMinutes: body.usesTollRoad ? 40 : 60 });
    }
@@ -65,7 +73,7 @@ async function main() {
     const body = req.postDataJSON(); saved.push(body); return reply({ ...body, id: 'saved', tracking_number: 'FIXTURE-1' });
    }
    if (req.method() !== 'GET') { errors.push(req.method() + ' ' + url.pathname); return route.abort(); }
-   if (table === 'toll_gate_rates') return failRates ? reply({ message: 'Injected toll rates failure' }, 503) : reply(emptyRates ? [] : rates.map(row => ({...row,...(changeFee && row.id === 'toll1'?{fee:300}:{}),...(unmappedRates?{entry_lat:null,entry_lng:null,exit_lat:null,exit_lng:null}:{})})));
+   if (table === 'toll_gate_rates') return failRates ? reply({ message: 'Injected toll rates failure' }, 503) : reply(emptyRates ? [] : fixedSystem ? fixedRates : rates.map(row => ({...row,...(changeFee && row.id === 'toll1'?{fee:300}:{}),...(unmappedRates?{entry_lat:null,entry_lng:null,exit_lat:null,exit_lng:null}:{})})));
    let rows = tables[table] || [];
    if (req.headers().accept?.includes('application/vnd.pgrst.object+json')) rows = rows[0] || null;
    return reply(rows);
@@ -130,6 +138,34 @@ async function main() {
   assert.match(await page.locator('.cost-charge-blue .financial-total-row').textContent(), /5,650/);
   assert.match(await page.locator('.operational-grey .financial-total-row').textContent(), /750/);
   checks.push('Truck class and NLEX/SKYWAY fees selected automatically with no class or fee controls');
+  const nativeDialogs=[];
+  page.on('dialog', async dialog=>{nativeDialogs.push(dialog.message());await dialog.dismiss();});
+  const discardTrigger=page.getByRole('button',{name:'Cancel and discard shipment',exact:true});
+  await discardTrigger.click();
+  const discardDialog=page.getByRole('alertdialog',{name:'Discard this shipment?'});
+  await discardDialog.waitFor();
+  assert.equal(await page.getByRole('button',{name:'Keep editing',exact:true}).evaluate(el=>el===document.activeElement),true);
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.getByRole('button',{name:'Discard shipment',exact:true}).evaluate(el=>el===document.activeElement),true);
+  await page.keyboard.press('Tab');
+  assert.equal(await page.getByRole('button',{name:'Keep editing',exact:true}).evaluate(el=>el===document.activeElement),true);
+  await page.keyboard.press('Escape');
+  await discardDialog.waitFor({state:'detached'});
+  assert.equal(await discardTrigger.evaluate(el=>el===document.activeElement),true);
+  await discardTrigger.click();
+  await page.setViewportSize({width:390,height:844});
+  const discardBounds=await discardDialog.boundingBox();
+  assert.ok(discardBounds.x>=0 && discardBounds.x+discardBounds.width<=390);
+  assert.ok(discardBounds.y>=0 && discardBounds.y+discardBounds.height<=844);
+  await page.screenshot({path:OUT+'/discard-mobile.png'});
+  await page.setViewportSize({width:1440,height:1100});
+  await page.screenshot({path:OUT+'/discard-desktop.png'});
+  await page.getByRole('button',{name:'Keep editing',exact:true}).click();
+  await discardDialog.waitFor({state:'detached'});
+  assert.match(await page.locator('.cost-charge-blue .financial-total-row').textContent(),/5,650/);
+  assert.equal(await confirm.isDisabled(),false);
+  assert.equal(saved.length,0);
+  checks.push('Discard dialog fits desktop/mobile, traps focus, restores trigger and preserves review on Keep editing/Escape');
   await page.getByRole('button', { name: 'Back to Step 2', exact: false }).click();
   await page.locator('.vehicle-card').filter({ hasText: 'Fixture Heavy Truck' }).click();
   await page.getByRole('button', { name: 'Review & Confirm', exact: true }).click();
@@ -140,6 +176,32 @@ async function main() {
   await page.getByRole('button', { name: 'Review & Confirm', exact: true }).click();
   assert.match(await page.locator('.cost-charge-blue .financial-total-row').textContent(), /5,650/);
   checks.push('Changing the Step2 truck automatically changes class, fees and quote; switching back restores Class2 fees');
+  fixedSystem = true;
+  await page.getByRole('button', { name: 'Back to Step 2', exact: false }).click();
+  await page.getByRole('button', { name: 'Back to Step 1', exact: false }).click();
+  await toggle.uncheck(); await toggle.check();
+  await page.getByText('Driving route calculated successfully.', { exact: false }).waitFor();
+  await page.getByRole('button', { name: 'Cargo & Vehicle', exact: true }).click();
+  await page.getByRole('button', { name: 'Review & Confirm', exact: true }).click();
+  await page.getByRole('button', { name: 'Refresh toll rates', exact: true }).click();
+  await page.waitForFunction(()=>document.querySelector('.toll-price-chip')?.textContent.includes('498'));
+  assert.match(await page.locator('.toll-auto-summary').textContent(), /NLEX HARBOR LINK → NLEX CONNECTOR/);
+  assert.equal(await confirm.isDisabled(),false);
+  assert.equal((await page.locator('.shipment-toll-rates').textContent()).includes('Fee pending'),false);
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('.shipment-toll-rates').scrollIntoViewIfNeeded();
+  await page.screenshot({path:OUT+'/fixed-system-mobile.png'});
+  checks.push('Harbor Link/Connector show named expressways, fixed PHP498 and enabled confirmation without plaza placeholders');
+  await page.setViewportSize({width:1440,height:1100});
+  fixedSystem = false;
+  await page.getByRole('button', { name: 'Back to Step 2', exact: false }).click();
+  await page.getByRole('button', { name: 'Back to Step 1', exact: false }).click();
+  await toggle.uncheck(); await toggle.check();
+  await page.getByText('Driving route calculated successfully.', { exact: false }).waitFor();
+  await page.getByRole('button', { name: 'Cargo & Vehicle', exact: true }).click();
+  await page.getByRole('button', { name: 'Review & Confirm', exact: true }).click();
+  await page.getByRole('button', { name: 'Refresh toll rates', exact: true }).click();
+  await page.waitForFunction(()=>document.querySelector('.toll-price-chip')?.textContent.includes('650'));
   await page.screenshot({ path: OUT + '/review-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.shipment-toll-rates').scrollIntoViewIfNeeded();
@@ -192,6 +254,16 @@ async function main() {
   assert.equal(saved[0].route_geometry.booking_pricing.toll_rates.length, 2);
   assert.deepEqual(saved[0].route_geometry.features, geometry(true).features);
   checks.push('Booking saves toll-inclusive quote, exact chosen route and historical rate snapshot');
+  await page.getByRole('button',{name:'Go back to Shipment Overview',exact:true}).click();
+  await page.getByRole('button',{name:'ADD SHIPMENT',exact:true}).click();
+  await pickup.fill('Unsaved draft');
+  await page.getByRole('button',{name:'BACK TO SHIPMENTS',exact:false}).click();
+  await discardDialog.waitFor();
+  await page.getByRole('button',{name:'Discard shipment',exact:true}).click();
+  await page.locator('.drawer-overlay').waitFor({state:'detached'});
+  assert.equal(saved.length,1);
+  assert.deepEqual(nativeDialogs,[]);
+  checks.push('Explicit Discard closes dirty drawer without creating a booking or invoking a browser popup');
   assert.deepEqual(errors, []);
   fs.writeFileSync(OUT + '/results.json', JSON.stringify({ checks, requests, saved, errors }, null, 2));
   console.log(checks.join('\n'));

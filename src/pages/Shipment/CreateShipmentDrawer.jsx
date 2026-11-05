@@ -6,6 +6,7 @@ import { shipmentRouteFields } from "../../services/shipmentRoute";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
 import TollPricingPanel from './TollPricingPanel';
+import ShipmentDiscardDialog from './ShipmentDiscardDialog';
 import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
 import { fetchPricingData } from "../../services/pricingService";
@@ -654,6 +655,15 @@ export default function CreateShipmentDrawer({
     setShowSuccessModal(false);
   };
 
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
+  const handleDiscard = () => {
+    if (isSaving) return;
+    setShowDiscardDialog(false);
+    reset();
+    onClose?.();
+  };
+
   const handleCloseAll = () => {
     if (isSaving) return;
 
@@ -661,9 +671,10 @@ export default function CreateShipmentDrawer({
       Object.keys(INITIAL_FORM).some(key => form[key] !== draftInitial.current[key]) ||
       confirmedPickup !== null || confirmedDestination !== null
     );
-    if (hasUnsavedChanges && !window.confirm(
-      "Discard this shipment draft? Your entered details will be lost."
-    )) return;
+    if (hasUnsavedChanges) {
+      setShowDiscardDialog(true);
+      return;
+    }
 
     reset();
     onClose?.();
@@ -1963,6 +1974,8 @@ export default function CreateShipmentDrawer({
   // MAIN DRAWER
   return (
     <div className="drawer-overlay">
+      {showDiscardDialog && <ShipmentDiscardDialog
+        onKeepEditing={() => setShowDiscardDialog(false)} onDiscard={handleDiscard} />}
       <div
         className={`drawer-container${currentStep === 3 ? ' shipment-review' : ''}`}
         onClick={(e) => e.stopPropagation()}

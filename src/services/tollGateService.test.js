@@ -18,3 +18,9 @@ test('invalid or partial gate configuration cannot be saved as an automatically 
     assert.throws(() => scope.validate({ ...rate, ...values }), /both toll entry and exit/);
   }
 });
+
+test('explicit fixed-system tariffs are preserved on edit and distance-based highways cannot bypass plaza matching', () => {
+  const fixed=scope.validate({...rate,highway:'NLEX_CONNECTOR',pricing_scope:'flat',fee:299});
+  assert.equal(fixed.pricing_scope,'flat');assert.equal(fixed.entry_lat,null);
+  for(const highway of ['NLEX','SKYWAY','SLEX']) assert.throws(()=>scope.validate({...rate,highway,pricing_scope:'flat'}),/Flat toll pricing/);
+});

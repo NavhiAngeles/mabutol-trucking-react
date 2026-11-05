@@ -1,3 +1,50 @@
+.shipment-discard-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 28px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  color: #0f172a;
+  font-family: inherit;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
+}
+.shipment-discard-dialog::backdrop { background: rgba(15, 23, 42, 0.48); }
+.shipment-discard-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+}
+.shipment-discard-dialog h2 { margin: 0 0 10px; font-size: 21px; line-height: 1.3; font-weight: 700; }
+.shipment-discard-dialog p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.65; }
+.shipment-discard-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.shipment-discard-actions button {
+  flex: 1 1 150px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.shipment-discard-actions .shipment-discard-keep { border-color: #cbd5e1; color: #334155; background: #fff; }
+.shipment-discard-actions .shipment-discard-keep:hover { background: #f8fafc; }
+.shipment-discard-actions .shipment-discard-confirm { color: #fff; background: #dc2626; }
+.shipment-discard-actions .shipment-discard-confirm:hover { background: #b91c1c; }
+.shipment-discard-actions button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+
 /* Step 1 Cargo % Vehicle */
 
 /* --- SCREEN LAYOUT CORE FRAMEWORK --- */
