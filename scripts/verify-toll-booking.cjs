@@ -13,8 +13,14 @@ const rates = [
   { id: 'toll3', highway: 'NLEX', gate_name: 'Balagtas → Balintawak', vehicle_class: 'Class 3', fee: 500 },
 ];
 const tables = {
-  users: [{ ...user, role: 'admin', is_active: true, full_name: 'Fixture Office' }],
-  customers: [{ id: 'customer', name: 'Fixture Customer', is_active: true }],
+  users: [{ ...user, role: 'admin', is_active: true, full_name: 'Fixture Office' },
+    { id: 'customer-login', role: 'customer', is_active: true },
+    { id: 'driver-login', role: 'driver', is_active: true }],
+  customers: [{ id: 'customer', user_id: 'customer-login', name: 'Fixture Customer', is_active: true },
+    { id: 'driver-history', user_id: 'driver-login', name: 'Fixture Driver', is_active: true },
+    { id: 'office-history', user_id: user.id, name: 'Fixture Office', is_active: true },
+    { id: 'inactive', user_id: 'customer-login', name: 'Inactive Customer', is_active: false },
+    { id: 'business', user_id: null, name: 'Fixture Business', is_active: true }],
   vehicle_types: [{ id: 'vehicle', name: 'Fixture Truck', is_active: true, default_capacity_kg: 4000 }],
   pricing_rates: [{ id: 'rate', name: 'Fixture rate', vehicle_type_id: 'vehicle', is_active: true, effective_from: '2026-01-01', per_km_rate: 100, min_charge: 2500 }],
   trucks: [{ id: 'truck', vehicle_type_id: 'vehicle', capacity_kg: 4000, status: 'available' }],
@@ -68,6 +74,10 @@ async function main() {
   page.setDefaultTimeout(12000);
   await page.goto(ROOT + '/shipment');
   await page.getByRole('button', { name: 'ADD SHIPMENT' }).click();
+  await page.locator('.select-dropdown-wrapper select option[value="customer"]').waitFor({ state: 'attached' });
+  assert.deepEqual(await page.locator('.select-dropdown-wrapper select option').allTextContents(),
+    ['Select registered customer', 'Fixture Customer', 'Fixture Business']);
+  checks.push('Customer Billing excludes linked drivers, office accounts and inactive customers');
   const pickup = page.getByRole('combobox', { name: 'Search pickup address or landmark' });
   await pickup.fill('Balagtas'); await pickup.press('ArrowDown');
   await page.getByRole('option', { name: 'Balagtas, Philippines' }).click();

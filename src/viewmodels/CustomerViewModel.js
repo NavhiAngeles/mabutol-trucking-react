@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchCustomers, fetchCustomerBookings, subscribeCustomerBookings } from "../services/customerService";
+import { fetchCustomers, fetchBillingCustomers, fetchCustomerBookings, subscribeCustomerBookings } from "../services/customerService";
 
-export function useCustomerDirectory({ enabled = true, includeBookings = false } = {}) {
+export function useCustomerDirectory({ enabled = true, includeBookings = false, billingOnly = false } = {}) {
   const [customers, setCustomers] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export function useCustomerDirectory({ enabled = true, includeBookings = false }
       if (!silent) setLoading(true);
       try {
         const [rows, shipments] = await Promise.all([
-          fetchCustomers(), includeBookings ? fetchCustomerBookings() : Promise.resolve([]),
+          billingOnly ? fetchBillingCustomers() : fetchCustomers(), includeBookings ? fetchCustomerBookings() : Promise.resolve([]),
         ]);
         if (cancelled) return;
         setCustomers(rows);
@@ -65,7 +65,7 @@ export function useCustomerDirectory({ enabled = true, includeBookings = false }
       unsubscribe();
       if (refreshRef.current === manualRefresh) refreshRef.current = null;
     };
-  }, [enabled, includeBookings]);
+  }, [enabled, includeBookings, billingOnly]);
   return { customers, bookings, loading, error, refresh };
 }
 

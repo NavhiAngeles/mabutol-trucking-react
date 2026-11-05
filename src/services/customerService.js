@@ -3,11 +3,11 @@ import { supabase } from "./supabaseClient";
 const CUSTOMER_COLUMNS = "id, customer_code, user_id, name, email, phone, address, barangay, city, province, is_active, created_at, updated_at";
 const BOOKING_COLUMNS = "id, customer_id, tracking_number, pickup_address, dropoff_address, cargo_description, status, created_at, estimated_arrival, actual_delivery_at";
 
-async function fetchAll(table, columns) {
+async function fetchAll(table, columns, filter = query => query) {
   const rows = [];
   const size = 500;
   for (let offset = 0; ; offset += size) {
-    const { data, error } = await supabase.from(table).select(columns)
+    const { data, error } = await filter(supabase.from(table).select(columns))
       .order("created_at", { ascending: false }).order("id").range(offset, offset + size - 1);
     if (error) throw error;
     if (!Array.isArray(data)) throw new Error(`Invalid ${table} response.`);
@@ -21,6 +21,18 @@ async function fetchAll(table, columns) {
 
 export const fetchCustomers = () => fetchAll("customers", CUSTOMER_COLUMNS);
 export const fetchCustomerBookings = () => fetchAll("shipments", BOOKING_COLUMNS);
+
+// Historical customer records survive role conversions. Billing must use the
+// linked account's current role, while retaining staff-managed business rows.
+export async function fetchBillingCustomers() {
+  const [customers, accounts] = await Promise.all([
+    fetchCustomers(),
+    fetchAll('users', 'id,role,is_active,created_at', query => query.eq('role', 'customer').eq('is_active', true)),
+  ]);
+  const eligible = new Set(accounts.filter(account => account.role === 'customer' && account.is_active === true).map(account => account.id));
+  return customers.filter(customer => customer.is_active === true &&
+    (customer.user_id == null || eligible.has(customer.user_id)));
+}
 
 // Only directory details may be changed here; identity, status and bookings stay intact.
 export function customerEditValues(customer) {

@@ -7,6 +7,15 @@ import { withBookingPricing } from '../../services/tollPricing.js';
 
 const source = await readFile(new URL("./CreateShipmentDrawer.jsx", import.meta.url), "utf8");
 
+test('submission rechecks customer role eligibility before pricing or inserting a shipment', async () => {
+  const start = source.indexOf('const billingCustomers = await fetchBillingCustomers();');
+  const end = source.indexOf('const currentPricing = await fetchPricingData();', start);
+  const run = new Function('fetchBillingCustomers', 'selectedCustomer', `return async () => {${source.slice(start, end)}};`);
+  await run(async () => [{ id: 'customer' }], { id: 'customer' })();
+  await assert.rejects(run(async () => [], { id: 'converted-driver' })(), /no longer eligible for billing/);
+  await assert.rejects(run(async () => { throw Error('Role lookup failed'); }, { id: 'customer' })(), /Role lookup failed/);
+});
+
 test('actual booking payload persists driver instructions, preserves multiline text and normalizes blank notes', async () => {
   const start = source.indexOf('const shipmentData = {');
   const end = source.indexOf('setCreatedShipment(data);', start);

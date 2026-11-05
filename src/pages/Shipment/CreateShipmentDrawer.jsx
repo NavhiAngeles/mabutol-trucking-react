@@ -11,6 +11,7 @@ import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
 import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDate, bookingDefaults } from "../../services/vehiclePricing";
 import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
+import { fetchBillingCustomers } from '../../services/customerService';
 import { getTollGates } from '../../services/tollGateService';
 import { tollQuote, sameTollQuote, withBookingPricing } from '../../services/tollPricing';
 
@@ -192,7 +193,7 @@ export default function CreateShipmentDrawer({
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  const { customers, loading: loadingCustomers, error: customerError } = useCustomerDirectory({ enabled: isOpen });
+  const { customers, loading: loadingCustomers, error: customerError } = useCustomerDirectory({ enabled: isOpen, billingOnly: true });
 
   const [saveError, setSaveError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -829,6 +830,10 @@ export default function CreateShipmentDrawer({
     setSaveError("");
 
     try {
+      const billingCustomers = await fetchBillingCustomers();
+      if (!billingCustomers.some(customer => customer.id === selectedCustomer.id)) {
+        throw new Error('The selected customer is no longer eligible for billing. Choose an active customer from Customer Billing.');
+      }
       const currentPricing = await fetchPricingData();
       if (form.usesTollRoad) {
         const currentTollRates = await getTollGates();
@@ -1310,7 +1315,7 @@ export default function CreateShipmentDrawer({
 
         <p className="field-info-text">
           <i className="las la-info-circle" />{" "}
-          Registered customer accounts from Supabase.
+          Active customers only. Driver and office accounts are excluded.
         </p>
 
         {customerError && (

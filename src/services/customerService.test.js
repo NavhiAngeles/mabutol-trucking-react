@@ -8,12 +8,13 @@ function service(result) {
   const removed = [];
   const channel = { on: () => channel, subscribe: () => channel };
   const context = { supabase: { from(table) {
-    const query = { select(columns) { requests.push({ table, columns }); return query; }, order() { return query; }, async range(start, end) { return result(start, end); } };
+    let request;
+    const query = { select(columns) { request = { table, columns, filters: [] }; requests.push(request); return query; }, eq(column, value) { request.filters.push([column, value]); return query; }, order() { return query; }, async range(start, end) { return result(start, end, table); } };
     return query;
   }, channel: () => channel, removeChannel: value => removed.push(value) } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
-  vm.runInContext(source + "\nthis.api={fetchCustomers,fetchCustomerBookings,subscribeCustomerBookings};", context);
+  vm.runInContext(source + "\nthis.api={fetchCustomers,fetchBillingCustomers,fetchCustomerBookings,subscribeCustomerBookings};", context);
   return { ...context.api, requests, removed, channel };
 }
 
@@ -38,6 +39,35 @@ test("booking subscription cleanup removes its own channel", () => {
   const cleanup = api.subscribeCustomerBookings(() => {});
   cleanup();
   assert.equal(api.removed[0], api.channel);
+});
+
+test('billing excludes converted drivers, office, inactive and unresolved accounts without hiding business customers', async () => {
+  const customers = [
+    { id: 'customer', user_id: 'c', is_active: true, name: 'Same name' },
+    { id: 'driver-history', user_id: 'd', is_active: true, name: 'Same name' },
+    { id: 'office-history', user_id: 'a', is_active: true },
+    { id: 'disabled-login', user_id: 'disabled', is_active: true },
+    { id: 'disabled-customer', user_id: 'c', is_active: false },
+    { id: 'unknown-login', user_id: 'missing', is_active: true },
+    { id: 'business', user_id: null, is_active: true },
+  ];
+  const accounts = [{ id: 'c', role: 'customer', is_active: true }, { id: 'd', role: 'driver', is_active: true },
+    { id: 'a', role: 'admin', is_active: true }, { id: 'disabled', role: 'customer', is_active: false }];
+  const api = service((start, end, table) => ({ data: (table === 'users' ? accounts : customers).slice(start, end + 1) }));
+  assert.deepEqual(Array.from(await api.fetchBillingCustomers(), row => row.id), ['customer', 'business']);
+  assert.deepEqual(api.requests.find(request => request.table === 'users').filters, [['role', 'customer'], ['is_active', true]]);
+  // General directory/history is deliberately preserved.
+  assert.equal((await api.fetchCustomers()).length, customers.length);
+});
+
+test('billing fails closed on account-read errors and reads eligibility beyond the first page', async () => {
+  const accounts = Array.from({ length: 501 }, (_, i) => ({ id: `u${i}`, role: 'customer', is_active: true }));
+  const customer = { id: 'last', user_id: 'u500', is_active: true };
+  const api = service((start, end, table) => ({ data: table === 'users' ? accounts.slice(start, end + 1) : [customer] }));
+  assert.equal((await api.fetchBillingCustomers())[0].id, 'last');
+  assert.equal(api.requests.filter(request => request.table === 'users').length, 2);
+  await assert.rejects(service((start, end, table) => table === 'users'
+    ? { error: Error('Role lookup denied') } : { data: [customer] }).fetchBillingCustomers(), /Role lookup denied/);
 });
 
 function editor(result = { data: { id: "customer-a", name: "Updated" }, error: null }) {
