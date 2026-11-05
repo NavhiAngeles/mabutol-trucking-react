@@ -318,7 +318,7 @@ export default function Shipment() {
                   <i className="las la-clock stat-icon" />
                 </div>
                 <h2>{stats.onTimeToday}</h2>
-                <p>{stats.onTimePct}% of today's handoffs</p>
+                <p>{stats.onTimePct == null ? 'Timing unavailable' : `${stats.onTimePct}% of today's handoffs with known timing`}</p>
               </div>
 
               <div className="stat-card late">
@@ -522,8 +522,8 @@ export default function Shipment() {
                         </td>
 
                         <td>
-                          <span className="status transit">
-                            <i className="las la-check-circle" />{" "}
+                          <span className={`status ${s.deliveryStatus === 'UNKNOWN' ? 'unknown-timing' : 'transit'}`}>
+                            <i className={`las ${s.deliveryStatus === 'UNKNOWN' ? 'la-question-circle' : 'la-check-circle'}`} />{" "}
                             {s.deliveryStatus}
                           </span>
                         </td>

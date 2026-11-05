@@ -3,6 +3,27 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+test('completed timing is unknown for missing or invalid timestamps, preserving known outcomes', () => {
+  const api = service();
+  const base = { id: 's', status: 'completed', estimated_arrival: '2026-11-05T04:00:00Z', actual_delivery_at: '2026-11-05T04:00:00Z' };
+  assert.equal(api.mapShipmentRow(base).deliveryStatus, 'ON TIME');
+  assert.equal(api.mapShipmentRow({ ...base, actual_delivery_at: '2026-11-05T04:01:00Z' }).deliveryStatus, 'LATE');
+  for (const field of ['actual_delivery_at', 'estimated_arrival']) {
+    for (const value of [null, '', 'invalid']) assert.equal(api.mapShipmentRow({ ...base, [field]: value }).deliveryStatus, 'UNKNOWN');
+  }
+});
+
+test('completed-day metrics exclude unknown timing from on-time denominator and late count', () => {
+  const source = fs.readFileSync(new URL('../viewmodels/ShipmentViewModel.js', import.meta.url), 'utf8');
+  const body = source.split('const stats = useMemo(() => {')[1].split('}, [shipments, weeklyTrips]);')[0];
+  const scope = vm.createContext({ shipments: ['ON TIME', 'LATE', 'UNKNOWN'].map(deliveryStatus => ({ status: 'completed', deliveryStatus, actualAt: new Date() })),
+    isToday: () => true, formatDuration: () => '', weeklyTrips: 0 });
+  const compute = () => vm.runInContext('(function(){'+body+'})()', scope);
+  assert.equal(compute().completedToday, 3); assert.equal(compute().onTimePct, 50); assert.equal(compute().lateToday, 1);
+  scope.shipments = [scope.shipments[2]];
+  assert.equal(compute().onTimePct, null); assert.equal(compute().lateToday, 0);
+});
+
 test('weekly count distinguishes confirmed zero from query errors, rejection and missing counts, then recovers', async () => {
   const results = [{ count: 0 }, { error: Error('Denied') }, Error('Offline'), { count: null }, {}, { count: 7 }];
   const context = vm.createContext({ console: { error() {} }, supabase: {

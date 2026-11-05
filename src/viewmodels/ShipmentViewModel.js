@@ -147,6 +147,8 @@ export function useShipmentViewModel() {
     const review = withStatus("review");
     const completedToday = withStatus("completed").filter((s) => isToday(s.actualAt));
     const onTimeToday = completedToday.filter((s) => s.deliveryStatus === "ON TIME");
+    const lateToday = completedToday.filter((s) => s.deliveryStatus === "LATE");
+    const timedToday = onTimeToday.length + lateToday.length;
 
     const avgDelay = delayed.length
       ? delayed.reduce((sum, s) => sum + s.delayMinutes, 0) / delayed.length
@@ -172,10 +174,10 @@ export function useShipmentViewModel() {
 
       completedToday: completedToday.length,
       onTimeToday: onTimeToday.length,
-      onTimePct: completedToday.length
-        ? Math.round((onTimeToday.length / completedToday.length) * 100)
-        : 0,
-      lateToday: completedToday.length - onTimeToday.length,
+      onTimePct: timedToday
+        ? Math.round((onTimeToday.length / timedToday) * 100)
+        : null,
+      lateToday: lateToday.length,
 
       avgReviewAgeLabel: `${avgReviewDays.toFixed(1)} days`,
 

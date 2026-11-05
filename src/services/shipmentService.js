@@ -308,7 +308,7 @@ export function mapShipmentRow(row) {
     const onTime =
       actualAt && scheduledAt
         ? actualAt <= scheduledAt
-        : true;
+        : null;
 
     return {
       ...baseShipment,
@@ -320,7 +320,7 @@ export function mapShipmentRow(row) {
         formatDayTime(actualAt),
 
       deliveryStatus:
-        onTime ? "ON TIME" : "LATE",
+        onTime === null ? "UNKNOWN" : onTime ? "ON TIME" : "LATE",
     };
   }
 

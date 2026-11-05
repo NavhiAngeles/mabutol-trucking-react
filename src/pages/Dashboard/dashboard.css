@@ -931,6 +931,8 @@
   font-size: 12px;
 }
 
+.dashboard-tracking-note button { pointer-events: auto; }
+
 .dashboard-tracking-note {
   position: absolute;
   z-index: 5;

@@ -384,6 +384,8 @@
   color: #475569;
 }
 
+.status.unknown-timing { background: #f1f5f9; color: #475569; }
+
 .status.transit {
   background: #D1FAE5;
   color: #065F46;
