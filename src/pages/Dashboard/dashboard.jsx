@@ -100,15 +100,18 @@ export default function Dashboard() {
 
       {/* Content */}
       <section className="content">
-        <div className="header">
-          <h2>Dashboard - Fleet Operations Overview</h2>
+        <div className="header dashboard-intro">
+          <span className="dashboard-eyebrow">OPERATIONS CENTER</span>
+          <h2>Fleet Operations Overview</h2>
           <p>
             Track live shipments, monitor driver activity, and manage
             compliance — all in one place.
           </p>
         </div>
 
-        <p className="dashboard-refresh-status">Sections refresh independently; their times may differ.</p>
+        <section className="dashboard-sync" aria-label="Data updates">
+        <div className="dashboard-sync-heading"><Clock aria-hidden="true" /><h3>Data updates</h3></div>
+        <p className="dashboard-refresh-status dashboard-sync-note">Sections refresh independently; their times may differ.</p>
         <p className="dashboard-refresh-status">{snapshotStatus('Details (analytics, alerts and resources)', details.lastUpdated, details.error)}</p>
         {details.loading && <p role="status">Loading dashboard details…</p>}
         {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button onClick={details.refresh}>Retry</button></p>}
@@ -116,6 +119,7 @@ export default function Dashboard() {
         <p className="dashboard-refresh-status">{snapshotStatus('Operational statistics', lastUpdated, error)}</p>
         {loading && <p role="status">Loading operational statistics…</p>}
         {error && <p role="alert">Could not load statistics: {error} <button onClick={refresh}>Retry</button></p>}
+        </section>
         <div className="stats">
           <div className="stat-card green" {...cardProps('/shipment?tab=active')}>
             <div className="stat-top">
