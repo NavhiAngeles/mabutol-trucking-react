@@ -11,6 +11,8 @@ import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
 import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDate, bookingDefaults } from "../../services/vehiclePricing";
 import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
+import { getTollGates } from '../../services/tollGateService';
+import { tollQuote, sameTollQuote, withBookingPricing } from '../../services/tollPricing';
 
 const HUBS = [
   {
@@ -58,7 +60,8 @@ const INITIAL_FORM = {
   estimatedMinutes: "",
   usesTollRoad: false,
   overrideAmount: "",
-  tollCost: "0",
+  tollVehicleClass: "",
+  selectedTollRateIds: [],
   driverAllowance: "0",
 };
 
@@ -103,6 +106,20 @@ export default function CreateShipmentDrawer({
   onCreated,
 }) {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [tollRates, setTollRates] = useState([]);
+  const [tollRatesError, setTollRatesError] = useState('');
+  const [tollRatesLoading, setTollRatesLoading] = useState(true);
+  const [tollReload, setTollReload] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    getTollGates().then(rates => {
+      if (!cancelled) { setTollRates(rates); setTollRatesError(''); setTollRatesLoading(false); }
+    }).catch(error => {
+      if (!cancelled) { setTollRates([]); setTollRatesError(error.message || 'Unable to load toll rates.'); setTollRatesLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, tollReload]);
   const [pricingDefaults, setPricingDefaults] = useState(null);
   const allowanceEdited = useRef(false);
   const draftInitial = useRef(INITIAL_FORM);
@@ -196,7 +213,7 @@ export default function CreateShipmentDrawer({
   // UPDATE FORM FIELDS
   const update = (field, value) => {
     if (field === "driverAllowance") allowanceEdited.current = true;
-    if (field === "pickupLocation" || field === "destination") {
+    if (["pickupLocation", "destination", "usesTollRoad"].includes(field)) {
       routeIdRef.current += 1;
       routeControllerRef.current?.abort();
       setRouteGeoJSON(null);
@@ -206,7 +223,8 @@ export default function CreateShipmentDrawer({
     setForm((previous) => ({
       ...previous,
       [field]: value,
-      ...(["pickupLocation", "destination"].includes(field) ? { distanceKm: "", estimatedMinutes: "" } : {}),
+      ...(["pickupLocation", "destination", "usesTollRoad"].includes(field) ? { distanceKm: "", estimatedMinutes: "", selectedTollRateIds: [] } : {}),
+      ...(['selectedVehicle', 'tollVehicleClass'].includes(field) ? { selectedTollRateIds: [] } : {}),
     }));
 
     if (field === "pickupLocation") {
@@ -427,6 +445,7 @@ export default function CreateShipmentDrawer({
       ...previous,
       distanceKm: "",
       estimatedMinutes: "",
+      selectedTollRateIds: [],
     }));
 
     // Both locations must have confirmed coordinates.
@@ -464,6 +483,7 @@ export default function CreateShipmentDrawer({
             body: {
               pickup: confirmedPickup,
               destination: confirmedDestination,
+              usesTollRoad: form.usesTollRoad,
             },
             signal: controller.signal,
           }
@@ -488,6 +508,13 @@ export default function CreateShipmentDrawer({
 
         if (data?.roadOnlyVerified !== true) {
           throw new Error("A road-only truck route could not be verified. Please try again later.");
+        }
+        if (data.tollPreference !== (form.usesTollRoad ? 'expressway' : 'avoid') || data.usesTollRoad !== form.usesTollRoad) {
+          throw new Error('The routing service did not confirm the selected toll-road option. Recalculate after the routing service is updated.');
+        }
+        if (form.usesTollRoad && !data.geojson?.features?.some(feature =>
+          feature.properties?.expressway?.verified === true && feature.properties.expressway.distanceKm > 0)) {
+          throw new Error('The service did not verify substantial expressway travel. Recalculate after the routing service is updated.');
         }
         if (!Number.isFinite(data.distanceKm) || data.distanceKm < 0 ||
           !data.geojson?.features?.some(feature => feature.geometry?.type === "LineString" &&
@@ -544,6 +571,7 @@ export default function CreateShipmentDrawer({
   }, [
     confirmedPickup,
     confirmedDestination,
+    form.usesTollRoad,
     isOpen,
   ]);
 
@@ -574,24 +602,29 @@ export default function CreateShipmentDrawer({
 
   const handlingCharge = handlingCost(handlingRates, form.specialHandling, form.distanceKm);
 
+  let tollEstimate = null;
+  let tollEstimateError = '';
+  try {
+    tollEstimate = tollQuote(form.usesTollRoad, form.tollVehicleClass, form.selectedTollRateIds, tollRates);
+  } catch (error) { tollEstimateError = error.message; }
+  const tollCost = tollEstimate?.total ?? null;
+
   const suggestedCharge =
-    handlingCharge === null || baseRate === null ? null : baseRate + handlingCharge;
+    handlingCharge === null || baseRate === null || tollCost === null ? null : baseRate + handlingCharge + tollCost;
 
   const finalCharge =
     form.overrideAmount.trim() === ""
       ? suggestedCharge
       : Number(form.overrideAmount);
 
-  const tollCost = Number(form.tollCost) || 0;
-
   const driverAllowance =
     Number(form.driverAllowance) || 0;
 
   const operationalCost =
-    tollCost + driverAllowance;
+    tollCost === null ? null : tollCost + driverAllowance;
 
   const estimatedProfit =
-    finalCharge === null ? null : finalCharge - operationalCost;
+    finalCharge === null || operationalCost === null ? null : finalCharge - operationalCost;
 
   // RESET DRAWER
   const reset = () => {
@@ -638,6 +671,7 @@ export default function CreateShipmentDrawer({
 
   // VALIDATE ROUTE STEP
   const validateRoute = () => {
+    if (!routeGeoJSON || isCalculatingRoute || routeError) return 'Calculate a valid route for the selected toll-road option first.';
     if (!form.pickupLocation.trim()) {
       return "Pickup location is required.";
     }
@@ -686,6 +720,9 @@ export default function CreateShipmentDrawer({
 
   // VALIDATE FINANCIAL DATA
   const validateFinance = () => {
+    if (form.usesTollRoad && (tollRatesLoading || tollRatesError || tollEstimateError)) {
+      return tollRatesError || tollEstimateError || 'Wait for toll rates to load.';
+    }
     if (baseRate === null || !selectedVehicle?.pricing?.id || !vehicleCanCarry(selectedVehicle, form.weight)) {
       return "Select a vehicle with valid pricing and sufficient capacity, and calculate a valid route.";
     }
@@ -693,7 +730,6 @@ export default function CreateShipmentDrawer({
       return handlingPricingError || "The selected handling price is unavailable. Check pricing settings and route distance.";
     }
     if (
-      !isValidMoney(form.tollCost) ||
       !isValidMoney(form.driverAllowance)
     ) {
       return "Enter valid non-negative financial amounts.";
@@ -794,6 +830,14 @@ export default function CreateShipmentDrawer({
 
     try {
       const currentPricing = await fetchPricingData();
+      if (form.usesTollRoad) {
+        const currentTollRates = await getTollGates();
+        setTollRates(currentTollRates);
+        const currentTollQuote = tollQuote(true, form.tollVehicleClass, form.selectedTollRateIds, currentTollRates);
+        if (!sameTollQuote(tollEstimate, currentTollQuote)) {
+          throw new Error('Toll rates have changed. Review the updated total and submit again.');
+        }
+      }
       const currentDefaults = bookingDefaults(currentPricing.settings);
       const currentRates = currentPricing.settings.handling_surcharges;
       const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
@@ -824,7 +868,8 @@ export default function CreateShipmentDrawer({
       const departure = parsePhilippineDeparture(form.departureDate, form.departureTime);
 
       const shipmentData = {
-        ...shipmentRouteFields(confirmedPickup, confirmedDestination, routeGeoJSON, form.estimatedMinutes),
+        ...shipmentRouteFields(confirmedPickup, confirmedDestination,
+          withBookingPricing(routeGeoJSON, form.usesTollRoad, tollEstimate), form.estimatedMinutes),
         customer_id: selectedCustomer.id,
 
         pickup_address:
@@ -895,6 +940,8 @@ export default function CreateShipmentDrawer({
       Array.isArray(point) && validCoordinate({ lng: point[0], lat: point[1] })
     )
   ) && validCoordinate(confirmedPickup) && validCoordinate(confirmedDestination) && !isCalculatingRoute;
+  const verifiedExpressway = form.usesTollRoad && hasValidRoute
+    ? routeGeoJSON.features.find(feature => feature.properties?.expressway?.verified)?.properties.expressway : null;
 
   const renderAddressDetails = (type) => (
     <details className="location-details">
@@ -1037,12 +1084,17 @@ export default function CreateShipmentDrawer({
         <div className="summary-header">
           <h3>Route Summary</h3>
 
-          {form.usesTollRoad && (
+          {verifiedExpressway && (
             <span className="toll-badge">
-              TOLL ROAD
+              EXPRESSWAY
             </span>
           )}
         </div>
+
+        {verifiedExpressway && <p className="field-info-text expressway-route-status">
+          <strong>{verifiedExpressway.distanceKm} km on expressways</strong>
+          {verifiedExpressway.roadNames?.length > 0 && <> · {verifiedExpressway.roadNames.join(' · ')}</>}
+        </p>}
 
         <div className="summary-timeline">
           <div className="timeline-node blue-node">
@@ -1152,8 +1204,11 @@ export default function CreateShipmentDrawer({
               )
             }
           />{" "}
-          Route uses a toll road
+          Use toll roads / expressways
         </label>
+        <p className="field-info-text">{form.usesTollRoad
+          ? 'Recalculate using a verified toll expressway. Select its entry–exit fees and the actual truck toll class in Review & Pricing.'
+          : 'Avoid toll roads. Changing this option recalculates the route, distance and travel time.'}</p>
       </div>
 
       {/* DEPARTURE DATE AND TIME */}
@@ -1568,7 +1623,7 @@ export default function CreateShipmentDrawer({
               : "Travel time not set"}
           </span>
 
-          {form.usesTollRoad && (
+          {verifiedExpressway && (
             <span className="info-inline-pill highlight-orange">
               TOLL ROAD
             </span>
@@ -1733,6 +1788,35 @@ export default function CreateShipmentDrawer({
           />
         </div>
 
+        <div className="financial-data-row">
+          <span>Toll road fees</span><strong>{currency(tollCost)}</strong>
+        </div>
+        {form.usesTollRoad && (
+          <fieldset className="shipment-toll-rates" disabled={isSaving}>
+            <legend>Toll rates from Pricing</legend>
+            <label htmlFor="shipment-toll-class">Actual truck toll class</label>
+            <select id="shipment-toll-class" value={form.tollVehicleClass} onChange={event => update('tollVehicleClass', event.target.value)}>
+              <option value="">Select toll class</option>
+              {['Class 1', 'Class 2', 'Class 3'].map(value => <option key={value}>{value}</option>)}
+            </select>
+            <p className="field-info-text">Confirm the class from the actual truck's axle/height classification. Select each applicable entry–exit charge once; fees are added to the customer quote.</p>
+            {tollRatesLoading && <p role="status">Loading toll rates…</p>}
+            {tollRatesError && <p role="alert">Unable to load toll rates. <button type="button" onClick={() => { setTollRatesLoading(true); setTollRatesError(''); setTollReload(value => value + 1); }}>Retry toll rates</button></p>}
+            {!tollRatesLoading && !tollRatesError && tollRates.length === 0 && <p role="status">No toll rates configured. Ask an administrator to add the applicable highway, entry–exit pair, class and fee in Settings → Pricing → Toll Gates.</p>}
+            {form.tollVehicleClass && tollRates.filter(rate => rate.vehicle_class === form.tollVehicleClass).map(rate => (
+              <label className="shipment-toll-rate" key={rate.id}>
+                <input type="checkbox" checked={form.selectedTollRateIds.includes(rate.id)}
+                  onChange={event => update('selectedTollRateIds', event.target.checked
+                    ? [...form.selectedTollRateIds, rate.id] : form.selectedTollRateIds.filter(id => id !== rate.id))} />
+                <span>{rate.highway} · {rate.gate_name}<small>{rate.vehicle_class}</small></span><strong>{currency(rate.fee)}</strong>
+              </label>
+            ))}
+            {form.tollVehicleClass && !tollRatesLoading && !tollRatesError && tollRates.length > 0 && !tollRates.some(rate => rate.vehicle_class === form.tollVehicleClass) && <p>No rates configured for this toll class.</p>}
+            {tollEstimateError && <p className="field-info-text">{tollEstimateError}</p>}
+            <button type="button" disabled={tollRatesLoading} onClick={() => { setTollRatesLoading(true); setTollRatesError(''); setTollReload(value => value + 1); }}>Refresh toll rates</button>
+          </fieldset>
+        )}
+
         <div className="financial-total-row">
           <span>
             Total Suggested Charge
@@ -1785,19 +1869,7 @@ export default function CreateShipmentDrawer({
         <div className="financial-data-row">
           <span>Tolls (₱)</span>
 
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="override-text-field"
-            value={form.tollCost}
-            onChange={(e) =>
-              update(
-                "tollCost",
-                e.target.value
-              )
-            }
-          />
+          <strong>{currency(tollCost)}</strong>
         </div>
 
         <div className="financial-data-row">
@@ -1896,7 +1968,7 @@ export default function CreateShipmentDrawer({
   return (
     <div className="drawer-overlay">
       <div
-        className="drawer-container"
+        className={`drawer-container${currentStep === 3 ? ' shipment-review' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
 

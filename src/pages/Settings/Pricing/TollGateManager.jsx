@@ -454,7 +454,7 @@ export default function TollGateManager() {
                       event.target.value
                     )
                   }
-                  placeholder="Enter toll gate name"
+                  placeholder="Entry → Exit (e.g. Balagtas → Bocaue)"
                 />
               </label>
 
@@ -474,6 +474,7 @@ export default function TollGateManager() {
                 >
                   <option value="NLEX">NLEX</option>
                   <option value="SLEX">SLEX</option>
+                  <option value="SKYWAY">SKYWAY</option>
                   <option value="SCTEX">SCTEX</option>
                   <option value="TPLEX">TPLEX</option>
                   <option value="CALAX">CALAX</option>

@@ -10,7 +10,7 @@ export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries',
 export async function fetchShipmentDetails(id) {
   const [shipmentResult, deliveryResult] = await Promise.all([
     supabase.from('shipments')
-      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
+      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_geometry,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
       .eq('id', id).single(),
     supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id),
   ]);

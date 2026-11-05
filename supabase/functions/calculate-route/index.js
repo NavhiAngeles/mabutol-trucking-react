@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.114.0";
+import { chooseExpresswayRoute } from './tollRoute.js';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -135,6 +136,12 @@ Deno.serve(async (request) => {
 
     const { pickup, destination } = input;
 
+    // Omitted preferences preserve existing mobile/driver preview behavior.
+    if (input.usesTollRoad !== undefined && typeof input.usesTollRoad !== 'boolean') {
+      return jsonResponse({ error: 'Toll road preference must be true or false.' }, 400);
+    }
+    const tollPreference = input.usesTollRoad;
+
     if (!validPoint(pickup) || !validPoint(destination)) {
       return jsonResponse(
         { error: "Invalid pickup or destination coordinates." },
@@ -143,30 +150,38 @@ Deno.serve(async (request) => {
     }
 
     // Use the standard JSON endpoint instead of /geojson.
-    const response = await fetch(
+    const providerBody = {
+      coordinates: [[pickup.lng, pickup.lat], [destination.lng, destination.lat]],
+      instructions: tollPreference === true, geometry: true, extra_info: ['waycategory'],
+      ...(tollPreference === true ? {
+        preference: 'fastest',
+        alternative_routes: { target_count: 3, share_factor: 0.6, weight_factor: 2 },
+      } : {}),
+      options: { avoid_features: ['ferries', 'fords', ...(tollPreference === false ? ['tollways'] : [])] },
+    };
+    const requestProvider = body => fetch(
       "https://api.heigit.org/openrouteservice/v2/directions/driving-hgv",
       {
         method: "POST",
+        signal: AbortSignal.timeout(20000),
         headers: {
           Authorization: apiKey,
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({
-          coordinates: [
-            [pickup.lng, pickup.lat],
-            [destination.lng, destination.lat],
-          ],
-          instructions: false,
-          geometry: true,
-          extra_info: ["waycategory"],
-          // Keep truck routes on land, including when a port is selected.
-          options: {
-            avoid_features: ["ferries", "fords"],
-          },
-        }),
+        body: JSON.stringify(body),
       }
     );
+    let response = await requestProvider(providerBody);
+    // Hosted alternatives have a shorter distance limit than normal routes.
+    // Retry a standard fastest route on a rejected alternatives request, still
+    // requiring verified toll-expressway categories before returning success.
+    if (response.status === 400 && tollPreference === true) {
+      await response.text();
+      const standard = { ...providerBody };
+      delete standard.alternative_routes;
+      response = await requestProvider(standard);
+    }
 
     const rawResponse = await response.text();
 
@@ -203,7 +218,26 @@ Deno.serve(async (request) => {
       );
     }
 
-    const route = result.routes?.[0];
+    // Never label an ordinary road route as a toll expressway. ORS waycategory
+    // is a bitmask: 1=highway, 2=tollway, 8=ferry, 16=ford.
+    const verifiedCategories = candidate => {
+      const values = candidate?.extras?.waycategory?.values;
+      return Array.isArray(values) && values.length > 0 && values.every(segment =>
+        Array.isArray(segment) && Number.isInteger(segment[2]) && (segment[2] & 24) === 0);
+    };
+    const hasToll = candidate => candidate.extras.waycategory.values.some(segment => (segment[2] & 2) !== 0);
+    const expresswaySelection = tollPreference === true ? chooseExpresswayRoute(result.routes, decodePolyline) : null;
+    const route = tollPreference === true ? expresswaySelection?.route : tollPreference === undefined ? result.routes?.[0] : result.routes
+      ?.filter(candidate => verifiedCategories(candidate) &&
+        !hasToll(candidate) &&
+        Number.isFinite(candidate.summary?.duration) && candidate.summary.duration > 0 &&
+        Number.isFinite(candidate.summary?.distance) && candidate.summary.distance > 0)
+      .sort((a, b) => a.summary.duration - b.summary.duration)[0];
+    if (!route && tollPreference !== undefined) {
+      return jsonResponse({ error: tollPreference
+        ? 'The provider returned no route with substantial toll expressway travel. Short ramps or toll links are not accepted. Adjust the entrances or uncheck Toll Road for ordinary roads.'
+        : 'The provider could not verify a route avoiding toll roads. Adjust the entrances or enable Toll Road.' }, 422);
+    }
     const summary = route?.summary;
 
 
@@ -264,6 +298,12 @@ Deno.serve(async (request) => {
           type: "Feature",
           properties: {
             summary,
+            ...(expresswaySelection ? { expressway: {
+              verified: true,
+              distanceKm: Number((expresswaySelection.coverage.highwayMeters / 1000).toFixed(1)),
+              tollDistanceKm: Number((expresswaySelection.coverage.tollMeters / 1000).toFixed(1)),
+              roadNames: expresswaySelection.coverage.roadNames,
+            } } : {}),
           },
           geometry: {
             type: "LineString",
@@ -275,6 +315,10 @@ Deno.serve(async (request) => {
 
     return jsonResponse({
       roadOnlyVerified: true,
+      ...(tollPreference !== undefined ? {
+        tollPreference: tollPreference ? 'expressway' : 'avoid',
+        usesTollRoad: hasToll(route),
+      } : {}),
       ...(driverPreview ? { preview: true, truckRestrictionsVerified: false } : {}),
       geojson,
       distanceKm: Number(

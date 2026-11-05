@@ -57,6 +57,12 @@ export default function ShipmentDetails({ shipment, onClose }) {
           <dt>Handling</dt><dd>{details.special_handling || 'None'}</dd>
           <dt>Driver instructions</dt><dd className="shipment-details-notes">{details.driver_notes || 'None recorded'}</dd>
           <dt>Quoted charge</dt><dd>{money(details.quoted_amount)}</dd>
+          {details.route_geometry?.booking_pricing?.version === 1 && <>
+            <dt>Toll routing</dt><dd>{details.route_geometry.booking_pricing.toll_preference === 'expressway' ? 'Toll expressway' : 'Avoid toll roads'}</dd>
+            <dt>Toll fees included in quote</dt><dd>{money(details.route_geometry.booking_pricing.toll_amount)}
+              <ul>{details.route_geometry.booking_pricing.toll_rates?.map(rate => <li key={rate.id}>{rate.highway} · {rate.gate_name} · {rate.vehicle_class}: {money(rate.fee)}</li>)}</ul>
+            </dd>
+          </>}
           <dt>Override charge</dt><dd>{details.override_amount == null ? 'No override' : money(details.override_amount)}</dd>
           {details.override_amount != null && <><dt>Override reason</dt><dd>{details.override_reason || 'None recorded'}</dd></>}
           <dt>Final charge</dt><dd>{money(details.final_amount)}</dd>
