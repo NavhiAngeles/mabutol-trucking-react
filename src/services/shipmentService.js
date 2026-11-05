@@ -381,7 +381,7 @@ export async function fetchShipments() {
     );
 
     const [data, deliveries] = await Promise.all([
-      fetchOperationalRows('shipments', '*'), fetchShipmentAssignments(),
+      fetchOperationalRows('shipments', '*,customer:customers!customer_id(name)'), fetchShipmentAssignments(),
     ]);
     const error = null;
 
