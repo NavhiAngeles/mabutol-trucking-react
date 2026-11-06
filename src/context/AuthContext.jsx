@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 
 const AuthContext = createContext(null);
@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [signInMessage, setSignInMessage] = useState(null);
   const sessionVersion = useRef(0);
+  const dismissSignInMessage = useCallback(() => setSignInMessage(null), []);
   function completeSignIn(result) {
     if (!result?.user?.id || !['admin','staff'].includes(result.role)) throw new Error('Unable to verify office account.');
     // The login service has checked the active server profile. Publish it before
@@ -46,14 +47,14 @@ export function AuthProvider({ children }) {
       pending.add(timer);
     }
     const { data: listener } = supabase.auth.onAuthStateChange(event => {
-      if (event === 'SIGNED_OUT') { sessionVersion.current++; setUser(null); setRole(null); setLoading(false); }
+      if (event === 'SIGNED_OUT') { sessionVersion.current++; setUser(null); setRole(null); setLoading(false); setSignInMessage(null); }
       else schedule();
     });
     const poll = setInterval(loadSession, 30000);
     window.addEventListener('focus', schedule);
     return () => { disposed = true; listener.subscription.unsubscribe(); clearInterval(poll); pending.forEach(clearTimeout); window.removeEventListener('focus', schedule); };
   }, []);
-  return <AuthContext.Provider value={{ user, role, loading, clearAuth, completeSignIn, signInMessage, dismissSignInMessage: () => setSignInMessage(null) }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, role, loading, clearAuth, completeSignIn, signInMessage, dismissSignInMessage }}>{children}</AuthContext.Provider>;
 }
 // The context provider and its hook intentionally share this module.
 // eslint-disable-next-line react-refresh/only-export-components
