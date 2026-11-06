@@ -85,3 +85,22 @@ test('bell exposes unread count accessibly and dropdown closes on Escape/outside
   ui.render(); ui.events.pointerdown({ target: {} });
   assert.equal(find(ui.render(), n => n.props.id === 'office-notifications-panel').length, 0);
 });
+
+test('Refresh button in notifications header triggers live refresh', async () => {
+  const ui = await screen(async () => ({ data: { id: 'notice' } }));
+  const refreshBtn = find(ui.render(), n => n.type === 'button' && n.props.title === 'Refresh notifications')[0];
+  assert.ok(refreshBtn);
+  refreshBtn.props.onClick();
+  assert.equal(ui.reloads(), 1);
+});
+
+test('Mark as Read button in notifications header marks all as read and updates unread badge', async () => {
+  const ui = await screen(async () => ({ data: [{ id: 'notice' }] }));
+  const markReadBtn = find(ui.render(), n => n.type === 'button' && n.children.includes('Mark as Read'))[0];
+  assert.ok(markReadBtn);
+  await markReadBtn.props.onClick();
+  assert.equal(ui.reloads(), 1);
+  const trigger = find(ui.render(), n => n.type === 'button' && n.props.className === 'icon-btn')[0];
+  assert.equal(trigger.props['aria-label'], 'Notifications');
+  assert.equal(find(trigger, n => n.props.className === 'office-unread-count').length, 0);
+});
