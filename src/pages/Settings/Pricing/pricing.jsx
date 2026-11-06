@@ -178,7 +178,15 @@ export default function Pricing() {
   }, []);
 
   useEffect(() => {
-    loadPricing();
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) {
+        loadPricing();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [loadPricing]);
 
   const setFee = (key) => (event) => {
