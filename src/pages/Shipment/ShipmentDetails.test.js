@@ -58,6 +58,45 @@ test('closing details ignores an in-flight response', async () => {
   ui.render(); ui.cleanup(); finish(record); await tick(); assert.equal(ui.states[0], null);
 });
 
+test('DELIVERY-01: successful read clears error, preserve reload retains last good snapshot and labels error on failure', async () => {
+  let shouldFail = false;
+  const ui = await mount(async () => {
+    if (shouldFail) throw new Error('Post-action refresh failed');
+    return record;
+  });
+
+  ui.render();
+  await tick();
+  let tree = ui.render();
+  assert.ok(JSON.stringify(tree).includes('Customer requested'));
+  assert.ok(!JSON.stringify(tree).includes('Post-action refresh failed'));
+
+  const initialDelOps = find(tree, n => n.type === 'DeliveryOperations')[0];
+  assert.equal(initialDelOps.props.shipmentRefreshVersion, 1);
+
+  // Preserve reload failure retains details and labels error
+  shouldFail = true;
+  const reloadSuccess = await initialDelOps.props.onChanged({ preserve: true });
+  assert.equal(reloadSuccess, false);
+  await tick();
+  tree = ui.render();
+
+  assert.ok(JSON.stringify(tree).includes('Post-action refresh failed'));
+  assert.ok(JSON.stringify(tree).includes('Showing the last successfully loaded shipment details.'));
+  assert.ok(JSON.stringify(tree).includes('Customer requested'), 'Retains existing details snapshot');
+
+  // Successful reload clears error and increments refreshVersion
+  shouldFail = false;
+  const retrySuccess = await initialDelOps.props.onChanged({ preserve: true });
+  assert.equal(retrySuccess, true);
+  await tick();
+  tree = ui.render();
+
+  assert.ok(!JSON.stringify(tree).includes('Post-action refresh failed'));
+  const updatedDelOps = find(tree, n => n.type === 'DeliveryOperations')[0];
+  assert.equal(updatedDelOps.props.shipmentRefreshVersion, 2);
+});
+
 test('details service scopes shipment and deliveries to selected ID and propagates both read failures', async () => {
   let shipment = { data: record }, deliveries = { data: [{ id: 'd' }] };
   const calls = [];
