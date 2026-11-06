@@ -16,3 +16,12 @@
 @media(max-width:600px) { .delivery-workflow-grid { grid-template-columns: minmax(0,1fr); } .delivery-workflow-panel { padding: 14px; } }
 .delivery-conversation-messages { padding-left: 1.5rem; max-height: 24rem; overflow-y: auto; }
 .delivery-conversation-messages p { white-space: pre-wrap; overflow-wrap: anywhere; }
+dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin: auto; padding: 1.5rem; width: min(600px, calc(100vw - 2rem)); max-width: calc(100vw - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.shipment-cancellation-dialog::backdrop { background: rgb(15 23 42 / 55%); }
+.shipment-cancellation-dialog h2 { font-size: 1.35rem; margin: 0 0 1rem; }
+.shipment-cancellation-dialog p { margin: .75rem 0; line-height: 1.5; }
+.shipment-cancellation-dialog label { display: block; margin: 1rem 0 .5rem; line-height: 1.5; }
+.shipment-cancellation-dialog textarea { box-sizing: border-box; width: 100%; min-height: 90px; padding: .75rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+.shipment-cancellation-dialog .booking-review-actions button { padding: .625rem .875rem; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; color: #1e293b; font: inherit; font-weight: 600; }
+.shipment-cancellation-dialog .booking-review-actions .action-danger { background: #b91c1c; border-color: #b91c1c; color: white; }
+.shipment-cancellation-dialog :is(button,textarea,input):focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }

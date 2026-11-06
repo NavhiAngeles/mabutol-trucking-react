@@ -83,7 +83,7 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect() {},
-    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', ShipmentEditDialog: 'ShipmentEditDialog', CreateShipmentDrawer: 'CreateShipmentDrawer',
+    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', ShipmentEditDialog: 'ShipmentEditDialog', ShipmentCancellationDialog: 'ShipmentCancellationDialog', CreateShipmentDrawer: 'CreateShipmentDrawer',
     useShipmentViewModel: () => ({
       visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500, driverNotes }],
       page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab, activeConfig: { label: 'All', title: 'Pending Booking Requests' },
@@ -109,9 +109,14 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   assert.equal(editor.props.shipment.dbId, 's'); editor.props.onClose();
   assert.equal(find(render(), node => node.type === 'ShipmentEditDialog').length, 0);
   openMenu();
-  const unavailable = button(render(), 'Cancel (unavailable)');
-  assert.equal(unavailable.props.disabled, true); assert.equal(unavailable.props.onClick, undefined);
-  assert.equal(find(render(), node => node.props.id === unavailable.props['aria-describedby']).length, 1);
+  button(render(), 'Cancel shipment').props.onClick({ currentTarget: { closest: () => null } });
+  const cancellation = find(render(), node => node.type === 'ShipmentCancellationDialog')[0];
+  assert.equal(cancellation.props.shipment.dbId, 's');
+  cancellation.props.onCancelled({ id: 's', status: 'cancelled', financial_review_required: true });
+  assert.equal(refreshes, 3);
+  assert.equal(find(render(), node => node.type === 'ShipmentCancellationDialog').length, 0);
+  assert.ok(JSON.stringify(render()).includes('Existing payments require separate financial review'));
+  openMenu();
   find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === 'View Details'))[0]
     .props.onClick({ currentTarget: { closest: () => null } });
   const shipmentDetails = find(render(), node => node.type === 'ShipmentDetails')[0];

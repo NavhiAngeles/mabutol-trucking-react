@@ -8,6 +8,7 @@ import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import BookingReview from "./BookingReview";
 import ShipmentDetails from "./ShipmentDetails";
 import ShipmentEditDialog from "./ShipmentEditDialog";
+import ShipmentCancellationDialog from "./ShipmentCancellationDialog";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
@@ -17,6 +18,7 @@ export default function Shipment() {
   const [reviewShipment, setReviewShipment] = useState(null);
   const [detailsShipment, setDetailsShipment] = useState(null);
   const [editShipment, setEditShipment] = useState(null);
+  const [cancelShipment, setCancelShipment] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [assignmentMessage, setAssignmentMessage] = useState("");
@@ -152,13 +154,14 @@ export default function Shipment() {
                 <button
                   type="button"
                   className="action-danger"
-                  disabled
-                  aria-describedby={`shipment-cancel-unavailable-${shipment.dbId}`}
+                  onClick={event => {
+                    reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+                    setCancelShipment(shipment); setOpenMenuId(null);
+                  }}
                 >
-                  <i className="las la-times-circle" /> Cancel (unavailable)
+                  <i className="las la-times-circle" /> Cancel shipment
                 </button>
               )}
-              {shipment.status !== 'review' && <p className="shipment-action-explanation" id={`shipment-cancel-unavailable-${shipment.dbId}`}>General cancellation is not supported yet. Pending requests can be rejected through Review booking request.</p>}
             </>
           )}
         </div>
@@ -681,6 +684,12 @@ export default function Shipment() {
       </section>
 
       {/* CREATE SHIPMENT DRAWER */}
+      {cancelShipment && <ShipmentCancellationDialog key={cancelShipment.dbId} shipment={cancelShipment}
+        onClose={() => { setCancelShipment(null); reviewLauncher.current?.focus(); }}
+        onCancelled={result => {
+          setAssignmentMessage(`Shipment cancelled. Reservations released.${result.financial_review_required ? ' Existing payments require separate financial review.' : ' Recorded charges and payments are unchanged.'}`);
+          setCancelShipment(null); reviewLauncher.current?.focus(); refresh();
+        }} />}
       {detailsShipment && <ShipmentDetails key={detailsShipment.dbId} shipment={detailsShipment}
         onClose={() => { setDetailsShipment(null); reviewLauncher.current?.focus(); }} />}
       {editShipment && <ShipmentEditDialog key={editShipment.dbId} shipment={editShipment}
