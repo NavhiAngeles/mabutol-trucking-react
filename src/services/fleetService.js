@@ -116,7 +116,12 @@ export async function createTruck(payload, cargoCategoryIds = []) {
         const { error: catErr } = await supabase
             .from("truck_cargo_categories")
             .insert(rows);
-        if (catErr) console.error("Failed to link cargo categories:", catErr);
+        if (catErr) {
+            console.error("Failed to link cargo categories:", {
+                code: catErr.code || "DB_ERROR",
+                message: catErr.message || "Operation failed",
+            });
+        }
     }
 
     return data;
@@ -243,7 +248,12 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
             .update({ assigned_driver_id: driver.id })
             .eq("id", assignVehicleId);
 
-        if (assignErr) console.error("Failed to assign vehicle:", assignErr);
+        if (assignErr) {
+            console.error("Failed to assign vehicle:", {
+                code: assignErr.code || "DB_ERROR",
+                message: assignErr.message || "Operation failed",
+            });
+        }
     }
 
     if (complianceDocs && complianceDocs.length > 0) {
@@ -263,7 +273,12 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
                 .from("compliance_documents")
                 .insert(docRows);
 
-            if (docErr) console.error("Failed to insert driver compliance documents:", docErr);
+            if (docErr) {
+                console.error("Failed to insert driver compliance documents:", {
+                    code: docErr.code || "DB_ERROR",
+                    message: docErr.message || "Operation failed",
+                });
+            }
         }
     }
 

@@ -206,7 +206,14 @@ Deno.serve(async (request) => {
 
     if (!response.ok) {
       if(driverPreview)return jsonResponse({error:'Road preview provider unavailable. Reconnect and retry.'},502);
-      console.error("OpenRouteService error:", result);
+      console.error("OpenRouteService error:", {
+        status: response.status,
+        message:
+          result?.error?.message ||
+          (typeof result?.error === "string" ? result.error : null) ||
+          result?.message ||
+          `Routing failed (${response.status}).`,
+      });
 
       return jsonResponse(
         {
@@ -334,7 +341,10 @@ Deno.serve(async (request) => {
       ),
     });
   } catch (error) {
-    console.error("Routing function error:", error);
+    console.error("Routing function error:", {
+      name: error instanceof Error ? error.name : "Error",
+      message: error instanceof Error ? error.message : "Unable to calculate route.",
+    });
 
     return jsonResponse(
       {

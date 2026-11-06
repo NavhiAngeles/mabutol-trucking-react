@@ -391,18 +391,15 @@ export async function fetchShipments() {
     const error = null;
 
     if (error) {
-      console.error(
-        "Supabase shipment error:",
-        error
-      );
+      console.error("Supabase shipment error:", {
+        code: error?.code || "DB_ERROR",
+        message: error?.message || "Operation failed",
+      });
 
       throw error;
     }
 
-    console.log(
-      "Raw shipment data:",
-      data
-    );
+    console.log("Fetched shipments count:", (data ?? []).length);
 
     const mappedShipments = (
       (data ?? []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
@@ -410,17 +407,14 @@ export async function fetchShipments() {
       assignment: deliveries.find(d => d.shipment_id === row.id && d.status !== 'cancelled'),
       pendingDispatch: pendingDeparture(row, deliveries) }));
 
-    console.log(
-      "Mapped shipments:",
-      mappedShipments
-    );
+    console.log("Mapped shipments count:", mappedShipments.length);
 
     return mappedShipments;
   } catch (error) {
-    console.error(
-      "Failed to fetch shipments:",
-      error
-    );
+    console.error("Failed to fetch shipments:", {
+      name: error?.name,
+      message: error?.message || "Operation failed",
+    });
 
     throw error;
   }
@@ -457,10 +451,10 @@ export async function fetchWeeklyTripCount() {
       );
 
     if (error) {
-      console.error(
-        "Weekly trip count error:",
-        error
-      );
+      console.error("Weekly trip count error:", {
+        code: error?.code || "DB_ERROR",
+        message: error?.message || "Failed to count weekly trips.",
+      });
 
       // Do not prevent the shipment table
       // from loading if this count fails.
@@ -469,10 +463,10 @@ export async function fetchWeeklyTripCount() {
 
     return Number.isInteger(count) && count >= 0 ? count : null;
   } catch (error) {
-    console.error(
-      "Failed to fetch weekly trips:",
-      error
-    );
+    console.error("Failed to fetch weekly trips:", {
+      name: error?.name,
+      message: error?.message || "Failed to fetch weekly trips.",
+    });
 
     return null;
   }

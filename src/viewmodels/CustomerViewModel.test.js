@@ -162,4 +162,24 @@ test("customer page renders loading/empty/error/live states and real profile act
   // Deleting the selected customer removes the stale modal on the next snapshot.
   directory = { ...directory, customers: customers.filter(customer => customer.id !== "customer-b") };
   assert.ok(!JSON.stringify(render()).includes("Customer Profile"));
+
+  // Verifies pagination displays maximum of 10 customers per page
+  find(tree, "select")[0].props.onChange({ target: { value: "ALL" } });
+  const fifteenCustomers = Array.from({ length: 15 }, (_, i) => ({
+    id: `cust-${i + 1}`,
+    name: `Customer ${i + 1}`,
+    email: `cust${i + 1}@example.com`,
+    is_active: true,
+  }));
+  directory = { ...directory, customers: fifteenCustomers, bookings: [] };
+  tree = render();
+  const getPaginationText = t => find(t, "span").find(s => s.props?.className === "pagination-text")?.children.join("");
+  assert.equal(getPaginationText(tree), "Showing 1–10 of 15 customers");
+  assert.equal(find(tree, "tr").length, 11); // 1 header row + 10 data rows
+  const pageTwoBtn = find(tree, "button").find(b => b.props.className?.includes("page-number") && b.children.includes(2));
+  assert.ok(pageTwoBtn);
+  pageTwoBtn.props.onClick();
+  tree = render();
+  assert.equal(getPaginationText(tree), "Showing 11–15 of 15 customers");
+  assert.equal(find(tree, "tr").length, 6); // 1 header row + 5 data rows
 });
