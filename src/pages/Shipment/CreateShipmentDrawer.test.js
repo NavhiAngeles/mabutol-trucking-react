@@ -208,9 +208,9 @@ test('CreateShipmentDrawer manages launcher focus restoration and Tab focus cont
   assert.ok(source.includes('aria-modal="true"'));
   assert.ok(source.includes('onKeyDown={handleKeyDown}'));
 
-  const match = source.match(/const handleKeyDown = \(event\) => \{([\s\S]*?)\n  \};/);
+  const match = source.match(/const handleKeyDown = \(event\) => \{([\s\S]*?)\n {2}\};/);
   assert.ok(match, 'handleKeyDown found');
-  let closed = false, prevented = false, focusedElement = null;
+  let closed = false, prevented, focusedElement = null;
   const btnFirst = { offsetWidth: 10, offsetHeight: 10, focus() { focusedElement = btnFirst; } };
   const btnLast = { offsetWidth: 10, offsetHeight: 10, focus() { focusedElement = btnLast; } };
   const controls = [btnFirst, btnLast];
@@ -235,14 +235,14 @@ test('CreateShipmentDrawer manages launcher focus restoration and Tab focus cont
 
   // Tab from last wraps to first
   prevented = false;
-  global.document = { activeElement: btnLast };
+  globalThis.document = { activeElement: btnLast };
   handleKeyDown({ key: 'Tab', shiftKey: false, preventDefault() { prevented = true; } });
   assert.ok(prevented);
   assert.equal(focusedElement, btnFirst);
 
   // Shift+Tab from first wraps to last
   prevented = false;
-  global.document = { activeElement: btnFirst };
+  globalThis.document = { activeElement: btnFirst };
   handleKeyDown({ key: 'Tab', shiftKey: true, preventDefault() { prevented = true; } });
   assert.ok(prevented);
   assert.equal(focusedElement, btnLast);

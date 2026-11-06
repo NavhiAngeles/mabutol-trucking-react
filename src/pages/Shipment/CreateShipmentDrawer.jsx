@@ -506,28 +506,7 @@ export default function CreateShipmentDrawer({
     routeControllerRef.current?.abort();
     routeControllerRef.current = null;
 
-    // Remove the previous route and calculations.
-    setRouteGeoJSON(null);
-    setRouteError("");
-    setIsCalculatingRoute(false);
-
-    setForm((previous) => ({
-      ...previous,
-      distanceKm: "",
-      estimatedMinutes: "",
-    }));
-
-    // Both locations must have confirmed coordinates.
-    if (
-      !isOpen ||
-      !validCoordinate(confirmedPickup) ||
-      !validCoordinate(confirmedDestination)
-    ) {
-      return;
-    }
-
     const requestId = routeIdRef.current;
-
     const controller = new AbortController();
     routeControllerRef.current = controller;
 
@@ -632,7 +611,31 @@ export default function CreateShipmentDrawer({
       }
     };
 
-    calculateRoute();
+    Promise.resolve().then(() => {
+      if (requestId !== routeIdRef.current) return;
+
+      // Remove the previous route and calculations.
+      setRouteGeoJSON(null);
+      setRouteError("");
+      setIsCalculatingRoute(false);
+
+      setForm((previous) => ({
+        ...previous,
+        distanceKm: "",
+        estimatedMinutes: "",
+      }));
+
+      // Both locations must have confirmed coordinates.
+      if (
+        !isOpen ||
+        !validCoordinate(confirmedPickup) ||
+        !validCoordinate(confirmedDestination)
+      ) {
+        return;
+      }
+
+      calculateRoute();
+    });
 
     return () => {
       controller.abort();

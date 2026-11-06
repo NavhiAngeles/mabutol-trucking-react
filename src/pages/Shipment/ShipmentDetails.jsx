@@ -55,7 +55,15 @@ export default function ShipmentDetails({ shipment, onClose }) {
     return () => { active = false; seq.current++; };
   }, [shipment.dbId]);
 
-  useEffect(() => { dialog.current?.focus(); }, []);
+  useEffect(() => {
+    const previous = document.activeElement;
+    dialog.current?.focus();
+    return () => {
+      if (previous && typeof previous.focus === 'function' && previous.isConnected) {
+        previous.focus();
+      }
+    };
+  }, []);
 
   const reload = async ({ preserve = false } = {}) => {
     const request = ++detailSequence.current;
@@ -77,10 +85,21 @@ export default function ShipmentDetails({ shipment, onClose }) {
   const onKeyDown = event => {
     if (event.key === 'Escape') { event.preventDefault(); onClose(); }
     if (event.key !== 'Tab') return;
-    const controls = Array.from(dialog.current.querySelectorAll('button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled)'));
-    const first = controls[0], last = controls.at(-1);
-    if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
-    else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) { event.preventDefault(); first?.focus(); }
+    if (!dialog.current) return;
+    const controls = Array.from(dialog.current.querySelectorAll('button:not(:disabled), textarea:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])'));
+    if (controls.length === 0) {
+      event.preventDefault();
+      dialog.current.focus();
+      return;
+    }
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current || !dialog.current.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current || !dialog.current.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
   };
 
   return <div className="booking-review-backdrop">

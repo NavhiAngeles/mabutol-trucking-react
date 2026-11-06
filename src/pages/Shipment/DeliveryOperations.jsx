@@ -60,7 +60,17 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
       if (request === loadSequence.current) setRefreshing(false);
     }
   },[shipmentId,completeRefreshBarrier]);
-  useEffect(() => { refresh(); return () => { loadSequence.current++; }; },[refresh,revision]);
+  useEffect(() => {
+    let active = true;
+    const seq = loadSequence;
+    Promise.resolve().then(() => {
+      if (active) void refresh();
+    });
+    return () => {
+      active = false;
+      seq.current++;
+    };
+  }, [refresh, revision]);
   // Signed links expire after five minutes; never retain an apparently working stale viewer.
   useEffect(() => { if(!proof)return; const timer=setTimeout(()=>setProof(null),290000); return ()=>clearTimeout(timer); },[proof]);
   const run = async operation => {

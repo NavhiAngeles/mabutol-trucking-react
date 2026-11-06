@@ -174,7 +174,7 @@ test('BookingReview contains keyboard Tab focus and restores launcher focus on c
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     document: doc,
     useState: initial => [initial, () => {}],
-    useRef: initial => ({ current: dialogElem }),
+    useRef: () => ({ current: dialogElem }),
     useEffect: effect => { effectCleanup = effect(); },
     fetchBookingRequest: async () => request, reviewBookingRequest: async () => ({ id: 's' }), OfficeQuoteForm: 'OfficeQuoteForm',
     VehicleSilhouette: () => null,
@@ -191,7 +191,6 @@ test('BookingReview contains keyboard Tab focus and restores launcher focus on c
 
   // Tab from last control wraps to first
   doc.activeElement = btnApprove;
-  prevented = false;
   dialogNode.props.onKeyDown(ev('Tab', false));
   assert.ok(prevented);
   assert.equal(focusedElement, btnClose);
