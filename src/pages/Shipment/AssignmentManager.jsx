@@ -15,15 +15,36 @@ export default function AssignmentManager({ shipmentId, onChanged }) {
       .catch(err => { if (active) setError(err.message || 'Could not load assignment options.'); });
     return () => { active = false; };
   }, [shipmentId, revision]);
-  const drivers = options?.drivers.filter(row => row.eligible && (!truckId || !options.trucks.find(truck => truck.id === truckId)?.assigned_driver_id ||
-    options.trucks.find(truck => truck.id === truckId)?.assigned_driver_id === row.id)) || [];
-  const trucks = options?.trucks.filter(row => row.eligible && (!driverId || !row.assigned_driver_id || row.assigned_driver_id === driverId)) || [];
+  const currentDriverId = options?.current?.driver_id;
+  const currentTruckId = options?.current?.truck_id;
+  const shipmentWeight = Number(options?.shipment?.weight_kg || 0);
+  const requestedVehicleTypeId = options?.shipment?.requested_vehicle_type_id;
+
+  const drivers = useMemo(() => options?.drivers.filter(row =>
+    row.status === 'available' || (row.status === undefined ? Boolean(row.eligible) : row.eligible || row.id === currentDriverId)
+  ) || [], [options?.drivers, currentDriverId]);
+
+  const trucks = useMemo(() => options?.trucks.filter(row => {
+    const isAvailable = row.status === 'available' || (row.status === undefined ? Boolean(row.eligible) : row.eligible || row.id === currentTruckId);
+    if (!isAvailable) return false;
+    if (shipmentWeight > 0) {
+      const cap = Number(row.capacity_kg);
+      if (!(cap > 0) || cap < shipmentWeight) return false;
+    }
+    if (row.reason === 'Insufficient recorded capacity') return false;
+    if (requestedVehicleTypeId && row.vehicle_type_id && row.vehicle_type_id !== requestedVehicleTypeId) return false;
+    if (row.reason === 'Vehicle type mismatch') return false;
+    return true;
+  }) || [], [options?.trucks, currentTruckId, shipmentWeight, requestedVehicleTypeId]);
+
   const currentPair = options?.current && driverId === options.current.driver_id && truckId === options.current.truck_id;
   const canSave = driverId && truckId && reason.trim().length >= 5 && reason.trim().length <= 1000 && !currentPair && !busy;
   const excluded = useMemo(() => ({
-    drivers: options?.drivers.filter(row => !row.eligible).length || 0,
-    trucks: options?.trucks.filter(row => !row.eligible).length || 0,
-  }), [options]);
+    drivers: Math.max(0, (options?.drivers?.length || 0) - drivers.length),
+    trucks: Math.max(0, (options?.trucks?.length || 0) - trucks.length),
+  }), [options?.drivers, options?.trucks, drivers.length, trucks.length]);
+  const selectedDriver = drivers.find(d => d.id === driverId);
+  const selectedTruck = trucks.find(t => t.id === truckId);
   const submit = async event => {
     event.preventDefault(); if (!canSave) return;
     setBusy(true); setError('');
@@ -41,13 +62,32 @@ export default function AssignmentManager({ shipmentId, onChanged }) {
     {options && !options.blockedReason && <form onSubmit={submit}>
       <p>{options.current ? 'Reassignment is allowed only before pickup or route activity begins.' : 'Select the driver and truck for this booked shipment.'}</p>
       <label>Driver<select value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
-        <option value="">Choose an eligible driver</option>
-        {drivers.map(row => <option key={row.id} value={row.id}>{row.full_name}</option>)}
+        <option value="">Choose a driver</option>
+        {drivers.map(row => (
+          <option key={row.id} value={row.id}>
+            {row.full_name}{options?.current?.driver_id === row.id ? ' (Current)' : ''}{!row.eligible && row.reason ? ` (${row.reason})` : ''}
+          </option>
+        ))}
       </select></label>
-      <label>Truck<select value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
-        <option value="">Choose an eligible truck</option>
-        {trucks.map(row => <option key={row.id} value={row.id}>{row.plate_number} · {Number(row.capacity_kg).toLocaleString()} kg</option>)}
+      {selectedDriver && !selectedDriver.eligible && selectedDriver.reason && (
+        <p className="assignment-warning" role="status">
+          <strong>Driver note:</strong> {selectedDriver.reason}
+        </p>
+      )}
+      <label>Truck{shipmentWeight > 0 ? ` (min. ${shipmentWeight.toLocaleString()} kg capacity)` : ''}
+        <select value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
+        <option value="">Choose a truck</option>
+        {trucks.map(row => (
+          <option key={row.id} value={row.id}>
+            {row.plate_number}{row.capacity_kg ? ` · ${Number(row.capacity_kg).toLocaleString()} kg` : ''}{options?.current?.truck_id === row.id ? ' (Current)' : ''}{!row.eligible && row.reason ? ` (${row.reason})` : ''}
+          </option>
+        ))}
       </select></label>
+      {selectedTruck && !selectedTruck.eligible && selectedTruck.reason && (
+        <p className="assignment-warning" role="status">
+          <strong>Truck note:</strong> {selectedTruck.reason}
+        </p>
+      )}
       {(!drivers.length || !trucks.length) && <p role="status">No eligible pair is currently available. Review Fleet availability, maintenance, reservations and Compliance. Excluded: {excluded.drivers} driver(s), {excluded.trucks} truck(s).</p>}
       <label>Assignment reason<textarea value={reason} maxLength={1000} disabled={busy}
         onChange={event => setReason(event.target.value)} placeholder="Record why this pair was selected or changed." /></label>

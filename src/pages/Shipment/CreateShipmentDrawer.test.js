@@ -186,3 +186,8 @@ for (const options of [{ vehicle: false }, { baseRate: null }, { description: ""
     assert.ok(flow.state.error);
   });
 }
+
+test('Step 2 vehicle selection and Step 3 review render vehicle silhouette with category mapping', () => {
+  assert.ok(source.includes('<SafeVehicleSilhouette category={truck.name} size="md" />'));
+  assert.ok(source.includes('<SafeVehicleSilhouette category={selectedVehicle?.name} size="md" />'));
+});

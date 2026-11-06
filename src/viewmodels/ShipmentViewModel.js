@@ -51,8 +51,8 @@ export const TAB_CONFIG = {
   review: {
     label: "Review",
     title: "Shipments Needing Review",
-    description: "Completed or in-progress shipments flagged for manual review before closing out.",
-    filter: (s) => s.status === "review",
+    description: "Customer booking requests and shipments flagged for manual review.",
+    filter: (s) => s.status === "review" || s.rawStatus === "pending",
     badgeClass: "badge-warning",
   },
 };
@@ -162,7 +162,7 @@ export function useShipmentViewModel() {
     const withStatus = (status) => shipments.filter((s) => s.status === status);
 
     const delayed = withStatus("delayed");
-    const review = withStatus("review");
+    const review = shipments.filter((s) => s.status === "review" || s.rawStatus === "pending");
     const completedToday = withStatus("completed").filter((s) => isToday(s.actualAt));
     const onTimeToday = completedToday.filter((s) => s.deliveryStatus === "ON TIME");
     const lateToday = completedToday.filter((s) => s.deliveryStatus === "LATE");

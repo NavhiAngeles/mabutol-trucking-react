@@ -1407,3 +1407,20 @@
   .shipment-review .drawer-form-panel { width: 100%; min-width: 0; }
   .shipment-review .drawer-map-panel { display: none; }
 }
+
+/* Vehicle Category SVG Silhouettes */
+.vehicle-card-icon .vehicle-silhouette {
+  width: 54px;
+  height: 27px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.vehicle-card.active .vehicle-card-icon .vehicle-silhouette {
+  transform: scale(1.06);
+}
+
+.entity-icon-box .vehicle-silhouette {
+  width: 48px;
+  height: 24px;
+  color: #1E3A8A;
+}

@@ -93,6 +93,9 @@ export default function Shipment() {
       delayed: "DELAYED",
       review: "REVIEW",
       completed: "COMPLETED",
+      pending: "PENDING REVIEW",
+      booked: "BOOKED",
+      assigned: "ASSIGNED",
     })[status] ??
     String(status || "UNKNOWN").toUpperCase();
 
@@ -102,6 +105,9 @@ export default function Shipment() {
       loading: "loading-pill",
       delayed: "delayed-pill",
       review: "review-pill",
+      pending: "review-pill",
+      booked: "loading-pill",
+      assigned: "loading-pill",
     })[status] ?? "loading-pill";
 
   const renderMenu = (shipment, completed = false) => (
@@ -109,6 +115,36 @@ export default function Shipment() {
       className="action-menu-wrapper"
       ref={openMenuId === shipment.dbId ? menuRef : null}
     >
+      {shipment.rawStatus === "pending" && (
+        <button
+          type="button"
+          className="action-pill-btn review-pill-btn"
+          aria-label={`Review booking request ${shipment.id}`}
+          onClick={(event) => {
+            reviewLauncher.current = event.currentTarget;
+            setReviewShipment(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          Review
+        </button>
+      )}
+
+      {shipment.rawStatus === "booked" && !shipment.assignmentId && (
+        <button
+          type="button"
+          className="action-pill-btn assign-pill-btn"
+          disabled={Boolean(assigningId)}
+          aria-label={`Assign driver and truck to ${shipment.id}`}
+          onClick={() => {
+            handleAssign(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          {assigningId === shipment.dbId ? "Assigning…" : "Assign"}
+        </button>
+      )}
+
       <button
         type="button"
         className="action-btn"
@@ -116,7 +152,17 @@ export default function Shipment() {
         aria-expanded={openMenuId === shipment.dbId}
         onClick={() => toggleMenu(shipment.dbId)}
       >
-        <i className="las la-ellipsis-v" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="3" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="8" cy="13" r="1.5" />
+        </svg>
       </button>
 
       {openMenuId === shipment.dbId && (

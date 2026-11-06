@@ -405,19 +405,87 @@
   color: #94A3B8;
 }
 
-.action-btn {
-  background: none;
-  border: none;
-  color: #94A3B8;
-  font-size: 16px;
+.text-warning-amber {
+  color: #D97706;
+}
+
+.text-danger-accent {
+  color: #EF4444;
+}
+
+.action-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.action-pill-btn.review-pill-btn {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: 1px solid #1D4ED8;
+}
+
+.action-pill-btn.review-pill-btn:hover {
+  background: #1D4ED8;
+  border-color: #1E40AF;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
+}
+
+
+.action-pill-btn.assign-pill-btn {
+  background: #0284C7;
+  color: #FFFFFF;
+  border: 1px solid #0369A1;
+}
+
+.action-pill-btn.assign-pill-btn:hover {
+  background: #0369A1;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.25);
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  color: #64748B;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .action-btn:hover {
-  background: #F1F5F9;
-  color: #475569;
+  background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+}
+
+.action-btn[aria-expanded="true"] {
+  background: #EFF6FF;
+  border-color: #3B82F6;
+  color: #1D4ED8;
+}
+
+.action-btn svg {
+  display: block;
 }
 
 /* --- TABLE PAGINATION FOOTER --- */
@@ -482,7 +550,9 @@
 /* --- ACTIONS DROPDOWN MENU --- */
 .action-menu-wrapper {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .action-dropdown {
@@ -648,3 +718,336 @@
 .assignment-manager textarea { min-height: 72px; resize: vertical; }
 .assignment-manager button { min-height: 38px; }
 .assignment-blocked { padding: 10px; border-radius: 6px; background: #fff7ed; color: #9a3412; }
+.assignment-warning { padding: 8px 12px; border-radius: 6px; background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; font-size: 13px; margin: 0; }
+
+/* Booking review vehicle silhouette styling */
+.booking-review-vehicle-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.booking-review-vehicle-cell .vehicle-silhouette {
+  color: #1E3A8A;
+  background: #F8FAFC;
+  padding: 3px 6px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+}
+
+/* =============================================================================
+   SHIPMENT DETAILS DIALOG / DRAWER
+   ============================================================================= */
+.booking-review-dialog.shipment-details-dialog {
+  width: min(840px, 95vw);
+  max-height: 90vh;
+  padding: 24px 28px;
+  background: #FFFFFF;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.shipment-details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #E2E8F0;
+  margin-bottom: 18px;
+}
+
+.shipment-details-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.shipment-details-title-row h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.shipment-details-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.shipment-details-close-x {
+  background: #F1F5F9;
+  border: none;
+  color: #64748B;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.shipment-details-close-x:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.shipment-details-status-msg {
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+.shipment-details-error-msg {
+  padding: 10px 14px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #991B1B;
+  margin-bottom: 16px;
+}
+
+/* 2-column cards grid */
+.shipment-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 0 0 20px 0;
+}
+
+@media (max-width: 720px) {
+  .shipment-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shipment-details-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shipment-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #E2E8F0;
+  margin-bottom: 12px;
+}
+
+.shipment-card-header svg {
+  color: #2563EB;
+  flex-shrink: 0;
+}
+
+.shipment-card-header h4 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  margin: 0;
+}
+
+.shipment-card-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 12px;
+}
+
+.shipment-card-fields .shipment-field-full {
+  grid-column: 1 / -1;
+}
+
+.shipment-card-fields dt {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #64748B;
+  margin: 0 0 2px 0;
+}
+
+.shipment-card-fields dd {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.shipment-address-val {
+  color: #0F172A;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.shipment-vehicle-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shipment-vehicle-val .vehicle-silhouette {
+  background: #FFFFFF;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+  color: #1E3A8A;
+}
+
+.shipment-tag-val {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #E2E8F0;
+  color: #334155;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.shipment-money-val {
+  color: #475569;
+  font-weight: 600;
+}
+
+.shipment-final-val {
+  color: #1E3A8A;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.shipment-cancelled-val {
+  color: #DC2626;
+  font-weight: 600;
+}
+
+.shipment-details-notes {
+  white-space: pre-wrap;
+  background: #FFFFFF;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  font-weight: 500;
+}
+
+.shipment-toll-rates-list {
+  margin: 6px 0 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  color: #64748B;
+}
+
+.shipment-toll-rates-list li {
+  margin-top: 2px;
+}
+
+/* Assignments section */
+.shipment-details-assignments-section {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.shipment-details-assignments-section h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+  margin: 0 0 10px 0;
+}
+
+.shipment-assignments-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shipment-assignment-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  font-size: 13px;
+}
+
+.assignment-badge {
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.assignment-sep {
+  color: #94A3B8;
+}
+
+.shipment-no-assignments {
+  font-size: 13px;
+  color: #64748B;
+  font-style: italic;
+  margin: 0 0 12px 0;
+}
+
+/* Modal action buttons */
+.booking-review-actions button.btn-primary {
+  background: #1E3A8A;
+  color: #FFFFFF;
+  border: 1px solid #1E3A8A;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.booking-review-actions button.btn-primary:hover {
+  background: #1E40AF;
+  border-color: #1E40AF;
+}
+
+.booking-review-actions button.btn-secondary {
+  background: #FFFFFF;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.booking-review-actions button.btn-secondary:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+}

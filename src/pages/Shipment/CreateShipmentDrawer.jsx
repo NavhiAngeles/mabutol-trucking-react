@@ -16,6 +16,9 @@ import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
 import { fetchBillingCustomers } from '../../services/customerService';
 import { getTollGates } from '../../services/tollGateService';
 import { automaticTollQuote, vehicleTollClass, sameTollQuote, withBookingPricing } from '../../services/tollPricing';
+import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
+
+const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
 
 const HUBS = [
   {
@@ -1516,7 +1519,7 @@ export default function CreateShipmentDrawer({
                 }}
               >
                 <div className="vehicle-card-icon">
-                  <i className="las la-truck" />
+                  <SafeVehicleSilhouette category={truck.name} size="md" />
                 </div>
 
                 <div className="vehicle-card-details">
@@ -1717,7 +1720,7 @@ export default function CreateShipmentDrawer({
 
         <div className="assigned-entity-card">
           <div className="entity-icon-box">
-            <i className="las la-truck" />
+            <SafeVehicleSilhouette category={selectedVehicle?.name} size="md" />
           </div>
 
           <div className="entity-info-box">

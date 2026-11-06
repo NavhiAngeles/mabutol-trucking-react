@@ -20,7 +20,7 @@ async function mount({ load = async () => request, save = async () => ({ id: 's'
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
     useEffect(effect) { if (!mounted) effects.push(effect); },
-    fetchBookingRequest: load, reviewBookingRequest: save, OfficeQuoteForm:'OfficeQuoteForm',
+    fetchBookingRequest: load, reviewBookingRequest: save, OfficeQuoteForm:'OfficeQuoteForm', VehicleSilhouette: (props) => ({ type: 'VehicleSilhouette', props }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
   const render = () => { index = 0; refIndex = 0; return context.render({ shipment: { dbId: 's', id: 'BOOK-1', customer: 'Customer' }, onClose: () => closes++, onReviewed: result => reviewed.push(result) }); };
@@ -92,6 +92,13 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Shipment;', context);
   const render = () => { index = 0; refIndex = 0; return context.render(); };
+  const directReviewBtn = button(render(), 'Review');
+  assert.ok(directReviewBtn, 'renders direct Review button for pending booking request');
+  directReviewBtn.props.onClick({ currentTarget: null });
+  assert.equal(find(render(), node => node.type === 'BookingReview').length, 1);
+  find(render(), node => node.type === 'BookingReview')[0].props.onClose();
+  assert.equal(find(render(), node => node.type === 'BookingReview').length, 0);
+
   const openMenu = () => find(render(), node => node.props.className === 'action-btn')[0].props.onClick();
   openMenu();
   button(render(), 'Review booking request').props.onClick({ currentTarget: { closest: () => null } });
@@ -131,4 +138,18 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   }
   driverNotes = '';
   assert.ok(JSON.stringify(render()).includes('None recorded'));
+});
+
+test('BookingReview displays vehicle silhouette with category mapping and fallback', async () => {
+  const ui = await mount({
+    load: async () => ({
+      ...request,
+      vehicle: { name: 'Closed Van' },
+    }),
+  });
+  const tree = ui.render();
+  const vehicleCell = find(tree, node => node.props?.className === 'booking-review-vehicle-cell')[0];
+  assert.ok(vehicleCell, 'renders booking-review-vehicle-cell');
+  assert.ok(JSON.stringify(vehicleCell).includes('Closed Van'));
+  assert.equal(find(vehicleCell, node => node.props?.category === 'Closed Van').length, 1);
 });

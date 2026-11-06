@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchBookingRequest, reviewBookingRequest } from '../../services/shipmentService';
 import OfficeQuoteForm from './OfficeQuoteForm';
+import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
 import './deliveryWorkflow.css';
+
+const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
 
 const money = value => value == null ? 'Unavailable' : new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
 const departure = value => value && Number.isFinite(Date.parse(value))
@@ -66,7 +69,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
           <dt>Pickup</dt><dd>{request.pickup_address}</dd>
           <dt>Destination</dt><dd>{request.dropoff_address}</dd>
           <dt>Distance</dt><dd>{request.distance_km ?? 'Unavailable'} km</dd>
-          <dt>Vehicle type</dt><dd>{request.vehicle?.name || 'Unavailable'}</dd>
+          <dt>Vehicle type</dt><dd className="booking-review-vehicle-cell"><SafeVehicleSilhouette category={request.vehicle?.name} size="sm" aria-hidden="true" /><span>{request.vehicle?.name || 'Unavailable'}</span></dd>
           <dt>Departure (Philippines)</dt><dd>{departure(request.scheduled_departure)}</dd>
           <dt>Quoted charge</dt><dd>{money(request.quoted_amount)}</dd>
           <dt>Accepted charge</dt><dd>{money(request.override_amount ?? request.quoted_amount)}</dd>

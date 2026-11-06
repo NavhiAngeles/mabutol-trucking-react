@@ -361,6 +361,12 @@ export function mapShipmentRow(row) {
     etaNoteClass = "text-danger-accent";
   }
 
+  if (rawStatus === "pending") {
+    eta = formatDayTime(updatedAt);
+    etaNote = "Pending review";
+    etaNoteClass = "text-warning-amber";
+  }
+
   return {
     ...baseShipment,
     eta,
