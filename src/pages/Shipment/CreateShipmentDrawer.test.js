@@ -191,3 +191,59 @@ test('Step 2 vehicle selection and Step 3 review render vehicle silhouette with 
   assert.ok(source.includes('<SafeVehicleSilhouette category={truck.name} size="md" />'));
   assert.ok(source.includes('<SafeVehicleSilhouette category={selectedVehicle?.name} size="md" />'));
 });
+
+test('createShipment.css defines min(420px, 100vw) responsiveness on narrow viewports', async () => {
+  const css = await readFile(new URL("./createShipment.css", import.meta.url), "utf8");
+  assert.ok(css.includes('width: min(420px, 100vw);'));
+  assert.ok(css.includes('@media (max-width: 420px)'));
+  assert.ok(css.includes('max-width: 100vw;'));
+});
+
+test('CreateShipmentDrawer manages launcher focus restoration and Tab focus containment', () => {
+  assert.ok(source.includes('const launcherRef = useRef(null);'));
+  assert.ok(source.includes('const drawerRef = useRef(null);'));
+  assert.ok(source.includes('launcherRef.current = document.activeElement;'));
+  assert.ok(source.includes('launcherRef.current.focus();'));
+  assert.ok(source.includes('role="dialog"'));
+  assert.ok(source.includes('aria-modal="true"'));
+  assert.ok(source.includes('onKeyDown={handleKeyDown}'));
+
+  const match = source.match(/const handleKeyDown = \(event\) => \{([\s\S]*?)\n  \};/);
+  assert.ok(match, 'handleKeyDown found');
+  let closed = false, prevented = false, focusedElement = null;
+  const btnFirst = { offsetWidth: 10, offsetHeight: 10, focus() { focusedElement = btnFirst; } };
+  const btnLast = { offsetWidth: 10, offsetHeight: 10, focus() { focusedElement = btnLast; } };
+  const controls = [btnFirst, btnLast];
+  const container = {
+    contains(el) { return controls.includes(el); },
+    querySelectorAll() { return controls; },
+    querySelector() { return null; },
+    focus() { focusedElement = container; }
+  };
+  const scope = {
+    showDiscardDialog: false,
+    handleCloseAll: () => { closed = true; },
+    drawerRef: { current: container }
+  };
+  const handleKeyDown = new Function(...Object.keys(scope), `return function handleKeyDown(event) { ${match[1]} };`)(...Object.values(scope));
+
+  // Escape triggers close
+  prevented = false;
+  handleKeyDown({ key: 'Escape', preventDefault() { prevented = true; } });
+  assert.ok(prevented);
+  assert.ok(closed);
+
+  // Tab from last wraps to first
+  prevented = false;
+  global.document = { activeElement: btnLast };
+  handleKeyDown({ key: 'Tab', shiftKey: false, preventDefault() { prevented = true; } });
+  assert.ok(prevented);
+  assert.equal(focusedElement, btnFirst);
+
+  // Shift+Tab from first wraps to last
+  prevented = false;
+  global.document = { activeElement: btnFirst };
+  handleKeyDown({ key: 'Tab', shiftKey: true, preventDefault() { prevented = true; } });
+  assert.ok(prevented);
+  assert.equal(focusedElement, btnLast);
+});

@@ -214,6 +214,73 @@ export default function CreateShipmentDrawer({
   const routeControllerRef = useRef(null);
   const routeIdRef = useRef(0);
 
+  const drawerRef = useRef(null);
+  const launcherRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      launcherRef.current = document.activeElement;
+      if (drawerRef.current) {
+        drawerRef.current.focus();
+      }
+    } else if (launcherRef.current) {
+      if (launcherRef.current.isConnected) {
+        launcherRef.current.focus();
+      }
+      launcherRef.current = null;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (launcherRef.current?.isConnected) {
+        launcherRef.current.focus();
+        launcherRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleKeyDown = (event) => {
+    if (showDiscardDialog) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleCloseAll();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const modal = drawerRef.current?.querySelector(".alert-modal-card");
+    const container = modal || drawerRef.current;
+    if (!container) return;
+
+    const focusable = Array.from(
+      container.querySelectorAll(
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement);
+
+    if (focusable.length === 0) {
+      event.preventDefault();
+      container.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey) {
+      if (document.activeElement === first || document.activeElement === container || !container.contains(document.activeElement)) {
+        event.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last || document.activeElement === container || !container.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  };
+
   // UPDATE FORM FIELDS
   const update = (field, value) => {
     if (field === "driverAllowance") allowanceEdited.current = true;
@@ -1980,8 +2047,14 @@ export default function CreateShipmentDrawer({
       {showDiscardDialog && <ShipmentDiscardDialog
         onKeepEditing={() => setShowDiscardDialog(false)} onDiscard={handleDiscard} />}
       <div
+        ref={drawerRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create New Shipment"
         className={`drawer-container${currentStep === 3 ? ' shipment-review' : ''}`}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
 
 

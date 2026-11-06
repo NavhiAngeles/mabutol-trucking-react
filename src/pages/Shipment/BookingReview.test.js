@@ -153,3 +153,57 @@ test('BookingReview displays vehicle silhouette with category mapping and fallba
   assert.ok(JSON.stringify(vehicleCell).includes('Closed Van'));
   assert.equal(find(vehicleCell, node => node.props?.category === 'Closed Van').length, 1);
 });
+
+test('BookingReview contains keyboard Tab focus and restores launcher focus on close', async () => {
+  let focusedElement = null;
+  const launcher = { isConnected: true, focus() { focusedElement = launcher; } };
+  const doc = { activeElement: launcher };
+  const btnClose = { focus() { focusedElement = btnClose; } };
+  const btnApprove = { focus() { focusedElement = btnApprove; } };
+  const controls = [btnClose, btnApprove];
+  const dialogElem = {
+    isConnected: true,
+    contains(el) { return controls.includes(el); },
+    focus() { focusedElement = dialogElem; },
+    querySelectorAll() { return controls; }
+  };
+
+  const { code: compCode } = await transformWithOxc(fs.readFileSync(new URL('./BookingReview.jsx', import.meta.url), 'utf8'), 'BookingReview.jsx', { jsx: { runtime: 'classic' } });
+  let effectCleanup = null;
+  const context = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    document: doc,
+    useState: initial => [initial, () => {}],
+    useRef: initial => ({ current: dialogElem }),
+    useEffect: effect => { effectCleanup = effect(); },
+    fetchBookingRequest: async () => request, reviewBookingRequest: async () => ({ id: 's' }), OfficeQuoteForm: 'OfficeQuoteForm',
+    VehicleSilhouette: () => null,
+  });
+  vm.runInContext(compCode.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
+  const vdom = context.render({ shipment: { dbId: 's', id: 'B-1' }, onClose: () => {}, onReviewed: () => {} });
+  assert.equal(focusedElement, dialogElem);
+
+  const dialogNode = find(vdom, node => node.props.role === 'dialog')[0];
+  let prevented = false;
+  const ev = (key, shiftKey = false) => ({
+    key, shiftKey, preventDefault() { prevented = true; }
+  });
+
+  // Tab from last control wraps to first
+  doc.activeElement = btnApprove;
+  prevented = false;
+  dialogNode.props.onKeyDown(ev('Tab', false));
+  assert.ok(prevented);
+  assert.equal(focusedElement, btnClose);
+
+  // Shift+Tab from first control wraps to last
+  doc.activeElement = btnClose;
+  prevented = false;
+  dialogNode.props.onKeyDown(ev('Tab', true));
+  assert.ok(prevented);
+  assert.equal(focusedElement, btnApprove);
+
+  // Cleanup restores launcher focus
+  effectCleanup?.();
+  assert.equal(focusedElement, launcher);
+});
