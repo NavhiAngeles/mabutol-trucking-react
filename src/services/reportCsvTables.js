@@ -56,3 +56,30 @@ export function reportTables(title, range, report) {
   } else return null;
   return rows;
 }
+
+export function reportStructuredSections(title, range, report) {
+  const rawRows = reportTables(title, range, report);
+  if (!rawRows) return null;
+  let scope = '';
+  const sections = [];
+  for (let i = 0; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    if (!row || !row.length) continue;
+    if (row[0] === 'Scope') {
+      scope = row[1] || '';
+      continue;
+    }
+    if (row.length === 1 && rawRows[i + 1] && rawRows[i + 1].length > 1) {
+      const sectionTitle = row[0];
+      const headers = rawRows[i + 1].map(h => String(h ?? ''));
+      const records = [];
+      i += 1;
+      while (i + 1 < rawRows.length && rawRows[i + 1].length > 0 && !(rawRows[i + 1].length === 1 && rawRows[i + 2] && rawRows[i + 2].length > 1)) {
+        i++;
+        records.push(rawRows[i].map(val => val instanceof CsvNumber ? val.text : String(val ?? '')));
+      }
+      sections.push({ title: sectionTitle, headers, records });
+    }
+  }
+  return { scope, sections };
+}

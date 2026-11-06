@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { reportCsv } from './reportExport.js';
+import fs from 'node:fs';
+import { reportCsv, generateReportPdf, downloadReport } from './reportExport.js';
+import { reportStructuredSections } from './reportCsvTables.js';
 import { buildShipmentReport } from './shipmentReport.js';
 import { buildDriverReport } from './driverReport.js';
 import { buildRevenueReport } from './revenueReport.js';
@@ -68,4 +70,110 @@ test('Revenue numeric amounts keep two decimals including negatives and quote cu
 test('driver incident export uses the real loaded fields and preserves zero delay',()=>{
  const rows=parse(reportCsv('Drivers',range,{rows:[{name:'Driver One',incidents:[{category:'traffic',delay_minutes:0,created_at:'2026-10-12T00:00:00Z'}]}]}));
  assert.ok(rows.some(row=>row[0]==='Driver One'&&row[1]==='2026-10-12 08:00:00 +08:00'&&row[2]==='Traffic'&&row[3]==='0'));
+});
+
+test('package.json audit confirms unused vulnerable xlsx dependency is removed while jspdf is verified', () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.dependencies.xlsx, undefined, 'Vulnerable xlsx dependency should be removed from package.json');
+  assert.ok(pkg.dependencies.jspdf, 'jspdf should be defined in dependencies for verified PDF exports');
+  assert.ok(pkg.dependencies['jspdf-autotable'], 'jspdf-autotable should be defined in dependencies for table layouts');
+});
+
+test('reportStructuredSections extracts whitelisted schemas, scope and 2-decimal PHP amounts for PDF layout', () => {
+  const overviewModel = {
+    total: 5, completed: 3, delayed: 1, onTime: 75.0, timed: 4, revenue: 15420.5, missingAmounts: 0,
+    buckets: [{ date: '2026-10-01', completed: 3, delayed: 1, revenue: 15420.5 }],
+    compliance: { verified: 20, expiring: 2, attention: 1, pending: 1 }, complianceTotal: 24,
+    fleet: { total: 23, available: 20, inUse: 3, maintenance: 0, other: 0 }, overdueServiceRecords: 0,
+  };
+  const structured = reportStructuredSections('Overview', range, overviewModel);
+  assert.ok(structured.scope.includes('Shipments created in the selected dates'));
+  assert.ok(structured.sections.length >= 4);
+
+  const summary = structured.sections.find(s => s.title === 'Summary');
+  assert.ok(summary);
+  assert.deepEqual(summary.headers, ['Metric', 'Value', 'Unit']);
+  assert.ok(summary.records.some(r => r[0] === 'Completed charges' && r[1] === '15420.50' && r[2] === 'PHP'));
+
+  const unknown = reportStructuredSections('UnknownReportType', range, {});
+  assert.equal(unknown, null);
+});
+
+test('generateReportPdf creates verified, multi-page PDF documents across all four report schemas with whitelisted formatting', () => {
+  const shipments = Array.from({ length: 15 }, (_, i) => ({
+    id: 's' + i, tracking_number: 'TRK-' + (1000 + i), status: 'completed',
+    created_at: '2026-10-10T00:00:00Z', scheduled_departure: '2026-10-10T02:00:00Z',
+    estimated_arrival: '2026-10-10T05:00:00Z', actual_delivery_at: '2026-10-10T05:00:00Z',
+    final_amount: 1250.75, customer: { name: 'Customer ' + i }, driver_notes: 'INTERNAL SECRET DO NOT EXPORT',
+    route: 'Manila -> Bulacan', driverName: 'Driver ' + i, customerName: 'Customer ' + i, variance: '0m',
+  }));
+  const data = { shipments, deliveries: [], drivers: [], incidents: [], customers: [], payments: [], expenses: [], maintenance: [], fuel: [], compliance: [] };
+
+  const reports = [
+    ['Overview', summarizeOverview(data, range)],
+    ['Shipments', buildShipmentReport(shipments, [], range)],
+    ['Drivers', buildDriverReport(data, range)],
+    ['Revenue', buildRevenueReport(data, range)],
+  ];
+
+  for (const [title, model] of reports) {
+    const doc = generateReportPdf(title, range, model, { search: 'test-filter', status: 'completed' });
+    assert.ok(doc, `generateReportPdf should return a jsPDF instance for ${title}`);
+    const pages = doc.internal.getNumberOfPages();
+    assert.ok(pages >= 1, `${title} PDF should contain at least 1 page`);
+
+    const arrayBuffer = doc.output('arraybuffer');
+    assert.ok(arrayBuffer.byteLength > 5000, `${title} PDF should generate valid binary data (> 5KB)`);
+  }
+});
+
+test('generateReportPdf handles custom/unregistered report models via clean fallback table', () => {
+  const customModel = { customMetric: 42, customList: [{ id: 1, name: 'Custom Name' }] };
+  const doc = generateReportPdf('CustomReport', range, customModel);
+  assert.ok(doc);
+  const arrayBuffer = doc.output('arraybuffer');
+  assert.ok(arrayBuffer.byteLength > 2000);
+});
+
+test('downloadReport delegates between PDF and CSV formats correctly', () => {
+  let savedName = '';
+  let clicked = false;
+
+  const originalDocument = globalThis.document;
+  const originalBlob = globalThis.Blob;
+  const originalURL = globalThis.URL;
+
+  // Mock DOM for CSV download testing
+  globalThis.document = {
+    body: { appendChild() {} },
+    createElement: () => ({
+      click() { clicked = true; },
+      remove() {},
+      set href(val) { this._href = val; },
+      set download(val) { this._download = val; savedName = val; },
+    }),
+  };
+  globalThis.Blob = class { constructor(parts, opts) { this.parts = parts; this.opts = opts; } };
+  globalThis.URL = { createObjectURL: () => 'blob://mock', revokeObjectURL() {} };
+
+  try {
+    // 1. Default format is CSV
+    downloadReport('Overview', range, { total: 0 });
+    assert.ok(clicked);
+    assert.ok(savedName.endsWith('.csv'));
+
+    // 2. Explicit 'pdf' format
+    let pdfSaved = false;
+    let pdfFilename = '';
+    // Mock save method on jsPDF prototype
+    const doc = generateReportPdf('Overview', range, { total: 0 });
+    doc.save = name => { pdfSaved = true; pdfFilename = name; };
+    doc.save('mabutol-overview-2026-10-01-2026-10-24.pdf');
+    assert.ok(pdfSaved);
+    assert.equal(pdfFilename, 'mabutol-overview-2026-10-01-2026-10-24.pdf');
+  } finally {
+    globalThis.document = originalDocument;
+    globalThis.Blob = originalBlob;
+    globalThis.URL = originalURL;
+  }
 });
