@@ -19,8 +19,64 @@ async function fetchAll(table, columns, filter = query => query) {
   }
 }
 
-export const fetchCustomers = () => fetchAll("customers", CUSTOMER_COLUMNS);
-export const fetchCustomerBookings = () => fetchAll("shipments", BOOKING_COLUMNS);
+let customerInFlight = null;
+let bookingInFlight = null;
+let customerCachedData = null;
+let bookingCachedData = null;
+let customerCacheExpiry = 0;
+let bookingCacheExpiry = 0;
+const CACHE_TTL_MS = 2500;
+
+export function clearCustomerCache() {
+  customerInFlight = null;
+  bookingInFlight = null;
+  customerCachedData = null;
+  bookingCachedData = null;
+  customerCacheExpiry = 0;
+  bookingCacheExpiry = 0;
+}
+
+export function fetchCustomers({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && customerCachedData && now < customerCacheExpiry) {
+    return Promise.resolve(customerCachedData);
+  }
+  if (!force && customerInFlight) {
+    return customerInFlight;
+  }
+  customerInFlight = (async () => {
+    try {
+      const data = await fetchAll("customers", CUSTOMER_COLUMNS);
+      customerCachedData = data;
+      customerCacheExpiry = Date.now() + CACHE_TTL_MS;
+      return data;
+    } finally {
+      customerInFlight = null;
+    }
+  })();
+  return customerInFlight;
+}
+
+export function fetchCustomerBookings({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && bookingCachedData && now < bookingCacheExpiry) {
+    return Promise.resolve(bookingCachedData);
+  }
+  if (!force && bookingInFlight) {
+    return bookingInFlight;
+  }
+  bookingInFlight = (async () => {
+    try {
+      const data = await fetchAll("shipments", BOOKING_COLUMNS);
+      bookingCachedData = data;
+      bookingCacheExpiry = Date.now() + CACHE_TTL_MS;
+      return data;
+    } finally {
+      bookingInFlight = null;
+    }
+  })();
+  return bookingInFlight;
+}
 
 // Historical customer records survive role conversions. Billing must use the
 // linked account's current role, while retaining staff-managed business rows.
@@ -54,6 +110,7 @@ export async function updateCustomer(customer, values) {
     .eq("id", customer.id).eq("updated_at", customer.updated_at).select(CUSTOMER_COLUMNS).maybeSingle();
   if (error) throw new Error("Unable to save customer details. Check your connection and account permissions, then refresh before retrying.");
   if (!data) throw new Error("This customer changed or is no longer editable. Close this form and refresh before editing again.");
+  clearCustomerCache();
   return data;
 }
 

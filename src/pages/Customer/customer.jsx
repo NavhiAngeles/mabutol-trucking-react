@@ -6,6 +6,8 @@ import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
 
+const PAGE_SIZE = 10;
+
 export default function Customer() {
   const { user, role } = useAuth();
   const canEdit = ["admin", "staff"].includes(role);
@@ -17,30 +19,48 @@ export default function Customer() {
   const menuRef = useRef(null);
   const { customers: records, bookings, loading, error, refresh } = useCustomerDirectory({ includeBookings: true });
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sort, setSort] = useState("newest");
   const [todayOnly, setTodayOnly] = useState(false);
   const [requestedPage, setPage] = useState(1);
   const rows = useMemo(() => buildCustomerRows(records, bookings), [records, bookings]);
+  const rowMap = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
   const stats = useMemo(() => customerStatistics(rows), [rows]);
-  const filtered = useMemo(() => filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly }), [rows, query, statusFilter, sort, todayOnly]);
-  const pageCount = Math.max(1, Math.ceil(filtered.length / 6));
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const activeSearchQuery = query === "" ? "" : debouncedQuery;
+  const filtered = useMemo(() => filterCustomerRows(rows, { query: activeSearchQuery, status: statusFilter, sort, todayOnly }), [rows, activeSearchQuery, statusFilter, sort, todayOnly]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount);
-  const customers = filtered.slice((page - 1) * 6, page * 6);
-  const profileModal = rows.find(row => row.id === profileCustomerId) || null;
-  const bookingHistoryModal = rows.find(row => row.id === historyCustomerId) || null;
+  const customers = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
+  const profileModal = profileCustomerId ? rowMap.get(profileCustomerId) || null : null;
+  const bookingHistoryModal = historyCustomerId ? rowMap.get(historyCustomerId) || null : null;
   const setProfileModal = customer => setProfileCustomerId(customer?.id || null);
   const setBookingHistoryModal = customer => setHistoryCustomerId(customer?.id || null);
-  const changeSearch = value => { setQuery(value); setPage(1); };
+  const changeSearch = value => {
+    setQuery(value);
+    setPage(1);
+    if (!value) setDebouncedQuery("");
+  };
   const countLabel = value => loading || error ? "—" : value;
   const exportCustomers = () => {
+    const exportMatches = query && query !== activeSearchQuery
+      ? filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly })
+      : filtered;
     const cell = value => {
       const text = String(value ?? "");
       const safe = /^[=+\-@\t\r]/.test(text.trimStart()) ? `'${text}` : text;
       return `"${safe.replaceAll('"', '""')}"`;
     };
     const lines = [ ["Customer ID", "Name", "Email", "Phone", "Bookings", "Last booking", "Member since", "Status"],
-      ...filtered.map(row => [row.customer_code || row.id, row.name, row.email, row.phone, row.bookingCount, row.lastBooking, row.memberSince, row.status]),
+      ...exportMatches.map(row => [row.customer_code || row.id, row.name, row.email, row.phone, row.bookingCount, row.lastBooking, row.memberSince, row.status]),
     ];
     const url = URL.createObjectURL(new Blob(["\uFEFF" + lines.map(line => line.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
@@ -48,7 +68,6 @@ export default function Customer() {
     document.body.appendChild(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   };
-
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -197,7 +216,7 @@ export default function Customer() {
           </table>
 
           <div className="table-pagination">
-            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * 6 + 1}–${Math.min(page * 6, filtered.length)}`} of {loading || error ? "—" : filtered.length} customers</span>
+            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {loading || error ? "—" : filtered.length} customers</span>
             <div className="pagination-controls">
               <button className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page">‹</button>
               {[...new Set([1, page - 1, page, page + 1, pageCount])].filter(number => number >= 1 && number <= pageCount).sort((a, b) => a - b).map(number => (

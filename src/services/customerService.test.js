@@ -14,7 +14,7 @@ function service(result) {
   }, channel: () => channel, removeChannel: value => removed.push(value) } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
-  vm.runInContext(source + "\nthis.api={fetchCustomers,fetchBillingCustomers,fetchCustomerBookings,subscribeCustomerBookings};", context);
+  vm.runInContext(source + "\nthis.api={fetchCustomers,fetchBillingCustomers,fetchCustomerBookings,subscribeCustomerBookings,clearCustomerCache};", context);
   return { ...context.api, requests, removed, channel };
 }
 
@@ -115,4 +115,61 @@ test("customer edit uses raw nullable fields rather than display placeholders or
   assert.equal(values.email, "");
   assert.equal(values.address, "Street");
   assert.equal(Object.hasOwn(values, "is_active"), false);
+});
+
+test("deduplicates concurrent in-flight fetchCustomers requests", async () => {
+  let callCount = 0;
+  const api = service(() => {
+    callCount++;
+    return { data: [{ id: "c1" }], error: null };
+  });
+  const [res1, res2] = await Promise.all([
+    api.fetchCustomers(),
+    api.fetchCustomers(),
+  ]);
+  assert.equal(res1.length, 1);
+  assert.equal(res2.length, 1);
+  assert.equal(callCount, 1);
+  assert.equal(api.requests.length, 1);
+});
+
+test("clears customer cache on explicit clearCustomerCache", async () => {
+  let callCount = 0;
+  const api = service(() => {
+    callCount++;
+    return { data: [{ id: `c-${callCount}` }], error: null };
+  });
+  const first = await api.fetchCustomers();
+  assert.equal(first[0].id, "c-1");
+  const cached = await api.fetchCustomers();
+  assert.equal(cached[0].id, "c-1");
+  assert.equal(callCount, 1);
+
+  api.clearCustomerCache();
+  const refreshed = await api.fetchCustomers();
+  assert.equal(refreshed[0].id, "c-2");
+  assert.equal(callCount, 2);
+});
+
+test("updateCustomer invalidates cache so subsequent fetch queries database", async () => {
+  let fetchCount = 0;
+  const query = {
+    select() { return query; },
+    eq() { return query; },
+    order() { return query; },
+    range: async () => { fetchCount++; return { data: [{ id: "customer-a" }], error: null }; },
+    update() { return query; },
+    maybeSingle: async () => ({ data: { id: "customer-a", updated_at: "new-time" }, error: null }),
+  };
+  const scope = { supabase: { from: () => query } };
+  vm.createContext(scope);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={fetchCustomers,updateCustomer};", scope);
+  await scope.api.fetchCustomers();
+  assert.equal(fetchCount, 1);
+  await scope.api.fetchCustomers();
+  assert.equal(fetchCount, 1);
+  await scope.api.updateCustomer({ id: "customer-a", updated_at: "time" }, { name: "New Name" });
+  await scope.api.fetchCustomers();
+  assert.equal(fetchCount, 2);
 });
