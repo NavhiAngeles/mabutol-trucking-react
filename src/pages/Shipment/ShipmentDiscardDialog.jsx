@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function ShipmentDiscardDialog({ onKeepEditing, onDiscard }) {
+export default function ShipmentDiscardDialog({ onKeepEditing, onDiscard, title='Discard this shipment?', description='Your shipment hasn’t been saved. Discarding it will remove the details you’ve entered.', discardLabel='Discard shipment' }) {
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -28,11 +28,11 @@ export default function ShipmentDiscardDialog({ onKeepEditing, onDiscard }) {
         <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
       </svg>
     </div>
-    <h2 id="shipment-discard-title">Discard this shipment?</h2>
-    <p id="shipment-discard-description">Your shipment hasn’t been saved. Discarding it will remove the details you’ve entered.</p>
+    <h2 id="shipment-discard-title">{title}</h2>
+    <p id="shipment-discard-description">{description}</p>
     <div className="shipment-discard-actions">
       <button type="button" className="shipment-discard-keep" autoFocus onClick={onKeepEditing}>Keep editing</button>
-      <button type="button" className="shipment-discard-confirm" onClick={onDiscard}>Discard shipment</button>
+      <button type="button" className="shipment-discard-confirm" onClick={onDiscard}>{discardLabel}</button>
     </div>
   </dialog>;
 }

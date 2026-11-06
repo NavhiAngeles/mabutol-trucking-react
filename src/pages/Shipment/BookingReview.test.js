@@ -27,7 +27,7 @@ async function mount({ load = async () => request, save = async () => ({ id: 's'
   render(); effects.forEach(effect => effect()); mounted = true; await tick();
   return { render, reviewed, closes: () => closes, states };
 }
-const button = (tree, label) => find(tree, node => node.type === 'button' && node.children.flat(Infinity).includes(label))[0];
+const button = (tree, label) => find(tree, node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === label))[0];
 
 test('review shows quote, explicit zero override and details; rejection needs reason', async () => {
   const calls = [];
@@ -83,7 +83,7 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect() {},
-    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', CreateShipmentDrawer: 'CreateShipmentDrawer',
+    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', ShipmentEditDialog: 'ShipmentEditDialog', CreateShipmentDrawer: 'CreateShipmentDrawer',
     useShipmentViewModel: () => ({
       visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500, driverNotes }],
       page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab, activeConfig: { label: 'All', title: 'Pending Booking Requests' },
@@ -104,11 +104,14 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   find(render(), node => node.type === 'BookingReview')[0].props.onReviewed({ status: 'cancelled' });
   assert.equal(refreshes, 2); assert.ok(JSON.stringify(render()).includes('rejected and cancelled'));
   rawStatus = 'booked'; openMenu(); assert.equal(button(render(), 'Review booking request'), undefined);
-  for (const label of ['Edit (unavailable)', 'Cancel (unavailable)']) {
-    const unavailable = find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === label))[0];
-    assert.equal(unavailable.props.disabled, true); assert.equal(unavailable.props.onClick, undefined);
-    assert.equal(find(render(), node => node.props.id === unavailable.props['aria-describedby']).length, 1);
-  }
+  button(render(), 'Edit shipment').props.onClick();
+  const editor = find(render(), node => node.type === 'ShipmentEditDialog')[0];
+  assert.equal(editor.props.shipment.dbId, 's'); editor.props.onClose();
+  assert.equal(find(render(), node => node.type === 'ShipmentEditDialog').length, 0);
+  openMenu();
+  const unavailable = button(render(), 'Cancel (unavailable)');
+  assert.equal(unavailable.props.disabled, true); assert.equal(unavailable.props.onClick, undefined);
+  assert.equal(find(render(), node => node.props.id === unavailable.props['aria-describedby']).length, 1);
   find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === 'View Details'))[0]
     .props.onClick({ currentTarget: { closest: () => null } });
   const shipmentDetails = find(render(), node => node.type === 'ShipmentDetails')[0];

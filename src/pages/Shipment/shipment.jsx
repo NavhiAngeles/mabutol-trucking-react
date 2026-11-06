@@ -7,6 +7,7 @@ import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import BookingReview from "./BookingReview";
 import ShipmentDetails from "./ShipmentDetails";
+import ShipmentEditDialog from "./ShipmentEditDialog";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
@@ -15,6 +16,7 @@ export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [reviewShipment, setReviewShipment] = useState(null);
   const [detailsShipment, setDetailsShipment] = useState(null);
+  const [editShipment, setEditShipment] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [assignmentMessage, setAssignmentMessage] = useState("");
@@ -142,14 +144,9 @@ export default function Shipment() {
 
           {!completed && (
             <>
-              <button
-                type="button"
-                disabled
-                aria-describedby={`shipment-edit-unavailable-${shipment.dbId}`}
-              >
-                <i className="las la-pen" /> Edit (unavailable)
+              <button type="button" onClick={() => { setEditShipment(shipment); setOpenMenuId(null); }}>
+                <i className="las la-pen" /> Edit shipment
               </button>
-              <p className="shipment-action-explanation" id={`shipment-edit-unavailable-${shipment.dbId}`}>Editing existing shipments is not supported yet.</p>
 
               {shipment.status !== "review" && (
                 <button
@@ -686,6 +683,9 @@ export default function Shipment() {
       {/* CREATE SHIPMENT DRAWER */}
       {detailsShipment && <ShipmentDetails key={detailsShipment.dbId} shipment={detailsShipment}
         onClose={() => { setDetailsShipment(null); reviewLauncher.current?.focus(); }} />}
+      {editShipment && <ShipmentEditDialog key={editShipment.dbId} shipment={editShipment}
+        onClose={() => { setEditShipment(null); reviewLauncher.current?.focus(); }}
+        onSaved={async () => { await refresh(); }} />}
       {reviewShipment && <BookingReview key={reviewShipment.dbId} shipment={reviewShipment}
         onClose={() => { setReviewShipment(null); reviewLauncher.current?.focus(); }}
         onReviewed={result => {
