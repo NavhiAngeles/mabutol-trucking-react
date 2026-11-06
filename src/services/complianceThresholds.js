@@ -21,13 +21,40 @@ export function validateThresholds(value) {
   }));
 }
 
-// Calendar dates are evaluated in Philippine time; no browser-local midnight drift.
+export const MANILA_TIMEZONE = 'Asia/Manila';
+
+// Normalizes calendar date strings, ISO timestamps or Date objects to 'YYYY-MM-DD' in Asia/Manila.
+export function normalizeManilaDate(value) {
+  if (!value && value !== 0) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const time = Date.parse(trimmed + 'T00:00:00Z');
+      if (!Number.isFinite(time) || new Date(time).toISOString().slice(0, 10) !== trimmed) return null;
+      return trimmed;
+    }
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: MANILA_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+// Calendar dates are evaluated on Asia/Manila (UTC+08:00) calendar day boundaries.
+// A document expiring on the current Philippine calendar date has daysUntil = 0 throughout that day
+// (morning through evening), remaining valid/critical until midnight passes into the next day (-1).
 export function daysUntil(date, now = Date.now()) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return null;
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-  const time = Date.parse(date + 'T00:00:00Z');
-  if (!Number.isFinite(time) || new Date(time).toISOString().slice(0, 10) !== date) return null;
-  return Math.round((time - Date.parse(today + 'T00:00:00Z')) / 86400000);
+  const targetDate = normalizeManilaDate(date);
+  if (!targetDate) return null;
+  const today = normalizeManilaDate(now);
+  if (!today) return null;
+  const targetTime = Date.parse(targetDate + 'T00:00:00Z');
+  const todayTime = Date.parse(today + 'T00:00:00Z');
+  return Math.round((targetTime - todayTime) / 86400000);
 }
 
 export function thresholdState(date, type, configuration = null, now = Date.now()) {
