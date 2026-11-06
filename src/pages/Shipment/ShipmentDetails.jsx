@@ -12,20 +12,38 @@ export default function ShipmentDetails({ shipment, onClose }) {
   const [details, setDetails] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [revision, setRevision] = useState(0);
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const dialog = useRef(null);
+  const detailSequence = useRef(0);
 
   useEffect(() => {
     let active = true;
-    fetchShipmentDetails(shipment.dbId).then(data => { if (active) setDetails(data); })
-      .catch(err => { if (active) setError(err.message || 'Could not load shipment details.'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [shipment.dbId, revision]);
+    const request = ++detailSequence.current;
+    fetchShipmentDetails(shipment.dbId).then(data => { if (active && request === detailSequence.current) { setDetails(data); setError(''); setRefreshVersion(value => value + 1); } })
+      .catch(err => { if (active && request === detailSequence.current) setError(err.message || 'Could not load shipment details.'); })
+      .finally(() => { if (active && request === detailSequence.current) setLoading(false); });
+    return () => { active = false; detailSequence.current++; };
+  }, [shipment.dbId]);
 
   useEffect(() => { dialog.current?.focus(); }, []);
 
-  const reload = () => { setDetails(null); setError(''); setLoading(true); setRevision(value => value + 1); };
+  const reload = async ({ preserve = false } = {}) => {
+    const request = ++detailSequence.current;
+    if (!preserve) setDetails(null);
+    setLoading(true);
+    try {
+      const result = await fetchShipmentDetails(shipment.dbId);
+      if (request !== detailSequence.current) return false;
+      setDetails(result);
+      setError('');
+      setRefreshVersion(value => value + 1);
+      return true;
+    } catch (err) {
+      if (request !== detailSequence.current) return false;
+      setError(err.message || 'Could not load shipment details.');
+      return false;
+    } finally { if (request === detailSequence.current) setLoading(false); }
+  };
   const onKeyDown = event => {
     if (event.key === 'Escape') { event.preventDefault(); onClose(); }
     if (event.key !== 'Tab') return;
@@ -39,9 +57,9 @@ export default function ShipmentDetails({ shipment, onClose }) {
     <div className="booking-review-dialog" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="shipment-details-title" aria-busy={loading} onKeyDown={onKeyDown}>
       <h2 id="shipment-details-title">Shipment {details?.tracking_number || shipment.id}</h2>
       <p>Dates and times are shown in Philippine time.</p>
-      {loading && <p role="status">Loading current shipment details…</p>}
-      {error && <p role="alert">{error}</p>}
-      {details && !loading && <>
+      {loading && <p role="status">{details ? 'Refreshing shipment details… Showing the last successfully loaded details.' : 'Loading current shipment details…'}</p>}
+      {error && <p role="alert">{error}{details && ' Showing the last successfully loaded shipment details.'}</p>}
+      {details && <>
         <dl>
           <dt>Status</dt><dd>{status(details.status)}</dd>
           <dt>Customer</dt><dd>{details.customer?.name || 'Unavailable'}</dd>
@@ -79,11 +97,11 @@ export default function ShipmentDetails({ shipment, onClose }) {
           {delivery.driver?.full_name || 'Driver unavailable'} · {delivery.truck?.plate_number || 'Vehicle unavailable'} · {status(delivery.status)}
         </li>)}</ul> : <p>No delivery assignment recorded.</p>}
         <AssignmentManager shipmentId={details.id} onChanged={reload} />
-        <DeliveryOperations shipmentId={details.id} shipmentStatus={details.status} onChanged={reload} />
+        <DeliveryOperations shipmentId={details.id} shipmentStatus={details.status} shipmentRefreshVersion={refreshVersion} onChanged={reload} />
       </>}
       <div className="booking-review-actions">
         <button type="button" onClick={onClose}>Close</button>
-        <button type="button" disabled={loading} onClick={reload}>{error ? 'Retry' : 'Refresh details'}</button>
+        <button type="button" disabled={loading} onClick={() => reload({ preserve: Boolean(error && details) })}>{error ? (details ? 'Retry details refresh' : 'Retry') : 'Refresh details'}</button>
       </div>
     </div>
   </div>;
