@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
 import { useAuth } from "../../context/AuthContext";
@@ -13,30 +13,35 @@ export default function Sidebar() {
   const [logoutError, setLogoutError] = useState("");
   const location = useLocation();
 
-  const [reportsOpen, setReportsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
-
   const pathname = location.pathname.toLowerCase();
   const isActive = (path) => pathname === path.toLowerCase();
   const isParentActive = (prefix) => pathname.startsWith(prefix.toLowerCase());
 
-  // Synchronize menu open states and clean up highlights dynamically
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [reportsOpen, setReportsOpen] = useState(() => isParentActive("/report"));
+  const [settingsOpen, setSettingsOpen] = useState(() => isParentActive("/settings"));
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  let currentReportsOpen = reportsOpen;
+  let currentSettingsOpen = settingsOpen;
+
+  // Synchronize menu open states when the active route changes
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     if (isParentActive("/report")) {
-      setReportsOpen(true);
-      setSettingsOpen(false);
+      currentReportsOpen = true;
+      currentSettingsOpen = false;
     } else if (isParentActive("/settings")) {
-      setSettingsOpen(true);
-      setReportsOpen(false);
+      currentSettingsOpen = true;
+      currentReportsOpen = false;
     } else {
-      // FIX: When any other root menu is clicked, clear dropdown states and highlights
-      setReportsOpen(false);
-      setSettingsOpen(false);
+      currentReportsOpen = false;
+      currentSettingsOpen = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+    setReportsOpen(currentReportsOpen);
+    setSettingsOpen(currentSettingsOpen);
+  }
 
   const handleConfirmLogout = async () => {
     if (logoutInFlight.current) return;
@@ -136,11 +141,11 @@ export default function Sidebar() {
           {/* Reports Dropdown */}
           <div className="nav-group">
             <button type="button"
-              aria-expanded={reportsOpen}
+              aria-expanded={currentReportsOpen}
               aria-controls="sidebar-reports"
-              className={`nav-item ${isParentActive("/report") || reportsOpen ? "active" : ""}`}
+              className={`nav-item ${isParentActive("/report") || currentReportsOpen ? "active" : ""}`}
               onClick={() => {
-                setReportsOpen((prev) => !prev);
+                setReportsOpen(!currentReportsOpen);
                 setSettingsOpen(false);
               }}
             >
@@ -150,7 +155,7 @@ export default function Sidebar() {
               </svg>
               Reports
               <svg
-                className={`nav-chevron ${reportsOpen ? "open" : ""}`}
+                className={`nav-chevron ${currentReportsOpen ? "open" : ""}`}
                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
@@ -159,7 +164,7 @@ export default function Sidebar() {
               </svg>
             </button>
             
-            {reportsOpen && (
+            {currentReportsOpen && (
               <div id="sidebar-reports" className="submenu">
                 <button type="button" className={`submenu-item ${isActive("/report/overview") ? "active" : ""}`} onClick={() => navigate("/report/overview")}>Overview</button>
                 <button type="button" className={`submenu-item ${isActive("/report/shipmentReport") ? "active" : ""}`} onClick={() => navigate("/report/shipmentReport")}>Shipments</button>
@@ -172,11 +177,11 @@ export default function Sidebar() {
           {/* Settings Dropdown */}
           <div className="nav-group">
             <button type="button"
-              aria-expanded={settingsOpen}
+              aria-expanded={currentSettingsOpen}
               aria-controls="sidebar-settings"
-              className={`nav-item ${isParentActive("/settings") || settingsOpen ? "active" : ""}`}
+              className={`nav-item ${isParentActive("/settings") || currentSettingsOpen ? "active" : ""}`}
               onClick={() => {
-                setSettingsOpen((prev) => !prev);
+                setSettingsOpen(!currentSettingsOpen);
                 setReportsOpen(false);
               }}
             >
@@ -186,7 +191,7 @@ export default function Sidebar() {
               </svg>
               Settings
               <svg
-                className={`nav-chevron ${settingsOpen ? "open" : ""}`}
+                className={`nav-chevron ${currentSettingsOpen ? "open" : ""}`}
                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
@@ -195,7 +200,7 @@ export default function Sidebar() {
               </svg>
             </button>
 
-            {settingsOpen && (
+            {currentSettingsOpen && (
               <div id="sidebar-settings" className="submenu">
                 <button type="button" className={`submenu-item ${isActive("/settings/account") ? "active" : ""}`} onClick={() => navigate("/settings/account")}>Account</button>
                 <button type="button" className={`submenu-item ${isActive("/settings/notification") ? "active" : ""}`} onClick={() => navigate("/settings/notification")}>Notifications</button>

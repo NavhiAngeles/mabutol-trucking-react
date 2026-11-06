@@ -58,6 +58,33 @@ test('sidebar actions are native buttons and disclosures expose expanded state a
   assert.equal(find(ui.render(), n => n.props.className === 'sidebar-help-unavailable').length, 0);
 });
 
+test('sidebar automatically expands matching submenu on active route and synchronizes when route changes', async () => {
+  let currentPath = '/report/overview';
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => () => {},
+    useLocation: () => ({ pathname: currentPath }),
+    useAuth: () => ({ clearAuth() {} }),
+    supabase: { auth: { signOut: async () => ({}) } },
+  });
+
+  const actions = () => find(ui.render(), n => typeof n.props.onClick === 'function');
+  const named = label => actions().find(n => n.children.includes(label));
+
+  // Initially on /report/overview: Reports should be expanded, Settings collapsed
+  assert.equal(named('Reports').props['aria-expanded'], true);
+  assert.equal(named('Settings').props['aria-expanded'], false);
+
+  // Navigate to /settings/pricing
+  currentPath = '/settings/pricing';
+  assert.equal(named('Reports').props['aria-expanded'], false);
+  assert.equal(named('Settings').props['aria-expanded'], true);
+
+  // Navigate to /dashboard (root route): both collapsed
+  currentPath = '/dashboard';
+  assert.equal(named('Reports').props['aria-expanded'], false);
+  assert.equal(named('Settings').props['aria-expanded'], false);
+});
+
 test('help button opens the Office Help & Operations Guide dialog and closing removes it', async () => {
   const HelpStub = () => null;
   const ui = await component('./sidebar.jsx', 'Sidebar', {
