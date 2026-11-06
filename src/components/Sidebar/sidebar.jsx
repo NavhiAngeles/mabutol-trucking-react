@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
+import OfficeHelpDialog from "./OfficeHelpDialog";
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function Sidebar() {
   const [reportsOpen, setReportsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const pathname = location.pathname.toLowerCase();
   const isActive = (path) => pathname === path.toLowerCase();
@@ -208,14 +210,14 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="sidebar-footer">
-          <div className="sidebar-help-unavailable">
+          <button type="button" className="nav-item sidebar-help-button" aria-haspopup="dialog" aria-expanded={isHelpOpen} onClick={() => setIsHelpOpen(true)}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            <span>Help Center <span className="sidebar-help-status">Unavailable</span></span>
-          </div>
+            Help &amp; Operations Guide
+          </button>
           
           <button type="button" className="nav-item logout-button" onClick={() => { setLogoutError(""); setIsLogoutModalOpen(true); }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -227,6 +229,8 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+
+      {isHelpOpen && <OfficeHelpDialog onClose={() => setIsHelpOpen(false)} />}
 
       {/* Logout Confirmation Modal */}
       {isLogoutModalOpen && (

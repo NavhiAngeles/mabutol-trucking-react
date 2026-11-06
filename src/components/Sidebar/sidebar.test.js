@@ -15,13 +15,14 @@ async function component(path, name, dependencies) {
     useState(initial) { const i = stateIndex++; if (!(i in states)) states[i] = typeof initial === "function" ? initial() : initial; return [states[i], value => { states[i] = typeof value === "function" ? value(states[i]) : value; }]; },
     useRef(initial) { return refs[refIndex++] ||= { current: initial }; },
     useEffect: fn => effects.push(fn),
+    useCallback: fn => fn,
     createContext: () => ({ Provider: "provider" }),
-    setTimeout, clearTimeout, setInterval: () => 0, clearInterval() {}, window: { addEventListener() {}, removeEventListener() {} },
+    setTimeout, clearTimeout, setInterval: () => 0, clearInterval() { }, window: { addEventListener() { }, removeEventListener() { } },
     ...dependencies,
   };
   vm.createContext(scope);
-  vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/export default function/g, "function").replace(/export function/g, "function").replace(/^export default .*;$/gm, "").replaceAll("import.meta.env.VITE_MAPTILER_API_KEY", '"test-key"') + `\nthis.Component=${name};`, scope);
-  return { effects, refs, render() { stateIndex = 0; refIndex = 0; return scope.Component({ children: "content" }); } };
+  vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/export default function/g, "function").replace(/export function/g, "function").replace(/export const/g, "const").replace(/^export default .*;$/gm, "").replaceAll("import.meta.env.VITE_MAPTILER_API_KEY", '"test-key"') + `\nthis.Component=${name};`, scope);
+  return { effects, refs, render(props = { children: "content" }) { stateIndex = 0; refIndex = 0; return scope.Component(props); } };
 }
 function find(node, predicate) {
   if (!node || typeof node !== "object") return [];
@@ -34,7 +35,7 @@ test('sidebar actions are native buttons and disclosures expose expanded state a
   const ui = await component('./sidebar.jsx', 'Sidebar', {
     useNavigate: () => path => routes.push(path),
     useLocation: () => ({ pathname: '/dashboard' }),
-    useAuth: () => ({ clearAuth() {} }),
+    useAuth: () => ({ clearAuth() { } }),
     supabase: { auth: { signOut: async () => ({}) } },
   });
   const actions = () => find(ui.render(), n => typeof n.props.onClick === 'function');
@@ -54,7 +55,118 @@ test('sidebar actions are native buttons and disclosures expose expanded state a
   named('Settings').props.onClick();
   assert.equal(named('Settings').props['aria-expanded'], false);
   assert.equal(find(ui.render(), n => n.props.className?.includes('submenu-item')).length, 0);
-  assert.equal(find(ui.render(), n => n.props.className === 'sidebar-help-unavailable')[0].props.tabIndex, undefined);
+  assert.equal(find(ui.render(), n => n.props.className === 'sidebar-help-unavailable').length, 0);
+});
+
+test('help button opens the Office Help & Operations Guide dialog and closing removes it', async () => {
+  const HelpStub = () => null;
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => () => { },
+    useLocation: () => ({ pathname: '/dashboard' }),
+    useAuth: () => ({ clearAuth() { } }),
+    supabase: { auth: { signOut: async () => ({}) } },
+    OfficeHelpDialog: HelpStub,
+  });
+  const help = () => find(ui.render(), n => n.props.className?.includes('sidebar-help-button'))[0];
+  const dialogs = () => find(ui.render(), n => n.type === HelpStub);
+  assert.equal(help().type, 'button');
+  assert.equal(help().props.type, 'button');
+  assert.equal(help().props['aria-haspopup'], 'dialog');
+  assert.equal(help().props['aria-expanded'], false);
+  assert.ok(help().children.flat(Infinity).some(child => typeof child === 'string' && child.includes('Help & Operations Guide')));
+  assert.equal(dialogs().length, 0);
+  help().props.onClick();
+  assert.equal(help().props['aria-expanded'], true);
+  assert.equal(dialogs().length, 1);
+  dialogs()[0].props.onClose();
+  assert.equal(dialogs().length, 0);
+  assert.equal(help().props['aria-expanded'], false);
+});
+
+async function helpDialog(trigger) {
+  const doc = { activeElement: trigger };
+  let closes = 0;
+  const ui = await component('./OfficeHelpDialog.jsx', 'OfficeHelpDialog', { document: doc });
+  const props = { onClose: () => { closes++; } };
+  const native = { opened: 0, closed: 0, showModal() { this.opened++; }, close() { this.closed++; } };
+  const tree = ui.render(props);
+  ui.refs[0].current = native;
+  return { ui, doc, tree, native, props, closes: () => closes };
+}
+const textOf = node => typeof node === 'string' ? node : !node || typeof node !== 'object' ? '' : (node.children || []).flat(Infinity).map(textOf).join('');
+
+test('help dialog opens as a native modal and restores focus to its trigger on close', async () => {
+  let focused = 0;
+  const { ui, tree, native } = await helpDialog({ isConnected: true, focus() { focused++; } });
+  assert.equal(tree.type, 'dialog');
+  assert.equal(tree.props['aria-modal'], 'true');
+  assert.equal(find(tree, n => n.props.id === tree.props['aria-labelledby']).length, 1);
+  assert.equal(textOf(find(tree, n => n.props.id === tree.props['aria-labelledby'])[0]), 'Office Help & Operations Guide');
+  const cleanup = ui.effects[0]();
+  assert.equal(native.opened, 1);
+  cleanup();
+  assert.equal(native.closed, 1);
+  assert.equal(focused, 1);
+});
+
+test('help dialog skips focus restoration when the trigger has left the page', async () => {
+  let focused = 0;
+  const { ui } = await helpDialog({ isConnected: false, focus() { focused++; } });
+  ui.effects[0]()();
+  assert.equal(focused, 0);
+});
+
+test('Escape and both close buttons close the help dialog', async () => {
+  const { tree, closes } = await helpDialog(null);
+  let prevented = 0;
+  tree.props.onCancel({ preventDefault() { prevented++; } });
+  assert.equal(prevented, 1);
+  assert.equal(closes(), 1);
+  const buttons = find(tree, n => n.type === 'button');
+  assert.ok(buttons.every(button => button.props.type === 'button'));
+  const icon = buttons.find(button => button.props['aria-label'] === 'Close help guide');
+  assert.equal(icon.props.autoFocus, true);
+  for (const button of buttons) button.props.onClick();
+  assert.equal(closes(), 1 + buttons.length);
+  assert.ok(buttons.length >= 2);
+});
+
+test('Tab and Shift+Tab wrap focus inside the help dialog', async () => {
+  const { tree, doc } = await helpDialog(null);
+  const focus = [];
+  const items = ['close', 'body', 'footer'].map(name => ({ name, focus() { focus.push(name); } }));
+  const key = (shiftKey, active, other = 'Tab') => {
+    let prevented = false;
+    doc.activeElement = active;
+    tree.props.onKeyDown({ key: other, shiftKey, preventDefault() { prevented = true; }, currentTarget: { querySelectorAll: () => items } });
+    return prevented;
+  };
+  assert.equal(key(false, items[2]), true); assert.deepEqual(focus, ['close']);
+  assert.equal(key(true, items[0]), true); assert.deepEqual(focus, ['close', 'footer']);
+  assert.equal(key(false, items[1]), false);
+  assert.equal(key(false, items[2], 'Enter'), false);
+  assert.deepEqual(focus, ['close', 'footer']);
+  const body = find(tree, n => n.props.className === 'office-help-body')[0];
+  assert.equal(body.props.tabIndex, 0);
+  assert.equal(body.props.role, 'region');
+});
+
+test('help guide covers booking review, toll pricing, manual dispatch and marks unpublished support contacts', async () => {
+  const { tree } = await helpDialog(null);
+  const headings = find(tree, n => n.type === 'h3').map(textOf);
+  assert.deepEqual(headings, ['Booking review', 'Toll pricing rules', 'Manual dispatch eligibility', 'Support contacts']);
+  for (const heading of find(tree, n => n.type === 'section')) {
+    assert.equal(find(heading, n => n.props.id === heading.props['aria-labelledby']).length, 1);
+  }
+  const text = textOf(tree);
+  for (const phrase of ['Fee pending', 'Settings → Pricing', 'never estimated', 'exact requested vehicle type', 'no active maintenance', 'compliance documents', 'Started trips are locked', 'cannot be reassigned']) {
+    assert.ok(text.includes(phrase), phrase);
+  }
+  const contacts = find(tree, n => n.props.className === 'office-help-contacts')[0];
+  const rows = find(contacts, n => n.type === 'div');
+  assert.deepEqual(rows.map(row => textOf(find(row, n => n.type === 'dt')[0])), ['Dispatch hotline', 'Support email', 'Office hours', 'After-hours escalation']);
+  assert.ok(rows.every(row => /Not yet published/.test(textOf(find(row, n => n.type === 'dd')[0]))));
+  assert.ok(!/@|\+63|\d{3}[-\s]?\d{4}/.test(textOf(contacts)), 'no invented contact details');
 });
 async function sidebar(signOut) {
   const events = [];
@@ -109,7 +221,7 @@ test("SIGNED_OUT and explicit clear prevent stale profile restoring protected ac
   const profile = deferred(); let callback;
   const auth = await component("../../context/AuthContext.jsx", "AuthProvider", {
     supabase: {
-      auth: { getSession: async () => ({ data: { session: { user: { id: "office" } } } }), onAuthStateChange(fn) { callback = fn; return { data: { subscription: { unsubscribe() {} } } }; } },
+      auth: { getSession: async () => ({ data: { session: { user: { id: "office" } } } }), onAuthStateChange(fn) { callback = fn; return { data: { subscription: { unsubscribe() { } } } }; } },
       from: () => ({ select: () => ({ eq: () => ({ single: () => profile.promise }) }) }),
     },
   });
@@ -133,10 +245,10 @@ test("cached map effect cleanup removes MapLibre instance and disconnects observ
   let removed = 0, disconnected = 0;
   const map = await component("../../pages/Dashboard/DashboardTrackingMap.jsx", "DashboardTrackingMap", {
     snapshotStatus,
-    useLiveData: () => ({ data: [], loading: false, error: null }), getLiveTracking: () => {}, DASHBOARD_TABLES: [],
-    maplibregl: { setWorkerUrl() {}, Map: class { on() {} remove() { removed++; } } },
+    useLiveData: () => ({ data: [], loading: false, error: null }), getLiveTracking: () => { }, DASHBOARD_TABLES: [],
+    maplibregl: { setWorkerUrl() { }, Map: class { on() { } remove() { removed++; } } },
     maplibreWorkerUrl: "test-worker", LUZON_CENTER: [121, 15], LUZON_BOUNDS: [], LUZON_MIN_ZOOM: 5, LUZON_MAX_ZOOM: 18,
-    ResizeObserver: class { observe() {} disconnect() { disconnected++; } },
+    ResizeObserver: class { observe() { } disconnect() { disconnected++; } },
   });
   map.render(); map.refs[0].current = {};
   const cleanup = map.effects[0]();
@@ -150,7 +262,7 @@ test("late getSession result after SIGNED_OUT cannot reload the old account", as
   const pending = deferred(); let callback, queries = 0;
   const auth = await component("../../context/AuthContext.jsx", "AuthProvider", {
     supabase: {
-      auth: { getSession: () => pending.promise, onAuthStateChange(fn) { callback = fn; return { data: { subscription: { unsubscribe() {} } } }; } },
+      auth: { getSession: () => pending.promise, onAuthStateChange(fn) { callback = fn; return { data: { subscription: { unsubscribe() { } } } }; } },
       from() { queries++; throw Error("Must not load signed-out profile"); },
     },
   });
@@ -165,7 +277,7 @@ test('verified sign-in publishes office access before redirect and ignores a lat
   const pending = deferred();
   const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
     supabase: {
-      auth: { getSession: () => pending.promise, onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      auth: { getSession: () => pending.promise, onAuthStateChange: () => ({ data: { subscription: { unsubscribe() { } } } }) },
       from() { throw Error('Old startup must not load a profile'); },
     },
   });
@@ -187,7 +299,7 @@ test('office permission polling applies role changes and blocks deactivated acco
   const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
     setInterval(fn) { tick = fn; return 0; },
     supabase: {
-      auth: { getSession: async () => ({ data: { session: { user: { id: 'office', user_metadata: { role: 'admin' } } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      auth: { getSession: async () => ({ data: { session: { user: { id: 'office', user_metadata: { role: 'admin' } } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() { } } } }) },
       from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: profile }) }) }) }),
     },
   });
@@ -204,7 +316,7 @@ test('failed profile refresh removes office access rather than keeping stale adm
   const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
     setInterval(fn) { tick = fn; return 0; },
     supabase: {
-      auth: { getSession: async () => ({ data: { session: { user: { id: 'office' } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      auth: { getSession: async () => ({ data: { session: { user: { id: 'office' } } } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() { } } } }) },
       from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin', is_active: true }, error: failed ? Error('denied') : null }) }) }) }),
     },
   });

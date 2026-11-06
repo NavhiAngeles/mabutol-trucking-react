@@ -291,3 +291,142 @@
     transform: scale(1);
   }
 }
+
+/* Office Help & Operations Guide dialog (native modal, reuses logout modal palette) */
+.office-help-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  box-sizing: border-box;
+  background: #ffffff;
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(80vh, 720px);
+  padding: 0;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.office-help-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.office-help-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.office-help-header,
+.office-help-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px;
+}
+
+.office-help-header {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.office-help-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.office-help-close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.office-help-close:hover {
+  background: #f1f5f9;
+}
+
+.office-help-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.office-help-body > p {
+  margin: 0 0 12px;
+}
+
+.office-help-body h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.office-help-body ul {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.5;
+}
+
+.office-help-body li + li {
+  margin-top: 4px;
+}
+
+.office-help-unpublished {
+  color: #92400e;
+  font-style: italic;
+}
+
+.office-help-contacts {
+  margin: 8px 0 0;
+}
+
+.office-help-contacts > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 6px 0;
+  border-top: 1px solid #f1f5f9;
+}
+
+.office-help-contacts dt {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.office-help-contacts dd {
+  margin: 0;
+}
+
+.office-help-actions {
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f9;
+}
+
+.office-help-actions button {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.office-help-dialog button:focus-visible,
+.office-help-body:focus-visible {
+  outline: 2px solid #1A4B9C;
+  outline-offset: 2px;
+}
