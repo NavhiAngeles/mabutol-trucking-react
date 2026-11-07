@@ -4,6 +4,104 @@ import { getComplianceDocumentsForTruck, getComplianceDocumentsForDriver, TRUCK_
 import { useLiveData } from '../../hooks/useLiveData';
 
 const DOCUMENT_TABLES = ['compliance_documents'];
+
+export function FleetModal({
+  isOpen,
+  onRequestClose,
+  titleId,
+  ariaLabel,
+  className = 'modal-window',
+  backdropClassName = 'modal-backdrop',
+  children,
+  isBusy = false,
+}) {
+  const modalRef = useRef(null);
+  const launcherRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    launcherRef.current = typeof document !== 'undefined' ? document.activeElement : null;
+    const currentModal = modalRef.current;
+    if (currentModal) {
+      const focusable = currentModal.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      } else if (typeof currentModal.focus === 'function') {
+        currentModal.focus();
+      }
+    }
+    return () => {
+      if (launcherRef.current && typeof launcherRef.current.focus === 'function') {
+        launcherRef.current.focus();
+      }
+    };
+  }, [isOpen]);
+
+  const handleKeyDown = useCallback((event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isBusy && onRequestClose) {
+        onRequestClose();
+      }
+      return;
+    }
+    if (event.key === 'Tab') {
+      if (!modalRef.current) return;
+      const focusable = Array.from(
+        modalRef.current.querySelectorAll(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first || !modalRef.current.contains(document.activeElement)) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    }
+  }, [isBusy, onRequestClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className={backdropClassName}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isBusy && onRequestClose) {
+          onRequestClose();
+        }
+      }}
+      onKeyDown={handleKeyDown}
+    >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-label={ariaLabel}
+        tabIndex={-1}
+        className={className}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function useDialog(onClose, busy) {
   const ref = useRef(null);
   useEffect(() => {
@@ -34,8 +132,8 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
     catch (error) { setError(error.message); } finally { guard.current = false; setBusy(false); }
   } 
   const field = (name, label, props = {}) => <Field key={name} name={name} label={label} form={form} setForm={setForm} {...props} />;
-  return <dialog {...dialog} className="fleet-dialog">
-    <form onSubmit={save}><h3>{record ? 'Edit' : 'Schedule'} {kind === 'truck' ? 'vehicle' : kind}</h3>
+  return <dialog {...dialog} className="fleet-dialog" aria-modal="true" aria-labelledby="fleet-editor-title">
+    <form onSubmit={save}><h3 id="fleet-editor-title">{record ? 'Edit' : 'Schedule'} {kind === 'truck' ? 'vehicle' : kind}</h3>
       {error && <p role="alert">{error}</p>}
       <fieldset disabled={busy}><div className="form-grid">
         {kind === 'truck' && <>
@@ -114,8 +212,8 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
     try { setFileUrl(await openComplianceFile(doc.file_path)); }
     catch (error) { setFileError(error.message); }
   }
-  return <dialog {...dialog} className="fleet-dialog">
-    <h3>{entity.plate_number || entity.full_name} — Compliance</h3>
+  return <dialog {...dialog} className="fleet-dialog" aria-modal="true" aria-labelledby="compliance-dialog-title">
+    <h3 id="compliance-dialog-title">{entity.plate_number || entity.full_name} — Compliance</h3>
     {editing === undefined && <button className="btn-secondary" onClick={onClose}>Close</button>}
     {live.loading && <p role="status">Loading documents…</p>}
     {live.error && <p role="alert">Could not refresh documents. <button onClick={live.refresh}>Retry</button></p>}
@@ -129,4 +227,88 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
       </li>)}</ul>
     </> : <DocumentForm key={editing?.id || 'new'} record={editing} entity={entity} kind={kind} onCancel={() => setEditing(undefined)} onSaved={() => { setEditing(undefined); live.refresh(); onSaved(); }} />}
   </dialog>;
+}
+
+export function FleetDiscardDialog({
+  onKeepEditing,
+  onDiscard,
+  title = "Discard unsaved changes?",
+  description = "You have unsaved changes in this registration draft. If you leave now, your entered information will be discarded.",
+  discardLabel = "Discard changes",
+}) {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const trigger = typeof document !== 'undefined' ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    if (dialog && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+    return () => {
+      if (dialog && typeof dialog.close === 'function' && dialog.open) {
+        dialog.close();
+      }
+      if (trigger?.isConnected && typeof trigger.focus === 'function') {
+        trigger.focus();
+      }
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="fleet-discard-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="fleet-discard-title"
+      aria-describedby="fleet-discard-description"
+      onCancel={(event) => {
+        event.preventDefault();
+        onKeepEditing();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onKeepEditing();
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const buttons = [...event.currentTarget.querySelectorAll('button')];
+        const destination = event.shiftKey && document.activeElement === buttons[0]
+          ? buttons.at(-1)
+          : !event.shiftKey && document.activeElement === buttons.at(-1)
+          ? buttons[0]
+          : null;
+        if (destination) {
+          event.preventDefault();
+          destination.focus();
+        }
+      }}
+    >
+      <div className="fleet-discard-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
+        </svg>
+      </div>
+      <h2 id="fleet-discard-title">{title}</h2>
+      <p id="fleet-discard-description">{description}</p>
+      <div className="fleet-discard-actions">
+        <button
+          type="button"
+          className="fleet-discard-keep"
+          autoFocus
+          onClick={onKeepEditing}
+        >
+          Keep editing
+        </button>
+        <button
+          type="button"
+          className="fleet-discard-confirm"
+          onClick={onDiscard}
+        >
+          {discardLabel}
+        </button>
+      </div>
+    </dialog>
+  );
 }

@@ -1,12 +1,13 @@
 // fleet.jsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getDispatchReadyTruckIds, subscribeToDashboardChanges } from '../../services/dashboardService';
 import MainLayout from "../../layouts/mainLayout";
 import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
-import { FleetEditor, ComplianceDialog } from "./FleetDialogs";
+import { FleetEditor, ComplianceDialog, FleetModal, FleetDiscardDialog } from "./FleetDialogs";
+import { isDriverFormDirty, isVehicleFormDirty } from "./fleetDraftHelpers";
 import MaintenancePanel from "./MaintenancePanel";
 import { vehicleCategories, vehicleCategoryId } from './vehicleCategories';
 import { validateComplianceFile } from "../../services/fleetWorkspaceService";
@@ -91,6 +92,7 @@ export default function Fleet() {
   const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Success
   const [showVehicleSuccess, setShowVehicleSuccess] = useState(false);
   const [registeredTruckId, setRegisteredTruckId] = useState("");
+  const [confirmDiscardTarget, setConfirmDiscardTarget] = useState(null); // 'driver' | 'vehicle' | null
 
   // Form Field States
   const [driverForm, setDriverForm] = useState({
@@ -148,16 +150,6 @@ export default function Fleet() {
   };
 
   // Handler functions for modal open / form reset
-  const handleRegisterDriverClick = () => {
-    resetDriverForm();
-    setIsDriverModalOpen(true);
-  };
-
-  const handleAddVehicleClick = () => {
-    resetVehicleForm();
-    setIsVehicleModalOpen(true);
-  };
-
   const resetDriverForm = () => {
     setDriverForm({
       fullName: "",
@@ -195,6 +187,37 @@ export default function Fleet() {
     setVehicleStep(1);
     setShowVehicleSuccess(false);
   };
+
+  const handleRegisterDriverClick = () => {
+    resetDriverForm();
+    setIsDriverModalOpen(true);
+  };
+
+  const handleAddVehicleClick = () => {
+    resetVehicleForm();
+    setIsVehicleModalOpen(true);
+  };
+
+  const handleCloseDriverModal = useCallback(() => {
+    if (isSubmittingDriver) return;
+    if (isDriverFormDirty(driverForm, driverStep)) {
+      setConfirmDiscardTarget('driver');
+      return;
+    }
+    setIsDriverModalOpen(false);
+    resetDriverForm();
+  }, [isSubmittingDriver, driverForm, driverStep]);
+
+  const handleCloseVehicleModal = useCallback(() => {
+    if (isSubmittingTruck) return;
+    if (isVehicleFormDirty(vehicleForm, vehicleStep, showVehicleSuccess)) {
+      setConfirmDiscardTarget('vehicle');
+      return;
+    }
+    setShowVehicleSuccess(false);
+    setIsVehicleModalOpen(false);
+    resetVehicleForm();
+  }, [isSubmittingTruck, vehicleForm, vehicleStep, showVehicleSuccess]);
 
   const handleDriverInputChange = (e, field) => {
     setDriverForm({ ...driverForm, [field]: e.target.value });
@@ -751,20 +774,23 @@ export default function Fleet() {
       {complianceTarget && <ComplianceDialog key={complianceTarget.entity.id} {...complianceTarget} onClose={() => setComplianceTarget(null)} onSaved={fleet.refresh} />}
 
       {/* ================= REGISTER DRIVER MULTI-STEP MODAL ================= */}
-      {isDriverModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-window">
-            <div className="modal-header">
-              <div>
-                <h3>Register New Driver</h3>
-                <p className="modal-subtitle">
-                  {driverStep === 1 && "Basic Information"}
-                  {driverStep === 2 && "Manual Compliance Documents"}
-                  {driverStep === 3 && "Registration Executed"}
-                </p>
-              </div>
-              <button className="close-modal-btn" disabled={isSubmittingDriver} onClick={() => setIsDriverModalOpen(false)}>×</button>
-            </div>
+      <FleetModal
+        isOpen={isDriverModalOpen}
+        onRequestClose={handleCloseDriverModal}
+        titleId="register-driver-modal-title"
+        isBusy={isSubmittingDriver}
+      >
+        <div className="modal-header">
+          <div>
+            <h3 id="register-driver-modal-title">Register New Driver</h3>
+            <p className="modal-subtitle">
+              {driverStep === 1 && "Basic Information"}
+              {driverStep === 2 && "Manual Compliance Documents"}
+              {driverStep === 3 && "Registration Executed"}
+            </p>
+          </div>
+          <button className="close-modal-btn" disabled={isSubmittingDriver} onClick={handleCloseDriverModal} aria-label="Close dialog">×</button>
+        </div>
 
             {/* Steps Progress Metrics Indicator */}
             <div className="modal-steps-indicator">
@@ -945,7 +971,8 @@ export default function Fleet() {
                 <>
                   <button
                     className="btn-link"
-                    onClick={() => setIsDriverModalOpen(false)}
+                    disabled={isSubmittingDriver}
+                    onClick={handleCloseDriverModal}
                   >
                     CANCEL
                   </button>
@@ -1012,35 +1039,33 @@ export default function Fleet() {
                 <>
                   <button
                     className="btn-primary"
-                    onClick={() => {
-                      setIsDriverModalOpen(false);
-                      resetDriverForm();
-                    }}
+                    onClick={handleCloseDriverModal}
                   >
                     Close
                   </button>
                 </>
               )}
             </div>
-          </div>
-        </div>
-      )}
+      </FleetModal>
 
       {/* ================= ADD VEHICLE MULTI-STEP MODAL ================= */}
-      {isVehicleModalOpen && (
-        <div className="modal-backdrop">
-          <div className="modal-window">
-            <div className="modal-header">
-              <div>
-                <h3>Add New Fleet Vehicle</h3>
-                <p className="modal-subtitle">
-                  {vehicleStep === 1 && "Vehicle Technical Specifications"}
-                  {vehicleStep === 2 && "Compliance and Registration Logs"}
-                  {vehicleStep === 3 && "Registry Entry Added"}
-                </p>
-              </div>
-              <button className="close-modal-btn" disabled={isSubmittingTruck} onClick={() => setIsVehicleModalOpen(false)}>×</button>
-            </div>
+      <FleetModal
+        isOpen={isVehicleModalOpen}
+        onRequestClose={handleCloseVehicleModal}
+        titleId="add-vehicle-modal-title"
+        isBusy={isSubmittingTruck}
+      >
+        <div className="modal-header">
+          <div>
+            <h3 id="add-vehicle-modal-title">Add New Fleet Vehicle</h3>
+            <p className="modal-subtitle">
+              {vehicleStep === 1 && "Vehicle Technical Specifications"}
+              {vehicleStep === 2 && "Compliance and Registration Logs"}
+              {vehicleStep === 3 && "Registry Entry Added"}
+            </p>
+          </div>
+          <button className="close-modal-btn" disabled={isSubmittingTruck} onClick={handleCloseVehicleModal} aria-label="Close dialog">×</button>
+        </div>
 
             <div className="modal-steps-indicator">
               <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>
@@ -1194,7 +1219,8 @@ export default function Fleet() {
                 <>
                   <button
                     className="btn-link"
-                    onClick={() => setIsVehicleModalOpen(false)}
+                    disabled={isSubmittingTruck}
+                    onClick={handleCloseVehicleModal}
                   >
                     CANCEL
                   </button>
@@ -1242,12 +1268,12 @@ export default function Fleet() {
 
             {showVehicleSuccess && (
               <div className="modal-backdrop">
-                <div className="vehicle-success-modal">
+                <div className="vehicle-success-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-success-modal-title">
                   <div className="success-icon">
                     ✓
                   </div>
 
-                  <h2>
+                  <h2 id="vehicle-success-modal-title">
                     Vehicle Registered
                     <br />
                     Successfully
@@ -1271,11 +1297,7 @@ export default function Fleet() {
 
                   <button
                     className="btn-primary success-full-btn"
-                    onClick={() => {
-                      setShowVehicleSuccess(false);
-                      setIsVehicleModalOpen(false);
-                      resetVehicleForm();
-                    }}
+                    onClick={handleCloseVehicleModal}
                   >
                     View Vehicle Information
                   </button>
@@ -1289,19 +1311,34 @@ export default function Fleet() {
 
                   <button
                     className="success-close"
-                    onClick={() => {
-                      setShowVehicleSuccess(false);
-                      setIsVehicleModalOpen(false);
-                      resetVehicleForm();
-                    }}
+                    onClick={handleCloseVehicleModal}
+                    aria-label="Close dialog"
                   >
                     ✕
                   </button>
                 </div>
               </div>
             )}
-          </div>
-        </div>
+      </FleetModal>
+
+      {confirmDiscardTarget && (
+        <FleetDiscardDialog
+          title={confirmDiscardTarget === 'driver' ? "Discard driver registration?" : "Discard vehicle registration?"}
+          description="You have unsaved changes in this registration draft. If you leave now, the information and documents you entered will be lost."
+          discardLabel="Discard changes"
+          onKeepEditing={() => setConfirmDiscardTarget(null)}
+          onDiscard={() => {
+            if (confirmDiscardTarget === 'driver') {
+              setIsDriverModalOpen(false);
+              resetDriverForm();
+            } else if (confirmDiscardTarget === 'vehicle') {
+              setShowVehicleSuccess(false);
+              setIsVehicleModalOpen(false);
+              resetVehicleForm();
+            }
+            setConfirmDiscardTarget(null);
+          }}
+        />
       )}
     </MainLayout>
   );
