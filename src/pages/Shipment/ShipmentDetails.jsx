@@ -147,6 +147,12 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <dt>Distance</dt>
                 <dd>{details.distance_km ?? 'Unavailable'} km</dd>
               </div>
+              {details.route_duration_minutes != null && (
+                <div>
+                  <dt>Estimated travel time</dt>
+                  <dd>{Math.round(details.route_duration_minutes)} mins</dd>
+                </div>
+              )}
               <div>
                 <dt>Status</dt>
                 <dd>{status(details.status)}</dd>
@@ -261,24 +267,37 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <dt>Final charge</dt>
                 <dd className="shipment-final-val">{money(details.final_amount)}</dd>
               </div>
-              {details.route_geometry?.booking_pricing?.version === 1 && <>
-                <div>
-                  <dt>Toll routing</dt>
-                  <dd>{details.route_geometry.booking_pricing.toll_preference === 'expressway' ? 'Toll expressway' : 'Avoid toll roads'}</dd>
-                </div>
+              {details.route_geometry?.booking_pricing?.version === 1 ? (
+                <>
+                  <div>
+                    <dt>Toll routing</dt>
+                    <dd>{details.route_geometry.booking_pricing.toll_preference === 'expressway' ? 'Toll expressway' : 'Avoid toll roads'}</dd>
+                  </div>
+                  <div>
+                    <dt>Toll fees included in quote</dt>
+                    <dd>{money(details.route_geometry.booking_pricing.toll_amount)}
+                      {Boolean(details.route_geometry.booking_pricing.toll_rates?.length) && (
+                        <ul className="shipment-toll-rates-list">
+                          {details.route_geometry.booking_pricing.toll_rates.map(rate => (
+                            <li key={rate.id}>{rate.highway} · {rate.gate_name} · {rate.vehicle_class}: {money(rate.fee)}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </dd>
+                  </div>
+                </>
+              ) : (details.toll_fees != null && details.toll_fees > 0) ? (
                 <div>
                   <dt>Toll fees included in quote</dt>
-                  <dd>{money(details.route_geometry.booking_pricing.toll_amount)}
-                    {Boolean(details.route_geometry.booking_pricing.toll_rates?.length) && (
-                      <ul className="shipment-toll-rates-list">
-                        {details.route_geometry.booking_pricing.toll_rates.map(rate => (
-                          <li key={rate.id}>{rate.highway} · {rate.gate_name} · {rate.vehicle_class}: {money(rate.fee)}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </dd>
+                  <dd>{money(details.toll_fees)}</dd>
                 </div>
-              </>}
+              ) : null}
+              {details.driver_allowance != null && (
+                <div>
+                  <dt>Driver trip allowance</dt>
+                  <dd>{money(details.driver_allowance)}</dd>
+                </div>
+              )}
               <div>
                 <dt>Override charge</dt>
                 <dd>{details.override_amount == null ? 'No override' : money(details.override_amount)}</dd>

@@ -1051,3 +1051,79 @@
   border-color: #94A3B8;
   color: #0F172A;
 }
+
+.booking-review-actions button.btn-danger {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.booking-review-actions button.btn-danger:hover:not(:disabled) {
+  background: #DC2626;
+  color: #FFFFFF;
+  border-color: #DC2626;
+}
+
+.booking-review-actions button.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.booking-review-notice {
+  padding: 12px 16px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  color: #1E40AF;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 18px;
+}
+
+.booking-review-notice p {
+  margin: 0;
+}
+
+.booking-review-rejection-box {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.booking-review-rejection-box label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.booking-review-rejection-box textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: border-color 0.15s ease;
+}
+
+.booking-review-rejection-box textarea:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.booking-review-help-text {
+  font-size: 12px;
+  color: #64748B;
+  margin: 0;
+}

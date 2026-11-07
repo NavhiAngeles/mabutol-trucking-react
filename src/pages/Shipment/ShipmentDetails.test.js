@@ -44,6 +44,43 @@ test('details shows saved fields, zero override, unknown charge, notes and cance
   find(tree, n => n.props.role === 'dialog')[0].props.onKeyDown({ key: 'Escape', preventDefault() {} }); assert.equal(ui.closes(), 1);
 });
 
+test('details displays confirmed route duration, toll expressway routing, gate breakdown, and driver allowance', async () => {
+  const tollRecord = {
+    ...record,
+    status: 'booked',
+    distance_km: 42.5,
+    route_duration_minutes: 55,
+    driver_allowance: 750,
+    toll_fees: 211,
+    route_geometry: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[120.96, 14.6], [121.1, 14.8]] } }],
+      booking_pricing: {
+        version: 1,
+        toll_preference: 'expressway',
+        toll_amount: 211,
+        toll_class: 'Class 2',
+        toll_rates: [
+          { id: 'rate-1', highway: 'NLEX', gate_name: 'Balintawak', vehicle_class: 'Class 2', fee: 211 }
+        ]
+      }
+    }
+  };
+
+  const ui = await mount(async () => tollRecord);
+  ui.render();
+  await tick();
+  const tree = ui.render();
+  const text = JSON.stringify(tree);
+
+  assert.ok(text.includes('Estimated travel time'), 'Shows estimated travel time label');
+  assert.ok(text.includes('55') && text.includes('mins'), 'Shows estimated travel time duration');
+  assert.ok(text.includes('Toll expressway'), 'Shows Toll expressway preference');
+  assert.ok(text.includes('NLEX') && text.includes('Balintawak') && text.includes('Class 2'), 'Shows toll gate breakdown');
+  assert.ok(text.includes('Driver trip allowance'), 'Shows driver trip allowance label');
+  assert.ok(text.includes('₱750.00'), 'Shows driver allowance amount');
+});
+
 test('read failure exposes retry and hides details; retry loads assignments and refresh clears old data', async () => {
   let calls = 0;
   const ui = await mount(async () => { if (++calls === 1) throw Error('Access denied'); return { ...record, deliveries: [{ id: 'd', driver: { full_name: 'Assigned Driver' }, truck: { plate_number: 'TEST-1' }, status: 'assigned' }] }; });

@@ -115,21 +115,6 @@ export default function Shipment() {
       className="action-menu-wrapper"
       ref={openMenuId === shipment.dbId ? menuRef : null}
     >
-      {shipment.rawStatus === "pending" && (
-        <button
-          type="button"
-          className="action-pill-btn review-pill-btn"
-          aria-label={`Review booking request ${shipment.id}`}
-          onClick={(event) => {
-            reviewLauncher.current = event.currentTarget;
-            setReviewShipment(shipment);
-            setOpenMenuId(null);
-          }}
-        >
-          Review
-        </button>
-      )}
-
       {shipment.rawStatus === "booked" && !shipment.assignmentId && (
         <button
           type="button"
@@ -171,7 +156,7 @@ export default function Shipment() {
             <button type="button" onClick={event => {
               reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
               setReviewShipment(shipment); setOpenMenuId(null);
-            }}>Review booking request</button>
+            }}><i className="las la-clipboard-check" /> Review booking request</button>
           )}
           {shipment.rawStatus === "booked" && !shipment.assignmentId && (
             <button type="button" disabled={Boolean(assigningId)}

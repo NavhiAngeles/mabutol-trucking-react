@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
 import { createShipment } from "../../services/shipmentService";
@@ -109,6 +110,7 @@ export default function CreateShipmentDrawer({
   onClose,
   onCreated,
 }) {
+  const { user } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
   const [tollRates, setTollRates] = useState([]);
   const [tollRatesError, setTollRatesError] = useState('');
@@ -990,6 +992,9 @@ export default function CreateShipmentDrawer({
 
         status: "booked",
         booking_source: "web",
+        driver_allowance: Number(form.driverAllowance) || 0,
+        toll_fees: form.usesTollRoad ? (tollEstimate?.total ?? 0) : 0,
+        created_by: (typeof user !== "undefined" && user?.id) ? user.id : null,
       };
 
       const data = await createShipment(shipmentData);

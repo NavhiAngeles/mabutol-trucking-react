@@ -44,6 +44,44 @@ test('actual booking payload persists driver instructions, preserves multiline t
     assert.equal(payload.route_geometry.type, 'FeatureCollection');
   }
 });
+
+test('actual booking payload persists confirmed route geometry, toll fees, driver allowance, and creator actor', async () => {
+  const start = source.indexOf('const shipmentData = {');
+  const end = source.indexOf('setCreatedShipment(data);', start);
+  assert.ok(start > 0 && end > start);
+
+  let payload;
+  const scope = {
+    form: {
+      driverNotes: 'Call client', cargoDescription: 'Electronics', weight: '2500',
+      specialHandling: 'Fragile', distanceKm: '45', estimatedMinutes: '60',
+      overrideAmount: '', driverAllowance: '650', usesTollRoad: true,
+    },
+    shipmentRouteFields, withBookingPricing,
+    tollEstimate: { total: 211, rates: [{ id: 'r1', highway: 'NLEX', fee: 211 }], vehicleClass: 'Class 2' },
+    confirmedPickup: { lat: 14.6, lng: 120.96 },
+    confirmedDestination: { lat: 14.8, lng: 121.1 },
+    routeGeoJSON: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[120.96, 14.6], [121.1, 14.8]] } }] },
+    selectedCustomer: { id: 'cust-123' },
+    currentVehicle: { id: 'veh-456', pricing: { id: 'rate-789' } },
+    detailedAddress: () => 'Bulacan to Manila',
+    departure: new Date('2026-11-08T00:00:00Z'),
+    suggestedCharge: 5200,
+    user: { id: 'office-user-uuid' },
+    createShipment: async value => { payload = value; return { id: 'shp-1', ...value }; },
+  };
+
+  const run = new Function(...Object.keys(scope), `return async () => {${source.slice(start, end)}};`)(...Object.values(scope));
+  await run();
+
+  assert.equal(payload.driver_allowance, 650);
+  assert.equal(payload.toll_fees, 211);
+  assert.equal(payload.created_by, 'office-user-uuid');
+  assert.equal(payload.route_duration_minutes, 60);
+  assert.equal(payload.route_source, 'provider');
+  assert.equal(payload.route_geometry.booking_pricing.toll_amount, 211);
+  assert.equal(payload.route_geometry.booking_pricing.toll_preference, 'expressway');
+});
 function handler(name) {
   const match = source.match(new RegExp(`const ${name} = \\(\\) => \\{([\\s\\S]*?)\\n  \\};`));
   assert.ok(match, `Actual ${name} handler found`);

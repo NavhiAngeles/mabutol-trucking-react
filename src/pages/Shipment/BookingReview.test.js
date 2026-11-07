@@ -93,15 +93,13 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Shipment;', context);
   const render = () => { index = 0; refIndex = 0; return context.render(); };
   const directReviewBtn = button(render(), 'Review');
-  assert.ok(directReviewBtn, 'renders direct Review button for pending booking request');
-  directReviewBtn.props.onClick({ currentTarget: null });
-  assert.equal(find(render(), node => node.type === 'BookingReview').length, 1);
-  find(render(), node => node.type === 'BookingReview')[0].props.onClose();
-  assert.equal(find(render(), node => node.type === 'BookingReview').length, 0);
+  assert.equal(directReviewBtn, undefined, 'redundant direct Review button is removed');
 
   const openMenu = () => find(render(), node => node.props.className === 'action-btn')[0].props.onClick();
   openMenu();
-  button(render(), 'Review booking request').props.onClick({ currentTarget: { closest: () => null } });
+  const reviewBtn = button(render(), 'Review booking request');
+  assert.ok(reviewBtn, 'renders Review booking request in 3-dots action menu for pending booking request');
+  reviewBtn.props.onClick({ currentTarget: { closest: () => null } });
   const review = find(render(), node => node.type === 'BookingReview')[0];
   assert.equal(review.props.shipment.dbId, 's');
   review.props.onReviewed({ status: 'booked', delivery_id: null });
