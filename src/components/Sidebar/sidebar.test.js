@@ -8,21 +8,51 @@ import { snapshotStatus } from '../../services/snapshotStatus.js';
 async function component(path, name, dependencies) {
   const source = await readFile(new URL(path, import.meta.url), "utf8");
   const { code } = await transformWithOxc(source, path, { jsx: { runtime: "classic" } });
-  const states = [], refs = [], effects = [];
-  let stateIndex = 0, refIndex = 0;
+  const states = [], refs = [], effects = [], callbacks = [];
+  let stateIndex = 0, refIndex = 0, callbackIndex = 0;
   const scope = {
-    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
-    useState(initial) { const i = stateIndex++; if (!(i in states)) states[i] = typeof initial === "function" ? initial() : initial; return [states[i], value => { states[i] = typeof value === "function" ? value(states[i]) : value; }]; },
+    React: {
+      createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+      useState: initial => scope.useState(initial),
+      useRef: initial => scope.useRef(initial),
+      useEffect: fn => scope.useEffect(fn),
+      useCallback: (fn, deps) => scope.useCallback(fn, deps),
+      useContext: ctx => scope.useContext ? scope.useContext(ctx) : null,
+      createContext: () => ({ Provider: "provider" }),
+    },
+    useState(initial) {
+      const i = stateIndex++;
+      if (!(i in states)) states[i] = typeof initial === "function" ? initial() : initial;
+      return [states[i], value => { states[i] = typeof value === "function" ? value(states[i]) : value; }];
+    },
     useRef(initial) { return refs[refIndex++] ||= { current: initial }; },
     useEffect: fn => effects.push(fn),
-    useCallback: fn => fn,
+    useCallback(fn, deps) {
+      const i = callbackIndex++;
+      const prev = callbacks[i];
+      if (prev && deps && prev.deps && deps.length === prev.deps.length && deps.every((d, idx) => Object.is(d, prev.deps[idx]))) {
+        return prev.fn;
+      }
+      callbacks[i] = { fn, deps };
+      return fn;
+    },
     createContext: () => ({ Provider: "provider" }),
     setTimeout, clearTimeout, setInterval: () => 0, clearInterval() { }, window: { addEventListener() { }, removeEventListener() { } },
     ...dependencies,
   };
   vm.createContext(scope);
   vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/export default function/g, "function").replace(/export function/g, "function").replace(/export const/g, "const").replace(/^export default .*;$/gm, "").replaceAll("import.meta.env.VITE_MAPTILER_API_KEY", '"test-key"') + `\nthis.Component=${name};`, scope);
-  return { effects, refs, render(props = { children: "content" }) { stateIndex = 0; refIndex = 0; return scope.Component(props); } };
+  return {
+    effects,
+    refs,
+    scope,
+    render(props = { children: "content" }) {
+      stateIndex = 0;
+      refIndex = 0;
+      callbackIndex = 0;
+      return scope.Component(props);
+    },
+  };
 }
 function find(node, predicate) {
   if (!node || typeof node !== "object") return [];
@@ -350,4 +380,87 @@ test('failed profile refresh removes office access rather than keeping stale adm
   auth.render(); auth.effects[0](); await tick();
   assert.equal(auth.render().props.value.role, 'admin'); failed = true; await tick();
   assert.equal(auth.render().props.value.role, null);
+});
+
+test('SignInFeedback auto-dismisses after 5 seconds, cleans up timer on manual close, maintains stable callback reference, and clears on SIGNED_OUT', async () => {
+  const timers = [], cleared = [];
+  let currentAuth = {
+    user: { id: 'office' },
+    role: 'admin',
+    signInMessage: 'You have successfully signed in.',
+    dismissSignInMessage: () => { currentAuth.signInMessage = null; },
+  };
+
+  const feedback = await component('../SignInFeedback.jsx', 'SignInFeedback', {
+    useAuth: () => currentAuth,
+    setTimeout: (fn, ms) => {
+      const id = timers.length + 1;
+      timers.push({ id, fn, ms });
+      return id;
+    },
+    clearTimeout: id => { cleared.push(id); },
+  });
+
+  // 1. Initial render with active message: renders status aside and schedules 5000ms timer
+  let tree = feedback.render();
+  assert.equal(tree.type, 'aside');
+  assert.equal(tree.props.role, 'status');
+  assert.equal(tree.props.className, 'sign-in-success-box');
+  assert.equal(feedback.effects.length, 1);
+  const cleanup1 = feedback.effects[0]();
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0].ms, 5000);
+
+  // 2. 5-second auto-dismiss timer fires
+  timers[0].fn();
+  assert.equal(currentAuth.signInMessage, null);
+  cleanup1();
+  assert.deepEqual(cleared, [1]);
+
+  // 3. Reset and test manual close button & timer cleanup
+  currentAuth.signInMessage = 'You have successfully signed in.';
+  tree = feedback.render();
+  const cleanup2 = feedback.effects[0]();
+  assert.equal(timers.length, 2);
+  const closeBtn = find(tree, n => n.type === 'button' && n.props['aria-label'] === 'Dismiss sign-in message')[0];
+  assert.ok(closeBtn);
+  closeBtn.props.onClick();
+  assert.equal(currentAuth.signInMessage, null);
+  cleanup2();
+  assert.deepEqual(cleared, [1, 2]);
+
+  // 4. Stable dismissSignInMessage across rerenders in AuthProvider
+  let callback;
+  const auth = await component('../../context/AuthContext.jsx', 'AuthProvider', {
+    supabase: {
+      auth: {
+        getSession: async () => ({ data: { session: { user: { id: 'office' } } } }),
+        onAuthStateChange(fn) { callback = fn; return { data: { subscription: { unsubscribe() {} } } }; },
+      },
+      from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin', is_active: true } }) }) }) }),
+    },
+  });
+
+  auth.render();
+  auth.effects[0]();
+  auth.render().props.value.completeSignIn({ user: { id: 'office' }, role: 'admin' });
+
+  // Grab dismissSignInMessage across two separate renders
+  const fn1 = auth.render().props.value.dismissSignInMessage;
+  auth.render();
+  const fn2 = auth.render().props.value.dismissSignInMessage;
+  assert.equal(fn1, fn2, 'dismissSignInMessage reference must remain stable across rerenders');
+  assert.equal(auth.render().props.value.signInMessage, 'You have successfully signed in.');
+
+  // 5. SIGNED_OUT event clears user and signInMessage
+  callback('SIGNED_OUT');
+  const signedOutVal = auth.render().props.value;
+  assert.equal(signedOutVal.user, null);
+  assert.equal(signedOutVal.role, null);
+  assert.equal(signedOutVal.signInMessage, null);
+
+  // When rendered with signed-out auth, SignInFeedback returns null and schedules no timer
+  currentAuth = signedOutVal;
+  const emptyTree = feedback.render();
+  assert.equal(emptyTree, null);
 });
