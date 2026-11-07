@@ -121,8 +121,8 @@ export default function ShipmentDetails({ shipment, onClose }) {
         </button>
       </div>
 
-      {loading && <p role="status" className="shipment-details-status-msg">{details ? 'Refreshing shipment details… Showing the last successfully loaded details.' : 'Loading current shipment details…'}</p>}
-      {error && <p role="alert" className="shipment-details-error-msg">{error}{details && ' Showing the last successfully loaded shipment details.'}</p>}
+      {loading && <div role="status" className="shipment-details-status-msg"><i className="las la-spinner la-spin" /> <span>{details ? 'Refreshing shipment details… Showing the last successfully loaded details.' : 'Loading current shipment details…'}</span></div>}
+      {error && <div role="alert" className="shipment-details-error-msg"><i className="las la-exclamation-circle" /> <span>{error}{details && ' Showing the last successfully loaded shipment details.'}</span></div>}
       {details && <>
         <dl className="shipment-details-grid">
           {/* CARD 1: ROUTE & SCHEDULE */}

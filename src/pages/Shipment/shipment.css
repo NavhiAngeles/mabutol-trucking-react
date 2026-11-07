@@ -311,7 +311,8 @@
   background: #FFFFFF;
   border-radius: 8px;
   border: 1px solid #E2E8F0;
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -319,6 +320,21 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  position: relative;
+  z-index: 5;
+}
+
+.shipment-table th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.shipment-table th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.shipment-table tbody tr.row-menu-open {
+  position: relative;
+  z-index: 30;
 }
 
 .shipment-table th {
@@ -496,6 +512,10 @@
   padding: 14px 20px;
   background: #FFFFFF;
   border-top: 1px solid #E2E8F0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .pagination-summary {
@@ -555,6 +575,10 @@
   gap: 6px;
 }
 
+.action-menu-wrapper.menu-open {
+  z-index: 100;
+}
+
 .action-dropdown {
   position: absolute;
   right: 0;
@@ -562,10 +586,11 @@
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 160px;
-  z-index: 50;
-  padding: 4px 0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  min-width: 170px;
+  z-index: 1000;
+  padding: 6px 0;
+  white-space: nowrap;
   animation: dropdownFadeIn 0.15s ease;
 }
 
@@ -619,6 +644,18 @@
   color: #92400E;
 }
 
+.status.cancelled-pill {
+  background: #F1F5F9;
+  color: #64748B;
+  border-color: #CBD5E1;
+}
+
+.tab .tab-badge.badge-muted,
+.tab .badge-muted {
+  background: #E2E8F0;
+  color: #475569;
+}
+
 /* --- LOADING STATE --- */
 .shipment-loading {
   display: flex;
@@ -634,6 +671,176 @@
 .shipment-loading i {
   font-size: 22px;
   color: #3B82F6;
+}
+
+/* --- SHIPMENT NOTIFICATION & FEEDBACK BANNERS --- */
+.shipment-feedback-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  animation: messageSlideIn 0.2s ease-out;
+}
+
+.shipment-feedback-banner .feedback-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.shipment-feedback-banner .feedback-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.shipment-feedback-banner .feedback-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.65;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.shipment-feedback-banner .feedback-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.shipment-feedback-banner.is-success {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #166534;
+}
+
+.shipment-feedback-banner.is-success .feedback-icon {
+  color: #16A34A;
+}
+
+.shipment-feedback-banner.is-info {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  color: #0369A1;
+}
+
+.shipment-feedback-banner.is-info .feedback-icon {
+  color: #0284C7;
+}
+
+.shipment-feedback-banner.is-info button.banner-action-btn {
+  background: #0284C7;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 12px;
+  transition: background 0.15s ease;
+}
+
+.shipment-feedback-banner.is-info button.banner-action-btn:hover {
+  background: #0369A1;
+}
+
+.shipment-feedback-banner.is-warning {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.shipment-feedback-banner.is-warning .feedback-icon {
+  color: #D97706;
+}
+
+.shipment-feedback-banner.is-error {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+.shipment-feedback-banner.is-error .feedback-icon {
+  color: #EF4444;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal / Dialog Alert Message Boxes */
+.shipment-dialog-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin: 10px 0;
+  line-height: 1.4;
+}
+
+.shipment-dialog-alert i {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.shipment-dialog-alert.is-error,
+.error-message {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.shipment-dialog-alert.is-loading {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+}
+
+.shipment-dialog-alert.is-loading i {
+  color: #3B82F6;
+}
+
+.shipment-dialog-alert.is-success {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #166534;
+}
+
+.shipment-dialog-alert.is-success i {
+  color: #16A34A;
+}
+
+.shipment-dialog-alert.is-warning {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.shipment-dialog-alert.is-warning i {
+  color: #D97706;
 }
 
 /* --- ERROR BANNER --- */
@@ -704,7 +911,8 @@
 @media (max-width:640px){.shipment-edit-grid{grid-template-columns:1fr}.shipment-edit-wide{grid-column:auto}}
 .booking-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 .booking-review-actions button { min-height: 40px; cursor: pointer; }
-.booking-review-actions button:disabled { cursor: wait; opacity: .6; }
+.booking-review-actions button:disabled { cursor: not-allowed; opacity: .6; }
+.booking-review-dialog[aria-busy="true"] .booking-review-actions button:disabled { cursor: wait; }
 .shipment-driver-instructions { margin-top: 8px; max-width: 28rem; }
 .shipment-driver-instructions summary { cursor: pointer; color: #1d4ed8; }
 .shipment-driver-instructions p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
@@ -801,23 +1009,43 @@
 }
 
 .shipment-details-status-msg {
-  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   color: #475569;
+  font-weight: 500;
   margin-bottom: 16px;
 }
 
+.shipment-details-status-msg i {
+  font-size: 16px;
+  color: #3B82F6;
+  flex-shrink: 0;
+}
+
 .shipment-details-error-msg {
-  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
   background: #FEF2F2;
   border: 1px solid #FECACA;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   color: #991B1B;
+  font-weight: 500;
   margin-bottom: 16px;
+}
+
+.shipment-details-error-msg i {
+  font-size: 16px;
+  color: #EF4444;
+  flex-shrink: 0;
 }
 
 /* 2-column cards grid */

@@ -285,3 +285,145 @@ test('CreateShipmentDrawer manages launcher focus restoration and Tab focus cont
   assert.ok(prevented);
   assert.equal(focusedElement, btnLast);
 });
+
+test('calculateRoute falls back to ordinary road routing when corridor lacks substantial toll expressways', async () => {
+  const start = source.indexOf('const calculateRoute = async () => {');
+  const end = source.indexOf('Promise.resolve().then(() => {', start);
+  assert.ok(start > 0 && end > start);
+
+  let formState = { usesTollRoad: true, distanceKm: '', estimatedMinutes: '' };
+  let routeGeo = null;
+  let errorMsg = '';
+  let noticeMsg = '';
+  let isCalculating = false;
+
+  const validGeometry = {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [[120.9, 14.8], [121.7, 17.6]] }
+    }]
+  };
+
+  const scope = {
+    setIsCalculatingRoute: val => { isCalculating = val; },
+    setRouteError: err => { errorMsg = err; },
+    setRouteNotice: n => { noticeMsg = n; },
+    setRouteGeoJSON: geo => { routeGeo = geo; },
+    setForm: updater => { formState = updater(formState); },
+    confirmedPickup: { lat: 14.823, lng: 120.901 },
+    confirmedDestination: { lat: 17.621, lng: 121.723 },
+    form: formState,
+    requestId: 1,
+    routeIdRef: { current: 1 },
+    controller: new AbortController(),
+    routeControllerRef: { current: null },
+    validCoordinate: ({ lat, lng }) => Number.isFinite(lat) && Number.isFinite(lng),
+    supabase: {
+      functions: {
+        invoke: async (fn, { body }) => {
+          if (body.usesTollRoad === true) {
+            return {
+              error: {
+                message: 'The provider returned no route with substantial toll expressway travel. Short ramps or toll links are not accepted. Adjust the entrances or uncheck Toll Road for ordinary roads.'
+              }
+            };
+          }
+          if (body.usesTollRoad === false) {
+            // Suppose strict avoidance fails on minor access link
+            return {
+              error: {
+                message: 'The provider could not verify a route avoiding toll roads. Adjust the entrances or enable Toll Road.'
+              }
+            };
+          }
+          // Standard road route succeeds
+          return {
+            data: {
+              roadOnlyVerified: true,
+              distanceKm: 425.4,
+              estimatedMinutes: 520,
+              geojson: validGeometry,
+            }
+          };
+        }
+      }
+    }
+  };
+
+  const run = new Function(...Object.keys(scope), `return async () => { ${source.slice(start, end)}; await calculateRoute(); };`)(...Object.values(scope));
+  await run();
+
+  assert.equal(errorMsg, '');
+  assert.equal(formState.usesTollRoad, false);
+  assert.equal(formState.distanceKm, '425.4');
+  assert.equal(formState.estimatedMinutes, '520');
+  assert.equal(routeGeo, validGeometry);
+  assert.match(noticeMsg, /No toll expressway available for this corridor/i);
+});
+
+test('calculateRoute succeeds on ordinary road journeys when strict avoidance fails on minor access links', async () => {
+  const start = source.indexOf('const calculateRoute = async () => {');
+  const end = source.indexOf('Promise.resolve().then(() => {', start);
+  assert.ok(start > 0 && end > start);
+
+  let formState = { usesTollRoad: false, distanceKm: '', estimatedMinutes: '' };
+  let routeGeo = null;
+  let errorMsg = '';
+  let noticeMsg = '';
+
+  const validGeometry = {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [[120.9, 14.8], [121.7, 17.6]] }
+    }]
+  };
+
+  const scope = {
+    setIsCalculatingRoute: () => {},
+    setRouteError: err => { errorMsg = err; },
+    setRouteNotice: n => { noticeMsg = n; },
+    setRouteGeoJSON: geo => { routeGeo = geo; },
+    setForm: updater => { formState = updater(formState); },
+    confirmedPickup: { lat: 14.823, lng: 120.901 },
+    confirmedDestination: { lat: 17.621, lng: 121.723 },
+    form: formState,
+    requestId: 1,
+    routeIdRef: { current: 1 },
+    controller: new AbortController(),
+    routeControllerRef: { current: null },
+    validCoordinate: ({ lat, lng }) => Number.isFinite(lat) && Number.isFinite(lng),
+    supabase: {
+      functions: {
+        invoke: async (fn, { body }) => {
+          if (body.usesTollRoad === false) {
+            return {
+              error: {
+                message: 'The provider could not verify a route avoiding toll roads. Adjust the entrances or enable Toll Road.'
+              }
+            };
+          }
+          // Standard road query fallback
+          return {
+            data: {
+              roadOnlyVerified: true,
+              distanceKm: 425.4,
+              estimatedMinutes: 520,
+              geojson: validGeometry,
+            }
+          };
+        }
+      }
+    }
+  };
+
+  const run = new Function(...Object.keys(scope), `return async () => { ${source.slice(start, end)}; await calculateRoute(); };`)(...Object.values(scope));
+  await run();
+
+  assert.equal(errorMsg, '');
+  assert.equal(formState.usesTollRoad, false);
+  assert.equal(formState.distanceKm, '425.4');
+  assert.equal(formState.estimatedMinutes, '520');
+  assert.equal(routeGeo, validGeometry);
+});

@@ -8,12 +8,18 @@ const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
 
 export async function fetchShipmentDetails(id) {
-  const [shipmentResult, deliveryResult] = await Promise.all([
+  const [initialShipmentResult, deliveryResult] = await Promise.all([
     supabase.from('shipments')
       .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
       .eq('id', id).single(),
     supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id),
   ]);
+  let shipmentResult = initialShipmentResult;
+  if (shipmentResult.error && (shipmentResult.error.code === '42703' || String(shipmentResult.error.message || '').includes('does not exist'))) {
+    shipmentResult = await supabase.from('shipments')
+      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
+      .eq('id', id).single();
+  }
   if (shipmentResult.error) throw shipmentResult.error;
   if (deliveryResult.error) throw deliveryResult.error;
   if (!shipmentResult.data?.id) throw new Error('Shipment not found or access denied.');
@@ -21,9 +27,16 @@ export async function fetchShipmentDetails(id) {
 }
 
 export async function fetchBookingRequest(id) {
-  const { data, error } = await supabase.from('shipments')
+  let { data, error } = await supabase.from('shipments')
     .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
     .eq('id', id).single();
+  if (error && (error.code === '42703' || String(error.message || '').includes('does not exist'))) {
+    const fallback = await supabase.from('shipments')
+      .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
+      .eq('id', id).single();
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) throw error;
   if (data?.status !== 'pending') throw new Error('This request is no longer pending. Close and refresh the list.');
   return data;

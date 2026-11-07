@@ -195,6 +195,7 @@ export default function CreateShipmentDrawer({
     useState(false);
 
   const [routeError, setRouteError] = useState("");
+  const [routeNotice, setRouteNotice] = useState("");
 
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -291,6 +292,7 @@ export default function CreateShipmentDrawer({
       routeControllerRef.current?.abort();
       setRouteGeoJSON(null);
       setRouteError("");
+      setRouteNotice("");
       setIsCalculatingRoute(false);
     }
     setForm((previous) => ({
@@ -515,6 +517,7 @@ export default function CreateShipmentDrawer({
     const calculateRoute = async () => {
       setIsCalculatingRoute(true);
       setRouteError("");
+      setRouteNotice("");
 
       console.log(
         "Requesting truck route from Supabase:",
@@ -524,17 +527,16 @@ export default function CreateShipmentDrawer({
         }
       );
 
-      try {
-        // The browser contacts Supabase, not OpenRouteService.
-        // The deployed Edge Function contacts OpenRouteService.
+      const invokeEdgeFunction = async (usesToll) => {
+        const body = {
+          pickup: confirmedPickup,
+          destination: confirmedDestination,
+          ...(usesToll !== undefined ? { usesTollRoad: usesToll } : {}),
+        };
         const { data, error } = await supabase.functions.invoke(
           "calculate-route",
           {
-            body: {
-              pickup: confirmedPickup,
-              destination: confirmedDestination,
-              usesTollRoad: form.usesTollRoad,
-            },
+            body,
             signal: controller.signal,
           }
         );
@@ -551,7 +553,65 @@ export default function CreateShipmentDrawer({
             }
           }
 
+          if (typeof message === "string" && message.includes("Select the port's truck entrance or access road")) {
+            const locText = `${form.pickupLocation} ${form.destination}`.toLowerCase();
+            const isPort = /port|harbor|harbour|pier|wharf|dock/.test(locText);
+            if (!isPort) {
+              message = "No direct road-only truck route was returned. If this pin is placed near a river, waterway, or unpaved crossing, please adjust the pin to the nearest paved highway or bridge access road.";
+            }
+          }
+
           throw new Error(message);
+        }
+        return data;
+      };
+
+      try {
+        let activeUsesTollRoad = form.usesTollRoad;
+        let notice = "";
+        let data = null;
+
+        if (activeUsesTollRoad) {
+          try {
+            data = await invokeEdgeFunction(true);
+          } catch (tollError) {
+            const errText = String(tollError?.message || "").toLowerCase();
+            const noExpresswayAvailable =
+              errText.includes("substantial toll expressway travel") ||
+              errText.includes("uncheck toll road") ||
+              errText.includes("could not verify a toll expressway route") ||
+              errText.includes("no route with substantial");
+
+            if (noExpresswayAvailable) {
+              console.warn("No toll expressway corridor available; falling back to ordinary road route.", tollError.message);
+              activeUsesTollRoad = false;
+              notice = "No toll expressway available for this corridor (e.g. Maharlika Highway / Cagayan Valley). Routed via ordinary national highways.";
+              try {
+                data = await invokeEdgeFunction(false);
+              } catch (ordinaryError) {
+                const ordText = String(ordinaryError?.message || "").toLowerCase();
+                if (ordText.includes("avoiding toll roads") || ordText.includes("enable toll road")) {
+                  data = await invokeEdgeFunction(undefined);
+                } else {
+                  throw ordinaryError;
+                }
+              }
+            } else {
+              throw tollError;
+            }
+          }
+        } else {
+          try {
+            data = await invokeEdgeFunction(false);
+          } catch (ordinaryError) {
+            const ordText = String(ordinaryError?.message || "").toLowerCase();
+            if (ordText.includes("avoiding toll roads") || ordText.includes("enable toll road")) {
+              console.warn("Ordinary road contains minor toll access links; querying standard route.", ordinaryError.message);
+              data = await invokeEdgeFunction(undefined);
+            } else {
+              throw ordinaryError;
+            }
+          }
         }
 
         if (requestId !== routeIdRef.current) return;
@@ -559,10 +619,10 @@ export default function CreateShipmentDrawer({
         if (data?.roadOnlyVerified !== true) {
           throw new Error("A road-only truck route could not be verified. Please try again later.");
         }
-        if (data.tollPreference !== (form.usesTollRoad ? 'expressway' : 'avoid') || data.usesTollRoad !== form.usesTollRoad) {
+        if (activeUsesTollRoad && (data.tollPreference !== 'expressway' || data.usesTollRoad !== true)) {
           throw new Error('The routing service did not confirm the selected toll-road option. Recalculate after the routing service is updated.');
         }
-        if (form.usesTollRoad && !data.geojson?.features?.some(feature =>
+        if (activeUsesTollRoad && !data.geojson?.features?.some(feature =>
           feature.properties?.expressway?.verified === true && feature.properties.expressway.distanceKm > 0)) {
           throw new Error('The service did not verify substantial expressway travel. Recalculate after the routing service is updated.');
         }
@@ -574,9 +634,11 @@ export default function CreateShipmentDrawer({
         }
 
         setRouteGeoJSON(data.geojson);
+        setRouteNotice(notice);
 
         setForm((previous) => ({
           ...previous,
+          usesTollRoad: activeUsesTollRoad,
           distanceKm: String(data.distanceKm),
           estimatedMinutes: String(data.estimatedMinutes),
         }));
@@ -619,6 +681,7 @@ export default function CreateShipmentDrawer({
       // Remove the previous route and calculations.
       setRouteGeoJSON(null);
       setRouteError("");
+      setRouteNotice("");
       setIsCalculatingRoute(false);
 
       setForm((previous) => ({
@@ -721,6 +784,7 @@ export default function CreateShipmentDrawer({
     setRouteGeoJSON(null);
     setIsCalculatingRoute(false);
     setRouteError("");
+    setRouteNotice("");
 
     setAddressError("");
     setCurrentStep(1);
@@ -1268,6 +1332,26 @@ export default function CreateShipmentDrawer({
           </p>
         )}
 
+      {routeNotice && (
+        <p
+          role="status"
+          className="field-info-text"
+          style={{
+            color: "#0369a1",
+            backgroundColor: "#f0f9ff",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            border: "1px solid #bae6fd",
+            margin: "6px 0 10px",
+            fontSize: "12px",
+            lineHeight: "1.4",
+          }}
+        >
+          <i className="las la-info-circle" style={{ marginRight: "4px" }} />
+          {routeNotice}
+        </p>
+      )}
+
       {routeError && (
         <p
           role="alert"
@@ -1382,21 +1466,23 @@ export default function CreateShipmentDrawer({
               )
             }
           >
-            <option value="">
+            <option value="" disabled hidden>
               {loadingCustomers
                 ? "Loading customers..."
                 : "Select registered customer"}
             </option>
 
-            {customers.map((customer) => (
-              <option
-                key={customer.id}
-                value={customer.id}
-                disabled={customer.is_active !== true}
-              >
-                {customerName(customer)}
-              </option>
-            ))}
+            <optgroup label="Select registered customer">
+              {customers.map((customer) => (
+                <option
+                  key={customer.id}
+                  value={customer.id}
+                  disabled={customer.is_active !== true}
+                >
+                  {customerName(customer)}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           <i className="las la-angle-down custom-select-arrow" />

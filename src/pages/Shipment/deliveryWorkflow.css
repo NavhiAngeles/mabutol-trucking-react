@@ -35,3 +35,422 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
 .shipment-cancellation-dialog .booking-review-actions button { padding: .625rem .875rem; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; color: #1e293b; font: inherit; font-weight: 600; }
 .shipment-cancellation-dialog .booking-review-actions .action-danger { background: #b91c1c; border-color: #b91c1c; color: white; }
 .shipment-cancellation-dialog :is(button,textarea,input):focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+
+/* =============================================================================
+   RETURN LOAD PLANNER STYLES
+   Redesigns ReturnLoadPlanner into an elegant, responsive card panel.
+============================================================================= */
+
+.return-load-panel {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px !important;
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 20px 24px !important;
+  margin-top: 16px !important;
+  margin-bottom: 24px !important;
+  transition: all 0.2s ease;
+}
+
+.return-load-panel.is-collapsed {
+  padding: 16px 20px !important;
+  background: #F8FAFC !important;
+}
+
+.return-load-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.return-load-title-group {
+  flex: 1;
+  min-width: 280px;
+}
+
+.return-load-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.return-load-title-row h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.return-load-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #EEF2FF;
+  color: #4338CA;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.return-load-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 680px;
+}
+
+.return-load-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.planner-action-btn.refresh-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px !important;
+  min-height: 36px !important;
+  border: 1px solid #CBD5E1 !important;
+  border-radius: 6px !important;
+  background: #FFFFFF !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.planner-action-btn.refresh-btn:hover {
+  background: #F1F5F9 !important;
+  border-color: #94A3B8 !important;
+}
+
+.planner-toggle-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px !important;
+  min-height: 36px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.planner-toggle-btn.open-btn {
+  background: #1E3A8A !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+.planner-toggle-btn.open-btn:hover {
+  background: #1E40AF !important;
+}
+
+.planner-toggle-btn.close-btn {
+  background: #F1F5F9 !important;
+  color: #475569 !important;
+  border: 1px solid #CBD5E1 !important;
+}
+
+.planner-toggle-btn.close-btn:hover {
+  background: #E2E8F0 !important;
+}
+
+.return-load-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 12px;
+}
+
+.return-load-meta-bar i {
+  color: #94A3B8;
+  font-size: 14px;
+}
+
+.return-load-filters-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.return-load-field {
+  display: flex !important;
+  flex-direction: column;
+  gap: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155;
+}
+
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #1E293B;
+  font-weight: 600;
+}
+
+.field-label i {
+  color: #64748B;
+  font-size: 15px;
+}
+
+.return-load-inputs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 860px) {
+  .return-load-inputs-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.no-outbound-note {
+  font-size: 13px;
+  color: #94A3B8;
+  font-style: italic;
+  margin: 0;
+}
+
+.plan-baseline-card {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 16px;
+}
+
+.plan-truck-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E40AF;
+  margin-bottom: 8px;
+}
+
+.plan-disclaimer {
+  font-size: 12px !important;
+  color: #475569 !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+.plan-matches-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.matches-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.matches-count-badge.has-matches {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.matches-count-badge.no-matches {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
+
+.excluded-reasons-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.excluded-chip {
+  font-size: 11px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.return-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.return-match-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.return-match-card:hover {
+  border-color: #93C5FD;
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.08);
+}
+
+.match-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.match-tracking h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E3A8A;
+  margin: 0;
+}
+
+.match-weight {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.match-reduction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #DCFCE7;
+  color: #15803D;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.match-route {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #F8FAFC;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #F1F5F9;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.route-point.pickup {
+  color: #15803D;
+}
+
+.route-arrow {
+  color: #94A3B8;
+  font-size: 12px;
+  padding-left: 2px;
+}
+
+.route-point.dropoff {
+  color: #1D4ED8;
+}
+
+.match-stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid #F1F5F9;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-item .stat-label {
+  font-size: 11px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.stat-item .stat-val {
+  font-size: 13px;
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.match-handling {
+  font-size: 12px !important;
+  color: #64748B !important;
+  margin: 0 !important;
+}
+
+.match-handling.is-empty {
+  font-style: italic;
+  color: #94A3B8 !important;
+}
+
+.btn-review-return {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100% !important;
+  min-height: 38px !important;
+  background: #1E3A8A !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.15s ease;
+}
+
+.btn-review-return:hover {
+  background: #1E40AF !important;
+}

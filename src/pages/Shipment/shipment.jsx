@@ -96,6 +96,7 @@ export default function Shipment() {
       pending: "PENDING REVIEW",
       booked: "BOOKED",
       assigned: "ASSIGNED",
+      cancelled: "CANCELLED",
     })[status] ??
     String(status || "UNKNOWN").toUpperCase();
 
@@ -108,11 +109,12 @@ export default function Shipment() {
       pending: "review-pill",
       booked: "loading-pill",
       assigned: "loading-pill",
+      cancelled: "cancelled-pill",
     })[status] ?? "loading-pill";
 
   const renderMenu = (shipment, completed = false) => (
     <div
-      className="action-menu-wrapper"
+      className={`action-menu-wrapper${openMenuId === shipment.dbId ? " menu-open" : ""}`}
       ref={openMenuId === shipment.dbId ? menuRef : null}
     >
       {shipment.rawStatus === "booked" && !shipment.assignmentId && (
@@ -175,7 +177,7 @@ export default function Shipment() {
             <i className="las la-eye" /> View Details
           </button>
 
-          {!completed && (
+          {!completed && shipment.status !== "cancelled" && (
             <>
               <button type="button" onClick={() => { setEditShipment(shipment); setOpenMenuId(null); }}>
                 <i className="las la-pen" /> Edit shipment
@@ -242,9 +244,65 @@ export default function Shipment() {
 
         <DeliveryConversationInbox />
         <ReturnLoadPlanner onInspect={setDetailsShipment} />
-        {/* DATABASE ERROR */}
-        {assignmentMessage && <p role="status">{assignmentMessage}</p>}
-        {recordFilter && <p role="status">{!isLoading && !error && !visibleShipments.length ? 'The selected shipment is unavailable or does not match your search.' : 'Showing the shipment selected from Operations Feed.'} <button onClick={() => setCurrentTab('all')}>Show all shipments</button></p>}
+        {/* STATUS & FEEDBACK NOTIFICATIONS */}
+        {assignmentMessage && (
+          <div
+            className={`shipment-feedback-banner ${
+              assignmentMessage.toLowerCase().includes("could not") ||
+              assignmentMessage.toLowerCase().includes("error") ||
+              assignmentMessage.toLowerCase().includes("denied")
+                ? "is-error"
+                : assignmentMessage.toLowerCase().includes("no available") ||
+                  assignmentMessage.toLowerCase().includes("awaiting")
+                ? "is-warning"
+                : "is-success"
+            }`}
+            role="status"
+          >
+            <div className="feedback-content">
+              <i
+                className={`las ${
+                  assignmentMessage.toLowerCase().includes("could not") ||
+                  assignmentMessage.toLowerCase().includes("error") ||
+                  assignmentMessage.toLowerCase().includes("denied")
+                    ? "la-exclamation-circle"
+                    : assignmentMessage.toLowerCase().includes("no available") ||
+                      assignmentMessage.toLowerCase().includes("awaiting")
+                    ? "la-exclamation-triangle"
+                    : "la-check-circle"
+                } feedback-icon`}
+              />
+              <span>{assignmentMessage}</span>
+            </div>
+            <button
+              type="button"
+              className="feedback-close"
+              aria-label="Dismiss message"
+              onClick={() => setAssignmentMessage("")}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+        {recordFilter && (
+          <div className="shipment-feedback-banner is-info" role="status">
+            <div className="feedback-content">
+              <i className="las la-filter feedback-icon" />
+              <span>
+                {!isLoading && !error && !visibleShipments.length
+                  ? "The selected shipment is unavailable or does not match your search."
+                  : "Showing the shipment selected from Operations Feed."}
+              </span>
+              <button
+                type="button"
+                className="banner-action-btn"
+                onClick={() => setCurrentTab("all")}
+              >
+                Show all shipments
+              </button>
+            </div>
+          </div>
+        )}
         {error && (
           <div
             className="shipment-error-banner"
@@ -502,7 +560,7 @@ export default function Shipment() {
 
                   <tbody>
                     {pagedShipments.map((s) => (
-                      <tr key={s.dbId}>
+                      <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
                         <td>
                           <div className="cell-bold">
                             {s.id}
@@ -600,7 +658,7 @@ export default function Shipment() {
 
                   <tbody>
                     {pagedShipments.map((s) => (
-                      <tr key={s.dbId}>
+                      <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
                         <td>
                           <div className="cell-bold">
                             {s.id}

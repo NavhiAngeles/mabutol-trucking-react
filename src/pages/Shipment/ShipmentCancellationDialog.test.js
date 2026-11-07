@@ -7,7 +7,7 @@ import { transformWithOxc } from 'vite';
 
 const find = (node, predicate) => !node || typeof node !== 'object' ? [] : [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
 const button = (tree, label) => find(tree, node => node.type === 'button' && node.children.flat(Infinity).includes(label))[0];
-async function mount({ load = async () => ({ id: 's', status: 'booked', paymentCount: 2 }), save = async () => ({ id: 's', status: 'cancelled' }), allowed = true } = {}) {
+async function mount({ load = async () => ({ id: 's', status: 'booked', paymentCount: 2 }), save = async () => ({ id: 's', status: 'cancelled' }), allowed = true, overdue12h = false } = {}) {
   const { code } = await transformWithOxc(fs.readFileSync(new URL('./ShipmentCancellationDialog.jsx', import.meta.url), 'utf8'), 'ShipmentCancellationDialog.jsx', { jsx: { runtime: 'classic' } });
   const states = [], refs = []; let index = 0, refIndex = 0, mounted = false, effects = [], closes = 0;
   const results = [];
@@ -15,7 +15,7 @@ async function mount({ load = async () => ({ id: 's', status: 'booked', paymentC
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) }, document: { activeElement: null },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect(effect) { if (!mounted) effects.push(effect); },
-    fetchShipmentForCancellation: load, cancelShipment: save, cancellationPolicy: record => ({ allowed: !!record && allowed, reason: 'Started trip locked' }),
+    fetchShipmentForCancellation: load, cancelShipment: save, cancellationPolicy: record => ({ allowed: !!record && allowed, overdue12h, reason: 'Started trip locked' }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render=ShipmentCancellationDialog;', context);
   const render = () => { index = 0; refIndex = 0; return context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, onClose: () => closes++, onCancelled: result => results.push(result) }); };
@@ -47,10 +47,53 @@ test('failure retains reason, blocks blind retry, and allows dismissal; locked/l
   assert.equal(button(ui.render(), 'Confirm cancellation').props.disabled, true);
   ui.render().props.onCancel({ preventDefault() {} }); assert.equal(ui.closes(), 1);
   const locked = await mount({ allowed: false });
-  assert.equal(button(locked.render(), 'Confirm cancellation').props.disabled, true);
+  assert.equal(button(locked.render(), 'Confirm cancellation'), undefined);
+  assert.ok(JSON.stringify(locked.render()).includes('Cancellation unavailable'));
   assert.equal(find(locked.render(), n => n.type === 'textarea').length, 0);
   const failed = await mount({ load: async () => { throw Error('Payments unavailable'); } });
   assert.ok(JSON.stringify(failed.render()).includes('Payments unavailable'));
-  assert.equal(button(failed.render(), 'Confirm cancellation').props.disabled, true);
+  assert.equal(button(failed.render(), 'Confirm cancellation'), undefined);
   assert.equal(button(failed.render(), 'Reload shipment').props.disabled, false);
+});
+
+test('unstarted assigned shipment allows cancellation and displays release notice', async () => {
+  let submittedPayload;
+  const ui = await mount({
+    load: async () => ({ id: 's-assigned', status: 'assigned', paymentCount: 0, deliveries: [] }),
+    save: async (rec, reason, ack) => {
+      submittedPayload = { rec, reason, ack };
+      return { id: 's-assigned', status: 'cancelled' };
+    },
+    allowed: true
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  const text = JSON.stringify(ui.render());
+  assert.ok(text.includes('Current status: ') && text.includes('assigned'), `Unexpected text: ${text}`);
+  assert.ok(text.includes('This ends the shipment and releases any driver and truck reservation'));
+  ui.fill();
+  assert.equal(button(ui.render(), 'Confirm cancellation').props.disabled, false);
+  await button(ui.render(), 'Confirm cancellation').props.onClick();
+  assert.equal(submittedPayload.reason, 'Customer requested');
+  assert.equal(submittedPayload.ack, true);
+  assert.equal(ui.results.length, 1);
+});
+
+test('overdue departure (12+ hours) renders overdue notice and enables cancellation', async () => {
+  const ui = await mount({
+    load: async () => ({
+      id: 's-overdue',
+      status: 'assigned',
+      scheduled_departure: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
+      paymentCount: 0,
+      deliveries: [{ id: 'd-1', status: 'assigned', route_started_at: new Date().toISOString() }]
+    }),
+    allowed: true,
+    overdue12h: true
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  const text = JSON.stringify(ui.render());
+  assert.ok(text.includes('Departure Overdue (12+ Hours)'));
+  assert.ok(text.includes('More than 12 hours have passed'));
+  ui.fill();
+  assert.equal(button(ui.render(), 'Confirm cancellation').props.disabled, false);
 });

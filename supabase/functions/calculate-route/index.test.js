@@ -24,14 +24,28 @@ test('checked option searches distinct alternatives and selects verified express
  assert.equal(result.geojson.features[0].properties.expressway.distanceKm,12);
  assert.equal(api.sent().preference,'fastest');assert.equal(api.sent().alternative_routes.target_count,3);
  assert.equal(api.sent().alternative_routes.share_factor,0.6);assert.equal(api.sent().instructions,true);
- assert.deepEqual(api.sent().options.avoid_features,['ferries','fords']);
+ assert.deepEqual(api.sent().options.avoid_features,['ferries']);
 });
 test('unchecked option requests toll avoidance and rejects a provider route that still contains tolls', async () => {
  const api=setup();const response=await api.call('Bearer fixture',{usesTollRoad:false});
  assert.equal(response.status,200);assert.equal((await response.json()).usesTollRoad,false);
- assert.deepEqual(api.sent().options.avoid_features,['ferries','fords','tollways']);
+ assert.deepEqual(api.sent().options.avoid_features,['ferries','tollways']);
  assert.equal(api.sent().alternative_routes,undefined);
  assert.equal((await setup({routes:[candidate(3)]}).call('Bearer fixture',{usesTollRoad:false})).status,422);
+});
+test('unchecked option permits ordinary road journeys when minor access links contain tolls without substantial expressway travel', async () => {
+ const minorLinkCandidate = {
+   summary: { distance: 50000, duration: 3600 },
+   geometry: '_qbxA__haV_|Bo}@ozDo}@',
+   extras: { waycategory: { values: [[0, 1, 2], [1, 2, 0]] } },
+ };
+ const api = setup({ routes: [minorLinkCandidate] });
+ const response = await api.call('Bearer fixture', { usesTollRoad: false });
+ assert.equal(response.status, 200);
+ const data = await response.json();
+ assert.equal(data.tollPreference, 'avoid');
+ assert.equal(data.usesTollRoad, false);
+ assert.equal(data.roadOnlyVerified, true);
 });
 test('long routes rejected by alternatives can use standard fastest routing, still enforcing toll verification', async () => {
  for (const [category,expected] of [[3,200],[0,422]]) {
@@ -41,10 +55,23 @@ test('long routes rejected by alternatives can use standard fastest routing, sti
  }
 });
 test('no expressway, incomplete categories and malformed preference fail without silent ordinary-road fallback', async () => {
- for (const routes of [[candidate(0)],[candidate(2)],[{...candidate(3),extras:{}}],[candidate(19)]]) {
+ for (const routes of [[candidate(0)],[candidate(2)],[{...candidate(3),extras:{}}],[candidate(11)]]) {
    assert.equal((await setup({routes}).call('Bearer fixture',{usesTollRoad:true})).status,422);
  }
  const api=setup();assert.equal((await api.call('Bearer fixture',{usesTollRoad:'true'})).status,400);assert.equal(api.calls(),0);
+});
+test('fords (overflow bridges and spillways) are accepted as valid land routes and not rejected as ferries', async () => {
+ const fordCandidate = {
+   summary: { distance: 380000, duration: 28800 },
+   geometry: '_qbxA__haV_|Bo}@ozDo}@',
+   extras: { waycategory: { values: [[0, 1, 16], [1, 2, 0]] } },
+ };
+ const api = setup({ routes: [fordCandidate] });
+ const response = await api.call('Bearer fixture', { usesTollRoad: false });
+ assert.equal(response.status, 200);
+ const data = await response.json();
+ assert.equal(data.roadOnlyVerified, true);
+ assert.equal(data.distanceKm, 380);
 });
 test('routing verifies identity and active office role before contacting provider',async()=>{
  const anonymous=setup();assert.equal((await anonymous.call('')).status,401);assert.equal(anonymous.calls(),0);

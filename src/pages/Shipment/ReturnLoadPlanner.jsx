@@ -30,40 +30,117 @@ function Planner({ onInspect }) {
   const stale = data && clock - data.loadedAt >= 60000;
   const plan = data && delivery && ready && !stale ? planReturnLoads(data, delivery, { readyAt: `${ready}+08:00`, maxPickupKm: radius, maxWaitHours: hours, now: clock }) : null;
   const refresh = () => { setData(null); setError(''); setRevision(value => value + 1); setClock(Date.now()); };
-  return <section className="delivery-workflow-panel" aria-label="Return-load planning">
-    <h3>Return-load planning</h3>
-    <button type="button" aria-expanded={open} onClick={() => { setOpen(value => !value); setData(null); setError(''); setClock(Date.now()); }}>{open ? 'Close return-load planner' : 'Find return-load opportunities'}</button>
-    {open && <>
-      <p>Compare booked, unassigned loads with an outbound truck’s destination and return toward its original pickup. Suggestions do not reserve a truck or driver.</p>
-      <button type="button" onClick={refresh}>Refresh return-load data</button>
-      {error && <p role="alert">{error}</p>}
-      {!data && !error && <p role="status">Loading return-load data…</p>}
-      {data && <>
-        <p>Data checked {time(data.loadedAt)}. Refresh after changes to bookings or assignments.</p>
-        <label>Outbound delivery<select value={delivery} onChange={event => { setDelivery(event.target.value); setReady(''); }}><option value="">Select an outbound delivery</option>{outboundOptions(data).map(row => <option key={row.delivery.id} value={row.delivery.id}>{row.shipment.tracking_number} · {row.shipment.dropoff_address} · {row.delivery.status}</option>)}</select></label>
-        {!outboundOptions(data).length && <p>No outbound deliveries available for planning.</p>}
-        <div className="delivery-workflow-grid">
-          <label>Unloaded and ready for return pickup (Philippine time)<input type="datetime-local" value={ready} onChange={event => setReady(event.target.value)} /></label>
-          <label>Maximum distance to return pickup (km)<input type="number" min="1" max="500" value={radius} onChange={event => setRadius(event.target.value)} /></label>
-          <label>Maximum wait after ready time (hours)<input type="number" min="1" max="168" value={hours} onChange={event => setHours(event.target.value)} /></label>
+  return <section className={`delivery-workflow-panel return-load-panel ${open ? 'is-open' : 'is-collapsed'}`} aria-label="Return-load planning">
+    <div className="return-load-header">
+      <div className="return-load-title-group">
+        <div className="return-load-title-row">
+          <span className="return-load-tag"><i className="las la-route" /> Fleet Optimization</span>
+          <h3>Return-load planning</h3>
         </div>
-        {stale && <p role="status">Results expired. Refresh return-load data before reviewing opportunities.</p>}
-        {plan?.error && <p role="alert">{plan.error}</p>}
+        <p className="return-load-subtitle">Compare booked, unassigned loads with an outbound truck’s destination and return toward its original pickup. Suggestions do not reserve a truck or driver.</p>
+      </div>
+      <div className="return-load-actions">
+        {open && (
+          <button type="button" className="planner-action-btn refresh-btn" onClick={refresh}>
+            <i className="las la-sync" />{'Refresh return-load data'}
+          </button>
+        )}
+        <button
+          type="button"
+          className={`planner-toggle-btn ${open ? 'close-btn' : 'open-btn'}`}
+          aria-expanded={open}
+          onClick={() => { setOpen(value => !value); setData(null); setError(''); setClock(Date.now()); }}
+        >
+          <i className={`las ${open ? 'la-times' : 'la-compass'}`} />{open ? 'Close return-load planner' : 'Find return-load opportunities'}
+        </button>
+      </div>
+    </div>
+    {open && <div className="return-load-body">
+      {error && <div className="shipment-dialog-alert is-error" role="alert"><i className="las la-exclamation-circle" /> <span>{error}</span></div>}
+      {!data && !error && <div className="shipment-dialog-alert is-loading" role="status"><i className="las la-spinner la-spin" /> <span>Loading return-load data…</span></div>}
+      {data && <>
+        <div className="return-load-meta-bar">
+          <i className="las la-history" />
+          <span>Data checked {time(data.loadedAt)}. Refresh after changes to bookings or assignments.</span>
+        </div>
+        <div className="return-load-filters-card">
+          <label className="return-load-field">
+            <span className="field-label"><i className="las la-truck" /> Outbound delivery</span>
+            <select value={delivery} onChange={event => { setDelivery(event.target.value); setReady(''); }}>
+              <option value="">Select an outbound delivery</option>
+              {outboundOptions(data).map(row => <option key={row.delivery.id} value={row.delivery.id}>{row.shipment.tracking_number} · {row.shipment.dropoff_address} · {row.delivery.status}</option>)}
+            </select>
+          </label>
+          {!outboundOptions(data).length && <p className="no-outbound-note">No outbound deliveries available for planning.</p>}
+          <div className="return-load-inputs-grid">
+            <label className="return-load-field">
+              <span className="field-label"><i className="las la-calendar-check" /> Unloaded and ready for return pickup (Philippine time)</span>
+              <input type="datetime-local" value={ready} onChange={event => setReady(event.target.value)} />
+            </label>
+            <label className="return-load-field">
+              <span className="field-label"><i className="las la-map-marker-alt" /> Maximum distance to return pickup (km)</span>
+              <input type="number" min="1" max="500" value={radius} onChange={event => setRadius(event.target.value)} />
+            </label>
+            <label className="return-load-field">
+              <span className="field-label"><i className="las la-hourglass-half" /> Maximum wait after ready time (hours)</span>
+              <input type="number" min="1" max="168" value={hours} onChange={event => setHours(event.target.value)} />
+            </label>
+          </div>
+        </div>
+        {stale && <div className="shipment-dialog-alert is-warning" role="status"><i className="las la-clock" /> <span>Results expired. Refresh return-load data before reviewing opportunities.</span></div>}
+        {plan?.error && <div className="shipment-dialog-alert is-error" role="alert"><i className="las la-exclamation-circle" /> <span>{plan.error}</span></div>}
         {plan && !plan.error && <>
-          <p>{plan.truck.plate_number} · recorded capacity {Number(plan.truck.capacity_kg).toLocaleString('en-PH')} kg. Empty return baseline: {plan.baseline.toFixed(1)} km.</p>
-          <p>All distances are straight-line comparisons, not road routes or verified savings. Confirm truck access, road travel time to pickup, unloading, cargo handling, driver availability and maintenance before dispatch. Current assignment rules still apply; this does not queue a second delivery on an occupied truck.</p>
-          <p role="status">{plan.matches.length ? `${plan.matches.length} potential return loads` : 'No matching return loads within these limits.'}</p>
-          {Object.entries(plan.excluded).map(([reason, count]) => <p key={reason}>{reason}: {count}</p>)}
-          {plan.matches.map(match => <article className="delivery-workflow-panel" key={match.shipment.id}>
-            <h4>{match.shipment.tracking_number}</h4>
-            <p>{match.shipment.pickup_address} → {match.shipment.dropoff_address}</p>
-            <p>Pickup {time(match.shipment.scheduled_departure)} · {Number(match.shipment.weight_kg).toLocaleString('en-PH')} kg · {match.waitHours.toFixed(1)} hours after ready time</p>
-            <p>To pickup: {match.pickupKm.toFixed(1)} km · remaining empty return: {match.homeKm.toFixed(1)} km · potential empty-distance reduction: {match.reductionKm.toFixed(1)} km</p>
-            <p>Special handling: {match.shipment.special_handling || 'Not recorded; confirm with office.'}</p>
-            <button type="button" onClick={() => onInspect({ dbId: match.shipment.id, id: match.shipment.tracking_number })}>Review return shipment</button>
-          </article>)}
+          <div className="plan-baseline-card">
+            <div className="plan-truck-info">
+              <span className="truck-plate"><i className="las la-truck-moving" /> {plan.truck.plate_number}</span>
+              <span className="truck-capacity">Recorded capacity: {Number(plan.truck.capacity_kg).toLocaleString('en-PH')} kg</span>
+              <span className="truck-baseline">Empty return baseline: {plan.baseline.toFixed(1)} km</span>
+            </div>
+            <p className="plan-disclaimer">All distances are straight-line comparisons, not road routes or verified savings. Confirm truck access, road travel time to pickup, unloading, cargo handling, driver availability and maintenance before dispatch. Current assignment rules still apply; this does not queue a second delivery on an occupied truck.</p>
+          </div>
+          <div className="plan-matches-header">
+            <span className={`matches-count-badge ${plan.matches.length ? 'has-matches' : 'no-matches'}`} role="status">
+              <i className={`las ${plan.matches.length ? 'la-check-circle' : 'la-info-circle'}`} />
+              {plan.matches.length ? `${plan.matches.length} potential return loads` : 'No matching return loads within these limits.'}
+            </span>
+            {Object.entries(plan.excluded).length > 0 && (
+              <div className="excluded-reasons-list">
+                {Object.entries(plan.excluded).map(([reason, count]) => <span key={reason} className="excluded-chip">{reason}: {count}</span>)}
+              </div>
+            )}
+          </div>
+          {plan.matches.length > 0 && (
+            <div className="return-matches-grid">
+              {plan.matches.map(match => <article className="return-match-card" key={match.shipment.id}>
+                <div className="match-card-top">
+                  <div className="match-tracking">
+                    <h4>{match.shipment.tracking_number}</h4>
+                    <span className="match-weight">{Number(match.shipment.weight_kg).toLocaleString('en-PH')} kg</span>
+                  </div>
+                  <span className="match-reduction-badge">
+                    <i className="las la-gas-pump" /> -{match.reductionKm.toFixed(1)} km empty return
+                  </span>
+                </div>
+                <div className="match-route">
+                  <span className="route-point pickup"><i className="las la-circle" /> {match.shipment.pickup_address}</span>
+                  <span className="route-arrow">↓</span>
+                  <span className="route-point dropoff"><i className="las la-map-marker" /> {match.shipment.dropoff_address}</span>
+                </div>
+                <div className="match-stats-row">
+                  <div className="stat-item"><span className="stat-label">Pickup Time</span><span className="stat-val">{time(match.shipment.scheduled_departure)}</span></div>
+                  <div className="stat-item"><span className="stat-label">Wait After Ready</span><span className="stat-val">{match.waitHours.toFixed(1)} hrs</span></div>
+                  <div className="stat-item"><span className="stat-label">To Pickup</span><span className="stat-val">{match.pickupKm.toFixed(1)} km</span></div>
+                  <div className="stat-item"><span className="stat-label">Remaining Return</span><span className="stat-val">{match.homeKm.toFixed(1)} km</span></div>
+                </div>
+                <p className="match-handling">{match.shipment.special_handling ? <><strong>Special handling:</strong> {match.shipment.special_handling}</> : 'Special handling: Not recorded; confirm with office.'}</p>
+                <button type="button" className="btn-review-return" onClick={() => onInspect({ dbId: match.shipment.id, id: match.shipment.tracking_number })}>
+                  <i className="las la-clipboard-list" />{'Review return shipment'}
+                </button>
+              </article>)}
+            </div>
+          )}
         </>}
       </>}
-    </>}
+    </div>}
   </section>;
 }

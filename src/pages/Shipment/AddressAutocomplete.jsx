@@ -47,8 +47,8 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
   };
 
   return (
-    <div className="input-search-wrapper">
-      <i className={iconClass} />
+    <div className="input-search-wrapper address-autocomplete-wrapper">
+      {iconClass && <i className={iconClass} style={{ display: 'none' }} aria-hidden="true" />}
       <input
         type="text" role="combobox" aria-label={placeholder} autoComplete="off"
         aria-autocomplete="list" aria-controls={`${id}-list`} aria-expanded={focused && features.length > 0}
@@ -65,6 +65,12 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
           if (focused && event.key === "Enter" && features[active]) { event.preventDefault(); select(features[active]); }
         }}
       />
+      <span className="trailing-search-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+          <circle cx="9" cy="9" r="6" />
+          <path d="M13.5 13.5L18 18" strokeLinecap="round" />
+        </svg>
+      </span>
       {focused && !disabled && query.length >= 3 && (features.length > 0 || (results.query === query && results.message)) && (
         <div className="address-suggestions" id={`${id}-list`} role="listbox" aria-label="Address suggestions">
           {features.map((feature, index) => (

@@ -150,3 +150,34 @@ test('details service scopes shipment and deliveries to selected ID and propagat
   shipment = { data: record }; deliveries = { error: Error('Delivery denied') }; await assert.rejects(context.load('s'), /Delivery denied/);
   shipment = { data: null }; deliveries = { data: [] }; await assert.rejects(context.load('s'), /not found/);
 });
+
+test('details service falls back gracefully when additive route/allowance columns do not exist in live schema', async () => {
+  let attempts = 0;
+  const calls = [];
+  const context = vm.createContext({ supabase: { from(table) {
+    return {
+      select(columns) {
+        calls.push({ table, columns });
+        return this;
+      },
+      eq(column, id) {
+        assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id');
+        assert.equal(id, 's');
+        return table === 'shipments' ? this : Promise.resolve({ data: [{ id: 'd' }] });
+      },
+      async single() {
+        attempts += 1;
+        if (attempts === 1) {
+          return { error: { code: '42703', message: 'column shipments.driver_allowance does not exist' } };
+        }
+        return { data: record };
+      },
+    };
+  } } });
+  const source = fs.readFileSync(new URL('../../services/shipmentService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.load = fetchShipmentDetails;', context);
+  const result = await context.load('s');
+  assert.equal(attempts, 2);
+  assert.equal(result.id, record.id);
+  assert.ok(!calls[calls.length - 1].columns.includes('driver_allowance'));
+});

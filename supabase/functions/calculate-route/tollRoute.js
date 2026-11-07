@@ -16,7 +16,7 @@ export function expresswayCoverage(route, decode) {
   for (const segment of categories) {
     const [start, end, mask] = segment;
     if (!Number.isInteger(start) || !Number.isInteger(end) || !Number.isInteger(mask) || mask < 0 ||
-        start < 0 || end <= start || end > edges.length || (mask & 24) !== 0) return null;
+        start < 0 || end <= start || end > edges.length || (mask & 8) !== 0) return null;
     for (let i = start; i < end; i++) {
       if (masks[i] !== null) return null;
       masks[i] = mask;

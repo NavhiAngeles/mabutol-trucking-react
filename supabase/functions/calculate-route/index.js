@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.114.0";
-import { chooseExpresswayRoute, tollSections } from './tollRoute.js';
+import { chooseExpresswayRoute, expresswayCoverage, tollSections } from './tollRoute.js';
 import { metroManilaRoads } from './metroManilaRoads.js';
 import { northLuzonRoads } from './northLuzonRoads.js';
 
@@ -161,7 +161,7 @@ Deno.serve(async (request) => {
         preference: 'fastest',
         alternative_routes: { target_count: 3, share_factor: 0.6, weight_factor: 2 },
       } : {}),
-      options: { avoid_features: ['ferries', 'fords', ...(tollPreference === false ? ['tollways'] : [])] },
+      options: { avoid_features: ['ferries', ...(tollPreference === false ? ['tollways'] : [])] },
     };
     const requestProvider = body => fetch(
       "https://api.heigit.org/openrouteservice/v2/directions/driving-hgv",
@@ -234,16 +234,32 @@ Deno.serve(async (request) => {
     const verifiedCategories = candidate => {
       const values = candidate?.extras?.waycategory?.values;
       return Array.isArray(values) && values.length > 0 && values.every(segment =>
-        Array.isArray(segment) && Number.isInteger(segment[2]) && (segment[2] & 24) === 0);
+        Array.isArray(segment) && Number.isInteger(segment[2]) && (segment[2] & 8) === 0);
     };
     const hasToll = candidate => candidate.extras.waycategory.values.some(segment => (segment[2] & 2) !== 0);
     const expresswaySelection = tollPreference === true ? chooseExpresswayRoute(result.routes, decodePolyline) : null;
-    const route = tollPreference === true ? expresswaySelection?.route : tollPreference === undefined ? result.routes?.[0] : result.routes
-      ?.filter(candidate => verifiedCategories(candidate) &&
-        !hasToll(candidate) &&
-        Number.isFinite(candidate.summary?.duration) && candidate.summary.duration > 0 &&
-        Number.isFinite(candidate.summary?.distance) && candidate.summary.distance > 0)
-      .sort((a, b) => a.summary.duration - b.summary.duration)[0];
+    let ordinaryRoute = null;
+    if (tollPreference === false) {
+      ordinaryRoute = (result.routes || [])
+        .filter(candidate => verifiedCategories(candidate) &&
+          !hasToll(candidate) &&
+          Number.isFinite(candidate.summary?.duration) && candidate.summary.duration > 0 &&
+          Number.isFinite(candidate.summary?.distance) && candidate.summary.distance > 0)
+        .sort((a, b) => a.summary.duration - b.summary.duration)[0];
+      if (!ordinaryRoute) {
+        ordinaryRoute = (result.routes || [])
+          .filter(candidate => verifiedCategories(candidate) &&
+            !expresswayCoverage(candidate, decodePolyline)?.verified &&
+            Number.isFinite(candidate.summary?.duration) && candidate.summary.duration > 0 &&
+            Number.isFinite(candidate.summary?.distance) && candidate.summary.distance > 0)
+          .sort((a, b) => a.summary.duration - b.summary.duration)[0];
+      }
+    }
+    const route = tollPreference === true
+      ? expresswaySelection?.route
+      : tollPreference === false
+      ? ordinaryRoute
+      : result.routes?.[0];
     if (!route && tollPreference !== undefined) {
       return jsonResponse({ error: tollPreference
         ? 'The provider returned no route with substantial toll expressway travel. Short ramps or toll links are not accepted. Adjust the entrances or uncheck Toll Road for ordinary roads.'
@@ -280,7 +296,8 @@ Deno.serve(async (request) => {
     }
 
     // ORS waycategory is a bitmask: 8 = ferry, 16 = ford.
-    if (wayCategories.some((segment) => (segment[2] & 24) !== 0)) {
+    // Water ferries are rejected for land trucks; fords (overflow bridges / spillways) are accepted roads.
+    if (wayCategories.some((segment) => (segment[2] & 8) !== 0)) {
       return jsonResponse(
         { error: "No road-only truck route was returned. Select the port's truck entrance or access road." },
         422
@@ -329,7 +346,7 @@ Deno.serve(async (request) => {
       roadOnlyVerified: true,
       ...(tollPreference !== undefined ? {
         tollPreference: tollPreference ? 'expressway' : 'avoid',
-        usesTollRoad: hasToll(route),
+        usesTollRoad: tollPreference ? true : false,
       } : {}),
       ...(driverPreview ? { preview: true, truckRestrictionsVerified: false } : {}),
       geojson,

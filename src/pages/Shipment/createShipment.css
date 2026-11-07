@@ -207,7 +207,7 @@
 
 .input-search-wrapper input {
   width: 100%;
-  padding: 12px 40px;
+  padding: 11px 14px;
   border-radius: 6px;
   border: 1px solid #D8E2EF;
   background: #F8FAFC;
@@ -289,11 +289,21 @@
 .input-blue-icon { color: #1E40AF; }
 .input-orange-icon { color: #EA580C; }
 
+.address-autocomplete-wrapper input {
+  padding-right: 38px;
+}
+
 .trailing-search-icon {
   position: absolute;
   right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   color: #94A3B8;
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
 /* Location Selector Pill Layouts */
@@ -342,6 +352,26 @@
   font-weight: 500;
   appearance: none;
   cursor: pointer;
+}
+
+.select-dropdown-wrapper select optgroup {
+  font-weight: 700;
+  font-size: 12px;
+  color: #475569;
+  letter-spacing: 0.02em;
+  background: #f8fafc;
+  padding: 6px 4px;
+}
+
+.select-dropdown-wrapper select option {
+  font-weight: 500;
+  font-size: 14px;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+.select-dropdown-wrapper select option:disabled {
+  color: #94a3b8;
 }
 
 .custom-select-arrow {

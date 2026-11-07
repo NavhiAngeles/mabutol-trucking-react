@@ -56,9 +56,9 @@ export default function AssignmentManager({ shipmentId, onChanged }) {
   };
   return <section className="assignment-manager" aria-labelledby="assignment-manager-title">
     <h3 id="assignment-manager-title">Office assignment</h3>
-    {!options && !error && <p role="status">Loading eligible drivers and trucks…</p>}
-    {error && <p role="alert">{error} <button type="button" onClick={() => { setOptions(null); setRevision(value => value + 1); }}>Retry</button></p>}
-    {options?.blockedReason && <p className="assignment-blocked" role="status">{options.blockedReason}</p>}
+    {!options && !error && <div role="status" className="shipment-dialog-alert is-loading"><i className="las la-spinner la-spin" /> <span>Loading eligible drivers and trucks…</span></div>}
+    {error && <div className="shipment-dialog-alert is-error" role="alert"><i className="las la-exclamation-circle" /> <span style={{ flex: 1 }}>{error}</span> <button type="button" className="retry-btn" onClick={() => { setOptions(null); setRevision(value => value + 1); }}>Retry</button></div>}
+    {options?.blockedReason && <div className="assignment-blocked shipment-dialog-alert is-warning" role="status"><i className="las la-ban" /> <span>{options.blockedReason}</span></div>}
     {options && !options.blockedReason && <form onSubmit={submit}>
       <p>{options.current ? 'Reassignment is allowed only before pickup or route activity begins.' : 'Select the driver and truck for this booked shipment.'}</p>
       <label>Driver<select value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
@@ -88,10 +88,10 @@ export default function AssignmentManager({ shipmentId, onChanged }) {
           <strong>Truck note:</strong> {selectedTruck.reason}
         </p>
       )}
-      {(!drivers.length || !trucks.length) && <p role="status">No eligible pair is currently available. Review Fleet availability, maintenance, reservations and Compliance. Excluded: {excluded.drivers} driver(s), {excluded.trucks} truck(s).</p>}
+      {(!drivers.length || !trucks.length) && <div role="status" className="assignment-warning shipment-dialog-alert is-warning"><i className="las la-exclamation-triangle" /> <span>No eligible pair is currently available. Review Fleet availability, maintenance, reservations and Compliance. Excluded: {excluded.drivers} driver(s), {excluded.trucks} truck(s).</span></div>}
       <label>Assignment reason<textarea value={reason} maxLength={1000} disabled={busy}
         onChange={event => setReason(event.target.value)} placeholder="Record why this pair was selected or changed." /></label>
-      {currentPair && <p role="alert">Choose a different driver or truck for reassignment.</p>}
+      {currentPair && <div role="alert" className="assignment-warning shipment-dialog-alert is-warning"><i className="las la-info-circle" /> <span>Choose a different driver or truck for reassignment.</span></div>}
       <button type="submit" disabled={!canSave}>{busy ? 'Saving…' : options.current ? 'Reassign before trip' : 'Assign driver and truck'}</button>
     </form>}
   </section>;

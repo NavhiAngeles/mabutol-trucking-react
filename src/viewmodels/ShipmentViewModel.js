@@ -48,6 +48,13 @@ export const TAB_CONFIG = {
     filter: (s) => s.status === "completed",
     hideBadge: true,
   },
+  cancelled: {
+    label: "Cancelled",
+    title: "Cancelled Shipments",
+    description: "Shipments and booking requests that were cancelled before or during fulfillment.",
+    filter: (s) => s.status === "cancelled" || s.rawStatus === "cancelled",
+    badgeClass: "badge-muted",
+  },
   review: {
     label: "Review",
     title: "Shipments Needing Review",
@@ -70,7 +77,7 @@ export function reviewAgeLabel(shipments, now) {
 }
 
 const matchesSearch = (s, q) =>
-  [s.id, s.cargo, s.origin, s.destination, s.driver, s.fleet, s.customer]
+  [s.id, s.cargo, s.origin, s.destination, s.driver, s.fleet, s.customer, s.status, s.rawStatus]
     .filter(Boolean)
     .some((field) => field.toLowerCase().includes(q));
 

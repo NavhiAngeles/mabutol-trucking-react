@@ -89,8 +89,8 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
         </button>
       </div>
 
-      {loading && <p role="status" className="shipment-details-status-msg">Loading current request…</p>}
-      {error && <p role="alert" className="shipment-details-error-msg">{error}</p>}
+      {loading && <div role="status" className="shipment-details-status-msg"><i className="las la-spinner la-spin" /> <span>Loading current request…</span></div>}
+      {error && <div role="alert" className="shipment-details-error-msg"><i className="las la-exclamation-circle" /> <span>{error}</span></div>}
       {request && !loading && <>
         <dl className="shipment-details-grid">
           {/* CARD 1: CARGO & VEHICLE */}
