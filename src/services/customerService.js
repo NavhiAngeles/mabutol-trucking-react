@@ -96,6 +96,39 @@ export function customerEditValues(customer) {
     .map(key => [key, typeof customer[key] === "string" ? customer[key] : ""]));
 }
 
+export const AUTHORIZED_OFFICE_ROLES = ["admin", "staff"];
+
+export async function setCustomerActiveStatus(customer, isActive, reason, { callerRole } = {}) {
+  if (!callerRole || !AUTHORIZED_OFFICE_ROLES.includes(callerRole)) {
+    throw new Error("Unauthorized: Only office staff and administrators can change customer account status.");
+  }
+  if (!customer?.id || !customer.updated_at) {
+    throw new Error("Refresh the customer directory before changing account status.");
+  }
+  if (typeof isActive !== "boolean") {
+    throw new Error("A valid target status (active or suspended) must be specified.");
+  }
+  if (customer.is_active === isActive) {
+    throw new Error(isActive ? "Customer account is already active." : "Customer account is already suspended.");
+  }
+  const trimmedReason = typeof reason === "string" ? reason.trim() : "";
+  if (!trimmedReason || trimmedReason.length < 3) {
+    throw new Error("A valid reason (at least 3 characters) is required to change account status.");
+  }
+
+  const { data, error } = await supabase.from("customers").update({ is_active: isActive })
+    .eq("id", customer.id).eq("updated_at", customer.updated_at).select(CUSTOMER_COLUMNS).maybeSingle();
+  if (error) throw new Error("Unable to update customer status. Check your connection and account permissions, then refresh before retrying.");
+  if (!data) throw new Error("This customer changed or is no longer editable. Close this form and refresh before retrying.");
+
+  if (customer.user_id) {
+    await supabase.from("users").update({ is_active: isActive }).eq("id", customer.user_id);
+  }
+
+  clearCustomerCache();
+  return data;
+}
+
 export async function updateCustomer(customer, values) {
   if (!customer?.id || !customer.updated_at) throw new Error("Refresh the customer directory before editing.");
   const fields = customerEditValues(values);

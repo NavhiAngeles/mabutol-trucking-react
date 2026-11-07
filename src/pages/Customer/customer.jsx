@@ -1,5 +1,6 @@
 import OfficeTools from "../../components/OfficeTools";
 import CustomerEditDialog from "./CustomerEditDialog";
+import CustomerStatusDialog from "./CustomerStatusDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
@@ -12,6 +13,7 @@ export default function Customer() {
   const { user, role } = useAuth();
   const canEdit = ["admin", "staff"].includes(role);
   const [editing, setEditing] = useState(null);
+  const [statusTarget, setStatusTarget] = useState(null);
   const [saveMessage, setSaveMessage] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
@@ -203,9 +205,18 @@ export default function Customer() {
                           <button className="dropdown-item" onClick={() => handleViewBookingHistory(cust)}>
                             View Booking History
                           </button>
-                          <button className="dropdown-item danger" disabled title="Account suspension is not connected yet">
-                            Suspend Account
-                          </button>
+                          {canEdit && (
+                            <button
+                              className={`dropdown-item ${cust.is_active ? "danger" : ""}`}
+                              onClick={() => {
+                                const record = records.find(item => item.id === cust.id);
+                                if (record) { setStatusTarget(record); setSaveMessage(""); }
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              {cust.is_active ? "Suspend Account" : "Reactivate Account"}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -232,6 +243,20 @@ export default function Customer() {
       {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} onClose={() => setEditing(null)} onSaved={() => {
         setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
       }} />}
+      {canEdit && statusTarget && (
+        <CustomerStatusDialog
+          key={`status:${statusTarget.id}:${statusTarget.updated_at}`}
+          customer={statusTarget}
+          callerRole={role}
+          onClose={() => setStatusTarget(null)}
+          onConfirmed={(updated) => {
+            setStatusTarget(null);
+            const actionName = updated.is_active ? "reactivated" : "suspended";
+            setSaveMessage(`Customer account ${actionName} successfully.`);
+            void refresh();
+          }}
+        />
+      )}
       {profileModal && profile && (
         <div className="cp-backdrop" onClick={() => setProfileModal(null)}>
           <div className="cp-modal" onClick={(e) => e.stopPropagation()}>
@@ -304,10 +329,26 @@ export default function Customer() {
                       ● {profileModal.status === "ACTIVE" ? "Active" : "Suspended"}
                     </span>
                   </div>
-                  <button className="cp-suspend-btn" disabled title="Account suspension is not connected yet">
-                    🚫 Suspend Account
-                  </button>
-                  <p className="cp-suspend-hint">Account suspension is not connected yet.</p>
+                  {canEdit ? (
+                    <>
+                      <button
+                        className={`cp-suspend-btn ${profileModal.status === "ACTIVE" ? "" : "reactivate"}`}
+                        onClick={() => {
+                          const record = records.find(item => item.id === profileModal.id);
+                          if (record) { setStatusTarget(record); setSaveMessage(""); }
+                        }}
+                      >
+                        {profileModal.status === "ACTIVE" ? "🚫 Suspend Account" : "✓ Reactivate Account"}
+                      </button>
+                      <p className="cp-suspend-hint">
+                        {profileModal.status === "ACTIVE"
+                          ? "Deactivates customer access while preserving history."
+                          : "Restores customer access and booking privileges."}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="cp-suspend-hint">Only office staff can manage customer account status.</p>
+                  )}
                 </div>
 
               </div>

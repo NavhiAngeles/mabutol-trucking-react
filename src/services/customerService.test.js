@@ -173,3 +173,103 @@ test("updateCustomer invalidates cache so subsequent fetch queries database", as
   await scope.api.fetchCustomers();
   assert.equal(fetchCount, 2);
 });
+
+function statusMock(result = { data: { id: "cust-1", is_active: false, updated_at: "new-time" }, error: null }) {
+  const requests = [];
+  const query = {
+    update(payload) { requests.push(["update", payload]); return query; },
+    eq(key, value) { requests.push([key, value]); return query; },
+    select(columns) { requests.push(["select", columns]); return query; },
+    maybeSingle: async () => result,
+  };
+  const scope = { supabase: { from(table) { requests.push(["table", table]); return query; } } };
+  vm.createContext(scope);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={setCustomerActiveStatus,clearCustomerCache,fetchCustomers,AUTHORIZED_OFFICE_ROLES};", scope);
+  return { ...scope.api, requests };
+}
+
+test("setCustomerActiveStatus enforces authorized office role (admin or staff)", async () => {
+  const activeCustomer = { id: "cust-1", is_active: true, updated_at: "2026-11-01T00:00:00Z" };
+  const api = statusMock();
+
+  // Rejects unauthenticated or unauthorized callers
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "Valid reason"), /Unauthorized/);
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "Valid reason", { callerRole: "customer" }), /Unauthorized/);
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "Valid reason", { callerRole: "driver" }), /Unauthorized/);
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "Valid reason", { callerRole: null }), /Unauthorized/);
+
+  // Allows staff and admin
+  const staffRes = await api.setCustomerActiveStatus(activeCustomer, false, "Account violation reported", { callerRole: "staff" });
+  assert.equal(staffRes.id, "cust-1");
+
+  const adminApi = statusMock();
+  const adminRes = await adminApi.setCustomerActiveStatus(activeCustomer, false, "Account violation reported", { callerRole: "admin" });
+  assert.equal(adminRes.id, "cust-1");
+});
+
+test("setCustomerActiveStatus requires non-empty confirmation reason of at least 3 characters", async () => {
+  const activeCustomer = { id: "cust-1", is_active: true, updated_at: "2026-11-01T00:00:00Z" };
+  const api = statusMock();
+
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "", { callerRole: "admin" }), /valid reason/);
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "  ", { callerRole: "admin" }), /valid reason/);
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, "no", { callerRole: "admin" }), /valid reason/);
+  await assert.rejects(api.setCustomerActiveStatus(activeCustomer, false, null, { callerRole: "admin" }), /valid reason/);
+  assert.equal(api.requests.length, 0);
+});
+
+test("setCustomerActiveStatus enforces optimistic updated_at concurrency check", async () => {
+  const customer = { id: "cust-1", is_active: true, updated_at: "2026-11-01T00:00:00Z" };
+
+  // Fails when updated_at or id is missing from customer argument
+  const api = statusMock();
+  await assert.rejects(api.setCustomerActiveStatus({ id: "cust-1" }, false, "Valid reason", { callerRole: "admin" }), /Refresh the customer directory/);
+  await assert.rejects(api.setCustomerActiveStatus({ updated_at: "time" }, false, "Valid reason", { callerRole: "admin" }), /Refresh the customer directory/);
+
+  // Fails when record was concurrently modified in database (returns null data)
+  const staleApi = statusMock({ data: null, error: null });
+  await assert.rejects(staleApi.setCustomerActiveStatus(customer, false, "Valid reason", { callerRole: "admin" }), /changed or is no longer editable/);
+
+  // Passes with exact matching id and updated_at query
+  const freshApi = statusMock();
+  await freshApi.setCustomerActiveStatus(customer, false, "Suspended due to repeated payment failure", { callerRole: "admin" });
+  assert.ok(freshApi.requests.some(item => item[0] === "id" && item[1] === customer.id));
+  assert.ok(freshApi.requests.some(item => item[0] === "updated_at" && item[1] === customer.updated_at));
+});
+
+test("setCustomerActiveStatus suspends customer and syncs linked user while preserving shipments", async () => {
+  const activeCustomer = { id: "cust-1", user_id: "user-1", is_active: true, updated_at: "2026-11-01T00:00:00Z" };
+  const api = statusMock({ data: { id: "cust-1", is_active: false, updated_at: "2026-11-01T01:00:00Z" }, error: null });
+
+  const result = await api.setCustomerActiveStatus(activeCustomer, false, "Suspended by office request", { callerRole: "staff" });
+  assert.equal(result.is_active, false);
+
+  // Verify customers table update
+  const customerTableReqs = api.requests.filter(r => r[0] === "table" && r[1] === "customers");
+  assert.equal(customerTableReqs.length, 1);
+  const updatePayload = api.requests.find(r => r[0] === "update")[1];
+  assert.deepEqual(JSON.parse(JSON.stringify(updatePayload)), { is_active: false });
+
+  // Verify users table sync
+  const userTableReqs = api.requests.filter(r => r[0] === "table" && r[1] === "users");
+  assert.equal(userTableReqs.length, 1);
+
+  // Shipments table is NEVER modified or deleted
+  const shipmentTableReqs = api.requests.filter(r => r[0] === "table" && r[1] === "shipments");
+  assert.equal(shipmentTableReqs.length, 0);
+});
+
+test("setCustomerActiveStatus reactivates suspended customer and rejects duplicate status", async () => {
+  const suspendedCustomer = { id: "cust-2", user_id: "user-2", is_active: false, updated_at: "2026-11-01T00:00:00Z" };
+  const api = statusMock({ data: { id: "cust-2", is_active: true, updated_at: "2026-11-01T02:00:00Z" }, error: null });
+
+  // Reject redundant reactivation
+  await assert.rejects(api.setCustomerActiveStatus(suspendedCustomer, false, "Already suspended", { callerRole: "admin" }), /already suspended/);
+
+  // Successful reactivation
+  const result = await api.setCustomerActiveStatus(suspendedCustomer, true, "Account cleared and verified", { callerRole: "admin" });
+  assert.equal(result.is_active, true);
+  const updatePayload = api.requests.find(r => r[0] === "update")[1];
+  assert.deepEqual(JSON.parse(JSON.stringify(updatePayload)), { is_active: true });
+});
