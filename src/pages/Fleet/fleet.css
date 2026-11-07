@@ -1099,17 +1099,560 @@ MODAL STRUCTURAL CONFIGURATIONS
 
   color: #94a3b8;
 }
-/* Dashboard/Fleet integration: retain existing card and button design. */
-.fleet-dialog { border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; width: min(760px, calc(100vw - 32px)); max-height: 90vh; overflow: auto; color: #334155; }
-.fleet-dialog::backdrop { background: #0f172a80; }
-.fleet-dialog fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.fleet-dialog .form-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; }
-.fleet-dialog input,.fleet-dialog select { max-width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
-.fleet-dialog label { display: block; margin: 8px 0; }
-.fleet-dialog .fleet-check { display: inline-flex; align-items: center; gap: 8px; margin-right: 16px; }
-.fleet-documents { padding-left: 20px; }
-.fleet-documents li { padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
-.fleet-documents button { margin-left: 8px; }
+/* Fleet Table Action Buttons */
+.fleet-actions-cell {
+  white-space: nowrap;
+  width: 1%;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.fleet-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fleet-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+  line-height: 1.25;
+  outline: none;
+}
+
+.fleet-btn-action svg {
+  flex-shrink: 0;
+}
+
+.fleet-btn-action.fleet-btn-edit {
+  background-color: #F8FAFC;
+  color: #0F2D4A;
+  border: 1px solid #CBD5E1;
+}
+
+.fleet-btn-action.fleet-btn-edit:hover {
+  background-color: #E2E8F0;
+  color: #042544;
+  border-color: #94A3B8;
+}
+
+.fleet-btn-action.fleet-btn-docs {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.fleet-btn-action.fleet-btn-docs:hover {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+  border-color: #93C5FD;
+}
+
+.fleet-btn-action:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+/* Dashboard/Fleet integration: modern dialog & form layout */
+.fleet-dialog {
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 0;
+  width: min(740px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: hidden;
+  color: #1E293B;
+  background: #FFFFFF;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  margin: auto;
+  box-sizing: border-box;
+}
+
+.fleet-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+}
+
+.fleet-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F1F5F9;
+  background: #FFFFFF;
+}
+
+.fleet-dialog-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fleet-dialog-header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fleet-dialog-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.25;
+}
+
+.fleet-dialog-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #64748B;
+}
+
+.fleet-dialog-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fleet-dialog-close-btn:hover {
+  background: #F1F5F9;
+  color: #334155;
+}
+
+.fleet-dialog-body {
+  padding: 24px;
+  max-height: calc(90vh - 145px);
+  overflow-y: auto;
+}
+
+.fleet-dialog fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.fleet-dialog .form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .fleet-dialog .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fleet-dialog .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.fleet-dialog .form-group.col-span-full {
+  grid-column: 1 / -1;
+}
+
+.fleet-dialog .form-group.col-span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .fleet-dialog .form-group.col-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+.fleet-dialog label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+}
+
+.fleet-dialog input,
+.fleet-dialog select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #0F172A;
+  background: #FFFFFF;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.fleet-dialog input:focus,
+.fleet-dialog select:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.fleet-dialog .error-message.fleet-dialog-error {
+  background: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.fleet-cargo-section {
+  margin-top: 20px;
+  padding: 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.fleet-cargo-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.fleet-cargo-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #475569;
+}
+
+.fleet-cargo-section-desc {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.fleet-cargo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fleet-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fleet-check:hover {
+  border-color: #94A3B8;
+  background: #F8FAFC;
+}
+
+.fleet-check.is-checked {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1D4ED8;
+  font-weight: 600;
+}
+
+.fleet-empty-cargo {
+  font-size: 12px;
+  color: #64748B;
+  margin: 0;
+  font-style: italic;
+}
+
+.fleet-dialog .modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+  background-color: #F8FAFC;
+  margin: 0;
+}
+
+/* Compliance Document List View */
+.fleet-documents {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fleet-doc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+}
+
+.fleet-doc-item:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.fleet-doc-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fleet-doc-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fleet-doc-type-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+  text-transform: capitalize;
+}
+
+.fleet-doc-number-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.fleet-doc-sep {
+  color: #94A3B8;
+  font-size: 13px;
+}
+
+.fleet-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.fleet-doc-item-subtitle {
+  font-size: 12px;
+  color: #64748B;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fleet-doc-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.fleet-doc-action-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.fleet-compliance-bottom-bar {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #F1F5F9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fleet-add-doc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Compliance Add/Edit Document Form */
+.fleet-doc-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.fleet-doc-form-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.fleet-doc-back-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  margin-left: -8px;
+  color: #2563EB;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.fleet-doc-back-btn:hover {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.fleet-doc-form-header {
+  margin-top: 2px;
+}
+
+.fleet-doc-form-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.fleet-doc-form-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #64748B;
+}
+
+/* Custom File Upload Box */
+.fleet-file-dropzone {
+  position: relative;
+  border: 1.5px dashed #CBD5E1;
+  border-radius: 10px;
+  background: #F8FAFC;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+.fleet-file-dropzone:hover {
+  border-color: #2563EB;
+  background: #EFF6FF;
+}
+
+.fleet-file-dropzone.has-file {
+  border-color: #16A34A;
+  background: #F0FDF4;
+  border-style: solid;
+}
+
+.fleet-file-native-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.fleet-file-dropzone-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.fleet-file-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.fleet-file-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+}
+
+.fleet-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  word-break: break-all;
+}
+
+.fleet-file-hint {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.fleet-doc-form-footer {
+  margin: 24px -24px -24px -24px;
+  padding: 16px 24px;
+  border-top: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
 .fleet-calendar { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; overflow: auto; }
 .fleet-calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(100px,1fr)); min-width: 700px; }
 .fleet-calendar-day { min-height: 95px; padding: 8px; border: 1px solid #e2e8f0; }
