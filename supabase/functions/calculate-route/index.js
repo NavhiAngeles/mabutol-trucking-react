@@ -2,8 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.114.0";
 import { chooseExpresswayRoute, expresswayCoverage, tollSections } from './tollRoute.js';
 import { metroManilaRoads } from './metroManilaRoads.js';
 import { northLuzonRoads } from './northLuzonRoads.js';
+import { southLuzonRoads } from './southLuzonRoads.js';
 
-const luzonRoads = [...metroManilaRoads, ...northLuzonRoads];
+const luzonRoads = [...metroManilaRoads, ...northLuzonRoads, ...southLuzonRoads];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

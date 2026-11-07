@@ -6,6 +6,28 @@ import {
   deleteTollGate,
   getCurrentPricingUser,
 } from "../../../services/tollGateService";
+import { VERIFIED_TOLL_PRESETS, cleanGateName } from "../../../services/tollPricing";
+
+const TollIcon = ({ size = 22 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 19V5" />
+    <path d="M20 19V5" />
+    <path d="M4 10h16" />
+    <path d="M9 10l-5 5" />
+    <path d="M15 10l-5 5" />
+    <circle cx="12" cy="7" r="1.5" />
+  </svg>
+);
 
 const EMPTY_FORM = {
   gate_name: "",
@@ -25,9 +47,10 @@ const formatPeso = (value) =>
 const buttonStyle = {
   border: "1px solid #cbd5e1",
   borderRadius: 6,
-  padding: "8px 12px",
+  padding: "7px 12px",
   cursor: "pointer",
-  fontWeight: 600,
+  fontWeight: 500,
+  fontSize: 13,
   whiteSpace: "nowrap",
 };
 
@@ -43,8 +66,9 @@ const inputStyle = {
 const labelStyle = {
   display: "block",
   marginBottom: 16,
-  fontSize: 13,
-  fontWeight: 600,
+  fontSize: 14,
+  fontWeight: 500,
+  color: "#334155",
 };
 
 export default function TollGateManager() {
@@ -124,7 +148,7 @@ export default function TollGateManager() {
     setEditingId(toll.id);
 
     setForm({
-      gate_name: toll.gate_name,
+      gate_name: cleanGateName(toll.gate_name),
       highway: toll.highway,
       vehicle_class: toll.vehicle_class,
       fee: String(toll.fee),
@@ -153,6 +177,33 @@ export default function TollGateManager() {
     }));
   };
 
+  const applyPreset = (presetName) => {
+    const preset = VERIFIED_TOLL_PRESETS.find(p => p.gate_name === presetName || cleanGateName(p.gate_name) === cleanGateName(presetName));
+    if (!preset) return;
+    setForm(prev => ({
+      ...prev,
+      gate_name: cleanGateName(preset.gate_name),
+      highway: preset.highway,
+      fee: String(prev.vehicle_class === 'Class 3' ? preset.class3_fee : preset.class2_fee),
+      pricing_scope: preset.pricing_scope,
+      entry_lat: preset.entry_lat != null ? String(preset.entry_lat) : '',
+      entry_lng: preset.entry_lng != null ? String(preset.entry_lng) : '',
+      exit_lat: preset.exit_lat != null ? String(preset.exit_lat) : '',
+      exit_lng: preset.exit_lng != null ? String(preset.exit_lng) : '',
+      bidirectional: preset.bidirectional === true,
+    }));
+  };
+
+  const handleVehicleClassChange = (newClass) => {
+    setForm(prev => {
+      const preset = VERIFIED_TOLL_PRESETS.find(p => cleanGateName(p.gate_name) === cleanGateName(prev.gate_name));
+      const fee = preset
+        ? String(newClass === 'Class 3' ? preset.class3_fee : newClass === 'Class 2' ? preset.class2_fee : prev.fee)
+        : prev.fee;
+      return { ...prev, vehicle_class: newClass, fee };
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -177,6 +228,7 @@ export default function TollGateManager() {
     try {
       const payload = {
         ...form,
+        gate_name: cleanGateName(form.gate_name),
         fee,
       };
 
@@ -234,6 +286,7 @@ export default function TollGateManager() {
   return (
     <div className="settings-card" id="toll-gates">
       <div className="card-header">
+        <TollIcon />
         <h3>Toll Gate Rates</h3>
       </div>
 
@@ -300,10 +353,14 @@ export default function TollGateManager() {
               tolls.map((toll) => (
                 <tr key={toll.id}>
                   <td className="toll-name">
-                    {toll.gate_name}
-                    <small style={{ display: 'block', color: '#64748b', fontWeight: 400, marginTop: 4 }}>
-                      {toll.pricing_scope === 'flat' ? 'Fixed fee for this toll system' : toll.entry_lat != null && toll.exit_lat != null ? 'Automatic route matching ready' : 'Entry and exit plaza locations needed for automatic pricing'}
-                    </small>
+                    <span className="toll-title">{cleanGateName(toll.gate_name)}</span>
+                    <span className="toll-subtitle">
+                      {toll.pricing_scope === 'flat'
+                        ? 'Fixed fee for this toll system'
+                        : toll.entry_lat != null && toll.exit_lat != null
+                        ? 'Automatic route matching ready'
+                        : 'Entry and exit plaza locations needed for automatic pricing'}
+                    </span>
                   </td>
 
                   <td>
@@ -324,35 +381,21 @@ export default function TollGateManager() {
 
                   {isAdmin && (
                     <td>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 6,
-                          flexWrap: "wrap",
-                        }}
-                      >
+                      <div className="toll-actions">
                         <button
                           type="button"
+                          className="toll-btn-edit"
                           disabled={saving}
                           onClick={() => openEditModal(toll)}
-                          style={{
-                            ...buttonStyle,
-                            background: "#eff6ff",
-                            color: "#1d4ed8",
-                          }}
                         >
                           ✎ Edit Price
                         </button>
 
                         <button
                           type="button"
+                          className="toll-btn-delete"
                           disabled={saving}
                           onClick={() => handleDelete(toll)}
-                          style={{
-                            ...buttonStyle,
-                            background: "#fef2f2",
-                            color: "#b91c1c",
-                          }}
                         >
                           Delete
                         </button>
@@ -448,6 +491,40 @@ export default function TollGateManager() {
             </div>
 
             <form onSubmit={handleSubmit}>
+              {!editingId && (
+                <div style={{ marginBottom: 16, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                  <label style={{ ...labelStyle, marginBottom: 6 }}>
+                    Verified Expressway Preset
+                    <select
+                      style={inputStyle}
+                      defaultValue=""
+                      onChange={(e) => {
+                        applyPreset(e.target.value);
+                      }}
+                    >
+                      <option value="">— Select a verified preset to auto-fill —</option>
+                      <optgroup label="South Luzon Corridors (SLEX, STAR, CALAX, CAVITEX, Skyway, MCX)">
+                        {VERIFIED_TOLL_PRESETS.filter(p => ['SLEX', 'STAR', 'CALAX', 'CAVITEX', 'MCX'].includes(p.highway) || (p.highway === 'SKYWAY' && p.gate_name.includes('Alabang'))).map(p => (
+                          <option key={p.gate_name} value={p.gate_name}>
+                            {p.gate_name} ({p.highway}) — Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Metro Manila & North Luzon Corridors (NLEX, SCTEX, TPLEX, Skyway)">
+                        {VERIFIED_TOLL_PRESETS.filter(p => ['NLEX', 'NLEX_CONNECTOR', 'NLEX_HARBOR_LINK', 'SCTEX', 'TPLEX'].includes(p.highway) || (p.highway === 'SKYWAY' && !p.gate_name.includes('Alabang'))).map(p => (
+                          <option key={p.gate_name} value={p.gate_name}>
+                            {p.gate_name} ({p.highway}) — Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </label>
+                  <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>
+                    Auto-fills exact entry & exit plaza coordinates, confirmed Class 2/3 tariffs, and bidirectional route matching.
+                  </p>
+                </div>
+              )}
+
               <label style={labelStyle}>
                 Toll Gate Name
                 <input
@@ -505,10 +582,7 @@ export default function TollGateManager() {
                   value={form.vehicle_class}
                   disabled={Boolean(editingId)}
                   onChange={(event) =>
-                    updateField(
-                      "vehicle_class",
-                      event.target.value
-                    )
+                    handleVehicleClassChange(event.target.value)
                   }
                 >
                   <option value="Class 1">Class 1</option>

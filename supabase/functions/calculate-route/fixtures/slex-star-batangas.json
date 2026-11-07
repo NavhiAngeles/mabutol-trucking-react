@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "distance": 110000,
+    "duration": 5400
+  },
+  "geometry": "gk`wAwsvaVf^g^rNoPrl@yAbhAiDreAkCbo@g@vcAoPryAsb@~nAk\\~vBkf@fpAb[fT_iDnn@{kAn}@_q@~bB{m@noBod@fpA{m@fpAsg@n}@od@jz@{TjsA{TfpA{TnvA{T~bB{TfiBsNnhCsNv|ArN~iAb[vcAb[vuBgJnoBwLvnCc[nzD_XnzD{TnzDnd@nzDfw@vgDvcAvnCn}@vnCnvAfbC~{BvuBfbCvj@vj@f^f^",
+  "extras": {
+    "waycategory": {
+      "values": [
+        [
+          0,
+          2,
+          0
+        ],
+        [
+          2,
+          26,
+          3
+        ],
+        [
+          26,
+          41,
+          3
+        ],
+        [
+          41,
+          43,
+          0
+        ]
+      ]
+    }
+  },
+  "segments": [
+    {
+      "steps": [
+        {
+          "name": "Alabang Access Road",
+          "way_points": [
+            0,
+            2
+          ]
+        },
+        {
+          "name": "South Luzon Expressway",
+          "way_points": [
+            2,
+            26
+          ]
+        },
+        {
+          "name": "Southern Tagalog Arterial Road",
+          "way_points": [
+            26,
+            41
+          ]
+        },
+        {
+          "name": "Port Access Road",
+          "way_points": [
+            41,
+            43
+          ]
+        }
+      ]
+    }
+  ]
+}

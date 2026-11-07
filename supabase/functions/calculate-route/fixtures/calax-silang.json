@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "distance": 18000,
+    "duration": 1100
+  },
+  "geometry": "_ijvAwjbbV~f@vo@~sAnx@fiBfpAnvAfpAfpAnvAfw@fiBvj@~bBnd@vcAb[n}@rg@nd@",
+  "extras": {
+    "waycategory": {
+      "values": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          9,
+          3
+        ],
+        [
+          9,
+          10,
+          0
+        ]
+      ]
+    }
+  },
+  "segments": [
+    {
+      "steps": [
+        {
+          "name": "Greenfield Parkway",
+          "way_points": [
+            0,
+            1
+          ]
+        },
+        {
+          "name": "Cavite-Laguna Expressway",
+          "way_points": [
+            1,
+            9
+          ]
+        },
+        {
+          "name": "Aguinaldo Highway",
+          "way_points": [
+            9,
+            10
+          ]
+        }
+      ]
+    }
+  ]
+}

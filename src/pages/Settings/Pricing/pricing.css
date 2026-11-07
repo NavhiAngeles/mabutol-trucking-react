@@ -485,99 +485,7 @@
   color: var(--ink);
 }
 
-/* ---- Toll gates ---- */
 
-.pricing-page .toll-table th:nth-child(1) { width: 29%; }
-.pricing-page .toll-table th:nth-child(2) { width: 22%; }
-.pricing-page .toll-table th:nth-child(3) { width: 25%; }
-.pricing-page .toll-table th:nth-child(4) { width: 24%; }
-
-.pricing-page .toll-table th,
-.pricing-page .toll-table td {
-  padding-left: 24px;
-  padding-right: 24px;
-}
-
-.pricing-page .toll-table td {
-  height: 77px;
-}
-
-.pricing-page .toll-name {
-  font-weight: 600;
-}
-
-.pricing-page .toll-fee {
-  font-weight: 700;
-  line-height: 22px;
-}
-
-.pricing-page .toll-fee span {
-  display: block;
-}
-
-.pricing-page .hwy {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 2px;
-  font-size: 10px;
-  line-height: 14px;
-  font-weight: 600;
-}
-
-.pricing-page .hwy-nlex {
-  background: #dbe4ff;
-  color: #1e3a8a;
-}
-
-.pricing-page .hwy-tplex {
-  background: #d1fae5;
-  color: #166534;
-}
-
-.pricing-page .hwy-sctex {
-  background: #ffe4d0;
-  color: #c2410c;
-}
-
-.pricing-page .toll-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--line);
-}
-
-.pricing-page .toll-footer p {
-  max-width: 290px;
-  font-size: 11px;
-  line-height: 15px;
-  color: var(--muted);
-}
-
-.pricing-page .add-toll-btn {
-  flex: 0 0 auto;
-  width: 127px;
-  padding: 10px 12px;
-  background: #fff;
-  border: 1.5px solid var(--navy);
-  border-radius: 2px;
-  font: inherit;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-  color: var(--navy);
-  cursor: pointer;
-}
-
-.pricing-page .add-toll-btn:hover {
-  background: var(--band);
-}
-
-.pricing-page .add-toll-btn:focus-visible {
-  outline: 2px solid rgba(11, 42, 74, 0.45);
-  outline-offset: 2px;
-}
 
 /* =========================
    RESPONSIVE
@@ -603,7 +511,7 @@
 }
 
 /* ==========================================
-   FINAL TOLL GATE TABLE LAYOUT
+   TOLL GATE RATES TABLE & SECTION
 ========================================== */
 
 /* Horizontal scrolling container */
@@ -615,32 +523,18 @@
 
 /* Table width */
 .pricing-page .toll-table {
-  width: 850px;
-  min-width: 850px;
+  width: 860px;
+  min-width: 860px;
   table-layout: fixed;
   border-collapse: collapse;
 }
 
-/* Fixed column widths */
-.pricing-page .toll-table th:nth-child(1) {
-  width: 180px;
-}
-
-.pricing-page .toll-table th:nth-child(2) {
-  width: 135px;
-}
-
-.pricing-page .toll-table th:nth-child(3) {
-  width: 175px;
-}
-
-.pricing-page .toll-table th:nth-child(4) {
-  width: 60px;
-}
-
-.pricing-page .toll-table th:nth-child(5) {
-  width: 220px;
-}
+/* Balanced column widths */
+.pricing-page .toll-table th:nth-child(1) { width: 300px; }
+.pricing-page .toll-table th:nth-child(2) { width: 120px; }
+.pricing-page .toll-table th:nth-child(3) { width: 130px; }
+.pricing-page .toll-table th:nth-child(4) { width: 120px; }
+.pricing-page .toll-table th:nth-child(5) { width: 190px; }
 
 /* Normal scrolling for all columns */
 .pricing-page .toll-table th,
@@ -649,82 +543,219 @@
   right: auto !important;
   left: auto !important;
   z-index: auto !important;
-  padding: 12px 14px;
   vertical-align: middle;
 }
 
-/* Header */
+/* Table headers - matching the other pricing tables */
 .pricing-page .toll-table th {
-  background: #e7eaf9;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 12px 20px;
+  background: var(--thead);
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #3b4558;
+  text-align: left;
   white-space: nowrap;
 }
 
-/* Compact rows */
-.pricing-page .toll-table td {
-  height: 64px;
-  font-size: 14px;
-  border-bottom: 1px solid #e5e7eb;
+.pricing-page .toll-table th.ta-right {
+  text-align: right;
 }
 
-/* Toll gate name */
+/* Table cells - consistent text size and line-height */
+.pricing-page .toll-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--ink);
+}
+
+.pricing-page .toll-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Toll gate name & subtitle - consistent weight & clear hierarchy */
 .pricing-page .toll-table .toll-name {
-  font-weight: 600;
   white-space: normal;
 }
 
-/* Fee */
+.pricing-page .toll-title {
+  display: block;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.pricing-page .toll-subtitle {
+  display: block;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Fee column - medium weight matching other prices */
 .pricing-page .toll-table .toll-fee {
   text-align: right;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--ink);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-/* Actions column */
-.pricing-page .toll-table td:nth-child(5) > div {
+/* Highway badge - clean pill tags with readable 12px text */
+.pricing-page .hwy {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.pricing-page .hwy-nlex,
+.pricing-page .hwy-nlex_harbor_link,
+.pricing-page .hwy-nlex_connector {
+  background: #dbe4ff;
+  color: #1e3a8a;
+}
+
+.pricing-page .hwy-sctex {
+  background: #ffe4d0;
+  color: #c2410c;
+}
+
+.pricing-page .hwy-tplex {
+  background: #d1fae5;
+  color: #166534;
+}
+
+.pricing-page .hwy-slex {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.pricing-page .hwy-star {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pricing-page .hwy-calax {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.pricing-page .hwy-cavitex {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.pricing-page .hwy-skyway {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.pricing-page .hwy-mcx {
+  background: #fae8ff;
+  color: #86198f;
+}
+
+/* Actions column & buttons */
+.pricing-page .toll-actions {
   display: flex !important;
   flex-direction: row !important;
   align-items: center;
   justify-content: flex-start;
   flex-wrap: nowrap !important;
-  gap: 6px !important;
+  gap: 8px !important;
 }
 
-/* Action buttons */
-.pricing-page .toll-table td:nth-child(5) button {
+.pricing-page .toll-btn-edit,
+.pricing-page .toll-btn-delete {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 7px 10px !important;
-  font-size: 12px;
-  font-weight: 600;
+  min-height: 32px;
+  padding: 6px 12px !important;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
   border-radius: 6px;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-/* Edit hover */
-.pricing-page .toll-table td:nth-child(5)
-button:first-child:hover {
+.pricing-page .toll-btn-edit {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.pricing-page .toll-btn-edit:hover:not(:disabled) {
   background: #dbeafe !important;
   border-color: #93c5fd !important;
 }
 
-/* Delete hover */
-.pricing-page .toll-table td:nth-child(5)
-button:last-child:hover {
+.pricing-page .toll-btn-delete {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fecaca !important;
+}
+
+.pricing-page .toll-btn-delete:hover:not(:disabled) {
   background: #fee2e2 !important;
   border-color: #fca5a5 !important;
 }
 
-/* Row hover */
-.pricing-page .toll-table tbody tr:hover {
-  background: #f8fafc;
+/* Footer note & button */
+.pricing-page .toll-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.pricing-page .toll-footer p {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--muted);
+}
+
+.pricing-page .add-toll-btn {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: #fff;
+  border: 1.5px solid var(--navy);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--navy);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.pricing-page .add-toll-btn:hover:not(:disabled) {
+  background: var(--band);
+}
+
+.pricing-page .add-toll-btn:focus-visible {
+  outline: 2px solid rgba(11, 42, 74, 0.45);
+  outline-offset: 2px;
 }
 
 /* Scrollbar */
@@ -733,11 +764,15 @@ button:last-child:hover {
 }
 
 .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #cbd5e1;
   border-radius: 10px;
 }
 
+.pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .pricing-page .toll-table-wrapper::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f8fafc;
   border-radius: 10px;
 }

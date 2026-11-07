@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tollQuote, sameTollQuote, withBookingPricing, automaticTollQuote, vehicleTollClass } from './tollPricing.js';
+import { tollQuote, sameTollQuote, withBookingPricing, automaticTollQuote, vehicleTollClass, VERIFIED_TOLL_PRESETS, rateHighway } from './tollPricing.js';
 const rates = [
   { id: 'a', highway: 'NLEX', gate_name: 'Entry → Exit', vehicle_class: 'Class 2', fee: '123.45' },
   { id: 'b', highway: 'SKYWAY', gate_name: 'Entry → Exit', vehicle_class: 'Class 2', fee: '200.10' },
@@ -109,4 +109,86 @@ test('Balagtas/Pulilan to Baguio totals the three exact north Luzon corridor far
   const quote = automaticTollQuote(true,{toll_class:'Class 2'},sectionsGeometry(sections),rates);
   assert.equal(quote.total,1833);
   assert.deepEqual(quote.sections.map(section => section.highway),['NLEX','SCTEX','TPLEX']);
+});
+
+test('VERIFIED_TOLL_PRESETS define valid expressway corridors with positive Class 2 and Class 3 tariffs', () => {
+  assert.ok(VERIFIED_TOLL_PRESETS.length >= 10);
+  for (const preset of VERIFIED_TOLL_PRESETS) {
+    assert.ok(preset.gate_name && preset.gate_name.length > 5, `preset gate_name missing: ${JSON.stringify(preset)}`);
+    assert.equal(rateHighway(preset.highway), preset.highway, `highway ${preset.highway} not recognized`);
+    assert.ok(preset.class2_fee > 0, `class2_fee must be > 0 in ${preset.gate_name}`);
+    assert.ok(preset.class3_fee >= preset.class2_fee, `class3_fee must be >= class2_fee in ${preset.gate_name}`);
+    if (preset.pricing_scope !== 'flat') {
+      assert.ok(preset.entry_lat >= 13 && preset.entry_lat <= 19, `entry_lat out of bounds: ${preset.entry_lat}`);
+      assert.ok(preset.entry_lng >= 120 && preset.entry_lng <= 122, `entry_lng out of bounds: ${preset.entry_lng}`);
+      assert.ok(preset.exit_lat >= 13 && preset.exit_lat <= 19, `exit_lat out of bounds: ${preset.exit_lat}`);
+      assert.ok(preset.exit_lng >= 120 && preset.exit_lng <= 122, `exit_lng out of bounds: ${preset.exit_lng}`);
+    }
+  }
+});
+
+test('South Luzon corridors (SLEX + STAR, CALAX, CAVITEX, SKYWAY, MCX) calculate exact automatic toll quotes', () => {
+  const presetRates = VERIFIED_TOLL_PRESETS.flatMap((p, i) => [
+    {
+      id: `p-${i}-c2`,
+      highway: p.highway,
+      gate_name: p.gate_name,
+      vehicle_class: 'Class 2',
+      fee: p.class2_fee,
+      entry_lat: p.entry_lat,
+      entry_lng: p.entry_lng,
+      exit_lat: p.exit_lat,
+      exit_lng: p.exit_lng,
+      bidirectional: p.bidirectional,
+      pricing_scope: p.pricing_scope,
+    },
+    {
+      id: `p-${i}-c3`,
+      highway: p.highway,
+      gate_name: p.gate_name,
+      vehicle_class: 'Class 3',
+      fee: p.class3_fee,
+      entry_lat: p.entry_lat,
+      entry_lng: p.entry_lng,
+      exit_lat: p.exit_lat,
+      exit_lng: p.exit_lng,
+      bidirectional: p.bidirectional,
+      pricing_scope: p.pricing_scope,
+    },
+  ]);
+
+  // SLEX + STAR (Alabang to Batangas City Port)
+  const slexStarSections = [
+    { highway: 'SLEX', entry: [121.0428, 14.4175], exit: [121.1635, 14.1130] },
+    { highway: 'STAR', entry: [121.1635, 14.1130], exit: [121.0770, 13.7820], connectedToPrevious: true },
+  ];
+  const slexStarQ2 = automaticTollQuote(true, { toll_class: 'Class 2' }, sectionsGeometry(slexStarSections), presetRates);
+  assert.equal(slexStarQ2.total, 590);
+  const slexStarQ3 = automaticTollQuote(true, { toll_class: 'Class 3' }, sectionsGeometry(slexStarSections), presetRates);
+  assert.equal(slexStarQ3.total, 885);
+
+  // CALAX (Mamplasan to Silang)
+  const calaxSections = [{ highway: 'CALAX', entry: [121.0872, 14.3056], exit: [120.9840, 14.2215] }];
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 2' }, sectionsGeometry(calaxSections), presetRates).total, 234);
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 3' }, sectionsGeometry(calaxSections), presetRates).total, 351);
+
+  // CAVITEX (Paranaque to Kawit)
+  const cavitexSections = [{ highway: 'CAVITEX', entry: [120.9868, 14.5085], exit: [120.9080, 14.4385] }];
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 2' }, sectionsGeometry(cavitexSections), presetRates).total, 253);
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 3' }, sectionsGeometry(cavitexSections), presetRates).total, 379);
+
+  // SKYWAY Stage 1 & 2 (Alabang to Buendia)
+  const skywaySections = [{ highway: 'SKYWAY', entry: [121.0430, 14.4170], exit: [121.0080, 14.5585] }];
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 2' }, sectionsGeometry(skywaySections), presetRates).total, 329);
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 3' }, sectionsGeometry(skywaySections), presetRates).total, 493);
+
+  // MCX (Susana Heights to Daang Hari)
+  const mcxSections = [{ highway: 'MCX', entry: [121.0450, 14.3795], exit: [121.0110, 14.3820] }];
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 2' }, sectionsGeometry(mcxSections), presetRates).total, 92);
+  assert.equal(automaticTollQuote(true, { toll_class: 'Class 3' }, sectionsGeometry(mcxSections), presetRates).total, 138);
+
+  // Reverse travel on non-bidirectional preset fails closed
+  const oneWayRates = presetRates.map(r => r.highway === 'CALAX' ? { ...r, bidirectional: false } : r);
+  const reverseCalax = [{ highway: 'CALAX', entry: [120.9840, 14.2215], exit: [121.0872, 14.3056] }];
+  assert.throws(() => automaticTollQuote(true, { toll_class: 'Class 2' }, sectionsGeometry(reverseCalax), oneWayRates), /entry and exit/);
 });

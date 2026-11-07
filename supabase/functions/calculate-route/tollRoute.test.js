@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { chooseExpresswayRoute, expresswayCoverage, tollSections, highwayCode, mappedHighway } from './tollRoute.js';
 import { metroManilaRoads } from './metroManilaRoads.js';
 import { northLuzonRoads } from './northLuzonRoads.js';
+import { southLuzonRoads } from './southLuzonRoads.js';
 
 // Controlled polylines: lengths/category boundaries matter, not road-name text.
 const points = {
@@ -90,4 +91,28 @@ test('unnamed north Luzon routing identifies NLEX, SCTEX and TPLEX from mapped e
     assert.deepEqual(sections[0].entry, road.coordinates[0]);
     assert.deepEqual(sections[0].exit, road.coordinates.at(-1));
   }
+});
+
+test('unnamed south Luzon routing identifies SLEX, STAR, CALAX, CAVITEX, and SKYWAY from mapped edges', () => {
+  for (const highway of ['SLEX', 'STAR', 'CALAX', 'CAVITEX', 'SKYWAY', 'MCX']) {
+    const road = southLuzonRoads.find(row => row.highway === highway);
+    const route = { geometry: 'fixture', extras: { waycategory: { values: [[0, road.coordinates.length - 1, 3]] } } };
+    const sections = tollSections(route, () => road.coordinates, southLuzonRoads);
+    assert.equal(sections.length, 1);
+    assert.equal(sections[0].highway, highway);
+    assert.deepEqual(sections[0].entry, road.coordinates[0]);
+    assert.deepEqual(sections[0].exit, road.coordinates.at(-1));
+
+    // Off-corridor samples fail closed
+    const a = road.coordinates[0], b = road.coordinates[1];
+    assert.equal(mappedHighway([a[0] + 0.05, a[1]], [b[0] + 0.05, b[1]], southLuzonRoads), null);
+  }
+});
+
+test('fail-closed: ambiguous multi-corridor overlap returns null instead of guessing', () => {
+  const overlap = [
+    { highway: 'SLEX', coordinates: [[121.0428, 14.4175], [121.04325, 14.4102]] },
+    { highway: 'SKYWAY', coordinates: [[121.0428, 14.4175], [121.04325, 14.4102]] }
+  ];
+  assert.equal(mappedHighway([121.0428, 14.4175], [121.04325, 14.4102], overlap), null);
 });

@@ -359,6 +359,7 @@ test('calculateRoute falls back to ordinary road routing when corridor lacks sub
   assert.equal(formState.distanceKm, '425.4');
   assert.equal(formState.estimatedMinutes, '520');
   assert.equal(routeGeo, validGeometry);
+  assert.equal(isCalculating, false);
   assert.match(noticeMsg, /No toll expressway available for this corridor/i);
 });
 
@@ -370,7 +371,6 @@ test('calculateRoute succeeds on ordinary road journeys when strict avoidance fa
   let formState = { usesTollRoad: false, distanceKm: '', estimatedMinutes: '' };
   let routeGeo = null;
   let errorMsg = '';
-  let noticeMsg = '';
 
   const validGeometry = {
     type: 'FeatureCollection',
@@ -383,7 +383,7 @@ test('calculateRoute succeeds on ordinary road journeys when strict avoidance fa
   const scope = {
     setIsCalculatingRoute: () => {},
     setRouteError: err => { errorMsg = err; },
-    setRouteNotice: n => { noticeMsg = n; },
+    setRouteNotice: () => {},
     setRouteGeoJSON: geo => { routeGeo = geo; },
     setForm: updater => { formState = updater(formState); },
     confirmedPickup: { lat: 14.823, lng: 120.901 },
