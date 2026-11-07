@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "../context/AuthContext";
 import { useIdleTimeout } from '../hooks/useIdleTimeout';
+import './mainLayout.css';
 
 export default function MainLayout({ children }) {
   const navigate = useNavigate();

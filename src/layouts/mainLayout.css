@@ -1,0 +1,34 @@
+/* ==========================================================================
+   MAIN APPLICATION LAYOUT SPECIFICATION
+   Ensures the 260px fixed sidebar and main scrollable content area are always
+   properly positioned and responsive across all lazy-loaded routes.
+   ========================================================================== */
+
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #F8FAFC;
+  position: relative;
+}
+
+.main {
+  margin-left: 260px;
+  min-height: 100vh;
+  width: calc(100% - 260px);
+  display: flex;
+  flex-direction: column;
+  background-color: #F8FAFC;
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.content {
+  padding: 32px 40px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  pointer-events: auto;
+  position: relative;
+  flex: 1 1 auto;
+}
+
