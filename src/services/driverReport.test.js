@@ -63,6 +63,31 @@ test('loader fails visibly if any required table is inaccessible', async () => {
   scope.fetchOperationalRows = async table => { if (table === 'delivery_incidents') throw new Error('Denied'); return []; };
   await assert.rejects(scope.load(), /Denied/);
 });
+test('driver report loader pushes Philippine date-bound filters for shipments and incidents', async () => {
+  const source = fs.readFileSync(new URL('./driverReportService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  const filterCalls = [];
+  const scope = {
+    fetchOperationalRows: async (table, cols, filter) => {
+      if (filter && typeof filter === 'function') {
+        const query = {
+          gte(col, val) { filterCalls.push([table, 'gte', col, val]); return query; },
+          lte(col, val) { filterCalls.push([table, 'lte', col, val]); return query; },
+        };
+        filter(query);
+      }
+      return [];
+    },
+  };
+  vm.createContext(scope); vm.runInContext(source + '\nthis.load=getDriverReportRecords;', scope);
+  const range = { start: '2026-10-01', end: '2026-10-31' };
+  await scope.load(range);
+  assert.deepEqual(filterCalls, [
+    ['shipments', 'gte', 'created_at', '2026-10-01T00:00:00+08:00'],
+    ['shipments', 'lte', 'created_at', '2026-10-31T23:59:59.999+08:00'],
+    ['delivery_incidents', 'gte', 'created_at', '2026-10-01T00:00:00+08:00'],
+    ['delivery_incidents', 'lte', 'created_at', '2026-10-31T23:59:59.999+08:00'],
+  ]);
+});
 test('driver page renders pagination, search/status resets, real expanded incidents and error states', async () => {
   const { transformWithOxc } = await import('vite');
   const data = { loading: true, data: null, error: null, refresh() {} };
@@ -93,4 +118,44 @@ test('driver page renders pagination, search/status resets, real expanded incide
   assert.equal(find(tree, 'Link').find(l => l.children.includes('View shipment')).props.to, '/shipment?tab=all&record=s');
   find(tree, 'select')[0].props.onChange({ target: { value: 'available' } });
   assert.match(JSON.stringify(render()), /No matching driver data/);
+});
+
+test('driver page exports CSV and PDF via split button', async () => {
+  const { transformWithOxc } = await import('vite');
+  let exportedArgs = null;
+  const data = { loading: false, data: empty(), error: null, refresh() {} };
+  const state = []; let index = 0;
+  const scope = {
+    ReportSchedule() {}, useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange,
+    useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key),
+    downloadReport: (...args) => { exportedArgs = args; },
+    buildDriverReport,
+    Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', Fragment: 'Fragment',
+    useRef: () => ({ current: null }), useEffect() {},
+    useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
+    React: { Fragment: 'Fragment', createElement: (type, props, ...children) => ({ type, props: props || {}, children }) }
+  };
+  const path = new URL('../pages/Report/DriverReport/driverReport.jsx', import.meta.url);
+  const { code } = await transformWithOxc(fs.readFileSync(path, 'utf8'), path.pathname, { jsx: { runtime: 'classic' } });
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.Page=DriverReport;', scope);
+  const render = () => { index = 0; return scope.Page(); };
+  const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
+
+  // Primary CSV click
+  let tree = render();
+  const mainBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
+  mainBtn.props.onClick();
+  assert.equal(exportedArgs[0], 'Drivers');
+  assert.equal(exportedArgs[4], 'csv');
+
+  // Toggle dropdown
+  const toggleBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-toggle'));
+  toggleBtn.props.onClick();
+  tree = render();
+  const pdfItem = find(tree, 'button').find(b => b.children && b.children.includes('Export PDF'));
+  assert.ok(pdfItem, 'Export PDF button rendered in dropdown menu');
+  pdfItem.props.onClick();
+  assert.equal(exportedArgs[0], 'Drivers');
+  assert.equal(exportedArgs[4], 'pdf');
 });

@@ -137,3 +137,58 @@
 .reports-page .report-scope-note p { margin: 0; }
 .reports-page :is(.ov-stats, .sr-stats, .dr-stats, .revenue-report-live > .stats) { margin-top: 0; }
 @media (max-width: 700px) { .reports-page .report-scope-note { min-height: 0; } }
+
+/* Export Split Button & Dropdown Options */
+.report-export-split {
+  display: inline-flex;
+  vertical-align: middle;
+  position: relative;
+}
+.report-export-split .report-export-main {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+.report-export-split .report-export-toggle {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  padding-left: 9px !important;
+  padding-right: 9px !important;
+  font-size: 11px !important;
+  cursor: pointer;
+}
+.report-export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  min-width: 145px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.report-export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1e293b;
+  font: 500 13px/18px system-ui, -apple-system, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+.report-export-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}

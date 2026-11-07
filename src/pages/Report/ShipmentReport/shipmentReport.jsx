@@ -1,7 +1,7 @@
 import ReportSchedule from '../../../components/ReportSchedule';
 import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from 'react-router-dom';
 import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
@@ -64,7 +64,6 @@ const formatTime = value => value && Number.isFinite(Date.parse(value)) ? new In
 
 /* ---------- Page ---------- */
 export default function ShipmentReport() {
-  const live = useLiveData(getShipmentReportRecords, SHIPMENT_REPORT_TABLES);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [customRange, setCustomRange] = useState(null);
@@ -73,17 +72,30 @@ export default function ShipmentReport() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [page, setPage] = useState(1);
   const customPickerRef = useRef(null);
+  const exportMenuRef = useRef(null);
+
+  const range = useReportRange(activeRange, customRange);
+  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const loadData = memoCallback(() => getShipmentReportRecords(range), [range.start, range.end]);
+  const live = useLiveData(loadData, SHIPMENT_REPORT_TABLES);
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (customPickerRef.current && !customPickerRef.current.contains(e.target)) {
         setShowCustomPicker(false);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
     }
     function handleEscape(e) {
-      if (e.key === "Escape") setShowCustomPicker(false);
+      if (e.key === "Escape") {
+        setShowCustomPicker(false);
+        setShowExportMenu(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
@@ -107,7 +119,6 @@ export default function ShipmentReport() {
     setPage(1);
   };
 
-  const range = useReportRange(activeRange, customRange);
   const report = buildShipmentReport(live.data?.shipments || [], live.data?.deliveries || [], range, search, status);
   const hasData = !!live.data;
   const b = report.breakdown;
@@ -141,7 +152,55 @@ export default function ShipmentReport() {
             <p>Comprehensive analysis of delivery performance and volume.</p>
           </div>
           <div className="sr-actions">
-            <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button><button className="sr-btn sr-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Shipments', range, report, { search, status })}>Export CSV</button><ReportSchedule type="Shipments" />
+            <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button>
+            <div className="report-export-split" ref={exportMenuRef}>
+              <button
+                type="button"
+                className="sr-btn sr-btn-primary report-export-main"
+                disabled={!live.data || !!live.error}
+                onClick={() => downloadReport('Shipments', range, report, { search, status }, 'csv')}
+              >
+                Export CSV
+              </button>
+              <button
+                type="button"
+                className="sr-btn sr-btn-primary report-export-toggle"
+                disabled={!live.data || !!live.error}
+                aria-label="Export format options"
+                aria-haspopup="true"
+                aria-expanded={showExportMenu}
+                onClick={() => setShowExportMenu(prev => !prev)}
+              >
+                ▾
+              </button>
+              {showExportMenu && (
+                <div className="report-export-menu" role="menu">
+                  <button
+                    type="button"
+                    className="report-export-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      downloadReport('Shipments', range, report, { search, status }, 'csv');
+                    }}
+                  >
+                    Export CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="report-export-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      downloadReport('Shipments', range, report, { search, status }, 'pdf');
+                    }}
+                  >
+                    Export PDF
+                  </button>
+                </div>
+              )}
+            </div>
+            <ReportSchedule type="Shipments" />
           </div>
         </div>
 

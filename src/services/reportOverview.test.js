@@ -15,6 +15,30 @@ test('report loader retains live fleet counts and propagates inaccessible data',
   scope.fetchOperationalRows = async () => { throw new Error('Permission denied'); };
   await assert.rejects(scope.load(), /Permission denied/);
 });
+test('report loader pushes Philippine date-bound filters for shipments when range is provided', async () => {
+  const source = fs.readFileSync(new URL('./reportOverviewService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  const filterCalls = [];
+  const scope = {
+    calculateDashboardAnalytics, getTruckComplianceRows: async () => [], getDriverComplianceRows: async () => [],
+    fetchOperationalRows: async (table, cols, filter) => {
+      if (filter && typeof filter === 'function') {
+        const query = {
+          gte(col, val) { filterCalls.push([table, 'gte', col, val]); return query; },
+          lte(col, val) { filterCalls.push([table, 'lte', col, val]); return query; },
+        };
+        filter(query);
+      }
+      return table === 'trucks' ? [{ id: 't', status: 'available' }] : [];
+    },
+  };
+  vm.createContext(scope); vm.runInContext(source + '\nthis.load = getReportOverview;', scope);
+  const range = { start: '2026-10-01', end: '2026-10-31' };
+  await scope.load(range);
+  assert.deepEqual(filterCalls, [
+    ['shipments', 'gte', 'created_at', '2026-10-01T00:00:00+08:00'],
+    ['shipments', 'lte', 'created_at', '2026-10-31T23:59:59.999+08:00'],
+  ]);
+});
 test('Philippine date boundaries and calendar ranges', () => {
   const now = Date.parse('2026-01-01T17:00:00Z');
   assert.deepEqual(reportRange('today', null, null, now), { start: '2026-01-02', end: '2026-01-02' });

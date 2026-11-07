@@ -1,7 +1,7 @@
 import ReportSchedule from '../../../components/ReportSchedule';
 import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
 import ReportTopbar from '../../../components/ReportTopbar';
@@ -10,6 +10,7 @@ import { reportRange } from '../../../services/reportOverview.js';
 import { buildRevenueReport } from '../../../services/revenueReport.js';
 import { getRevenueReportRecords, REVENUE_REPORT_TABLES } from '../../../services/revenueReportService';
 import './revenueReport.css';
+import '../../../components/reportControls.css';
 
 const money = amount => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(amount);
 const RANGES = [['today', 'Today'], ['thisWeek', 'This Week'], ['thisMonth', 'This Month'], ['last3Months', 'Last 3 Months']];
@@ -33,21 +34,35 @@ function ChargeChart({ trend }) {
 }
 
 export default function RevenueReport() {
-  const live = useLiveData(getRevenueReportRecords, REVENUE_REPORT_TABLES);
   const [activeRange, setActiveRange] = useState('thisMonth');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [appliedCustom, setAppliedCustom] = useState(null);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [rangeError, setRangeError] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [costPage, setCostPage] = useState(1);
   const customPickerRef = useRef(null);
+  const exportMenuRef = useRef(null);
+
+  const range = useReportRange(activeRange, appliedCustom);
+  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const loadData = memoCallback(() => getRevenueReportRecords(range), [range.start, range.end]);
+  const live = useLiveData(loadData, REVENUE_REPORT_TABLES);
 
   useEffect(() => {
-    const outside = event => { if (!customPickerRef.current?.contains(event.target)) setShowCustomPicker(false); };
-    const escape = event => { if (event.key === 'Escape') setShowCustomPicker(false); };
+    const outside = event => {
+      if (!customPickerRef.current?.contains(event.target)) setShowCustomPicker(false);
+      if (!exportMenuRef.current?.contains(event.target)) setShowExportMenu(false);
+    };
+    const escape = event => {
+      if (event.key === 'Escape') {
+        setShowCustomPicker(false);
+        setShowExportMenu(false);
+      }
+    };
     document.addEventListener('mousedown', outside);
     document.addEventListener('keydown', escape);
     return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); };
@@ -59,7 +74,6 @@ export default function RevenueReport() {
       setActiveRange('custom'); setShowCustomPicker(false); setRangeError(''); setPage(1); setCostPage(1);
     } catch (error) { setRangeError(error.message); }
   }
-  const range = useReportRange(activeRange, appliedCustom);
   const report = buildRevenueReport(live.data || EMPTY, range);
   const hasData = !!live.data;
   const routes = report.routes.filter(r => r.route.toLowerCase().includes(search.trim().toLowerCase()));
@@ -83,7 +97,20 @@ export default function RevenueReport() {
     <section className="content revenue-report-live">
       <div className="report-controls"><div className="header-row">
         <div><h2>Reports — Revenue</h2><p>Review recorded charges, payments, costs, customers, and routes.</p></div>
-        <div className="report-actions"><button className="secondary-btn" onClick={live.refresh}>Refresh</button><button className="primary-btn" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes }, { search })}>Export CSV</button><ReportSchedule type="Revenue" /></div>
+        <div className="report-actions">
+          <button className="secondary-btn" onClick={live.refresh}>Refresh</button>
+          <div className="report-export-split" ref={exportMenuRef}>
+            <button type="button" className="primary-btn report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes }, { search }, 'csv')}>Export CSV</button>
+            <button type="button" className="primary-btn report-export-toggle" disabled={!live.data || !!live.error} aria-label="Export format options" aria-haspopup="true" aria-expanded={showExportMenu} onClick={() => setShowExportMenu(prev => !prev)}>▾</button>
+            {showExportMenu && (
+              <div className="report-export-menu" role="menu">
+                <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Revenue', range, { ...report, routes }, { search }, 'csv'); }}>Export CSV</button>
+                <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Revenue', range, { ...report, routes }, { search }, 'pdf'); }}>Export PDF</button>
+              </div>
+            )}
+          </div>
+          <ReportSchedule type="Revenue" />
+        </div>
       </div>
       <div className="filters">
         {RANGES.map(([key, label]) => <button key={key} className={`filter ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustomPicker(false); setPage(1); setCostPage(1); }}>{label}</button>)}
