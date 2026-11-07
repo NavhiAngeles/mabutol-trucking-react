@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
+import { downloadCustomerExport } from "../../services/customerExport";
 
 const PAGE_SIZE = 10;
 
@@ -18,7 +19,9 @@ export default function Customer() {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
   const [historyCustomerId, setHistoryCustomerId] = useState(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const menuRef = useRef(null);
+  const exportMenuRef = useRef(null);
   const { customers: records, bookings, loading, error, refresh } = useCustomerDirectory({ includeBookings: true });
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -52,34 +55,42 @@ export default function Customer() {
     if (!value) setDebouncedQuery("");
   };
   const countLabel = value => loading || error ? "—" : value;
-  const exportCustomers = () => {
+  const handleExport = (format = "csv") => {
+    setShowExportMenu(false);
     const exportMatches = query && query !== activeSearchQuery
       ? filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly })
       : filtered;
-    const cell = value => {
-      const text = String(value ?? "");
-      const safe = /^[=+\-@\t\r]/.test(text.trimStart()) ? `'${text}` : text;
-      return `"${safe.replaceAll('"', '""')}"`;
-    };
-    const lines = [ ["Customer ID", "Name", "Email", "Phone", "Bookings", "Last booking", "Member since", "Status"],
-      ...exportMatches.map(row => [row.customer_code || row.id, row.name, row.email, row.phone, row.bookingCount, row.lastBooking, row.memberSince, row.status]),
-    ];
-    const url = URL.createObjectURL(new Blob(["\uFEFF" + lines.map(line => line.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url; link.download = "mabutol-customers.csv";
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+    if (!exportMatches.length) return;
+    downloadCustomerExport(exportMatches, format, {
+      query: activeSearchQuery,
+      status: statusFilter,
+      sort,
+      todayOnly,
+    });
   };
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpenMenuId(null);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    }
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        setOpenMenuId(null);
+        setShowExportMenu(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // Lock body scroll when modal is open
@@ -122,7 +133,48 @@ export default function Customer() {
             <h2 className="page-title">Customers</h2>
             <p className="page-subtitle">View and monitor registered customers.</p>
           </div>
-          <button className="btn-export" disabled={loading || Boolean(error) || !filtered.length} onClick={exportCustomers}>📥 Export</button>
+          <div className="customer-export-container" ref={exportMenuRef}>
+            <button
+              type="button"
+              className="btn-export"
+              disabled={loading || Boolean(error) || !filtered.length}
+              aria-haspopup="true"
+              aria-expanded={showExportMenu}
+              onClick={() => setShowExportMenu((open) => !open)}
+              title="Export customer list to CSV or PDF"
+            >
+              <span>📥 Export</span>
+              <span className={`export-chevron ${showExportMenu ? "open" : ""}`} aria-hidden="true">▾</span>
+            </button>
+            {showExportMenu && (
+              <div className="customer-export-menu" role="menu" aria-label="Export options">
+                <button
+                  type="button"
+                  className="customer-export-menu-item"
+                  role="menuitem"
+                  onClick={() => handleExport("csv")}
+                >
+                  <span className="export-menu-icon" aria-hidden="true">📊</span>
+                  <div className="export-menu-text">
+                    <span className="export-menu-title">Export as CSV</span>
+                    <span className="export-menu-desc">Spreadsheet data (.csv)</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="customer-export-menu-item"
+                  role="menuitem"
+                  onClick={() => handleExport("pdf")}
+                >
+                  <span className="export-menu-icon" aria-hidden="true">📄</span>
+                  <div className="export-menu-text">
+                    <span className="export-menu-title">Export as PDF</span>
+                    <span className="export-menu-desc">Print-ready document (.pdf)</span>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="stats-container">

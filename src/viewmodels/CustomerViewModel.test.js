@@ -118,6 +118,7 @@ test("customer page renders loading/empty/error/live states and real profile act
   const scope = {
     ...context.api, useCustomerDirectory: () => directory,
     useNavigate: () => () => {}, MainLayout: "Layout", OfficeTools: "OfficeTools", CustomerEditDialog: "CustomerEditDialog",
+    downloadCustomerExport: () => {},
     useAuth: () => ({ user: { id: "office-a" }, role: officeRole }),
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial; return [states[i], value => states[i] = typeof value === "function" ? value(states[i]) : value]; },
     useMemo: fn => fn(), useRef: () => ({ current: null }), useEffect() {},
