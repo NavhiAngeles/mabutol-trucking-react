@@ -957,3 +957,411 @@
  .office-user-management .um-pagination { justify-content: center; }
  .office-user-management .modal-overlay { padding: 12px; }
 }
+
+
+/* =========================
+   AUDIT & ACTIVITY LOG MODAL
+========================= */
+.office-user-management .modal.um-audit-modal {
+  width: min(1120px, 96vw);
+  max-height: 90vh;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.35);
+}
+
+.office-user-management .um-audit-modal .modal-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.office-user-management .um-audit-subtitle {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.office-user-management .um-audit-body {
+  padding: 0;
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.office-user-management .um-audit-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 2px 0 4px;
+}
+
+.office-user-management .um-audit-toolbar label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.office-user-management .um-audit-toolbar .um-search {
+  flex: 1;
+  min-width: min(280px, 100%);
+  max-width: 480px;
+}
+
+.office-user-management .um-audit-toolbar .um-action-filter {
+  min-width: 150px;
+}
+
+.office-user-management .um-audit-toolbar :is(input, select) {
+  width: 100%;
+  max-width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font: 400 14px/20px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.office-user-management .um-audit-toolbar :is(input, select):focus {
+  border-color: #0f172a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+.office-user-management .um-audit-toolbar .um-refresh {
+  margin-left: auto;
+  min-height: 42px;
+  padding: 10px 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1e293b;
+  font: 600 13px/20px system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.office-user-management .um-audit-toolbar .um-refresh:not(:disabled):hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.office-user-management .um-audit-toolbar .um-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.office-user-management .um-audit-table-card {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: auto;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.office-user-management .um-audit-table {
+  width: 100%;
+  min-width: 940px;
+  font-size: 13px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.office-user-management .um-audit-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f8fafc;
+  padding: 12px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.office-user-management .um-audit-table td {
+  padding: 12px 18px;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.office-user-management .um-audit-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.office-user-management .um-audit-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.office-user-management .um-audit-time {
+  white-space: nowrap;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  min-width: 165px;
+}
+
+.office-user-management .um-audit-table .user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+}
+
+.office-user-management .um-audit-table .user-cell strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.office-user-management .um-audit-table .user-cell p {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.office-user-management .um-audit-role {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.office-user-management .um-audit-badge {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.office-user-management .um-audit-badge.um-audit-create,
+.office-user-management .um-audit-badge.um-audit-insert {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.office-user-management .um-audit-badge.um-audit-update {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.office-user-management .um-audit-badge.um-audit-delete {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.office-user-management .um-audit-badge.um-audit-suspend,
+.office-user-management .um-audit-badge.um-audit-deactivate {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.office-user-management .um-audit-badge.um-audit-login,
+.office-user-management .um-audit-badge.um-audit-auth {
+  background: #faf5ff;
+  color: #7e22ce;
+  border-color: #e9d5ff;
+}
+
+.office-user-management .um-audit-target-wrapper {
+  max-width: 220px;
+}
+
+.office-user-management .um-audit-target {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  padding: 3px 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #1e293b;
+  font-weight: 500;
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.office-user-management .um-audit-metadata-cell {
+  max-width: 380px;
+  min-width: 260px;
+}
+
+.office-user-management .um-audit-details-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.office-user-management .um-audit-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.office-user-management .um-audit-details-summary {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: #334155;
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.office-user-management .um-audit-toggle-btn {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+  transition: all 0.15s ease;
+}
+
+.office-user-management .um-audit-toggle-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.office-user-management .um-audit-details {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #0f172a;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.office-user-management .um-audit-muted {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.office-user-management .um-audit-status {
+  padding: 32px 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.office-user-management .modal-footer.um-audit-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.office-user-management .um-audit-footer .um-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.office-user-management .um-audit-footer .um-pagination button {
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  font: 500 13px/18px system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.office-user-management .um-audit-footer .um-pagination button:not(:disabled):hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.office-user-management .um-audit-footer .um-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.office-user-management .um-audit-footer .secondary-btn {
+  min-height: 34px;
+  padding: 6px 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font: 600 13px/18px system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.office-user-management .um-audit-footer .secondary-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}

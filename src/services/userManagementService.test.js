@@ -7,17 +7,22 @@ function setup(options={}) {
   const calls=[];
   const client={
     auth:{getUser:async()=>({data:{user:options.noUser?null:{id:'caller'}}})},
-    from(table){assert.equal(table,'users');let id;const q={select:()=>q,eq:(_,value)=>{id=value;return q;},
+    from(table){
+      if(table==='activity_logs'){
+        const q={select:()=>q,order:()=>q,limit:async(limit)=>{calls.push(['activity_logs_limit',limit]);return{data:options.activityLogs||[],error:options.activityLogsError};}};
+        return q;
+      }
+      assert.equal(table,'users');let id;const q={select:()=>q,eq:(_,value)=>{id=value;return q;},
       single:async()=>({data:id==='new'?(options.savedRow||{id:'new',email:'fixture@example.test',role:'staff',is_active:true}):{role:options.role||'admin',is_active:options.active!==false},error:id==='new'?options.savedReadError:options.profileError}),
-      in:(...args)=>{calls.push(['roles',...args]);return q;},order:()=>q,
+      in:(...args)=>{calls.push(['roles',...args]);if(args[0]==='id'){return{data:options.actorUsers||[{id:'caller',full_name:'Admin User',email:'admin@example.test',role:'admin'}],error:null};}return q;},order:()=>q,
       range:async(start,end)=>{calls.push(['range',start,end]);return{data:(options.rows||[]).slice(start,end+1),error:options.loadError};},
     };return q;},
     rpc:async(name,args)=>{calls.push(['rpc',name,args]);return{data:options.noConfirmation?null:args.p_id,error:options.saveError};},
     functions:{invoke:async(name,args)=>{calls.push(['invoke',name,args]);return{data:options.noConfirmation?null:args.body.action==='capabilities'?{officePhoneEnrollment:!options.legacyBackend}:options.functionData||{userId:'new',recoveryPhone:args.body.phone},error:options.functionError};}},
   };
   const scope=vm.createContext({supabase:client,normalizeOfficePhone});
-  vm.runInContext(fs.readFileSync(new URL('./userManagementService.js',import.meta.url),'utf8').replace(/^import .*;$/gm,'').replace(/^export /gm,'')+'\nthis.api=userManagementService(supabase);',scope);
-  return{api:scope.api,calls};
+  vm.runInContext(fs.readFileSync(new URL('./userManagementService.js',import.meta.url),'utf8').replace(/^import .*;$/gm,'').replace(/^export /gm,'')+'\nthis.api=userManagementService(supabase);this.redactMetadata=redactMetadata;this.formatAuditTimestamp=formatAuditTimestamp;',scope);
+  return{api:scope.api,calls,redactMetadata:scope.redactMetadata,formatAuditTimestamp:scope.formatAuditTimestamp};
 }
 test('office directory paginates beyond500, filters roles, preserves own authenticated caller',async()=>{
   const {api,calls}=setup({rows:Array.from({length:501},(_,i)=>({id:String(i)}))});const result=await api.load();
@@ -68,4 +73,97 @@ test('recovery enrollment uses admin endpoint and expected Auth number, not publ
   assert.equal(requests[0].action,'get_recovery_phone');assert.equal(requests[1].action,'set_recovery_phone');assert.equal(requests[1].expectedPhone,null);
   assert.equal(requests[1].phone,'+639171234567');assert.ok(!calls.some(c=>c[0]==='rpc'));
   await assert.rejects(setup({role:'staff'}).api.recoveryPhone({id:'target'}),/administrators/);
+});
+
+test('redactMetadata neutralizes passwords, tokens, auth headers and private payloads recursively', () => {
+  const { redactMetadata } = setup();
+  assert.equal(redactMetadata(null), null);
+  assert.equal(redactMetadata(undefined), null);
+  assert.equal(redactMetadata('normal text'), 'normal text');
+  assert.equal(redactMetadata('Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.token'), '[REDACTED]');
+
+  const sensitive = {
+    user: 'Juan',
+    password: 'plain_password',
+    initial_password: 'secret_initial',
+    newPassword: 'new_secret_password',
+    confirm_password: 'confirm_secret',
+    token: 'jwt_token_value',
+    access_token: 'access_token_value',
+    refresh_token: 'refresh_token_value',
+    apiKey: 'sk-1234567890',
+    secret: 'api_secret_key',
+    sms_code: '123456',
+    pin: 4321,
+    nested: {
+      passwordHash: '$2b$10$abcdefghij',
+      bearer: 'Bearer secret_auth_string',
+      safeNumber: 42,
+      safeRole: 'staff',
+    },
+    rawJson: JSON.stringify({ password: 'in_string_json', target: 'users' }),
+  };
+
+  const cleaned = redactMetadata(sensitive);
+  assert.equal(cleaned.user, 'Juan');
+  assert.equal(cleaned.password, '[REDACTED]');
+  assert.equal(cleaned.initial_password, '[REDACTED]');
+  assert.equal(cleaned.newPassword, '[REDACTED]');
+  assert.equal(cleaned.confirm_password, '[REDACTED]');
+  assert.equal(cleaned.token, '[REDACTED]');
+  assert.equal(cleaned.access_token, '[REDACTED]');
+  assert.equal(cleaned.refresh_token, '[REDACTED]');
+  assert.equal(cleaned.apiKey, '[REDACTED]');
+  assert.equal(cleaned.secret, '[REDACTED]');
+  assert.equal(cleaned.sms_code, '[REDACTED]');
+  assert.equal(cleaned.pin, '[REDACTED]');
+  assert.equal(cleaned.nested.passwordHash, '[REDACTED]');
+  assert.equal(cleaned.nested.bearer, '[REDACTED]');
+  assert.equal(cleaned.nested.safeNumber, 42);
+  assert.equal(cleaned.nested.safeRole, 'staff');
+  assert.equal(cleaned.rawJson.password, '[REDACTED]');
+  assert.equal(cleaned.rawJson.target, 'users');
+});
+
+test('formatAuditTimestamp formats dates in Philippine timezone (Asia/Manila)', () => {
+  const { formatAuditTimestamp } = setup();
+  assert.equal(formatAuditTimestamp(null), 'Unavailable');
+  assert.equal(formatAuditTimestamp('invalid-date'), 'Invalid date');
+  const formatted = formatAuditTimestamp('2026-10-24T12:00:00Z');
+  // 12:00 UTC is 20:00 (8:00 PM) in Philippine time (+08:00)
+  assert.match(formatted, /2026/);
+  assert.match(formatted, /8:00/);
+  assert.match(formatted, /PM/i);
+});
+
+test('auditLogs requires active admin and enriches actor and redacted metadata', async () => {
+  const stamp = '2026-10-24T12:00:00Z';
+  const logs = [
+    { id: 101, action: 'SET_PASSWORD', entity_type: 'users', entity_id: 'target-1', user_id: 'caller', created_at: stamp, details: { password: 'secret_pass_123', target: 'u1' } },
+    { id: 102, action: 'DELETE', entity_type: 'shipments', entity_id: 'ship-99', user_id: null, created_at: stamp, details: null },
+  ];
+  const { api, calls } = setup({ activityLogs: logs });
+  const result = await api.auditLogs();
+
+  assert.equal(result.length, 2);
+  assert.equal(result[0].id, '101');
+  assert.equal(result[0].action, 'SET_PASSWORD');
+  assert.equal(result[0].target, 'users #target-1');
+  assert.equal(result[0].actor.name, 'Admin User');
+  assert.equal(result[0].details.password, '[REDACTED]');
+  assert.equal(result[0].details.target, 'u1');
+  assert.match(result[0].philippineTime, /8:00/);
+
+  assert.equal(result[1].id, '102');
+  assert.equal(result[1].actor.name, 'System');
+  assert.equal(result[1].target, 'shipments #ship-99');
+  assert.equal(result[1].details, null);
+
+  assert.ok(calls.some(c => c[0] === 'activity_logs_limit' && c[1] === 500));
+});
+
+test('auditLogs denies staff, inactive caller, and handles query failure', async () => {
+  await assert.rejects(setup({ role: 'staff' }).api.auditLogs(), /administrators/);
+  await assert.rejects(setup({ active: false }).api.auditLogs(), /administrators/);
+  await assert.rejects(setup({ activityLogsError: Error('DB connection failed') }).api.auditLogs(), /DB connection failed/);
 });

@@ -19,7 +19,8 @@ async function screen(api={}){
  });
  vm.runInContext(code.replace(/^import .*;$/gm,'').replace(/export default function/g,'function')+'\nthis.Component=OfficeUsers;',scope);
  const render=()=>{si=ri=0;return scope.Component();};render();effects.slice(0,2).forEach(fn=>fn());await new Promise(resolve=>setImmediate(resolve));
- return{render,button:label=>find(render(),n=>n.type==='button'&&n.children.includes(label))[0],submit:()=>find(render(),n=>n.type==='form')[0].props.onSubmit({preventDefault(){}})};
+ const flush=async()=>{const unrun=[...effects];effects.length=0;unrun.forEach(fn=>fn());await new Promise(resolve=>setImmediate(resolve));};
+ return{render,button:label=>find(render(),n=>n.type==='button'&&n.children.includes(label))[0],submit:()=>find(render(),n=>n.type==='form')[0].props.onSubmit({preventDefault(){}}),flush,find};
 }
 test('uses real directory data; self activation/password and permanent delete are unavailable',async()=>{
  const ui=await screen();assert.ok(JSON.stringify(ui.render()).includes('Fixture Admin'));assert.equal(ui.button('Deactivate').props.disabled,true);assert.equal(ui.button('Set Password').props.disabled,true);assert.equal(ui.button('Delete unavailable').props.disabled,true);
@@ -70,4 +71,190 @@ test('short initial password produces an explicit not-created error; backend err
  for(const i of [3,4]){find(find(ui.render(),n=>n.type==='form')[0],n=>n.type==='input')[i].props.onChange({target:{value:'fixture-password'}});}
  await ui.submit();assert.equal(calls,1);assert.match(JSON.stringify(ui.render()),/Account was not created/);
  assert.ok(!JSON.stringify(ui.render()).includes('Office account created with'));assert.ok(find(ui.render(),n=>n.type==='input'&&n.props.value==='fixture@example.test').length);
+});
+
+test('Audit & Activity Log button opens modal, loads authorized records, and closes on Close button', async () => {
+  const sampleLogs = [
+    {
+      id: '1',
+      action: 'UPDATE',
+      target: 'users #caller',
+      actor: { id: 'caller', name: 'Fixture Admin', email: 'fixture@example.test', role: 'admin' },
+      philippineTime: 'Oct 24, 2026, 8:00 PM',
+      details: { role: 'admin', updated_at: 'version' },
+    },
+  ];
+  let calls = 0;
+  const ui = await screen({ auditLogs: async () => { calls++; return sampleLogs; } });
+  assert.ok(ui.button('Audit & Activity Log'));
+  ui.button('Audit & Activity Log').props.onClick();
+  await ui.flush();
+
+  assert.equal(calls, 1);
+  const treeStr = JSON.stringify(ui.render());
+  assert.match(treeStr, /Audit & Activity Log/);
+  assert.match(treeStr, /Authorized records from system activity logs/);
+  assert.match(treeStr, /Fixture Admin/);
+  assert.match(treeStr, /UPDATE/);
+  assert.match(treeStr, /users #caller/);
+  assert.match(treeStr, /Oct 24, 2026, 8:00 PM/);
+
+  // Close modal
+  ui.button('Close').props.onClick();
+  assert.ok(!JSON.stringify(ui.render()).includes('Authorized records from system activity logs'));
+});
+
+test('Audit log search filters records across actor, action, target and details', async () => {
+  const sampleLogs = [
+    { id: '1', action: 'CREATE', target: 'shipments #trk-100', actor: { name: 'Staff User', email: 'staff@example.test', role: 'staff' }, philippineTime: 'Oct 24, 2026, 8:00 PM', details: { tracking: 'trk-100' } },
+    { id: '2', action: 'SUSPEND', target: 'customers #cust-200', actor: { name: 'Admin User', email: 'admin@example.test', role: 'admin' }, philippineTime: 'Oct 24, 2026, 8:15 PM', details: { reason: 'Overdue bill' } },
+  ];
+  const ui = await screen({ auditLogs: async () => sampleLogs });
+  ui.button('Audit & Activity Log').props.onClick();
+  await ui.flush();
+
+  const searchInput = ui.find(ui.render(), n => n.type === 'input' && n.props.type === 'search')[0];
+  assert.ok(searchInput);
+
+  // Search by action
+  searchInput.props.onChange({ target: { value: 'SUSPEND' } });
+  let tree = JSON.stringify(ui.render());
+  assert.match(tree, /customers #cust-200/);
+  assert.ok(!tree.includes('shipments #trk-100'));
+
+  // Search by details
+  searchInput.props.onChange({ target: { value: 'Overdue bill' } });
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /customers #cust-200/);
+  assert.ok(!tree.includes('shipments #trk-100'));
+
+  // Search non-matching
+  searchInput.props.onChange({ target: { value: 'NonexistentKeyword' } });
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /No matching audit logs/);
+});
+
+test('Audit log pagination displays page slices and navigates with Next and Previous', async () => {
+  const sampleLogs = Array.from({ length: 15 }, (_, i) => ({
+    id: String(i + 1),
+    action: 'UPDATE',
+    target: `shipments #s-${i + 1}`,
+    actor: { name: `Staff ${i + 1}`, email: `staff${i + 1}@example.test`, role: 'staff' },
+    philippineTime: 'Oct 24, 2026, 8:00 PM',
+    details: { index: i + 1 },
+  }));
+  const ui = await screen({ auditLogs: async () => sampleLogs });
+  ui.button('Audit & Activity Log').props.onClick();
+  await ui.flush();
+
+  let tree = JSON.stringify(ui.render());
+  assert.match(tree, /Page.*1.*of.*2.*15.*logs/);
+  assert.match(tree, /shipments #s-1/);
+  assert.match(tree, /shipments #s-10/);
+  assert.ok(!tree.includes('shipments #s-11'));
+
+  // Click Next in modal
+  const auditFooter = find(ui.render(), n => n.props.className && n.props.className.includes('um-audit-footer'))[0];
+  const nextBtn = find(auditFooter, n => n.type === 'button' && n.children.includes('Next'))[0];
+  assert.equal(nextBtn.props.disabled, false);
+  nextBtn.props.onClick();
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /Page.*2.*of.*2.*15.*logs/);
+  assert.match(tree, /shipments #s-11/);
+  assert.match(tree, /shipments #s-15/);
+  assert.ok(!tree.includes('shipments #s-1/'));
+
+  // Click Previous in modal
+  const prevBtn = find(find(ui.render(), n => n.props.className && n.props.className.includes('um-audit-footer'))[0], n => n.type === 'button' && n.children.includes('Previous'))[0];
+  assert.equal(prevBtn.props.disabled, false);
+  prevBtn.props.onClick();
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /Page.*1.*of.*2.*15.*logs/);
+});
+
+test('Audit log load failure displays error banner and retry button reloads records', async () => {
+  let attempts = 0;
+  const ui = await screen({
+    auditLogs: async () => {
+      attempts++;
+      if (attempts === 1) throw Error('Network connection timeout');
+      return [{ id: '1', action: 'LOGIN', target: 'office', actor: { name: 'Admin', email: 'admin@test' }, philippineTime: 'Oct 24, 2026', details: null }];
+    },
+  });
+  ui.button('Audit & Activity Log').props.onClick();
+  await ui.flush();
+
+  assert.equal(attempts, 1);
+  let tree = JSON.stringify(ui.render());
+  assert.match(tree, /Network connection timeout/);
+  const retryBtn = ui.button('Retry loading');
+  assert.ok(retryBtn);
+
+  // Click Retry
+  retryBtn.props.onClick();
+  await ui.flush();
+
+  assert.equal(attempts, 2);
+  tree = JSON.stringify(ui.render());
+  assert.ok(!tree.includes('Network connection timeout'));
+  assert.match(tree, /LOGIN/);
+});
+
+test('Audit log action filter and metadata toggle expand and collapse JSON view', async () => {
+  const sampleLogs = [
+    {
+      id: 'log-1',
+      action: 'UPDATE',
+      target: 'users #u-1',
+      actor: { name: 'Admin One', email: 'admin1@example.test', role: 'admin' },
+      philippineTime: 'Nov 07, 2026, 04:00 PM',
+      details: { new: { role: 'driver', email: 'driver@test.ph' } },
+    },
+    {
+      id: 'log-2',
+      action: 'CREATE',
+      target: 'shipments #s-2',
+      actor: { name: 'Staff Two', email: 'staff2@example.test', role: 'staff' },
+      philippineTime: 'Nov 07, 2026, 04:05 PM',
+      details: { tracking: 'TRK-999' },
+    },
+  ];
+
+  const ui = await screen({ auditLogs: async () => sampleLogs });
+  ui.button('Audit & Activity Log').props.onClick();
+  await ui.flush();
+
+  let tree = JSON.stringify(ui.render());
+  assert.match(tree, /role:.*driver/);
+  assert.match(tree, /View JSON/);
+  // Collapsed: pre tag with formatted JSON not visible yet
+  assert.ok(!tree.includes('{"new":{"role"'));
+
+  // Toggle View JSON for log-1
+  assert.equal(find(ui.render(), n => n.type === 'pre').length, 0);
+  const viewJsonBtn = ui.button('View JSON');
+  assert.ok(viewJsonBtn);
+  viewJsonBtn.props.onClick();
+
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /Hide JSON/);
+  assert.equal(find(ui.render(), n => n.type === 'pre').length, 1);
+
+  // Toggle Hide JSON collapses it
+  const hideJsonBtn = ui.button('Hide JSON');
+  assert.ok(hideJsonBtn);
+  hideJsonBtn.props.onClick();
+
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /View JSON/);
+  assert.equal(find(ui.render(), n => n.type === 'pre').length, 0);
+
+  // Test action filter
+  const actionSelect = find(ui.render(), n => n.type === 'select' && n.props['aria-label'] === 'Filter by action')[0];
+  assert.ok(actionSelect);
+  actionSelect.props.onChange({ target: { value: 'CREATE' } });
+
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /shipments #s-2/);
+  assert.ok(!tree.includes('users #u-1'));
 });

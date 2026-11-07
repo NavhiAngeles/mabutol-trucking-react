@@ -5,6 +5,21 @@ import { userManagementApi, validateOfficeCreation } from '../../../services/use
 import './userManagement.css';
 
 const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
+
+function formatDetailsSummary(details) {
+  if (!details || typeof details !== 'object') return String(details ?? '—');
+  const targetObj = details.new && typeof details.new === 'object' ? details.new : details;
+  const entries = Object.entries(targetObj).filter(([k]) => k !== 'id' && !k.endsWith('_id'));
+  if (entries.length === 0) {
+    const keys = Object.keys(details);
+    return keys.length ? keys.join(', ') : 'Empty payload';
+  }
+  return entries
+    .slice(0, 3)
+    .map(([k, v]) => `${k}: ${typeof v === 'object' ? '{…}' : JSON.stringify(v)}`)
+    .join(' · ') + (entries.length > 3 ? ` (+${entries.length - 3} more)` : '');
+}
+
 export default function UserManagement() {
   const { user, role } = useAuth();
   return <SettingsLayout>{role === 'admin' ? <OfficeUsers key={user?.id} /> : <section className="content"><div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div></div><p>Only active administrators can manage office accounts.</p></section>}</SettingsLayout>;
@@ -23,6 +38,13 @@ function OfficeUsers() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
+  const [auditLogs, setAuditLogs] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState('');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditPage, setAuditPage] = useState(0);
+  const [expandedAuditRows, setExpandedAuditRows] = useState({});
+  const [auditActionFilter, setAuditActionFilter] = useState('all');
   const guard = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
@@ -32,13 +54,52 @@ function OfficeUsers() {
       .catch(cause => { if (!disposed) setLoadError(cause.message); });
     return () => { disposed = true; };
   }, [reload]);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    function handleKey(e) { if (e.key === 'Escape') close(); }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
   function refresh() { if (guard.current) return; setSnapshot(null); setLoadError(''); setReload(value => value + 1); }
-  function close() { if (guard.current) return; setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '' })); setError(''); }
+  function close() { if (guard.current) return; setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '' })); setError(''); setExpandedAuditRows({}); }
   function open(kind, row = null) {
     if (guard.current) return;
     setTarget(row); setError('');
     setForm({ fullName: row?.full_name || '', email: row?.email || '', phone: row?.phone || '', role: row?.role || 'staff', active: row?.is_active ?? true, password: '', confirm: '' });
     setModal(kind);
+  }
+  async function openAudit() {
+    if (guard.current) return;
+    setModal('audit');
+    setAuditSearch('');
+    setAuditActionFilter('all');
+    setExpandedAuditRows({});
+    setAuditPage(0);
+    setAuditLoading(true);
+    setAuditError('');
+    try {
+      const data = await userManagementApi.auditLogs();
+      if (mounted.current) setAuditLogs(Array.isArray(data) ? data : []);
+    } catch (cause) {
+      if (mounted.current) setAuditError(cause.message || 'Unable to load audit logs.');
+    } finally {
+      if (mounted.current) setAuditLoading(false);
+    }
+  }
+  function toggleAuditRow(rowId) {
+    setExpandedAuditRows(prev => ({ ...prev, [rowId]: !prev[rowId] }));
+  }
+  async function refreshAudit() {
+    setAuditLoading(true);
+    setAuditError('');
+    try {
+      const data = await userManagementApi.auditLogs();
+      if (mounted.current) setAuditLogs(Array.isArray(data) ? data : []);
+    } catch (cause) {
+      if (mounted.current) setAuditError(cause.message || 'Unable to load audit logs.');
+    } finally {
+      if (mounted.current) setAuditLoading(false);
+    }
   }
   async function openRecovery(row) {
     if (guard.current) return;
@@ -78,8 +139,29 @@ function OfficeUsers() {
   const pages = Math.max(1, Math.ceil(filtered.length / 20));
   const currentPage = Math.min(page, pages - 1);
   const self = target?.id === snapshot?.callerId;
+
+  const searchAuditLower = auditSearch.trim().toLowerCase();
+  const filteredAuditLogs = (auditLogs || []).filter(row => {
+    if (auditActionFilter !== 'all' && String(row.action || '').toUpperCase() !== auditActionFilter.toUpperCase()) {
+      return false;
+    }
+    if (!searchAuditLower) return true;
+    return (
+      (row.actor?.name && String(row.actor.name).toLowerCase().includes(searchAuditLower)) ||
+      (row.actor?.email && String(row.actor.email).toLowerCase().includes(searchAuditLower)) ||
+      (row.action && String(row.action).toLowerCase().includes(searchAuditLower)) ||
+      (row.target && String(row.target).toLowerCase().includes(searchAuditLower)) ||
+      (row.philippineTime && String(row.philippineTime).toLowerCase().includes(searchAuditLower)) ||
+      (row.details && JSON.stringify(row.details).toLowerCase().includes(searchAuditLower))
+    );
+  });
+  const auditPageSize = 10;
+  const auditPages = Math.max(1, Math.ceil(filteredAuditLogs.length / auditPageSize));
+  const currentAuditPage = Math.min(auditPage, auditPages - 1);
+  const visibleAuditLogs = filteredAuditLogs.slice(currentAuditPage * auditPageSize, currentAuditPage * auditPageSize + auditPageSize);
+
   return <section className="content office-user-management">
-    <div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div><div className="header-actions"><button className="secondary-btn" onClick={() => open('roles')}>Role Summary</button><button className="primary-btn" disabled={!snapshot?.provisioningReady || busy} onClick={() => open('create')}>Add Office User</button></div></div>
+    <div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div><div className="header-actions"><button type="button" className="secondary-btn" onClick={() => open('roles')}>Role Summary</button><button type="button" className="secondary-btn" onClick={openAudit}>Audit & Activity Log</button><button type="button" className="primary-btn" disabled={!snapshot?.provisioningReady || busy} onClick={() => open('create')}>Add Office User</button></div></div>
     <div className="um-info-banner"><span className="um-info-icon" aria-hidden="true">i</span><p>Custom module permissions and the “Super Admin” role are not supported. Permanent deletion is unavailable to preserve operational and audit records; deactivate accounts instead. Sign-in history is unavailable here.</p></div>
     {notice && <p role="status" className="um-success">{notice}</p>}
     {snapshot?.provisioningError && <p role="alert" className="um-error-banner">{snapshot.provisioningError}</p>}
@@ -90,7 +172,163 @@ function OfficeUsers() {
         {!filtered.length && <tr><td colSpan={5} className="um-empty">No matching office users.</td></tr>}
         {filtered.slice(currentPage * 20, currentPage * 20 + 20).map(row => <tr key={row.id}><td><div className="user-cell"><span className="user-avatar" aria-hidden="true">{(row.full_name || row.email || '?').slice(0, 2).toUpperCase()}</span><div><strong>{row.full_name || 'Name not set'}</strong><p>{row.email}</p>{row.id === snapshot.callerId && <small className="um-self-badge">Your account</small>}</div></div></td><td><span className={`um-role-badge ${row.role === 'admin' ? 'um-role-admin' : ''}`}>{row.role === 'admin' ? 'Admin' : 'Staff'}</span></td><td>{dateLabel(row.created_at)}</td><td><span className={`um-status-badge ${row.is_active ? 'um-status-active' : ''}`}><span aria-hidden="true">●</span>{row.is_active ? 'Active' : 'Inactive'}</span></td><td><div className="um-row-actions"><button onClick={() => open('details',row)}>View</button><button onClick={() => open('edit',row)}>Edit / Role</button><button title={row.id === snapshot.callerId ? 'Change your password in Account settings' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('password',row)}>Set Password</button><button className={row.is_active ? 'um-action-danger' : ''} title={row.id === snapshot.callerId ? 'Your own account cannot be deactivated here' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('activation',row)}>{row.is_active ? 'Deactivate' : 'Activate'}</button><button disabled={busy} onClick={() => openRecovery(row)}>Recovery Phone</button><button disabled title="Deactivate to preserve linked records">Delete unavailable</button></div></td></tr>)}
       </tbody></table></div><div className="um-pagination"><button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button><span>Page {currentPage + 1} of {pages} · {filtered.length} users</span><button disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>Next</button></div></div></>}
-    {modal && <div className="modal-overlay" onClick={close}><form className="modal" role="dialog" aria-modal="true" noValidate={modal === 'create'} aria-label={modal === 'create' ? 'Create office account' : modal === 'password' ? 'Set account password' : 'Office account details'} onClick={event => event.stopPropagation()} onSubmit={submit}>
+    {modal === 'audit' && (
+      <div className="modal-overlay" onClick={close}>
+        <div
+          className="modal um-audit-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Audit and Activity Log"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="modal-header">
+            <div>
+              <h3>Audit & Activity Log</h3>
+              <p className="um-audit-subtitle">Authorized records from system activity logs (Philippine time)</p>
+            </div>
+            <button type="button" className="modal-close-btn" onClick={close} aria-label="Close">✕</button>
+          </div>
+
+          <div className="modal-body um-audit-body">
+            <div className="um-audit-toolbar">
+              <label className="um-search">
+                <span>Search logs</span>
+                <input
+                  type="search"
+                  placeholder="Search actor, action, target, metadata..."
+                  aria-label="Search audit logs"
+                  value={auditSearch}
+                  onChange={e => { setAuditSearch(e.target.value); setAuditPage(0); }}
+                />
+              </label>
+              <label className="um-action-filter">
+                <span>Action</span>
+                <select
+                  aria-label="Filter by action"
+                  value={auditActionFilter}
+                  onChange={e => { setAuditActionFilter(e.target.value); setAuditPage(0); }}
+                >
+                  <option value="all">All actions</option>
+                  <option value="UPDATE">UPDATE</option>
+                  <option value="CREATE">CREATE</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="SUSPEND">SUSPEND</option>
+                  <option value="LOGIN">LOGIN</option>
+                </select>
+              </label>
+              <button type="button" className="um-refresh" disabled={auditLoading} onClick={refreshAudit}>
+                Refresh logs
+              </button>
+            </div>
+
+            {auditLoading && !auditLogs && <p role="status" className="um-audit-status">Loading audit logs…</p>}
+            {auditError && (
+              <div role="alert" className="um-error-banner">
+                <p>{auditError}</p>
+                <button type="button" onClick={refreshAudit}>Retry loading</button>
+              </div>
+            )}
+
+            {auditLogs && (
+              <div className="table-card um-table-scroll um-audit-table-card">
+                <table className="user-table um-audit-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp (Philippine time)</th>
+                      <th>Actor</th>
+                      <th>Action</th>
+                      <th>Target</th>
+                      <th>Metadata</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!filteredAuditLogs.length && (
+                      <tr>
+                        <td colSpan={5} className="um-empty">No matching audit logs.</td>
+                      </tr>
+                    )}
+                    {visibleAuditLogs.map(row => {
+                      const isExpanded = !!expandedAuditRows[row.id];
+                      return (
+                        <tr key={row.id}>
+                          <td className="um-audit-time">{row.philippineTime}</td>
+                          <td>
+                            <div className="user-cell">
+                              <span className="user-avatar" aria-hidden="true">
+                                {(row.actor?.name || row.actor?.email || '?').slice(0, 2).toUpperCase()}
+                              </span>
+                              <div>
+                                <strong>{row.actor?.name || 'System'}</strong>
+                                {row.actor?.email && <p>{row.actor.email}</p>}
+                                {row.actor?.role && <small className="um-audit-role">{row.actor.role}</small>}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`um-audit-badge um-audit-${String(row.action || '').toLowerCase()}`}>
+                              {row.action}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="um-audit-target-wrapper" title={row.target}>
+                              <code className="um-audit-target">{row.target}</code>
+                            </div>
+                          </td>
+                          <td className="um-audit-metadata-cell">
+                            {row.details && typeof row.details === 'object' && Object.keys(row.details).length > 0 ? (
+                              <div className="um-audit-details-wrap">
+                                <div className="um-audit-details-header">
+                                  <span className="um-audit-details-summary" title={JSON.stringify(row.details)}>
+                                    {formatDetailsSummary(row.details)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="um-audit-toggle-btn"
+                                    onClick={() => toggleAuditRow(row.id)}
+                                    aria-expanded={isExpanded}
+                                  >
+                                    {isExpanded ? 'Hide JSON' : 'View JSON'}
+                                  </button>
+                                </div>
+                                {isExpanded && (
+                                  <pre className="um-audit-details">{JSON.stringify(row.details, null, 2)}</pre>
+                                )}
+                              </div>
+                            ) : row.details != null && typeof row.details !== 'object' ? (
+                              <code className="um-audit-target">{String(row.details)}</code>
+                            ) : (
+                              <span className="um-audit-muted">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="modal-footer um-audit-footer">
+            <div className="um-pagination">
+              <button type="button" disabled={currentAuditPage === 0 || auditLoading} onClick={() => setAuditPage(p => Math.max(0, p - 1))}>
+                Previous
+              </button>
+              <span>
+                Page {currentAuditPage + 1} of {auditPages} · {filteredAuditLogs.length} {filteredAuditLogs.length === 1 ? 'log' : 'logs'}
+              </span>
+              <button type="button" disabled={currentAuditPage + 1 >= auditPages || auditLoading} onClick={() => setAuditPage(p => p + 1)}>
+                Next
+              </button>
+            </div>
+            <button type="button" className="secondary-btn" onClick={close}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    {modal && modal !== 'audit' && <div className="modal-overlay" onClick={close}><form className="modal" role="dialog" aria-modal="true" noValidate={modal === 'create'} aria-label={modal === 'create' ? 'Create office account' : modal === 'password' ? 'Set account password' : 'Office account details'} onClick={event => event.stopPropagation()} onSubmit={submit}>
       <div className="modal-header"><h3>{({create:'Add Office User',edit:'Edit Office Account',password:'Set New Password',activation:target?.is_active?'Deactivate Account?':'Activate Account?',details:'Account Details',roles:'Role Summary',recovery:'SMS Recovery Phone'})[modal]}</h3><button type="button" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
       <fieldset disabled={busy} className="um-fieldset"><div className="modal-body">
         {modal === 'roles' && <><p><strong>Admin:</strong> Manages office users and shared settings, with operational access governed by database policies.</p><p><strong>Staff:</strong> Uses operational workflows under existing backend permissions; cannot manage office accounts or admin-only settings.</p><p>No custom per-user permission matrix is implemented.</p></>}
