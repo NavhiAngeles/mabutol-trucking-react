@@ -25,6 +25,10 @@ export async function signIn(email, password) {
     throw new Error('This account has been deactivated.');
   }
 
+  // A verified sign-in starts a fresh idle clock. Without this, a stale
+  // lastActivityAt left over from an earlier session makes the idle timer
+  // sign the new session out immediately after login.
+  markActivity();
   return { ...data, role: profile.role };
 }
 

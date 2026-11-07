@@ -3,6 +3,7 @@
 // Creates a Supabase Auth user for a newly registered driver.
 // Uses the service_role key so the calling admin's session is unaffected.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { normalizeOfficePhone } from "../_shared/officePhone.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,9 +24,9 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Missing authorization header");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
     // Verify caller's JWT using the anon key
     const callerClient = createClient(supabaseUrl, anonKey, {
@@ -65,34 +66,111 @@ Deno.serve(async (req) => {
     }
 
     // ---- 2. Parse request body ----
-    const { email, password, fullName, registration } = await req.json();
+    const { email, password, fullName, phone: reqPhone, registration } = await req.json();
     if (!email || !password) {
       throw new Error("Email and password are required");
     }
 
-    // ---- 3. Create auth user with service role key ----
-    const { data: newUser, error: createErr } =
-      await adminClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // Skip email verification for admin-provisioned accounts
-        app_metadata: { role: "driver" },
-        user_metadata: {
-          full_name: fullName || "",
-          role: "driver",
-        },
-      });
+    const rawPhone = reqPhone || registration?.payload?.contact_number;
+    let phone = null;
+    if (rawPhone) {
+      try {
+        phone = normalizeOfficePhone(rawPhone);
+      } catch {
+        const cleaned = String(rawPhone).trim().replace(/[ ()-]/g, "");
+        if (/^09\d{9}$/.test(cleaned)) phone = `+63${cleaned.slice(1)}`;
+        else if (/^9\d{9}$/.test(cleaned)) phone = `+63${cleaned}`;
+        else if (/^639\d{9}$/.test(cleaned)) phone = `+${cleaned}`;
+        else if (/^\+639\d{9}$/.test(cleaned)) phone = cleaned;
+      }
+    }
 
-    if (createErr) throw createErr;
+    // ---- 3. Create auth user with service role key ----
+    const createPayload = {
+      email,
+      password,
+      email_confirm: true, // Skip email verification for admin-provisioned accounts
+      app_metadata: { role: "driver" },
+      user_metadata: {
+        full_name: fullName || "",
+        role: "driver",
+        ...(phone ? { phone } : {}),
+      },
+      ...(phone ? { phone, phone_confirm: true } : {}),
+    };
+
+    let newUser = null;
+    const { data: createdData, error: createErr } =
+      await adminClient.auth.admin.createUser(createPayload);
+
+    if (createErr) {
+      // If driver auth account already exists, update their phone credentials and password
+      const isExisting = createErr.message?.toLowerCase().includes("already") || createErr.status === 422;
+      if (isExisting) {
+        const { data: existingProfile } = await adminClient
+          .from("users")
+          .select("id, role")
+          .eq("email", email)
+          .single();
+        if (existingProfile?.id && existingProfile.role === "driver") {
+          const updatePayload = { password };
+          if (phone) {
+            updatePayload.phone = phone;
+            updatePayload.phone_confirm = true;
+          }
+          const { error: updateErr } = await adminClient.auth.admin.updateUserById(
+            existingProfile.id,
+            updatePayload
+          );
+          if (updateErr) throw updateErr;
+
+          await adminClient
+            .from("users")
+            .update({
+              ...(phone ? { phone } : {}),
+              full_name: fullName || undefined,
+            })
+            .eq("id", existingProfile.id);
+
+          let driverId = null;
+          if (registration) {
+            const pData = {
+              ...registration.payload,
+              user_id: existingProfile.id,
+              ...(phone ? { contact_number: phone } : {}),
+            };
+            const { data, error } = await callerClient.rpc("fleet_save", {
+              p_kind: "driver", p_id: null,
+              p_data: pData,
+              p_categories: null, p_documents: registration.documents || [], p_expected: null,
+            });
+            if (error || !data) throw error || new Error("Driver registration was not confirmed.");
+            driverId = data;
+          }
+
+          return new Response(
+            JSON.stringify({ userId: existingProfile.id, ...(driverId ? { driverId } : {}) }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200,
+            },
+          );
+        }
+      }
+      throw createErr;
+    }
+
+    newUser = createdData;
     createdUserId = newUser.user.id;
 
-    // ---- 4. Ensure public.users row has role='driver' and full_name ----
+    // ---- 4. Ensure public.users row has role='driver', full_name, and phone ----
     // Upsert handles both cases: if a DB trigger already created the row or not.
     const { error: upsertErr } = await adminClient
       .from("users")
       .upsert({
         id: newUser.user.id,
         email: email,
+        ...(phone ? { phone } : {}),
         role: "driver",
         full_name: fullName || "",
         is_active: true,
@@ -104,9 +182,14 @@ Deno.serve(async (req) => {
     // Use the caller JWT so fleet_save enforces the active office role and RLS.
     let driverId = null;
     if (registration) {
+      const pData = {
+        ...registration.payload,
+        user_id: newUser.user.id,
+        ...(phone ? { contact_number: phone } : {}),
+      };
       const { data, error } = await callerClient.rpc("fleet_save", {
         p_kind: "driver", p_id: null,
-        p_data: { ...registration.payload, user_id: newUser.user.id },
+        p_data: pData,
         p_categories: null, p_documents: registration.documents || [], p_expected: null,
       });
       if (error || !data) throw error || new Error("Driver registration was not confirmed.");
@@ -128,7 +211,7 @@ Deno.serve(async (req) => {
       if (cleanupError) return new Response(JSON.stringify({ error: "Registration failed and account cleanup needs administrator attention. Do not retry yet." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
     }
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: (err && err.message) || String(err) }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,

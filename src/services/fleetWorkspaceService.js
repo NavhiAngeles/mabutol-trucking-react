@@ -108,7 +108,7 @@ export async function registerDriver(form, docs) {
   if (!form.email) return saveFleetRecord('driver', null, payload, { documents: docs });
   if (form.password !== form.confirmPassword) throw new Error('Passwords do not match.');
   const { data, error } = await supabase.functions.invoke('create-driver-user', { body: {
-    email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), registration: { payload, documents: docs },
+    email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), phone: form.contactNumber.trim(), registration: { payload, documents: docs },
   } });
   if (error) {
     let message = 'Unable to create the driver account. Please retry.';

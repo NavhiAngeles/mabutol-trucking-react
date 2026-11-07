@@ -841,7 +841,7 @@ export default function Fleet() {
                       <label>CONFIRM PASSWORD</label>
                       <input type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
                     </div>
-                    <p className="notice-text">Email and password create a mobile login. Leave both empty to add a roster-only driver.</p>
+                    <p className="notice-text">Email and password create a mobile login. The driver can sign in on Tanaw Mobile using either their contact number or email.</p>
                   </div>
                 </div>
               )}
@@ -933,7 +933,7 @@ export default function Fleet() {
                   <span className="system-id-badge">SYSTEM GEN ID: {registeredDriverId}</span>
                   <div className="status-box">
                     <p>Status: <span className="text-success">REGISTERED — COMPLIANCE REVIEW PENDING</span></p>
-                    <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
+                    <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Driver can sign in using their contact number or email. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
                   </div>
                 </div>
               )}

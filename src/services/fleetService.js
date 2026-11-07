@@ -202,7 +202,7 @@ export async function getDriverById(driverId) {
  * Uses the service_role key server-side so the calling admin's session is unaffected.
  * Returns the new user's UUID for linking to drivers.user_id.
  */
-export async function createDriverAuthUser({ email, password, fullName }) {
+export async function createDriverAuthUser({ email, password, fullName, phone }) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("You must be logged in to create driver accounts.");
 
@@ -215,7 +215,7 @@ export async function createDriverAuthUser({ email, password, fullName }) {
                 Authorization: `Bearer ${session.access_token}`,
                 apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
             },
-            body: JSON.stringify({ email, password, fullName }),
+            body: JSON.stringify({ email, password, fullName, phone }),
         }
     );
 
