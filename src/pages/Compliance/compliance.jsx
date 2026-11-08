@@ -8,6 +8,7 @@ import { getDriverComplianceRows } from "../../services/fleetService";
 import { complianceDirectory, complianceCounts, filterCompliance } from "../../services/complianceDirectory";
 
 const TABLES = ['drivers', 'compliance_documents', 'system_settings'];
+const PAGE_SIZE = 10;
 const badgeClass = state => {
   if (state === 'valid') return 'valid';
   if (['expired', 'rejected'].includes(state)) return 'expired';
@@ -22,6 +23,7 @@ export default function Compliance() {
   const [query, setQuery] = useState("");
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [dismissedBanner, setDismissedBanner] = useState(false);
+  const [requestedPage, setPage] = useState(1);
   const { data, loading, error, refresh } = useLiveData(getDriverComplianceRows, TABLES);
   const rows = complianceDirectory(data || []);
   const filtered = filterCompliance(rows, query);
@@ -33,6 +35,15 @@ export default function Compliance() {
     ['Pending Review', counts.review, 'At least one document awaiting review', 'review-card'],
     ['Missing / Rejected', counts.incomplete, 'Requires document attention', 'missing-card'],
   ];
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const page = Math.min(requestedPage, pageCount);
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleSearchChange = value => {
+    setQuery(value);
+    setPage(1);
+  };
 
   return (
     <MainLayout>
@@ -46,7 +57,7 @@ export default function Compliance() {
             id="complianceSearch"
             aria-label="Search driver compliance"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
           />
         </div>
 
@@ -146,12 +157,30 @@ export default function Compliance() {
                 className="table-search"
                 aria-label="Filter compliance table"
                 value={query}
-                onChange={e => setQuery(e.target.value)}
+                onChange={e => handleSearchChange(e.target.value)}
                 placeholder="Search compliance..."
               />
+              {query && (
+                <button
+                  type="button"
+                  className="table-search-clear-btn"
+                  onClick={() => handleSearchChange("")}
+                  aria-label="Clear compliance search"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-            <div className="table-records-badge">
-              {data ? `${filtered.length} ${filtered.length === 1 ? 'driver' : 'drivers'}` : '—'}
+            <div className="table-header-meta">
+              {query && (
+                <span className="table-filtered-badge">
+                  Filtered by &ldquo;{query}&rdquo;
+                </span>
+              )}
+              <div className="table-records-badge">
+                {data ? `${filtered.length} ${filtered.length === 1 ? 'driver' : 'drivers'}` : '—'}
+              </div>
             </div>
           </div>
 
@@ -169,7 +198,7 @@ export default function Compliance() {
               </thead>
 
               <tbody>
-                {filtered.map(row => (
+                {paged.map(row => (
                   <tr key={row.driver.id}>
                     <td>
                       <button
@@ -214,6 +243,39 @@ export default function Compliance() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Table Pagination Footer */}
+          <div className="table-pagination-footer" role="navigation" aria-label="Compliance table pagination">
+            <span className="pagination-summary">
+              {filtered.length === 0
+                ? "Showing 0 of 0 drivers"
+                : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} drivers`}
+            </span>
+
+            <nav className="pagination-controls-group" aria-label="Compliance pages">
+              <button
+                type="button"
+                className="page-nav-btn page-nav-prev"
+                disabled={loading || Boolean(error) || page <= 1}
+                onClick={() => setPage(page - 1)}
+                aria-label="Previous compliance page"
+              >
+                Previous
+              </button>
+              <span className="pagination-page-indicator" aria-live="polite">
+                {`Page ${page} of ${pageCount}`}
+              </span>
+              <button
+                type="button"
+                className="page-nav-btn page-nav-next"
+                disabled={loading || Boolean(error) || page >= pageCount}
+                onClick={() => setPage(page + 1)}
+                aria-label="Next compliance page"
+              >
+                Next
+              </button>
+            </nav>
           </div>
         </div>
       </section>
