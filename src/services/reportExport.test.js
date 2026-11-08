@@ -79,6 +79,21 @@ test('package.json audit confirms unused vulnerable xlsx dependency is removed w
   assert.ok(pkg.dependencies['jspdf-autotable'], 'jspdf-autotable should be defined in dependencies for table layouts');
 });
 
+test('package.json defines test script and ci.yml runs on push and PR without live secrets', () => {
+  const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.scripts.test, 'node --test', 'package.json must define "test": "node --test"');
+
+  const ciPath = new URL('../../.github/workflows/ci.yml', import.meta.url);
+  assert.ok(fs.existsSync(ciPath), '.github/workflows/ci.yml must exist');
+  const ciContent = fs.readFileSync(ciPath, 'utf8');
+  assert.match(ciContent, /push:/);
+  assert.match(ciContent, /pull_request:/);
+  assert.match(ciContent, /npm ci/);
+  assert.match(ciContent, /npm test/);
+  assert.match(ciContent, /npm run lint/);
+  assert.match(ciContent, /npm run build/);
+});
+
 test('reportStructuredSections extracts whitelisted schemas, scope and 2-decimal PHP amounts for PDF layout', () => {
   const overviewModel = {
     total: 5, completed: 3, delayed: 1, onTime: 75.0, timed: 4, revenue: 15420.5, missingAmounts: 0,
