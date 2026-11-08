@@ -203,3 +203,79 @@ test('revenue page exports CSV and PDF via split button', async () => {
   assert.equal(exportedArgs[0], 'Revenue');
   assert.equal(exportedArgs[4], 'pdf');
 });
+
+test('topbar search aligns placement, styling class, accessibility label and filters tables consistently', async () => {
+  const { transformWithOxc } = await import('vite');
+  let exportedArgs = null;
+  const testData = {
+    ...empty(),
+    customers: [
+      { id: 'c1', name: 'Alpha Logistics' },
+      { id: 'c2', name: 'Beta Trading' }
+    ],
+    shipments: [
+      { id: 's1', customer_id: 'c1', status: 'completed', created_at: new Date().toISOString(), final_amount: 500, pickup_address: 'Manila North', dropoff_address: 'Batangas Port' },
+      { id: 's2', customer_id: 'c2', status: 'completed', created_at: new Date().toISOString(), final_amount: 700, pickup_address: 'Cebu City', dropoff_address: 'Mandaue' }
+    ],
+    fuel: [
+      { id: 'f1', total_cost: '1500.00', station: 'Shell Manila', liters: '25', price_per_liter: '60', logged_at: new Date().toISOString() },
+      { id: 'f2', total_cost: '2000.00', station: 'Petron Cebu', liters: '33', price_per_liter: '60.6', logged_at: new Date().toISOString() }
+    ]
+  };
+  const data = { loading: false, data: testData, error: null, refresh() {} };
+  const state = []; let index = 0;
+  const scope = {
+    ReportSchedule() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange,
+    useReportRange: (key, custom) => key === 'custom' ? custom : reportRange(key),
+    downloadReport: (...args) => { exportedArgs = args; },
+    buildRevenueReport,
+    Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools',
+    useRef: () => ({ current: null }), useEffect() {},
+    useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
+    React: { Fragment: 'Fragment', createElement: (type, props, ...children) => ({ type, props: props || {}, children }) }
+  };
+  const path = new URL('../pages/Report/RevenueReport/revenueReport.jsx', import.meta.url);
+  const { code } = await transformWithOxc(fs.readFileSync(path, 'utf8'), path.pathname, { jsx: { runtime: 'classic' } });
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.Page=RevenueReport;', scope);
+  const render = () => { index = 0; return scope.Page(); };
+  const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
+
+  let tree = render();
+  // Verify topbar search placement and styling
+  const topbar = find(tree, 'ReportTopbar')[0];
+  assert.ok(topbar, 'ReportTopbar is rendered');
+  const searchLabel = find(topbar, 'label').find(l => l.props.className === 'rv-search');
+  assert.ok(searchLabel, 'Top bar contains label.rv-search');
+  const searchInput = find(searchLabel, 'input').find(i => i.props.type === 'search');
+  assert.ok(searchInput, 'Search input is present inside topbar');
+  assert.equal(searchInput.props['aria-label'], 'Search routes');
+  assert.equal(searchInput.props.placeholder, 'Search routes, customers, or cost records');
+
+  // Verify initial counts before search
+  assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 2);
+  const customerList = find(tree, 'div').find(d => d.props.className === 'customer-list');
+  assert.equal(find(customerList, 'div').filter(d => d.props.className === 'customer-row').length, 2);
+  const costList = find(tree, 'ol').find(l => l.props['aria-label'] === 'Individual cost records');
+  assert.equal(find(costList, 'li').length, 2);
+
+  // Search for 'Manila'
+  searchInput.props.onChange({ target: { value: 'Manila' } });
+  tree = render();
+
+  // Route matches 'Manila North → Batangas Port'
+  assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 1);
+  assert.match(JSON.stringify(find(tree, 'tbody')[0]), /Manila North/);
+
+  // Cost matches 'Shell Manila'
+  const filteredCostList = find(tree, 'ol').find(l => l.props['aria-label'] === 'Individual cost records');
+  assert.equal(find(filteredCostList, 'li').length, 1);
+  assert.match(JSON.stringify(filteredCostList), /Shell Manila/);
+
+  // Export passes filtered data with { search: 'Manila' }
+  const exportBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
+  exportBtn.props.onClick();
+  assert.equal(exportedArgs[0], 'Revenue');
+  assert.equal(exportedArgs[3].search, 'Manila');
+  assert.equal(exportedArgs[2].routes.length, 1);
+});

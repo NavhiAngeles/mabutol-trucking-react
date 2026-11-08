@@ -16,6 +16,14 @@ const money = amount => new Intl.NumberFormat('en-PH', { style: 'currency', curr
 const RANGES = [['today', 'Today'], ['thisWeek', 'This Week'], ['thisMonth', 'This Month'], ['last3Months', 'Last 3 Months']];
 const EMPTY = { shipments: [], customers: [], payments: [], deliveries: [], expenses: [], fuel: [], maintenance: [] };
 
+function SearchIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
 function ChargeChart({ trend }) {
   const max = Math.max(1, ...trend.map(b => b.amount));
   const x = i => 80 + i * 420 / Math.max(1, trend.length - 1);
@@ -76,36 +84,59 @@ export default function RevenueReport() {
   }
   const report = buildRevenueReport(live.data || EMPTY, range);
   const hasData = !!live.data;
-  const routes = report.routes.filter(r => r.route.toLowerCase().includes(search.trim().toLowerCase()));
+  const q = search.trim().toLowerCase();
+  const routes = report.routes.filter(r => r.route.toLowerCase().includes(q));
   const pageCount = Math.max(1, Math.ceil(routes.length / 10));
   const currentPage = Math.min(page, pageCount);
   const visibleRoutes = routes.slice((currentPage - 1) * 10, currentPage * 10);
-  const costPages = Math.max(1, Math.ceil(report.costRecords.length / 5));
+  const topCustomers = q
+    ? report.topCustomers.filter(c => c.name.toLowerCase().includes(q))
+    : report.topCustomers;
+  const costRecords = q
+    ? report.costRecords.filter(c =>
+        (c.description || '').toLowerCase().includes(q) ||
+        (c.category || '').toLowerCase().includes(q) ||
+        (c.source || '').toLowerCase().includes(q) ||
+        (c.reference || '').toLowerCase().includes(q)
+      )
+    : report.costRecords;
+  const costPages = Math.max(1, Math.ceil(costRecords.length / 5));
   const currentCostPage = Math.min(costPage, costPages);
-  const visibleCosts = report.costRecords.slice((currentCostPage - 1) * 5, currentCostPage * 5);
+  const visibleCosts = costRecords.slice((currentCostPage - 1) * 5, currentCostPage * 5);
   const stats = [
     ['Completed Charges', report.charges, 'Current completed shipments created in this period'],
     ['Verified Payments', report.payments, 'Currently verified payments dated in this period'],
     ['Approved Trip Expenses', report.expenses, 'Currently approved expenses created in this period'],
-    ['Recorded Fuel Costs', report.fuel, 'Actual fuel purchases logged in this period. Separate from approved trip expenses.', 'rv-fuel-card'],
+    ['Recorded Fuel Costs', report.fuel, 'Actual fuel purchases logged in this period. Separate from approved trip expenses.'],
     ['Completed Maintenance Costs', report.maintenance, 'Completed service records dated in this period'],
   ];
   const missing = stats.reduce((sum, [, summary]) => sum + summary.missing, 0);
 
   return <MainLayout><div className="reports-page">
-    <ReportTopbar />
+    <ReportTopbar>
+      <label className="rv-search">
+        <SearchIcon size={18} />
+        <input
+          type="search"
+          placeholder="Search routes, customers, or cost records"
+          aria-label="Search routes"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(1); setCostPage(1); }}
+        />
+      </label>
+    </ReportTopbar>
     <section className="content revenue-report-live">
       <div className="report-controls"><div className="header-row">
         <div><h2>Reports — Revenue</h2><p>Review recorded charges, payments, costs, customers, and routes.</p></div>
         <div className="report-actions">
           <button className="secondary-btn" onClick={live.refresh}>Refresh</button>
           <div className="report-export-split" ref={exportMenuRef}>
-            <button type="button" className="primary-btn report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes }, { search }, 'csv')}>Export CSV</button>
+            <button type="button" className="primary-btn report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Revenue', range, { ...report, routes, topCustomers }, { search }, 'csv')}>Export CSV</button>
             <button type="button" className="primary-btn report-export-toggle" disabled={!live.data || !!live.error} aria-label="Export format options" aria-haspopup="true" aria-expanded={showExportMenu} onClick={() => setShowExportMenu(prev => !prev)}>▾</button>
             {showExportMenu && (
               <div className="report-export-menu" role="menu">
-                <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Revenue', range, { ...report, routes }, { search }, 'csv'); }}>Export CSV</button>
-                <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Revenue', range, { ...report, routes }, { search }, 'pdf'); }}>Export PDF</button>
+                <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Revenue', range, { ...report, routes, topCustomers }, { search }, 'csv'); }}>Export CSV</button>
+                <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Revenue', range, { ...report, routes, topCustomers }, { search }, 'pdf'); }}>Export PDF</button>
               </div>
             )}
           </div>
@@ -146,9 +177,9 @@ export default function RevenueReport() {
             <p className="rv-notes">Average per priced completed shipment: {report.averageCharge == null ? '—' : money(report.averageCharge)}. Missing charge amounts are excluded.</p>
           </div>
           <div className="chart-card">
-            <div className="card-header"><h3>Recorded Costs</h3><span className="rv-record-count">{report.costRecords.length} records</span></div>
+            <div className="card-header"><h3>Recorded Costs</h3><span className="rv-record-count">{costRecords.length} records</span></div>
             <p className="rv-notes">Fuel purchases and approved trip expenses, listed individually with the newest first. Separate sources may describe the same purchase; they are not added together.</p>
-            {!visibleCosts.length ? <p className="empty-state-text">No fuel purchases or approved trip expenses recorded in this period.</p> : <ol className="rv-record-list" aria-label="Individual cost records">
+            {!visibleCosts.length ? <p className="empty-state-text">{q ? 'No cost records match this search.' : 'No fuel purchases or approved trip expenses recorded in this period.'}</p> : <ol className="rv-record-list" aria-label="Individual cost records">
               {visibleCosts.map(record => <li className={`rv-cost-record${record.source === 'Fuel purchase' ? ' rv-cost-record-fuel' : ''}`} key={record.id}>
                 <div className="rv-record-heading"><span className="rv-record-source">{record.source}</span><strong className="rv-record-amount">{record.amount == null ? 'Amount unavailable' : money(record.amount)}</strong></div>
                 <h4>{record.category}</h4><p>{record.description}</p>
@@ -163,11 +194,10 @@ export default function RevenueReport() {
           <div className="info-card">
             <div className="card-header"><h3>Top Customers by Charges</h3><Link className="view-btn" to="/customer">Customers</Link></div>
             <p className="rv-notes">Billing customer where specified; otherwise the booking customer. Top five by recorded completed charges.</p>
-            <div className="customer-list">{!report.topCustomers.length ? <p className="empty-state-text">No customer charges for this period.</p> : report.topCustomers.map(customer => <div className="customer-row" key={customer.id}><span>{customer.name}<small>{customer.priced} priced of {customer.shipments} completed shipments</small></span><strong>{money(customer.revenue)}</strong></div>)}</div>
+            <div className="customer-list">{!topCustomers.length ? <p className="empty-state-text">{q ? 'No customer charges match this search.' : 'No customer charges for this period.'}</p> : topCustomers.map(customer => <div className="customer-row" key={customer.id}><span>{customer.name}<small>{customer.priced} priced of {customer.shipments} completed shipments</small></span><strong>{money(customer.revenue)}</strong></div>)}</div>
           </div>
           <div className="info-card">
             <div className="card-header"><h3>Charges by Route</h3><Link className="view-btn" to="/shipment">Shipments</Link></div>
-            <label className="rv-route-search">Search routes <input type="search" aria-label="Search routes" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} /></label>
             <p className="rv-notes">Routes group exact recorded addresses. Expense column includes only approved expenses created in the selected dates, linked to these completed shipments; it excludes shared costs and is not a margin.</p>
             <div className="rv-table-scroll"><table className="report-table"><thead><tr><th>Origin → Destination</th><th>Completed Shipments</th><th>Charges</th><th>Approved Expenses</th></tr></thead><tbody>
               {!visibleRoutes.length ? <tr><td colSpan={4} className="empty-row">No routes match this period and search.</td></tr> : visibleRoutes.map(route => <tr key={route.id}><td>{route.route}</td><td>{route.shipments}<small>{route.priced} priced</small></td><td>{money(route.revenue)}</td><td>{money(route.expenses)}</td></tr>)}

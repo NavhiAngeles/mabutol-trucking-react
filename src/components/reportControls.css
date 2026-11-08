@@ -117,7 +117,7 @@
 }
 .reports-topbar-context { display: flex; align-items: center; gap: 24px; min-width: 0; flex: 1; }
 .reports-topbar-tools { margin-left: auto; flex: none; }
-.reports-page .reports-topbar :is(.sr-search, .dr-search) { display: flex; align-items: center; gap: 12px; width: 448px; min-width: 0; max-width: 100%; height: 44px; padding: 0 14px; border-radius: 6px; background: #edf1fd; color: #64748b; }
+.reports-page .reports-topbar :is(.sr-search, .dr-search, .rv-search) { display: flex; align-items: center; gap: 12px; width: 448px; min-width: 0; max-width: 100%; height: 44px; padding: 0 14px; border-radius: 6px; background: #edf1fd; color: #64748b; }
 .reports-page .reports-topbar input { width: 100%; min-width: 0; font: 400 14px/20px system-ui, -apple-system, sans-serif; }
 .reports-page .reports-topbar :is(.icon-btn, .avatar) { font-family: system-ui, -apple-system, sans-serif; }
 .reports-page .report-controls .report-schedule-button { background: #eff6ff; border: 1px solid #bfdbfe; color: #0a2a4d; padding: 9px 16px; }
