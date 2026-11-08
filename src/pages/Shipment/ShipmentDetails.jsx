@@ -336,7 +336,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
             <p className="shipment-no-assignments">No delivery assignment recorded.</p>
           )}
 
-          <AssignmentManager shipmentId={details.id} onChanged={reload} />
+          <AssignmentManager shipmentId={details.id} onChanged={reload} draftSuggestion={shipment?.draftSuggestion} />
           <DeliveryOperations shipmentId={details.id} shipmentStatus={details.status} shipmentRefreshVersion={refreshVersion} onChanged={reload} />
         </div>
       </>}

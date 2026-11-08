@@ -133,7 +133,22 @@ function Planner({ onInspect }) {
                   <div className="stat-item"><span className="stat-label">Remaining Return</span><span className="stat-val">{match.homeKm.toFixed(1)} km</span></div>
                 </div>
                 <p className="match-handling">{match.shipment.special_handling ? <><strong>Special handling:</strong> {match.shipment.special_handling}</> : 'Special handling: Not recorded; confirm with office.'}</p>
-                <button type="button" className="btn-review-return" onClick={() => onInspect({ dbId: match.shipment.id, id: match.shipment.tracking_number })}>
+                <button
+                  type="button"
+                  className="btn-review-return"
+                  onClick={() => onInspect({
+                    dbId: match.shipment.id,
+                    id: match.shipment.tracking_number,
+                    draftSuggestion: {
+                      driverId: plan.delivery.driver_id,
+                      truckId: plan.truck.id,
+                      truckPlate: plan.truck.plate_number,
+                      outboundDeliveryId: plan.delivery.id,
+                      outboundTracking: plan.shipment?.tracking_number,
+                      reason: `Backhaul return load recommendation for returning truck ${plan.truck.plate_number}${plan.shipment?.tracking_number ? ` (outbound: ${plan.shipment.tracking_number})` : ''}`,
+                    },
+                  })}
+                >
                   <i className="las la-clipboard-list" />{'Review return shipment'}
                 </button>
               </article>)}

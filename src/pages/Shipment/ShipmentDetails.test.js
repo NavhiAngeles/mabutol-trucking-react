@@ -181,3 +181,26 @@ test('details service falls back gracefully when additive route/allowance column
   assert.equal(result.id, record.id);
   assert.ok(!calls[calls.length - 1].columns.includes('driver_allowance'));
 });
+
+test('details forwards draftSuggestion to AssignmentManager when provided on inspected shipment', async () => {
+  const { code } = await transformWithOxc(fs.readFileSync(new URL('./ShipmentDetails.jsx', import.meta.url), 'utf8'), 'ShipmentDetails.jsx', { jsx: { runtime: 'classic' } });
+  const states = [], refs = [], effects = []; let index = 0, refIndex = 0, effectIndex = 0, pending = [];
+  const draft = { driverId: 'd-ret', truckId: 't-ret' };
+  const context = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    document: { activeElement: null },
+    useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
+    useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
+    useEffect(effect, deps) { const i = effectIndex++; const old = effects[i];
+      if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
+    },
+    fetchShipmentDetails: async () => record,
+    AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations',
+  });
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
+  const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1', draftSuggestion: draft }, onClose: () => {} }); pending.forEach(run => run()); return tree; };
+  render(); await tick(); const tree = render();
+  const am = find(tree, n => n.type === 'AssignmentManager')[0];
+  assert.equal(am.props.draftSuggestion.driverId, 'd-ret');
+  assert.equal(am.props.draftSuggestion.truckId, 't-ret');
+});
