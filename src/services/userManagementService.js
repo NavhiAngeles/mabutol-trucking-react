@@ -222,7 +222,10 @@ export function userManagementService(client = supabase) {
     if (error || data?.error) {
       let detail = data?.error;
       if (!detail && error?.context?.json) { try { detail = (await error.context.json()).error; } catch { /* fallback */ } }
-      throw new Error(detail || 'Unable to load authenticator factors.');
+      if (detail === 'Unsupported account action.') {
+        throw new Error('The manage-office-users Edge Function needs to be deployed to your Supabase project to support 2FA factor inspection and reset.');
+      }
+      throw new Error(detail || 'Unable to load 2FA factors.');
     }
     return Array.isArray(data?.factors) ? data.factors : [];
   }
@@ -230,14 +233,17 @@ export function userManagementService(client = supabase) {
     await adminIdentity();
     if (!target?.id) throw new Error('Choose an office account.');
     const trimmed = (reason || '').trim();
-    if (trimmed.length < 5) throw new Error('Provide a reason for resetting this user’s authenticator (at least 5 characters).');
+    if (trimmed.length < 5) throw new Error('Provide a reason for resetting this user’s 2FA (at least 5 characters).');
     const { data, error } = await client.functions.invoke('manage-office-users', {
       body: { action: 'reset_mfa', userId: target.id, reason: trimmed },
     });
     if (error || data?.error) {
       let detail = data?.error;
       if (!detail && error?.context?.json) { try { detail = (await error.context.json()).error; } catch { /* fallback */ } }
-      throw new Error(detail || 'Unable to reset authenticator. Reload the directory before retrying.');
+      if (detail === 'Unsupported account action.') {
+        throw new Error('The manage-office-users Edge Function needs to be deployed to your Supabase project to support 2FA reset.');
+      }
+      throw new Error(detail || 'Unable to reset 2FA. Reload the directory before retrying.');
     }
     return data;
   }

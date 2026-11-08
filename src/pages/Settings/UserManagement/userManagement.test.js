@@ -9,6 +9,11 @@ const validationScope=vm.createContext({supabase:{},normalizeOfficePhone});
 vm.runInContext(fs.readFileSync(new URL('../../../services/userManagementService.js',import.meta.url),'utf8').replace(/^import .*;$/gm,'').replace(/^export /gm,'')+'\nthis.validate=validateOfficeCreation;',validationScope);
 const row={id:'caller',full_name:'Fixture Admin',email:'fixture@example.test',phone:'',role:'admin',is_active:true,updated_at:'version'};
 const find=(node,predicate)=>!node||typeof node!=='object'?[]:[...(predicate(node)?[node]:[]),...(node.children||[]).flat(Infinity).flatMap(child=>find(child,predicate))];
+const textOf = node => {
+  if (!node) return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  return (node.children || []).flat(Infinity).map(textOf).join(' ');
+};
 async function screen(api={}){
  const {code}=await transformWithOxc(fs.readFileSync(new URL('./userManagement.jsx',import.meta.url),'utf8'),'userManagement.jsx',{jsx:{runtime:'classic'}});
  const states=[],refs=[],effects=[];let si=0,ri=0;
@@ -20,7 +25,21 @@ async function screen(api={}){
  vm.runInContext(code.replace(/^import .*;$/gm,'').replace(/export default function/g,'function')+'\nthis.Component=OfficeUsers;',scope);
  const render=()=>{si=ri=0;return scope.Component();};render();effects.slice(0,2).forEach(fn=>fn());await new Promise(resolve=>setImmediate(resolve));
  const flush=async()=>{const unrun=[...effects];effects.length=0;unrun.forEach(fn=>fn());await new Promise(resolve=>setImmediate(resolve));};
- return{render,button:label=>find(render(),n=>n.type==='button'&&n.children.includes(label))[0],submit:()=>find(render(),n=>n.type==='form')[0].props.onSubmit({preventDefault(){}}),flush,find};
+ return{
+  render,
+  button:(label, rowIndex = 0)=>{
+    const dots = find(render(),n=>n.type==='button'&&n.props.className==='action-dots-btn');
+    if (dots.length > 0 && dots[rowIndex]) {
+      if (!dots[rowIndex].props['aria-expanded']) {
+        dots[rowIndex].props.onClick();
+      }
+      const item = find(render(),n=>n.type==='button'&&textOf(n).includes(label))[0];
+      if (item) return item;
+    }
+    return find(render(),n=>n.type==='button'&&textOf(n).includes(label))[0];
+  },
+  submit:()=>find(render(),n=>n.type==='form')[0].props.onSubmit({preventDefault(){}}),flush,find
+ };
 }
 test('uses real directory data; self activation/password and permanent delete are unavailable',async()=>{
  const ui=await screen();assert.ok(JSON.stringify(ui.render()).includes('Fixture Admin'));assert.equal(ui.button('Deactivate').props.disabled,true);assert.equal(ui.button('Set Password').props.disabled,true);assert.equal(ui.button('Delete unavailable').props.disabled,true);
@@ -52,6 +71,7 @@ test('new user form requires recovery mobile and distinguishes contact-only edit
 test('existing user recovery phone loads from Auth, not the profile contact, and saves expected value',async()=>{
  const calls=[];const ui=await screen({recoveryPhone:async(target,form)=>{calls.push(form);return '+639171234567';}});
  await ui.button('Recovery Phone').props.onClick();
+ await new Promise(r => setImmediate(r));
  assert.match(JSON.stringify(ui.render()),/SMS Recovery Phone/);
  const input=find(ui.render(),n=>n.type==='input'&&n.props.type==='tel')[0];assert.equal(input.props.value,'+639171234567');
  await ui.submit();assert.equal(calls.length,2);assert.equal(calls[1].expectedPhone,'+639171234567');
@@ -257,4 +277,117 @@ test('Audit log action filter and metadata toggle expand and collapse JSON view'
   tree = JSON.stringify(ui.render());
   assert.match(tree, /shipments #s-2/);
   assert.ok(!tree.includes('users #u-1'));
+});
+
+test('Reset 2FA button is disabled for self with security notice and enabled for other office users', async () => {
+  const staffRow = { id: 'staff-1', full_name: 'Target Staff', email: 'staff@example.test', phone: '', role: 'staff', is_active: true, updated_at: 'v1' };
+  const ui = await screen({
+    load: async () => ({ callerId: 'caller', users: [row, staffRow], provisioningReady: true }),
+  });
+
+  // Self button inside row 0 dropdown
+  const selfBtn = ui.button('Reset 2FA', 0);
+  assert.equal(selfBtn.props.disabled, true);
+  assert.equal(selfBtn.props.title, 'Manage your own 2FA in Security settings');
+
+  // Staff button inside row 1 dropdown
+  const staffBtn = ui.button('Reset 2FA', 1);
+  assert.equal(staffBtn.props.disabled, false);
+});
+
+test('Reset 2FA modal inspects enrolled factors, requires reason, and invokes resetMfa', async () => {
+  const staffRow = { id: 'staff-1', full_name: 'Target Staff', email: 'staff@example.test', phone: '', role: 'staff', is_active: true, updated_at: 'v1' };
+  const sampleFactors = [
+    { id: 'factor-123', friendlyName: 'Staff Authenticator', status: 'verified' },
+  ];
+  let getCalls = 0;
+  const resetCalls = [];
+
+  const ui = await screen({
+    load: async () => ({ callerId: 'caller', users: [row, staffRow], provisioningReady: true }),
+    getMfaFactors: async () => {
+      getCalls++;
+      return sampleFactors;
+    },
+    resetMfa: async (target, reason) => {
+      resetCalls.push({ target, reason });
+      return { success: true };
+    },
+  });
+
+  const mfaBtn = ui.button('Reset 2FA', 1);
+  await mfaBtn.props.onClick();
+  await new Promise(r => setImmediate(r));
+
+  assert.equal(getCalls, 1);
+  let tree = JSON.stringify(ui.render());
+  assert.match(tree, /Reset 2FA \(TextBee SMS\)/);
+  assert.match(tree, /Staff Authenticator/);
+  assert.match(tree, /factor-123/);
+
+  // Submit button is disabled when confirmation reason is empty
+  const submitBtn = find(ui.render(), n => n.type === 'button' && textOf(n).includes('Reset 2FA'))[0];
+  assert.ok(submitBtn);
+  assert.equal(submitBtn.props.disabled, true);
+
+  // Enter valid reason (>= 5 characters)
+  const textarea = find(ui.render(), n => n.type === 'textarea')[0];
+  assert.ok(textarea);
+  textarea.props.onChange({ target: { value: 'Staff member lost mobile phone device' } });
+
+  // Submit button is now enabled
+  const updatedSubmitBtn = find(ui.render(), n => n.type === 'button' && textOf(n).includes('Reset 2FA'))[0];
+  assert.equal(updatedSubmitBtn.props.disabled, false);
+
+  // Submit reset
+  await ui.submit();
+  assert.equal(resetCalls.length, 1);
+  assert.equal(resetCalls[0].target.id, 'staff-1');
+  assert.equal(resetCalls[0].reason, 'Staff member lost mobile phone device');
+
+  // Success notice is displayed
+  tree = JSON.stringify(ui.render());
+  assert.match(tree, /2FA reset for Target Staff/);
+});
+
+test('Reset 2FA modal with zero enrolled factors displays empty notice and disables submit', async () => {
+  const staffRow = { id: 'staff-2', full_name: 'No MFA Staff', email: 'nomfa@example.test', phone: '', role: 'staff', is_active: true, updated_at: 'v1' };
+  const ui = await screen({
+    load: async () => ({ callerId: 'caller', users: [row, staffRow], provisioningReady: true }),
+    getMfaFactors: async () => [],
+  });
+
+  const mfaBtn = ui.button('Reset 2FA', 1);
+  await mfaBtn.props.onClick();
+  await new Promise(r => setImmediate(r));
+
+  const tree = JSON.stringify(ui.render());
+  assert.match(tree, /No enrolled 2FA factors found on this account/);
+
+  const submitBtn = find(ui.render(), n => n.type === 'button' && textOf(n).includes('Reset 2FA'))[0];
+  assert.equal(submitBtn.props.disabled, true);
+});
+
+test('3-dots action menu toggles dropdown popover and closes on backdrop click', async () => {
+  const ui = await screen();
+  const dots = find(ui.render(), n => n.type === 'button' && n.props.className === 'action-dots-btn')[0];
+  assert.ok(dots);
+  assert.equal(dots.props['aria-expanded'], false);
+  assert.equal(find(ui.render(), n => n.props.className === 'action-dropdown').length, 0);
+
+  // Click 3 dots to open
+  dots.props.onClick();
+  let dropdown = find(ui.render(), n => n.props.className === 'action-dropdown')[0];
+  assert.ok(dropdown);
+  const updatedDots = find(ui.render(), n => n.type === 'button' && n.props.className === 'action-dots-btn')[0];
+  assert.equal(updatedDots.props['aria-expanded'], true);
+
+  // Click backdrop to close
+  const backdrop = find(ui.render(), n => n.props.className === 'action-menu-backdrop')[0];
+  assert.ok(backdrop);
+  backdrop.props.onClick();
+
+  // Menu closed
+  dropdown = find(ui.render(), n => n.props.className === 'action-dropdown')[0];
+  assert.equal(dropdown, undefined);
 });

@@ -783,33 +783,39 @@
   display: inline-block;
 }
 
+.action-menu-wrapper.is-open {
+  z-index: 60;
+}
+
 .action-dots-btn {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   font-size: 20px;
-  color: #94a3b8;
+  color: #64748b;
   width: 34px;
   height: 34px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
   line-height: 1;
   padding: 0;
 }
 
-.action-dots-btn:hover {
+.action-dots-btn:hover,
+.action-dots-btn[aria-expanded="true"] {
   background: #f1f5f9;
-  color: #475569;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
 /* Invisible full-screen backdrop to detect outside clicks */
 .action-menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 49;
+  z-index: 80;
 }
 
 /* The dropdown card */
@@ -817,14 +823,32 @@
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  z-index: 50;
+  z-index: 100;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
-  min-width: 190px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.15), 0 3px 8px rgba(15, 23, 42, 0.08);
+  min-width: 195px;
   padding: 6px;
   animation: dropdownIn 0.15s ease;
+}
+
+.action-dropdown.action-dropdown-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+  box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.15), 0 -3px 8px rgba(15, 23, 42, 0.08);
+  animation: dropdownInUp 0.15s ease;
+}
+
+@keyframes dropdownInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes dropdownIn {
@@ -883,7 +907,15 @@
   background: #fef2f2;
   color: #b91c1c;
 }
-.office-user-management .um-table-scroll { overflow-x: auto; }
+.office-user-management .um-table-scroll {
+  overflow: visible;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0;
+}
+.office-user-management .table-card {
+  overflow: visible;
+}
 .office-user-management .um-row-actions { display: flex; gap: 8px; flex-wrap: wrap; min-width: 200px; }
 .office-user-management .um-fieldset { border: 0; padding: 0; margin: 0; }
 .office-user-management .um-pagination { display: flex; gap: 16px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
@@ -893,43 +925,575 @@
 .office-user-management button:disabled { cursor: not-allowed; opacity: .55; }
 @media (max-width: 900px) { .office-user-management .page-header, .office-user-management .search-row { flex-wrap: wrap; gap: 16px; } }
 /* Current connected directory: scoped so its controls cannot affect other pages. */
-.office-user-management .um-info-banner { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px; margin: 0 0 24px; background: #eff6ff; border: 1px solid #dbeafe; border-radius: 12px; color: #475569; font-size: 13px; line-height: 1.6; }
-.office-user-management .um-info-banner p { margin: 0; }
-.office-user-management .um-info-icon { flex: none; display: grid; place-items: center; width: 20px; height: 20px; margin-top: 1px; border: 1px solid #93c5fd; border-radius: 50%; color: #1d4ed8; font-weight: 700; }
-.office-user-management .um-directory { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 1px 3px #0f172a05; overflow: hidden; }
-.office-user-management .um-directory-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 24px 24px 0; }
-.office-user-management .um-directory-heading h3 { margin: 0 0 4px; color: #0f172a; font-size: 18px; }
-.office-user-management .um-directory-heading p { margin: 0; color: #64748b; font-size: 13px; }
-.office-user-management .um-directory-count { flex: none; padding: 5px 10px; border-radius: 20px; background: #f1f5f9; color: #475569; font-size: 12px; }
-.office-user-management .um-toolbar { display: flex; justify-content: flex-start; align-items: flex-end; flex-wrap: wrap; gap: 16px; padding: 20px 24px 24px; margin: 0; }
-.office-user-management .um-toolbar label { display: grid; gap: 7px; font-size: 12px; font-weight: 600; color: #475569; }
-.office-user-management .um-search { flex: 1; min-width: min(260px,100%); max-width: 480px; }
-.office-user-management .um-status-filter { min-width: 170px; }
-.office-user-management .um-toolbar :is(input,select) { width: 100%; max-width: 100%; height: 42px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font: 400 14px/20px system-ui, sans-serif; }
-.office-user-management .um-toolbar button,
-.office-user-management .um-row-actions button,
-.office-user-management .um-pagination button,
-.office-user-management .um-error-banner button,
-.office-user-management .modal-footer > button { min-height: 36px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 7px; background: #fff; color: #334155; font: 500 12px/18px system-ui, sans-serif; cursor: pointer; transition: background .15s, border-color .15s; }
-.office-user-management .um-toolbar .um-refresh { margin-left: auto; min-height: 42px; background: #f1f5f9; font-size: 13px; }
-.office-user-management .um-row-actions { min-width: 280px; max-width: 480px; gap: 6px; }
-.office-user-management .um-row-actions button:not(:disabled):hover,
-.office-user-management .um-pagination button:not(:disabled):hover { background: #f1f5f9; border-color: #cbd5e1; }
-.office-user-management .um-row-actions .um-action-danger:not(:disabled) { color: #b91c1c; border-color: #fecaca; background: #fff7f7; }
-.office-user-management .um-table-scroll { border: 0; border-top: 1px solid #e2e8f0; border-radius: 0; }
-.office-user-management .user-table { min-width: 980px; }
-.office-user-management .user-table th { padding: 14px 24px; background: #f8fafc; font-size: 11px; letter-spacing: .05em; white-space: nowrap; }
-.office-user-management .user-table td { padding: 20px 24px; vertical-align: middle; color: #334155; font-size: 13px; }
-.office-user-management .user-table tbody tr:hover { background: #fafcff; }
-.office-user-management .user-cell { min-width: 220px; }
-.office-user-management .user-cell strong { color: #0f172a; font-size: 14px; }
-.office-user-management .user-cell p { margin: 4px 0; color: #64748b; overflow-wrap: anywhere; }
-.office-user-management .user-avatar { width: 40px; height: 40px; background: #eaf1fb; color: #0b2a4a; border-radius: 10px; }
-.office-user-management .um-self-badge { color: #64748b; font-size: 11px; }
-.office-user-management :is(.um-role-badge,.um-status-badge) { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 6px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.office-user-management .um-role-admin { background: #eaf1fb; color: #0b2a4a; }
-.office-user-management .um-status-active { background: #ecfdf5; color: #047857; }
-.office-user-management .um-pagination { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 24px; margin: 0; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px; }
+.office-user-management {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.office-user-management .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.office-user-management .page-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.office-user-management .page-header p {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+.office-user-management .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.office-user-management .primary-btn {
+  background: #0f172a;
+  border: 1px solid #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.office-user-management .primary-btn:hover:not(:disabled) {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.office-user-management .secondary-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.office-user-management .secondary-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Minimalist Banners */
+.office-user-management .um-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin: 0 0 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.office-user-management .um-info-banner p {
+  margin: 0;
+}
+
+.office-user-management .um-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.office-user-management .um-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  margin: 0 0 20px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.office-user-management .um-notice-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.office-user-management .um-notice-content p {
+  margin: 0;
+}
+
+.office-user-management .um-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.office-user-management .um-notice-close {
+  background: transparent;
+  border: none;
+  color: #15803d;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.office-user-management .um-notice-close:hover {
+  opacity: 1;
+}
+
+.office-user-management .um-error-banner {
+  padding: 10px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+/* Master Directory Card */
+.office-user-management .um-directory {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  overflow: visible;
+}
+
+.office-user-management .um-directory-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.office-user-management .um-directory-heading h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.office-user-management .um-directory-heading p {
+  margin: 3px 0 0;
+  color: #64748b;
+  font-size: 12.5px;
+}
+
+.office-user-management .um-directory-count {
+  font-size: 12px;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
+}
+
+/* Minimal Toolbar */
+.office-user-management .um-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 24px;
+  margin: 0;
+  background: #ffffff;
+}
+
+.office-user-management .um-label-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.office-user-management .um-search {
+  flex: 1;
+  max-width: 420px;
+  min-width: 240px;
+  margin: 0;
+}
+
+.office-user-management .um-search input {
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  font: 400 13.5px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath stroke-linecap='round' d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 11px center;
+  background-size: 15px;
+  transition: all 0.15s ease;
+}
+
+.office-user-management .um-search input:focus {
+  border-color: #0f172a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+}
+
+.office-user-management .um-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.office-user-management .um-status-filter {
+  min-width: 150px;
+  margin: 0;
+}
+
+.office-user-management .um-status-filter select {
+  width: 100%;
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 32px 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #334155;
+  font: 400 13px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2364748b' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.office-user-management .um-status-filter select:focus {
+  border-color: #0f172a;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+}
+
+.office-user-management .um-refresh {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font: 500 13px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.office-user-management .um-refresh:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.office-user-management .um-refresh-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Table Card */
+.office-user-management .table-card {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+}
+
+.office-user-management .user-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.office-user-management .user-table th {
+  padding: 12px 24px;
+  background: #f8fafc;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.office-user-management .user-table th.th-actions {
+  text-align: right;
+  padding-right: 32px;
+}
+
+.office-user-management .user-table td {
+  padding: 14px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  color: #334155;
+  font-size: 13px;
+}
+
+.office-user-management .user-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.office-user-management .user-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.office-user-management .user-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* User Identity Cell */
+.office-user-management .user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.office-user-management .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 12px;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.office-user-management .user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.office-user-management .user-name-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.office-user-management .user-name-line strong {
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.office-user-management .user-email {
+  margin: 0;
+  color: #64748b;
+  font-size: 12.5px;
+}
+
+.office-user-management .um-self-badge {
+  color: #475569;
+  background: #f1f5f9;
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.office-user-management .user-created {
+  color: #64748b;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* Badges */
+.office-user-management .um-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.office-user-management .um-role-admin {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #dbeafe;
+}
+
+.office-user-management .um-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.office-user-management .um-status-active {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.office-user-management .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+/* Actions Menu */
+.office-user-management .actions-cell {
+  text-align: right;
+  padding-right: 28px;
+}
+
+.office-user-management .action-dots-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.office-user-management .action-dots-btn:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.office-user-management .action-dots-btn[aria-expanded="true"] {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+/* Pagination Footer */
+.office-user-management .um-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  margin: 0;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.office-user-management .um-pagination-info {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.office-user-management .um-pagination-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.office-user-management .um-pagination-actions button {
+  min-height: 32px;
+  padding: 6px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font: 500 12.5px/18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.office-user-management .um-pagination-actions button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.office-user-management .um-pagination-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .office-user-management .user-table .um-empty { text-align: center; padding: 40px 24px; color: #64748b; }
 .office-user-management :is(.um-success,.um-error-banner) { padding: 14px 18px; border: 1px solid #bbf7d0; border-radius: 10px; background: #f0fdf4; margin: 0 0 20px; }
 .office-user-management .um-error-banner { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
@@ -1509,3 +2073,115 @@
     width: 100%;
   }
 }
+
+/* =========================
+   MFA FACTOR INSPECTION & RESET
+========================= */
+
+.office-user-management .um-mfa-factors-list {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.office-user-management .um-mfa-factors-list h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.office-user-management .um-mfa-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.office-user-management .um-factors-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.office-user-management .um-factor-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.office-user-management .um-factor-info strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.office-user-management .um-factor-meta {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.office-user-management .um-factor-meta code {
+  font-size: 11px;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.office-user-management .um-factor-status {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #047857;
+  letter-spacing: 0.05em;
+}
+
+.office-user-management .form-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  font: 400 13px/20px system-ui, sans-serif;
+  color: #0f172a;
+  resize: vertical;
+}
+
+.office-user-management .form-field textarea:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.office-user-management .um-mfa-notice {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.office-user-management .modal-footer .um-action-danger-btn {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+}
+
+.office-user-management .modal-footer .um-action-danger-btn:not(:disabled):hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+

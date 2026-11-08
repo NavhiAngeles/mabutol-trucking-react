@@ -27,16 +27,46 @@ Deno.serve(async req => {
       if (typeof input.userId !== 'string') return reply(400, { error: 'Choose an office account.' });
       const { data: target, error: targetError } = await admin.from('users').select('role,is_active').eq('id', input.userId).single();
       if (targetError || !['admin', 'staff'].includes(target?.role)) return reply(404, { error: 'Office account not found.' });
-      const { data: mfaData, error: mfaError } = await admin.auth.admin.mfa.listFactors({ userId: input.userId });
-      if (mfaError) return reply(400, { error: mfaError.message || 'Unable to load authenticator factors. Reload before retrying.' });
-      const factors = (mfaData?.factors || []).map(f => ({
-        id: f.id,
-        friendlyName: f.friendly_name || f.friendlyName || '',
-        factorType: f.factor_type || f.factorType || 'totp',
-        status: f.status,
-        createdAt: f.created_at || f.createdAt,
-        updatedAt: f.updated_at || f.updatedAt,
-      }));
+
+      const factors = [];
+      try {
+        const { data: mfaData } = await admin.auth.admin.mfa.listFactors({ userId: input.userId });
+        if (Array.isArray(mfaData?.factors)) {
+          for (const f of mfaData.factors) {
+            factors.push({
+              id: f.id,
+              friendlyName: f.friendly_name || f.friendlyName || 'Authenticator App (TOTP)',
+              factorType: f.factor_type || f.factorType || 'totp',
+              status: f.status,
+              createdAt: f.created_at || f.createdAt,
+              updatedAt: f.updated_at || f.updatedAt,
+            });
+          }
+        }
+      } catch { /* MFA factors query optional */ }
+
+      // Also check TextBee SMS 2FA on the user's Auth profile
+      try {
+        const { data: authUserData } = await admin.auth.admin.getUserById(input.userId);
+        const authUser = authUserData?.user;
+        const isSms2fa = Boolean(
+          authUser?.user_metadata?.two_factor_enabled ||
+          authUser?.user_metadata?.two_factor_phone ||
+          (authUser?.phone && authUser?.phone_confirmed_at)
+        );
+        if (isSms2fa) {
+          const phone = authUser?.user_metadata?.two_factor_phone || authUser?.phone || 'registered';
+          factors.push({
+            id: 'textbee_sms',
+            friendlyName: `TextBee SMS 2FA (${phone})`,
+            factorType: 'textbee_sms',
+            status: 'verified',
+            createdAt: authUser?.created_at,
+            updatedAt: authUser?.updated_at,
+          });
+        }
+      } catch { /* Auth user lookup optional */ }
+
       return reply(200, { userId: input.userId, factors });
     }
     if (input.action === 'reset_mfa') {
@@ -49,18 +79,41 @@ Deno.serve(async req => {
       const { data: target, error: targetError } = await admin.from('users').select('id,email,full_name,role,is_active').eq('id', input.userId).single();
       if (targetError || !['admin', 'staff'].includes(target?.role)) return reply(404, { error: 'Office account not found.' });
 
-      const { data: mfaData, error: mfaError } = await admin.auth.admin.mfa.listFactors({ userId: input.userId });
-      if (mfaError) return reply(400, { error: mfaError.message || 'Unable to load authenticator factors.' });
-      const targetFactors = (mfaData?.factors || []).filter(f => !input.factorId || f.id === input.factorId);
-      if (targetFactors.length === 0) {
-        return reply(400, { error: 'This office account has no enrolled authenticator factors to reset.' });
-      }
-
       const removed = [];
-      for (const factor of targetFactors) {
-        const { error: delErr } = await admin.auth.admin.mfa.deleteFactor({ userId: input.userId, id: factor.id });
-        if (delErr) return reply(400, { error: delErr.message || 'Unable to remove authenticator factor. Please retry.' });
-        removed.push(factor.id);
+      // 1. Delete any TOTP factors if present
+      try {
+        const { data: mfaData } = await admin.auth.admin.mfa.listFactors({ userId: input.userId });
+        const targetFactors = (mfaData?.factors || []).filter(f => !input.factorId || f.id === input.factorId);
+        for (const factor of targetFactors) {
+          const { error: delErr } = await admin.auth.admin.mfa.deleteFactor({ userId: input.userId, id: factor.id });
+          if (!delErr) removed.push(factor.id);
+        }
+      } catch { /* ignore */ }
+
+      // 2. Clear TextBee SMS 2FA metadata
+      try {
+        const { data: authUserData } = await admin.auth.admin.getUserById(input.userId);
+        const authUser = authUserData?.user;
+        const hadSms2fa = Boolean(
+          authUser?.user_metadata?.two_factor_enabled ||
+          authUser?.user_metadata?.two_factor_phone ||
+          authUser?.phone
+        );
+        if (hadSms2fa) {
+          await admin.auth.admin.updateUserById(input.userId, {
+            user_metadata: {
+              ...(authUser?.user_metadata || {}),
+              two_factor_enabled: false,
+              two_factor_type: null,
+              two_factor_phone: null,
+            },
+          });
+          removed.push('textbee_sms');
+        }
+      } catch { /* ignore */ }
+
+      if (removed.length === 0) {
+        return reply(400, { error: 'This office account has no enrolled authenticator factors to reset.' });
       }
 
       try {

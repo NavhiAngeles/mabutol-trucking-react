@@ -33,11 +33,14 @@ function OfficeUsers() {
   const [page, setPage] = useState(0);
   const [modal, setModal] = useState(null);
   const [target, setTarget] = useState(null);
-  const [form, setForm] = useState({ fullName: '', email: '', phone: '', role: 'staff', active: true, password: '', confirm: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', phone: '', role: 'staff', active: true, password: '', confirm: '', mfaReason: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [recoveryLoaded, setRecoveryLoaded] = useState(false);
+  const [mfaLoaded, setMfaLoaded] = useState(false);
+  const [mfaFactors, setMfaFactors] = useState([]);
+  const [openActionId, setOpenActionId] = useState(null);
   const [auditLogs, setAuditLogs] = useState(null);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState('');
@@ -56,17 +59,38 @@ function OfficeUsers() {
   }, [reload]);
   useEffect(() => {
     if (typeof document === 'undefined') return;
-    function handleKey(e) { if (e.key === 'Escape') close(); }
+    function handleKey(e) { if (e.key === 'Escape') { close(); setOpenActionId(null); } }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, []);
   function refresh() { if (guard.current) return; setSnapshot(null); setLoadError(''); setReload(value => value + 1); }
-  function close() { if (guard.current) return; setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '' })); setError(''); setExpandedAuditRows({}); }
+  function close() { if (guard.current) return; setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '', mfaReason: '' })); setError(''); setExpandedAuditRows({}); setMfaLoaded(false); setMfaFactors([]); setOpenActionId(null); }
   function open(kind, row = null) {
     if (guard.current) return;
     setTarget(row); setError('');
-    setForm({ fullName: row?.full_name || '', email: row?.email || '', phone: row?.phone || '', role: row?.role || 'staff', active: row?.is_active ?? true, password: '', confirm: '' });
+    setForm({ fullName: row?.full_name || '', email: row?.email || '', phone: row?.phone || '', role: row?.role || 'staff', active: row?.is_active ?? true, password: '', confirm: '', mfaReason: '' });
     setModal(kind);
+  }
+  async function openMfa(row) {
+    if (guard.current) return;
+    open('mfa', row);
+    setMfaLoaded(false);
+    setMfaFactors([]);
+    guard.current = true;
+    setBusy(true);
+    try {
+      const factors = await userManagementApi.getMfaFactors(row);
+      if (mounted.current) {
+        setMfaFactors(Array.isArray(factors) ? factors : []);
+        setForm(previous => ({ ...previous, mfaReason: '' }));
+        setMfaLoaded(true);
+      }
+    } catch (cause) {
+      if (mounted.current) setError(cause.message || 'Unable to load authenticator factors.');
+    } finally {
+      guard.current = false;
+      if (mounted.current) setBusy(false);
+    }
   }
   async function openAudit() {
     if (guard.current) return;
@@ -126,10 +150,26 @@ function OfficeUsers() {
         if (!recoveryLoaded) throw new Error('Close and reopen recovery enrollment before saving.');
         await userManagementApi.recoveryPhone(target, form);
       }
+      else if (modal === 'mfa') {
+        if (!mfaLoaded) throw new Error('Wait for enrolled factors to load before resetting.');
+        if (mfaFactors.length === 0) throw new Error('No enrolled authenticator factors to reset.');
+        if (!form.mfaReason?.trim() || form.mfaReason.trim().length < 5) throw new Error('Provide a confirmation reason (at least 5 characters).');
+        await userManagementApi.resetMfa(target, form.mfaReason.trim());
+      }
       else await userManagementApi.save(target, modal === 'activation' ? { ...form, active: !target.is_active } : form);
       if (mounted.current) {
-        setNotice(modal === 'create' ? 'Office account created with an SMS recovery phone. No email was sent; share the initial credentials securely.' : modal === 'password' ? 'Password changed. No email was sent.' : modal === 'recovery' ? 'Recovery phone registered. SMS code verification is required when resetting the password.' : 'Account updated. Office permissions refresh on focus or within 30 seconds. Existing Auth access tokens may remain valid until expiry.');
-        setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '' }));
+        setNotice(
+          modal === 'create'
+            ? 'Office account created with an SMS recovery phone. No email was sent; share the initial credentials securely.'
+            : modal === 'password'
+            ? 'Password changed. No email was sent.'
+            : modal === 'recovery'
+            ? 'Recovery phone registered. SMS code verification is required when resetting the password.'
+            : modal === 'mfa'
+            ? '2FA reset for ' + (target.full_name || target.email) + '. The user can now sign in with their password and enroll a new device.'
+            : 'Account updated. Office permissions refresh on focus or within 30 seconds. Existing Auth access tokens may remain valid until expiry.'
+        );
+        setModal(null); setTarget(null); setForm(previous => ({ ...previous, password: '', confirm: '', mfaReason: '' }));
         setSnapshot(null); setReload(value => value + 1);
       }
     } catch (cause) { if (mounted.current) setError(cause.message); }
@@ -161,17 +201,166 @@ function OfficeUsers() {
   const visibleAuditLogs = filteredAuditLogs.slice(currentAuditPage * auditPageSize, currentAuditPage * auditPageSize + auditPageSize);
 
   return <section className="content office-user-management">
-    <div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div><div className="header-actions"><button type="button" className="secondary-btn" onClick={() => open('roles')}>Role Summary</button><button type="button" className="secondary-btn" onClick={openAudit}>Audit & Activity Log</button><button type="button" className="primary-btn" disabled={!snapshot?.provisioningReady || busy} onClick={() => open('create')}>Add Office User</button></div></div>
-    <div className="um-info-banner"><span className="um-info-icon" aria-hidden="true">i</span><p>Custom module permissions and the “Super Admin” role are not supported. Permanent deletion is unavailable to preserve operational and audit records; deactivate accounts instead. Sign-in history is unavailable here.</p></div>
-    {notice && <p role="status" className="um-success">{notice}</p>}
+    <div className="page-header">
+      <div>
+        <h2>Settings — User Management</h2>
+        <p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p>
+      </div>
+      <div className="header-actions">
+        <button type="button" className="secondary-btn" onClick={() => open('roles')}>Role Summary</button>
+        <button type="button" className="secondary-btn" onClick={openAudit}>Audit & Activity Log</button>
+        <button type="button" className="primary-btn" disabled={!snapshot?.provisioningReady || busy} onClick={() => open('create')}>Add Office User</button>
+      </div>
+    </div>
+    <div className="um-info-banner">
+      <span className="um-info-icon" aria-hidden="true">i</span>
+      <p>Custom module permissions and the “Super Admin” role are not supported. Permanent deletion is unavailable to preserve operational and audit records; deactivate accounts instead. Sign-in history is unavailable here.</p>
+    </div>
+    {notice && (
+      <div role="status" className="um-success">
+        <div className="um-notice-content">
+          <span className="um-success-icon" aria-hidden="true">✓</span>
+          <p>{notice}</p>
+        </div>
+        <button type="button" className="um-notice-close" onClick={() => setNotice('')} aria-label="Dismiss notice">✕</button>
+      </div>
+    )}
     {snapshot?.provisioningError && <p role="alert" className="um-error-banner">{snapshot.provisioningError}</p>}
     {loadError && <div role="alert" className="um-error-banner"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div>}
     {!snapshot && !loadError && <p role="status">Loading office users…</p>}
-    {snapshot && <><div className="um-directory"><div className="um-directory-heading"><div><h3>Office accounts</h3><p>Manage access for your office team.</p></div><span className="um-directory-count">{snapshot.users.length} accounts</span></div><div className="search-row um-toolbar"><label className="um-search"><span>Search users</span><input aria-label="Search users" placeholder="Search by name or login email" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label><label className="um-status-filter"><span>Account status</span><select aria-label="Account status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label><button className="um-refresh" disabled={busy} onClick={refresh}>Refresh users</button></div>
-      <div className="table-card um-table-scroll"><table className="user-table"><thead><tr><th>User / Login Email</th><th>Role</th><th>Created (Philippine time)</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-        {!filtered.length && <tr><td colSpan={5} className="um-empty">No matching office users.</td></tr>}
-        {filtered.slice(currentPage * 20, currentPage * 20 + 20).map(row => <tr key={row.id}><td><div className="user-cell"><span className="user-avatar" aria-hidden="true">{(row.full_name || row.email || '?').slice(0, 2).toUpperCase()}</span><div><strong>{row.full_name || 'Name not set'}</strong><p>{row.email}</p>{row.id === snapshot.callerId && <small className="um-self-badge">Your account</small>}</div></div></td><td><span className={`um-role-badge ${row.role === 'admin' ? 'um-role-admin' : ''}`}>{row.role === 'admin' ? 'Admin' : 'Staff'}</span></td><td>{dateLabel(row.created_at)}</td><td><span className={`um-status-badge ${row.is_active ? 'um-status-active' : ''}`}><span aria-hidden="true">●</span>{row.is_active ? 'Active' : 'Inactive'}</span></td><td><div className="um-row-actions"><button onClick={() => open('details',row)}>View</button><button onClick={() => open('edit',row)}>Edit / Role</button><button title={row.id === snapshot.callerId ? 'Change your password in Account settings' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('password',row)}>Set Password</button><button className={row.is_active ? 'um-action-danger' : ''} title={row.id === snapshot.callerId ? 'Your own account cannot be deactivated here' : undefined} disabled={row.id === snapshot.callerId} onClick={() => open('activation',row)}>{row.is_active ? 'Deactivate' : 'Activate'}</button><button disabled={busy} onClick={() => openRecovery(row)}>Recovery Phone</button><button disabled title="Deactivate to preserve linked records">Delete unavailable</button></div></td></tr>)}
-      </tbody></table></div><div className="um-pagination"><button disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button><span>Page {currentPage + 1} of {pages} · {filtered.length} users</span><button disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>Next</button></div></div></>}
+    {snapshot && <>
+      <div className="um-directory">
+        <div className="um-directory-heading">
+          <div>
+            <h3>Office accounts</h3>
+            <p>Manage access for your office team.</p>
+          </div>
+          <span className="um-directory-count">{snapshot.users.length} accounts</span>
+        </div>
+        <div className="search-row um-toolbar">
+          <label className="um-search">
+            <span className="um-label-sr">Search users</span>
+            <input aria-label="Search users" placeholder="Search by name or login email" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
+          </label>
+          <div className="um-toolbar-controls">
+            <label className="um-status-filter">
+              <span className="um-label-sr">Account status</span>
+              <select aria-label="Account status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}>
+                <option value="all">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <button className="um-refresh" disabled={busy} onClick={refresh} title="Refresh users">
+              <span className="um-refresh-icon" aria-hidden="true">↻</span>
+              <span>Refresh users</span>
+            </button>
+          </div>
+        </div>
+        <div className="table-card um-table-scroll">
+          <table className="user-table">
+            <thead>
+              <tr>
+                <th>User / Login Email</th>
+                <th>Role</th>
+                <th>Created (Philippine time)</th>
+                <th>Status</th>
+                <th className="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!filtered.length && <tr><td colSpan={5} className="um-empty">No matching office users.</td></tr>}
+              {(() => {
+                const pageRows = filtered.slice(currentPage * 20, currentPage * 20 + 20);
+                return pageRows.map((row, idx) => {
+                  const isUp = (pageRows.length > 1 && idx === pageRows.length - 1) || (pageRows.length > 3 && idx >= pageRows.length - 2);
+                  return (
+                    <tr key={row.id}>
+                      <td>
+                        <div className="user-cell">
+                          <span className="user-avatar" aria-hidden="true">{(row.full_name || row.email || '?').slice(0, 2).toUpperCase()}</span>
+                          <div className="user-meta">
+                            <div className="user-name-line">
+                              <strong>{row.full_name || 'Name not set'}</strong>
+                              {row.id === snapshot.callerId && <span className="um-self-badge">Your account</span>}
+                            </div>
+                            <p className="user-email">{row.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`um-role-badge ${row.role === 'admin' ? 'um-role-admin' : ''}`}>{row.role === 'admin' ? 'Admin' : 'Staff'}</span>
+                      </td>
+                      <td className="user-created">{dateLabel(row.created_at)}</td>
+                      <td>
+                        <span className={`um-status-badge ${row.is_active ? 'um-status-active' : ''}`}>
+                          <span className="status-dot" aria-hidden="true" />
+                          {row.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="actions-cell">
+                  <div className={`action-menu-wrapper${openActionId === row.id ? ' is-open' : ''}`}>
+                    <button
+                      type="button"
+                      className="action-dots-btn"
+                      aria-label={`Actions for ${row.full_name || row.email}`}
+                      aria-expanded={openActionId === row.id}
+                      onClick={() => setOpenActionId(openActionId === row.id ? null : row.id)}
+                    >
+                      ⋮
+                    </button>
+                    {openActionId === row.id && (
+                      <>
+                        <div className="action-menu-backdrop" onClick={() => setOpenActionId(null)} />
+                        <div className={`action-dropdown${isUp ? ' action-dropdown-up' : ''}`} role="menu">
+                          <button type="button" className="action-item" role="menuitem" onClick={() => { setOpenActionId(null); open('details', row); }}>
+                            <span className="action-item-icon" aria-hidden="true">👁</span>
+                            <span>View</span>
+                          </button>
+                          <button type="button" className="action-item" role="menuitem" onClick={() => { setOpenActionId(null); open('edit', row); }}>
+                            <span className="action-item-icon" aria-hidden="true">✏</span>
+                            <span>Edit / Role</span>
+                          </button>
+                          <button type="button" className="action-item" role="menuitem" title={row.id === snapshot.callerId ? 'Change your password in Account settings' : undefined} disabled={row.id === snapshot.callerId} onClick={() => { setOpenActionId(null); open('password', row); }}>
+                            <span className="action-item-icon" aria-hidden="true">🔑</span>
+                            <span>Set Password</span>
+                          </button>
+                          <button type="button" className="action-item" role="menuitem" disabled={busy} onClick={() => { setOpenActionId(null); openRecovery(row); }}>
+                            <span className="action-item-icon" aria-hidden="true">📱</span>
+                            <span>Recovery Phone</span>
+                          </button>
+                          <div className="action-divider" />
+                          <button type="button" className="action-item action-item-danger" role="menuitem" title={row.id === snapshot.callerId ? 'Manage your own 2FA in Security settings' : undefined} disabled={busy || row.id === snapshot.callerId} onClick={() => { setOpenActionId(null); openMfa(row); }}>
+                            <span className="action-item-icon" aria-hidden="true">🛡</span>
+                            <span>Reset 2FA</span>
+                          </button>
+                          <button type="button" className={`action-item ${row.is_active ? 'action-item-danger' : ''}`} role="menuitem" title={row.id === snapshot.callerId ? 'Your own account cannot be deactivated here' : undefined} disabled={row.id === snapshot.callerId} onClick={() => { setOpenActionId(null); open('activation', row); }}>
+                            <span className="action-item-icon" aria-hidden="true">{row.is_active ? '⏸' : '▶'}</span>
+                            <span>{row.is_active ? 'Deactivate' : 'Activate'}</span>
+                          </button>
+                          <button type="button" className="action-item" role="menuitem" disabled title="Deactivate to preserve linked records">
+                            <span className="action-item-icon" aria-hidden="true">🗑</span>
+                            <span>Delete unavailable</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          });
+        })()}
+      </tbody></table></div>
+        <div className="um-pagination">
+          <span className="um-pagination-info">Page {currentPage + 1} of {pages} · {filtered.length} {filtered.length === 1 ? 'user' : 'users'}</span>
+          <div className="um-pagination-actions">
+            <button type="button" disabled={currentPage === 0} onClick={() => setPage(currentPage - 1)}>Previous</button>
+            <button type="button" disabled={currentPage + 1 >= pages} onClick={() => setPage(currentPage + 1)}>Next</button>
+          </div>
+        </div>
+      </div>
+    </>}
     {modal === 'audit' && (
       <div className="modal-overlay" onClick={close}>
         <div
@@ -328,8 +517,8 @@ function OfficeUsers() {
         </div>
       </div>
     )}
-    {modal && modal !== 'audit' && <div className="modal-overlay" onClick={close}><form className="modal" role="dialog" aria-modal="true" noValidate={modal === 'create'} aria-label={modal === 'create' ? 'Create office account' : modal === 'password' ? 'Set account password' : 'Office account details'} onClick={event => event.stopPropagation()} onSubmit={submit}>
-      <div className="modal-header"><h3>{({create:'Add Office User',edit:'Edit Office Account',password:'Set New Password',activation:target?.is_active?'Deactivate Account?':'Activate Account?',details:'Account Details',roles:'Role Summary',recovery:'SMS Recovery Phone'})[modal]}</h3><button type="button" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
+    {modal && modal !== 'audit' && <div className="modal-overlay" onClick={close}><form className="modal" role="dialog" aria-modal="true" noValidate={modal === 'create'} aria-label={modal === 'create' ? 'Create office account' : modal === 'password' ? 'Set account password' : modal === 'mfa' ? 'Reset 2FA (TextBee SMS)' : 'Office account details'} onClick={event => event.stopPropagation()} onSubmit={submit}>
+      <div className="modal-header"><h3>{({create:'Add Office User',edit:'Edit Office Account',password:'Set New Password',activation:target?.is_active?'Deactivate Account?':'Activate Account?',details:'Account Details',roles:'Role Summary',recovery:'SMS Recovery Phone',mfa:'Reset 2FA (TextBee SMS)'})[modal]}</h3><button type="button" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
       <fieldset disabled={busy} className="um-fieldset"><div className="modal-body">
         {modal === 'roles' && <><p><strong>Admin:</strong> Manages office users and shared settings, with operational access governed by database policies.</p><p><strong>Staff:</strong> Uses operational workflows under existing backend permissions; cannot manage office accounts or admin-only settings.</p><p>No custom per-user permission matrix is implemented.</p></>}
         {modal === 'details' && <dl><dt>Account ID</dt><dd style={{overflowWrap:'anywhere'}}>{target.id}</dd><dt>Name</dt><dd>{target.full_name || 'Not set'}</dd><dt>Email</dt><dd>{target.email}</dd><dt>Contact</dt><dd>{target.phone || 'Not set'}</dd><dt>Role</dt><dd>{target.role}</dd><dt>Created</dt><dd>{dateLabel(target.created_at)}</dd><dt>Updated</dt><dd>{dateLabel(target.updated_at)}</dd></dl>}
@@ -348,6 +537,41 @@ function OfficeUsers() {
           {recoveryLoaded && <label className="form-field">Recovery Mobile Number<input type="tel" autoComplete="tel" required maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.recoveryPhone || ''} onChange={event => setForm({ ...form, recoveryPhone: event.target.value })} /></label>}
           <p>This changes the Auth recovery number. The profile’s contact number remains separate. No SMS is sent when an administrator registers a number; possession is checked during recovery.</p>
         </>}
+        {modal === 'mfa' && <>
+          <p>Inspect and reset enrolled 2FA factors for <strong>{target.full_name || target.email}</strong> ({target.email}). Use this when a staff member loses access to their phone or 2FA device.</p>
+          {!mfaLoaded && !error && <p role="status">Loading enrolled authenticator factors…</p>}
+          {mfaLoaded && <>
+            <div className="um-mfa-factors-list">
+              <h4>Enrolled 2FA Factors</h4>
+              {mfaFactors.length === 0 ? (
+                <p className="um-mfa-empty">No enrolled 2FA factors found on this account.</p>
+              ) : (
+                <ul className="um-factors-items">
+                  {mfaFactors.map(f => (
+                    <li key={f.id} className="um-factor-item">
+                      <div className="um-factor-info">
+                        <strong>{f.friendlyName || f.friendly_name || 'SMS 2FA (TextBee)'}</strong>
+                        <span className="um-factor-meta">ID: <code>{f.id}</code> · Status: <span className="um-factor-status">{f.status}</span></span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <label className="form-field">Confirmation Reason *
+              <textarea
+                required
+                rows={3}
+                minLength={5}
+                maxLength={500}
+                placeholder="e.g. Staff member lost their mobile phone / 2FA device."
+                value={form.mfaReason || ''}
+                onChange={event => setForm({ ...form, mfaReason: event.target.value })}
+              />
+            </label>
+            <p className="um-mfa-notice">Resetting 2FA removes all enrolled factors for this user and records an audit log. The user can sign in with their password and enroll a new device via TextBee SMS.</p>
+          </>}
+        </>}
         {modal === 'activation' && <><p>{target.is_active?'Deactivate':'Activate'} <strong>{target.full_name || target.email}</strong> ({target.email})?</p><p>Deactivation blocks office access after the next permission refresh. Existing Auth access tokens may remain valid until expiry. Operational records are retained.</p></>}
         {['create','password'].includes(modal) && <>
           {target && <p>Change the login password for <strong>{target.email}</strong>. No reset email will be sent.</p>}
@@ -356,7 +580,7 @@ function OfficeUsers() {
           <p>Use 12–128 characters. Share credentials securely; the user can change them under Account settings.</p>
         </>}
         {error && <p role="alert" className="um-error">{error}</p>}
-      </div><div className="modal-footer"><button type="button" onClick={close}>Close</button>{!['details','roles'].includes(modal) && <button className="primary-btn" type="submit" disabled={modal === 'recovery' && !recoveryLoaded}>{busy?'Saving…':modal==='create'?'Create Account':modal==='password'?'Set New Password':modal==='activation'?'Confirm':'Save Changes'}</button>}</div></fieldset>
+      </div><div className="modal-footer"><button type="button" onClick={close}>Close</button>{!['details','roles'].includes(modal) && <button className={`primary-btn ${modal === 'mfa' ? 'um-action-danger-btn' : ''}`} type="submit" disabled={(modal === 'recovery' && !recoveryLoaded) || (modal === 'mfa' && (!mfaLoaded || mfaFactors.length === 0 || !form.mfaReason?.trim() || form.mfaReason.trim().length < 5))}>{busy?'Saving…':modal==='create'?'Create Account':modal==='password'?'Set New Password':modal==='activation'?'Confirm':modal==='mfa'?'Reset 2FA':'Save Changes'}</button>}</div></fieldset>
     </form></div>}
   </section>;
 }
