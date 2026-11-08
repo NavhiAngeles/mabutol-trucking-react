@@ -4,10 +4,11 @@ import MainLayout from "../../layouts/mainLayout";
 import { ComplianceDialog } from "../Fleet/FleetDialogs";
 import "./compliance.css";
 import { useLiveData } from "../../hooks/useLiveData";
-import { getDriverComplianceRows } from "../../services/fleetService";
+import { getDriverComplianceRows, getTruckComplianceRows } from "../../services/fleetService";
 import { complianceDirectory, complianceCounts, filterCompliance } from "../../services/complianceDirectory";
 
-const TABLES = ['drivers', 'compliance_documents', 'system_settings'];
+const DRIVER_TABLES = ['drivers', 'compliance_documents', 'system_settings'];
+const TRUCK_TABLES = ['trucks', 'compliance_documents', 'system_settings'];
 const PAGE_SIZE = 10;
 const badgeClass = state => {
   if (state === 'valid') return 'valid';
@@ -20,12 +21,20 @@ const badgeClass = state => {
 const formatUpdated = value => value ? new Date(value).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric' }) : 'Unavailable';
 
 export default function Compliance() {
+  const [activeTab, setActiveTab] = useState("driver");
   const [query, setQuery] = useState("");
-  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [selectedEntity, setSelectedEntity] = useState(null);
   const [dismissedBanner, setDismissedBanner] = useState(false);
   const [requestedPage, setPage] = useState(1);
-  const { data, loading, error, refresh } = useLiveData(getDriverComplianceRows, TABLES);
-  const rows = complianceDirectory(data || []);
+
+  const isVehicle = activeTab === "vehicle";
+  const loader = isVehicle ? getTruckComplianceRows : getDriverComplianceRows;
+  const tables = isVehicle ? TRUCK_TABLES : DRIVER_TABLES;
+  const { data, loading, error, refresh } = useLiveData(loader, tables);
+
+  const rawRows = Array.isArray(data) ? data : [];
+  const validRows = rawRows.filter(row => isVehicle ? Boolean(row.truck) : Boolean(row.driver));
+  const rows = complianceDirectory(validRows);
   const filtered = filterCompliance(rows, query);
   const counts = complianceCounts(rows);
   const metrics = [
@@ -39,6 +48,14 @@ export default function Compliance() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleTabChange = tab => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setQuery("");
+    setPage(1);
+    setSelectedEntity(null);
+  };
 
   const handleSearchChange = value => {
     setQuery(value);
@@ -58,13 +75,49 @@ export default function Compliance() {
       <section className="content compliance-page">
         <div className="header compliance-header">
           <div>
-            <span className="compliance-pretitle">DRIVER REGULATIONS</span>
-            <h2 className="compliance-title">Driver Compliance</h2>
+            <span className="compliance-pretitle">{isVehicle ? 'VEHICLE REGULATIONS' : 'DRIVER REGULATIONS'}</span>
+            <h2 className="compliance-title">{isVehicle ? 'Vehicle Compliance' : 'Driver Compliance'}</h2>
             <p className="compliance-subtitle">
-              Monitor driver regulatory status, license validity, and medical / NBI clearances.
+              {isVehicle
+                ? 'Monitor vehicle regulatory status, OR/CR registration, LTFRB permits, and emission testing.'
+                : 'Monitor driver regulatory status, license validity, and medical / NBI clearances.'}
             </p>
           </div>
           <div className="compliance-header-actions">
+            <div className="tab-pill-box compliance-tabs" role="tablist" aria-label="Compliance section">
+              <button
+                type="button"
+                role="tab"
+                id="driverComplianceTab"
+                aria-selected={!isVehicle}
+                aria-controls="compliance-table-panel"
+                className={`tab-pill ${!isVehicle ? 'active' : ''}`}
+                onClick={() => handleTabChange('driver')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginRight: '4px' }}>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Driver Compliance
+              </button>
+              <button
+                type="button"
+                role="tab"
+                id="vehicleComplianceTab"
+                aria-selected={isVehicle}
+                aria-controls="compliance-table-panel"
+                className={`tab-pill ${isVehicle ? 'active' : ''}`}
+                onClick={() => handleTabChange('vehicle')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginRight: '4px' }}>
+                  <rect x="1" y="3" width="15" height="13" />
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                  <circle cx="5.5" cy="18.5" r="2.5" />
+                  <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                Vehicle Compliance
+              </button>
+            </div>
             <button
               type="button"
               className="btn-compliance-refresh"
@@ -122,7 +175,11 @@ export default function Compliance() {
           <div className="compliance-info-banner">
             <div className="banner-content">
               <span className="info-icon" aria-hidden="true">ℹ️</span>
-              <p>Counts cover all registered drivers. A driver may appear in more than one attention category. Warning dates follow shared compliance thresholds.</p>
+              <p>
+                {isVehicle
+                  ? 'Counts cover all registered fleet vehicles. A vehicle may appear in more than one attention category. Warning dates follow shared compliance thresholds.'
+                  : 'Counts cover all registered drivers. A driver may appear in more than one attention category. Warning dates follow shared compliance thresholds.'}
+              </p>
             </div>
             <button
               type="button"
@@ -136,7 +193,7 @@ export default function Compliance() {
         )}
 
         {/* Compliance Table */}
-        <div className="compliance-table-card">
+        <div className="compliance-table-card" id="compliance-table-panel" role="tabpanel" aria-labelledby={isVehicle ? "vehicleComplianceTab" : "driverComplianceTab"}>
           <div className="table-header">
             <div className="table-search-box">
               <span className="search-icon" aria-hidden="true">🔍</span>
@@ -147,7 +204,7 @@ export default function Compliance() {
                 aria-label="Filter compliance table"
                 value={query}
                 onChange={e => handleSearchChange(e.target.value)}
-                placeholder="Search compliance..."
+                placeholder={isVehicle ? "Search vehicle compliance..." : "Search compliance..."}
               />
               {query && (
                 <button
@@ -168,7 +225,7 @@ export default function Compliance() {
                 </span>
               )}
               <div className="table-records-badge">
-                {data ? `${filtered.length} ${filtered.length === 1 ? 'driver' : 'drivers'}` : '—'}
+                {data ? `${filtered.length} ${filtered.length === 1 ? (isVehicle ? 'vehicle' : 'driver') : (isVehicle ? 'vehicles' : 'drivers')}` : '—'}
               </div>
             </div>
           </div>
@@ -177,56 +234,80 @@ export default function Compliance() {
             <table className="compliance-table">
               <thead>
                 <tr>
-                  <th>Driver</th>
-                  <th>License</th>
-                  <th>Medical</th>
-                  <th>NBI</th>
+                  <th>{isVehicle ? 'Vehicle' : 'Driver'}</th>
+                  {isVehicle ? (
+                    <>
+                      <th>OR/CR</th>
+                      <th>LTFRB Permit</th>
+                      <th>Emission Test</th>
+                    </>
+                  ) : (
+                    <>
+                      <th>License</th>
+                      <th>Medical</th>
+                      <th>NBI</th>
+                    </>
+                  )}
                   <th>Status</th>
                   <th>Updated</th>
                 </tr>
               </thead>
 
               <tbody>
-                {paged.map(row => (
-                  <tr key={row.driver.id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="compliance-driver-link"
-                        aria-label={`Open compliance for ${row.driver.full_name || 'Unnamed driver'}`}
-                        onClick={() => setSelectedDriver(row.driver)}
-                      >
-                        <span className="driver-avatar-circle" aria-hidden="true">
-                          {(row.driver.full_name || 'D').charAt(0).toUpperCase()}
-                        </span>
-                        <span className="driver-name-text">
-                          {row.driver.full_name || 'Unnamed driver'}
-                        </span>
-                      </button>
-                    </td>
-                    {row.docs.map(item => (
-                      <td key={item.docType}>
-                        <span className={'badge ' + badgeClass(item.badge.state)}>
-                          {item.badge.label}
+                {paged.map(row => {
+                  const entity = isVehicle ? row.truck : row.driver;
+                  const entityId = entity?.id || '';
+                  const entityName = isVehicle
+                    ? (entity?.plate_number || 'Unnamed vehicle')
+                    : (entity?.full_name || 'Unnamed driver');
+                  const ariaLabel = `Open compliance for ${entityName}`;
+
+                  return (
+                    <tr key={entityId}>
+                      <td>
+                        <button
+                          type="button"
+                          className="compliance-driver-link"
+                          aria-label={ariaLabel}
+                          onClick={() => setSelectedEntity(entity)}
+                        >
+                          <span className={`driver-avatar-circle ${isVehicle ? 'truck-avatar-circle' : ''}`} aria-hidden="true">
+                            {isVehicle ? '🚛' : ((entityName || 'D').charAt(0).toUpperCase())}
+                          </span>
+                          <span className="driver-name-text">
+                            {entityName}
+                            {isVehicle && entity?.model ? (
+                              <small className="truck-model-subtitle">{entity.model}</small>
+                            ) : null}
+                          </span>
+                        </button>
+                      </td>
+                      {row.docs.map(item => (
+                        <td key={item.docType}>
+                          <span className={'badge ' + badgeClass(item.badge.state)}>
+                            {item.badge.label}
+                          </span>
+                        </td>
+                      ))}
+                      <td>
+                        <span className={'status ' + (row.state === 'valid' ? 'compliant' : ['expired', 'rejected'].includes(row.state) ? 'expired-status' : 'review-status')}>
+                          {row.status}
                         </span>
                       </td>
-                    ))}
-                    <td>
-                      <span className={'status ' + (row.state === 'valid' ? 'compliant' : ['expired', 'rejected'].includes(row.state) ? 'expired-status' : 'review-status')}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`compliance-updated-date ${row.updated ? 'has-date' : 'no-date'}`}>
-                        {formatUpdated(row.updated)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      <td>
+                        <span className={`compliance-updated-date ${row.updated ? 'has-date' : 'no-date'}`}>
+                          {formatUpdated(row.updated)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {data && !filtered.length && (
                   <tr>
                     <td colSpan={6} className="compliance-empty-state">
-                      {rows.length ? 'No drivers match your search.' : 'No registered drivers.'}
+                      {rows.length
+                        ? (isVehicle ? 'No vehicles match your search.' : 'No drivers match your search.')
+                        : (isVehicle ? 'No registered vehicles.' : 'No registered drivers.')}
                     </td>
                   </tr>
                 )}
@@ -238,8 +319,8 @@ export default function Compliance() {
           <div className="table-pagination-footer" role="navigation" aria-label="Compliance table pagination">
             <span className="pagination-summary">
               {filtered.length === 0
-                ? "Showing 0 of 0 drivers"
-                : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} drivers`}
+                ? `Showing 0 of 0 ${isVehicle ? 'vehicles' : 'drivers'}`
+                : `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)} of ${filtered.length} ${isVehicle ? 'vehicles' : 'drivers'}`}
             </span>
 
             <nav className="pagination-controls-group" aria-label="Compliance pages">
@@ -268,12 +349,12 @@ export default function Compliance() {
           </div>
         </div>
       </section>
-      {selectedDriver && (
+      {selectedEntity && (
         <ComplianceDialog
-          key={selectedDriver.id}
-          kind="driver"
-          entity={selectedDriver}
-          onClose={() => setSelectedDriver(null)}
+          key={selectedEntity.id}
+          kind={isVehicle ? 'truck' : 'driver'}
+          entity={selectedEntity}
+          onClose={() => setSelectedEntity(null)}
           onSaved={refresh}
         />
       )}

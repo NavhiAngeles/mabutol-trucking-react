@@ -25,7 +25,17 @@ export function complianceCounts(rows) {
 
 export function filterCompliance(rows, query) {
   const term = query.trim().toLowerCase();
-  return rows.filter(row => [row.driver.id, row.driver.full_name, row.status,
-    ...row.docs.flatMap(item => [item.label, item.badge.label])]
-    .some(value => String(value || '').toLowerCase().includes(term)));
+  if (!term) return rows;
+  return rows.filter(row => {
+    const identityFields = row.driver
+      ? [row.driver.id, row.driver.full_name]
+      : row.truck
+      ? [row.truck.id, row.truck.plate_number, row.truck.model, row.truck.model_year]
+      : [];
+    return [
+      ...identityFields,
+      row.status,
+      ...row.docs.flatMap(item => [item.label, item.badge?.label]),
+    ].some(value => String(value || '').toLowerCase().includes(term));
+  });
 }

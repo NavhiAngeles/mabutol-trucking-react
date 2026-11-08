@@ -65,7 +65,43 @@
 .compliance-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.compliance-tabs {
+  display: inline-flex;
+  background-color: #F1F5F9;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+}
+
+.compliance-tabs .tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748B;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.compliance-tabs .tab-pill:hover:not(.active) {
+  color: #0F172A;
+}
+
+.compliance-tabs .tab-pill.active {
+  background-color: #FFFFFF;
+  color: #0F172A;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-compliance-refresh {
@@ -530,6 +566,18 @@
 
 .driver-name-text {
   font-weight: 600;
+}
+
+.truck-avatar-circle {
+  font-size: 14px;
+}
+
+.truck-model-subtitle {
+  display: block;
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 400;
+  margin-top: 1px;
 }
 
 /* Document Badges (License, Medical, NBI) */

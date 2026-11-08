@@ -160,3 +160,131 @@ test('Compliance pagination slices 10 rows per page, resets to page 1 on search,
   assert.ok(renderedText.includes('Driver 10'));
   assert.ok(!renderedText.includes('Driver 11'));
 });
+
+test('Driver / Vehicle Compliance tab switcher toggles subscriptions, headers, truck records, and kind=truck ComplianceDialog', async () => {
+  const { code } = await transformWithOxc(fs.readFileSync(new URL('./compliance.jsx', import.meta.url), 'utf8'), 'compliance.jsx', { jsx: { runtime: 'classic' } });
+  const states = []; let index = 0, refreshes = 0;
+  const mockTruckRows = [
+    {
+      truck: { id: 'truck-01', plate_number: 'NBD-1234', model: 'Isuzu Forward' },
+      docs: [
+        { docType: 'lto_registration', label: 'OR/CR Registration', badge: { state: 'valid', label: 'Valid' }, doc: { updated_at: '2026-11-01' } },
+        { docType: 'franchise_permit', label: 'LTFRB Permit', badge: { state: 'expiring_soon', label: 'Expiring Soon' }, doc: null },
+        { docType: 'emission_test', label: 'Emission Test', badge: { state: 'valid', label: 'Valid' }, doc: null },
+      ],
+    },
+    {
+      truck: { id: 'truck-02', plate_number: 'XYZ-9999', model: 'Hino 300' },
+      docs: [
+        { docType: 'lto_registration', label: 'OR/CR Registration', badge: { state: 'expired', label: 'Expired' }, doc: null },
+        { docType: 'franchise_permit', label: 'LTFRB Permit', badge: { state: 'valid', label: 'Valid' }, doc: null },
+        { docType: 'emission_test', label: 'Emission Test', badge: { state: 'missing', label: 'Missing' }, doc: null },
+      ],
+    },
+  ];
+
+  let currentSubscription = null;
+  const driverLoader = () => {};
+  const truckLoader = () => {};
+
+  const context = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    useState(value) { const i = index++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
+    MainLayout: 'SharedLayout', OfficeTools: () => null, ComplianceDialog: 'ComplianceDialog',
+    getDriverComplianceRows: driverLoader, getTruckComplianceRows: truckLoader,
+    complianceDirectory, complianceCounts, filterCompliance,
+    useLiveData(load, tables) {
+      currentSubscription = { load, tables: Array.from(tables) };
+      const isVehicleLoad = load === truckLoader;
+      return {
+        data: isVehicleLoad ? mockTruckRows : [{ driver: { id: 'd1', full_name: 'Driver Juan' }, docs: [] }],
+        loading: false,
+        error: null,
+        refresh: () => refreshes++,
+      };
+    },
+  });
+
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Compliance;', context);
+  const render = () => { index = 0; return context.render(); };
+
+  // 1. Initial render defaults to Driver tab:
+  let tree = render();
+  assert.equal(currentSubscription.load, driverLoader);
+  assert.deepEqual(currentSubscription.tables, ['drivers', 'compliance_documents', 'system_settings']);
+
+  const driverTab = find(tree, n => n.props.id === 'driverComplianceTab')[0];
+  const vehicleTab = find(tree, n => n.props.id === 'vehicleComplianceTab')[0];
+  assert.ok(driverTab, 'Driver tab button must be present');
+  assert.ok(vehicleTab, 'Vehicle tab button must be present');
+  assert.equal(driverTab.props['aria-selected'], true);
+  assert.equal(vehicleTab.props['aria-selected'], false);
+  assert.ok(JSON.stringify(tree).includes('DRIVER REGULATIONS'));
+  assert.ok(JSON.stringify(tree).includes('Driver Compliance'));
+
+  // 2. Switch to Vehicle Compliance tab:
+  vehicleTab.props.onClick();
+  tree = render();
+
+  // Subscription switches to getTruckComplianceRows and trucks table:
+  assert.equal(currentSubscription.load, truckLoader);
+  assert.deepEqual(currentSubscription.tables, ['trucks', 'compliance_documents', 'system_settings']);
+
+  const updatedDriverTab = find(tree, n => n.props.id === 'driverComplianceTab')[0];
+  const updatedVehicleTab = find(tree, n => n.props.id === 'vehicleComplianceTab')[0];
+  assert.equal(updatedDriverTab.props['aria-selected'], false);
+  assert.equal(updatedVehicleTab.props['aria-selected'], true);
+
+  // Headers and title update to Vehicle Regulations:
+  const text = JSON.stringify(tree);
+  assert.ok(text.includes('VEHICLE REGULATIONS'));
+  assert.ok(text.includes('Vehicle Compliance'));
+  assert.ok(text.includes('Monitor vehicle regulatory status'));
+  assert.ok(text.includes('OR/CR'));
+  assert.ok(text.includes('LTFRB Permit'));
+  assert.ok(text.includes('Emission Test'));
+
+  // Renders truck rows:
+  assert.ok(text.includes('NBD-1234'));
+  assert.ok(text.includes('Isuzu Forward'));
+  assert.ok(text.includes('XYZ-9999'));
+  assert.ok(text.includes('2 vehicles'));
+
+  // 3. Click vehicle to open ComplianceDialog with kind="truck":
+  const openTruckBtn = find(tree, n => n.props['aria-label'] === 'Open compliance for NBD-1234')[0];
+  assert.ok(openTruckBtn, 'Truck compliance link must be clickable');
+  openTruckBtn.props.onClick();
+
+  tree = render();
+  const dialog = find(tree, n => n.type === 'ComplianceDialog')[0];
+  assert.ok(dialog, 'ComplianceDialog must open');
+  assert.equal(dialog.props.kind, 'truck');
+  assert.equal(dialog.props.entity.id, 'truck-01');
+  assert.equal(dialog.props.entity.plate_number, 'NBD-1234');
+
+  // Verify refresh on save and close dialog:
+  dialog.props.onSaved();
+  assert.equal(refreshes, 1);
+  dialog.props.onClose();
+  tree = render();
+  assert.equal(find(tree, n => n.type === 'ComplianceDialog').length, 0);
+
+  // 4. Search on Vehicle tab:
+  const searchInput = find(tree, n => n.props.id === 'complianceSearch')[0];
+  searchInput.props.onChange({ target: { value: 'NBD' } });
+  tree = render();
+  assert.ok(JSON.stringify(tree).includes('NBD-1234'));
+  assert.ok(!JSON.stringify(tree).includes('XYZ-9999'));
+
+  // Non-matching search shows empty state for vehicles:
+  searchInput.props.onChange({ target: { value: 'NONEXISTENT' } });
+  tree = render();
+  assert.ok(JSON.stringify(tree).includes('No vehicles match your search.'));
+
+  // 5. Switching back to Driver Compliance tab clears search query and resets page:
+  find(tree, n => n.props.id === 'driverComplianceTab')[0].props.onClick();
+  tree = render();
+  assert.equal(find(tree, n => n.props.id === 'complianceSearch')[0].props.value, '');
+  assert.equal(currentSubscription.load, driverLoader);
+  assert.deepEqual(currentSubscription.tables, ['drivers', 'compliance_documents', 'system_settings']);
+});
