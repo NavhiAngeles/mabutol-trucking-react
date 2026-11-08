@@ -324,7 +324,6 @@ export default function Fleet() {
       {/* Primary Scrolling Content Frame */}
       <section className="content scrollable-panel">
         {fleet.error && <p role="alert">Could not refresh fleet records. {fleet.hasData ? 'Showing last loaded data.' : 'Data is unavailable.'} <button onClick={fleet.refresh}>Retry</button></p>}
-        <button className="btn-secondary" onClick={fleet.refresh}>Refresh fleet</button>
         {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => setParams({})}>Show all vehicles</button></p>}
 
         {/* HEADER ACTIONS BLOCK */}
@@ -334,6 +333,33 @@ export default function Fleet() {
             <p className="subtitle">MANAGE YOUR FLEET, DRIVERS, COMPLIANCE DOCUMENTS, AND MAINTENANCE SCHEDULES.</p>
           </div>
           <div className="action-buttons-group">
+            <button
+              type="button"
+              className="btn-fleet-refresh"
+              onClick={fleet.refresh}
+              disabled={fleet.loading}
+              title="Refresh fleet records"
+              aria-label="Refresh fleet"
+            >
+              <svg
+                className={`refresh-icon ${fleet.loading ? 'spinning' : ''}`}
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 21h5v-5" />
+              </svg>
+              <span>{fleet.loading ? 'Refreshing…' : 'Refresh fleet'}</span>
+            </button>
             <button className="btn-secondary" onClick={handleRegisterDriverClick}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
               <span>+ Register Driver</span>
@@ -872,260 +898,260 @@ export default function Fleet() {
           <button className="close-modal-btn" disabled={isSubmittingDriver} onClick={handleCloseDriverModal} aria-label="Close dialog">×</button>
         </div>
 
-            {/* Steps Progress Metrics Indicator */}
-            <div className="modal-steps-indicator">
-              <span className={`step-badge ${driverStep === 1 ? "active" : ""}`}>
-                1 Basic Information
-              </span>
+        {/* Steps Progress Metrics Indicator */}
+        <div className="modal-steps-indicator">
+          <span className={`step-badge ${driverStep === 1 ? "active" : ""}`}>
+            1 Basic Information
+          </span>
 
-              <span className="step-line"></span>
+          <span className="step-line"></span>
 
-              <span className={`step-badge ${driverStep === 2 ? "active" : ""}`}>
-                2 Compliance Documents
-              </span>
+          <span className={`step-badge ${driverStep === 2 ? "active" : ""}`}>
+            2 Compliance Documents
+          </span>
 
-              <span className="step-line"></span>
+          <span className="step-line"></span>
 
-              <span className={`step-badge ${driverStep === 3 ? "active" : ""}`}>
-                3 Confirmation
-              </span>
+          <span className={`step-badge ${driverStep === 3 ? "active" : ""}`}>
+            3 Confirmation
+          </span>
+        </div>
+
+        {/* Modal Form Body Segment Switcher */}
+        <div className="modal-body">
+          {driverStep === 1 && (
+            <div className="form-grid">
+              <div className="form-group">
+                <label>FULL NAME *</label>
+                <input type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
+              </div>
+              <div className="form-group">
+                <label>CONTACT NUMBER *</label>
+                <input type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
+              </div>
+              <div className="form-group">
+                <label>DATE HIRED</label>
+                <input type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
+              </div>
+              <div className="form-group">
+                <label>ASSIGN VEHICLE</label>
+                <select value={driverForm.assignVehicle} onChange={(e) => handleDriverInputChange(e, 'assignVehicle')}>
+                  <option value="">Select vehicle...</option>
+                  {assignableTrucks.map((truck) => (
+                    <option key={truck.id} value={truck.id}>
+                      {truck.model ? `${truck.model} (${truck.plate_number})` : truck.plate_number}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group full-width">
+                <label>EMERGENCY CONTACT NUMBER</label>
+                <input type="text" placeholder="09XX XXX XXXX" value={driverForm.emergencyContact} onChange={(e) => handleDriverInputChange(e, 'emergencyContact')} />
+              </div>
+
+              <div className="form-divider-title">License Information</div>
+              <div className="form-group">
+                <label>LICENSE NUMBER *</label>
+                <input type="text" placeholder="e.g. N01-23-45678" value={driverForm.licenseNumber} onChange={(e) => handleDriverInputChange(e, 'licenseNumber')} />
+              </div>
+              <div className="form-group">
+                <label>LICENSE EXPIRY</label>
+                <input type="date" value={driverForm.licenseExpiry} onChange={(e) => handleDriverInputChange(e, 'licenseExpiry')} />
+              </div>
+
+              <div className="form-section-box">
+                <h4>Driver Mobile Application Account</h4>
+                <div className="form-group full-width">
+                  <label>EMAIL ADDRESS</label>
+                  <input type="email" placeholder="driver@tanawlogistics.com" value={driverForm.email} onChange={(e) => handleDriverInputChange(e, 'email')} />
+                </div>
+                <div className="form-group">
+                  <label>TEMPORARY PASSWORD</label>
+                  <input type="password" placeholder="........" value={driverForm.password} onChange={(e) => handleDriverInputChange(e, 'password')} />
+                </div>
+                <div className="form-group">
+                  <label>CONFIRM PASSWORD</label>
+                  <input type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
+                </div>
+                <p className="notice-text">Email and password create a mobile login. The driver can sign in on Tanaw Mobile using either their contact number or email.</p>
+              </div>
             </div>
+          )}
 
-            {/* Modal Form Body Segment Switcher */}
-            <div className="modal-body">
-              {driverStep === 1 && (
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>FULL NAME *</label>
-                    <input type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
-                  </div>
-                  <div className="form-group">
-                    <label>CONTACT NUMBER *</label>
-                    <input type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
-                  </div>
-                  <div className="form-group">
-                    <label>DATE HIRED</label>
-                    <input type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
-                  </div>
-                  <div className="form-group">
-                    <label>ASSIGN VEHICLE</label>
-                    <select value={driverForm.assignVehicle} onChange={(e) => handleDriverInputChange(e, 'assignVehicle')}>
-                      <option value="">Select vehicle...</option>
-                      {assignableTrucks.map((truck) => (
-                        <option key={truck.id} value={truck.id}>
-                          {truck.model ? `${truck.model} (${truck.plate_number})` : truck.plate_number}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group full-width">
-                    <label>EMERGENCY CONTACT NUMBER</label>
-                    <input type="text" placeholder="09XX XXX XXXX" value={driverForm.emergencyContact} onChange={(e) => handleDriverInputChange(e, 'emergencyContact')} />
-                  </div>
+          {driverStep === 2 && (
+            <div className="documents-upload-container">
+              <p className="info-banner">⚡ Manual compliance entry: Enter driver license, medical clearance, and NBI verification records below.</p>
 
-                  <div className="form-divider-title">License Information</div>
-                  <div className="form-group">
-                    <label>LICENSE NUMBER *</label>
-                    <input type="text" placeholder="e.g. N01-23-45678" value={driverForm.licenseNumber} onChange={(e) => handleDriverInputChange(e, 'licenseNumber')} />
-                  </div>
-                  <div className="form-group">
-                    <label>LICENSE EXPIRY</label>
-                    <input type="date" value={driverForm.licenseExpiry} onChange={(e) => handleDriverInputChange(e, 'licenseExpiry')} />
-                  </div>
-
-                  <div className="form-section-box">
-                    <h4>Driver Mobile Application Account</h4>
-                    <div className="form-group full-width">
-                      <label>EMAIL ADDRESS</label>
-                      <input type="email" placeholder="driver@tanawlogistics.com" value={driverForm.email} onChange={(e) => handleDriverInputChange(e, 'email')} />
+              <div className="upload-cards-grid">
+                {/* Card 1: Driver's License */}
+                <div className="upload-card required">
+                  <h4>PROFESSIONAL DRIVER'S LICENSE <span className="req-label">REQUIRED</span></h4>
+                  <div className="form-grid" style={{ marginTop: "12px" }}>
+                    <div className="form-group">
+                      <label>LICENSE NUMBER *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. N01-23-45678"
+                        value={driverForm.licenseNumber}
+                        onChange={(e) => handleDriverInputChange(e, "licenseNumber")}
+                      />
                     </div>
                     <div className="form-group">
-                      <label>TEMPORARY PASSWORD</label>
-                      <input type="password" placeholder="........" value={driverForm.password} onChange={(e) => handleDriverInputChange(e, 'password')} />
+                      <label>EXPIRY DATE *</label>
+                      <input
+                        type="date"
+                        value={driverForm.licenseExpiry}
+                        onChange={(e) => handleDriverInputChange(e, "licenseExpiry")}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Medical Clearance Certificate */}
+                <div className="upload-card required">
+                  <h4>MEDICAL CLEARANCE CERTIFICATE <span className="req-label">RECOMMENDED</span></h4>
+                  <div className="form-grid" style={{ marginTop: "12px" }}>
+                    <div className="form-group">
+                      <label>CERTIFICATE NUMBER / CLINIC</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. MED-2026-8891"
+                        value={driverForm.medicalDocNumber || ""}
+                        onChange={(e) => handleDriverInputChange(e, "medicalDocNumber")}
+                      />
                     </div>
                     <div className="form-group">
-                      <label>CONFIRM PASSWORD</label>
-                      <input type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
-                    </div>
-                    <p className="notice-text">Email and password create a mobile login. The driver can sign in on Tanaw Mobile using either their contact number or email.</p>
-                  </div>
-                </div>
-              )}
-
-              {driverStep === 2 && (
-                <div className="documents-upload-container">
-                  <p className="info-banner">⚡ Manual compliance entry: Enter driver license, medical clearance, and NBI verification records below.</p>
-
-                  <div className="upload-cards-grid">
-                    {/* Card 1: Driver's License */}
-                    <div className="upload-card required">
-                      <h4>PROFESSIONAL DRIVER'S LICENSE <span className="req-label">REQUIRED</span></h4>
-                      <div className="form-grid" style={{ marginTop: "12px" }}>
-                        <div className="form-group">
-                          <label>LICENSE NUMBER *</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. N01-23-45678"
-                            value={driverForm.licenseNumber}
-                            onChange={(e) => handleDriverInputChange(e, "licenseNumber")}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>EXPIRY DATE *</label>
-                          <input
-                            type="date"
-                            value={driverForm.licenseExpiry}
-                            onChange={(e) => handleDriverInputChange(e, "licenseExpiry")}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card 2: Medical Clearance Certificate */}
-                    <div className="upload-card required">
-                      <h4>MEDICAL CLEARANCE CERTIFICATE <span className="req-label">RECOMMENDED</span></h4>
-                      <div className="form-grid" style={{ marginTop: "12px" }}>
-                        <div className="form-group">
-                          <label>CERTIFICATE NUMBER / CLINIC</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. MED-2026-8891"
-                            value={driverForm.medicalDocNumber || ""}
-                            onChange={(e) => handleDriverInputChange(e, "medicalDocNumber")}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>VALID UNTIL / EXPIRY DATE</label>
-                          <input
-                            type="date"
-                            value={driverForm.medicalExpiry || ""}
-                            onChange={(e) => handleDriverInputChange(e, "medicalExpiry")}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card 3: NBI Clearance */}
-                    <div className="upload-card optional">
-                      <h4>NATIONAL BUREAU OF INVESTIGATION (NBI) CLEARANCE <span className="opt-label">OPTIONAL</span></h4>
-                      <div className="form-grid" style={{ marginTop: "12px" }}>
-                        <div className="form-group">
-                          <label>NBI CLEARANCE NUMBER</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. NBI-2026-4492"
-                            value={driverForm.nbiDocNumber || ""}
-                            onChange={(e) => handleDriverInputChange(e, "nbiDocNumber")}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>EXPIRY DATE</label>
-                          <input
-                            type="date"
-                            value={driverForm.nbiExpiry || ""}
-                            onChange={(e) => handleDriverInputChange(e, "nbiExpiry")}
-                          />
-                        </div>
-                      </div>
+                      <label>VALID UNTIL / EXPIRY DATE</label>
+                      <input
+                        type="date"
+                        value={driverForm.medicalExpiry || ""}
+                        onChange={(e) => handleDriverInputChange(e, "medicalExpiry")}
+                      />
                     </div>
                   </div>
                 </div>
-              )}
 
-              {driverStep === 3 && (
-                <div className="success-modal-view">
-                  <div className="success-icon-circle">✓</div>
-                  <h2>Driver Registered Successfully</h2>
-                  <span className="system-id-badge">SYSTEM GEN ID: {registeredDriverId}</span>
-                  <div className="status-box">
-                    <p>Status: <span className="text-success">REGISTERED — COMPLIANCE REVIEW PENDING</span></p>
-                    <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Driver can sign in using their contact number or email. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
+                {/* Card 3: NBI Clearance */}
+                <div className="upload-card optional">
+                  <h4>NATIONAL BUREAU OF INVESTIGATION (NBI) CLEARANCE <span className="opt-label">OPTIONAL</span></h4>
+                  <div className="form-grid" style={{ marginTop: "12px" }}>
+                    <div className="form-group">
+                      <label>NBI CLEARANCE NUMBER</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. NBI-2026-4492"
+                        value={driverForm.nbiDocNumber || ""}
+                        onChange={(e) => handleDriverInputChange(e, "nbiDocNumber")}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>EXPIRY DATE</label>
+                      <input
+                        type="date"
+                        value={driverForm.nbiExpiry || ""}
+                        onChange={(e) => handleDriverInputChange(e, "nbiExpiry")}
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
+          )}
 
-            {/* Modal Actions Footer Grouping */}
-            <div className="modal-footer">
-              {driverStep === 1 && (
-                <>
-                  <button
-                    className="btn-link"
-                    disabled={isSubmittingDriver}
-                    onClick={handleCloseDriverModal}
-                  >
-                    CANCEL
-                  </button>
-
-                  <div className="footer-right-buttons">
-                    <button
-                      className="btn-secondary"
-                      onClick={handleDriverSubmit}
-                      disabled={isSubmittingDriver}
-                      title="Quick register driver without entering additional compliance documents"
-                    >
-                      {isSubmittingDriver ? "Registering..." : "Quick Register"}
-                    </button>
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        if (!driverForm.fullName || !driverForm.contactNumber) {
-                          alert("Please fill in Full Name and Contact Number before proceeding.");
-                          return;
-                        }
-                        if (!driverForm.licenseNumber) {
-                          alert("Please provide the License Number before proceeding.");
-                          return;
-                        }
-                        setDriverStep(2);
-                      }}
-                    >
-                      NEXT STEP →
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {driverStep === 2 && (
-                <>
-                  <button
-                    className="btn-link"
-                    onClick={() => setDriverStep(1)}
-                  >
-                    ← BACK
-                  </button>
-
-                  <div className="footer-right-buttons">
-                    <button
-                      className="btn-secondary"
-                      onClick={handleDriverSubmit}
-                      disabled={isSubmittingDriver}
-                    >
-                      Skip & Complete
-                    </button>
-
-                    <button
-                      className="btn-primary"
-                      disabled={isSubmittingDriver}
-                      onClick={handleDriverSubmit}
-                    >
-                      {isSubmittingDriver ? "Registering..." : "Complete Registration ✓"}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {driverStep === 3 && (
-                <>
-                  <button
-                    className="btn-primary"
-                    onClick={handleCloseDriverModal}
-                  >
-                    Close
-                  </button>
-                </>
-              )}
+          {driverStep === 3 && (
+            <div className="success-modal-view">
+              <div className="success-icon-circle">✓</div>
+              <h2>Driver Registered Successfully</h2>
+              <span className="system-id-badge">SYSTEM GEN ID: {registeredDriverId}</span>
+              <div className="status-box">
+                <p>Status: <span className="text-success">REGISTERED — COMPLIANCE REVIEW PENDING</span></p>
+                <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Driver can sign in using their contact number or email. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* Modal Actions Footer Grouping */}
+        <div className="modal-footer">
+          {driverStep === 1 && (
+            <>
+              <button
+                className="btn-link"
+                disabled={isSubmittingDriver}
+                onClick={handleCloseDriverModal}
+              >
+                CANCEL
+              </button>
+
+              <div className="footer-right-buttons">
+                <button
+                  className="btn-secondary"
+                  onClick={handleDriverSubmit}
+                  disabled={isSubmittingDriver}
+                  title="Quick register driver without entering additional compliance documents"
+                >
+                  {isSubmittingDriver ? "Registering..." : "Quick Register"}
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    if (!driverForm.fullName || !driverForm.contactNumber) {
+                      alert("Please fill in Full Name and Contact Number before proceeding.");
+                      return;
+                    }
+                    if (!driverForm.licenseNumber) {
+                      alert("Please provide the License Number before proceeding.");
+                      return;
+                    }
+                    setDriverStep(2);
+                  }}
+                >
+                  NEXT STEP →
+                </button>
+              </div>
+            </>
+          )}
+
+          {driverStep === 2 && (
+            <>
+              <button
+                className="btn-link"
+                onClick={() => setDriverStep(1)}
+              >
+                ← BACK
+              </button>
+
+              <div className="footer-right-buttons">
+                <button
+                  className="btn-secondary"
+                  onClick={handleDriverSubmit}
+                  disabled={isSubmittingDriver}
+                >
+                  Skip & Complete
+                </button>
+
+                <button
+                  className="btn-primary"
+                  disabled={isSubmittingDriver}
+                  onClick={handleDriverSubmit}
+                >
+                  {isSubmittingDriver ? "Registering..." : "Complete Registration ✓"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {driverStep === 3 && (
+            <>
+              <button
+                className="btn-primary"
+                onClick={handleCloseDriverModal}
+              >
+                Close
+              </button>
+            </>
+          )}
+        </div>
       </FleetModal>
 
       {/* ================= ADD VEHICLE MULTI-STEP MODAL ================= */}
@@ -1147,258 +1173,258 @@ export default function Fleet() {
           <button className="close-modal-btn" disabled={isSubmittingTruck} onClick={handleCloseVehicleModal} aria-label="Close dialog">×</button>
         </div>
 
-            <div className="modal-steps-indicator">
-              <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>
-                1 Vehicle Info
-              </span>
+        <div className="modal-steps-indicator">
+          <span className={`step-badge ${vehicleStep === 1 ? "active" : ""}`}>
+            1 Vehicle Info
+          </span>
 
-              <span className="step-line"></span>
+          <span className="step-line"></span>
 
-              <span className={`step-badge ${vehicleStep === 2 ? "active" : ""}`}>
-                2 Documents
-              </span>
-            </div>
+          <span className={`step-badge ${vehicleStep === 2 ? "active" : ""}`}>
+            2 Documents
+          </span>
+        </div>
 
-            <div className="modal-body">
-              {vehicleStep === 1 && (
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>PLATE NUMBER *</label>
-                    <input type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
-                  </div>
-                  <div className="form-group">
-                    <label>MODEL YEAR</label>
-                    <input type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
-                  </div>
-                  <div className="form-group">
-                    <label>MODEL *</label>
-                    <input type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
-                  </div>
-                  <div className="form-group">
-                    <label>VEHICLE TYPE *</label>
-                    <select value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
-                      <option value="">Select type...</option>
-                      {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>MAX CARGO WEIGHT (KG) *</label>
-                    <input type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
-                  </div>
+        <div className="modal-body">
+          {vehicleStep === 1 && (
+            <div className="form-grid">
+              <div className="form-group">
+                <label>PLATE NUMBER *</label>
+                <input type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
+              </div>
+              <div className="form-group">
+                <label>MODEL YEAR</label>
+                <input type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
+              </div>
+              <div className="form-group">
+                <label>MODEL *</label>
+                <input type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
+              </div>
+              <div className="form-group">
+                <label>VEHICLE TYPE *</label>
+                <select value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
+                  <option value="">Select type...</option>
+                  {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>MAX CARGO WEIGHT (KG) *</label>
+                <input type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
+              </div>
 
-                  {/* ================= CARGO COMPATIBILITY DYNAMICALLY FROM DB ================= */}
-                  <div className="form-group full-width">
-                    <label className="cargo-title-label">CARGO COMPATIBILITY</label>
-                    <div className="cargo-options-grid">
-                      {cargoCategories.length === 0 && <p>No cargo categories configured.</p>}
-                      {cargoCategories.map(c => ({ id: c.id, label: c.name })).map((option) => {
-                        const isSelected = vehicleForm.cargoCompatibility?.includes(option.id);
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            className={`cargo-option-btn ${isSelected ? "selected" : ""}`}
-                            onClick={() => handleCargoToggle(option.id)}
+              {/* ================= CARGO COMPATIBILITY DYNAMICALLY FROM DB ================= */}
+              <div className="form-group full-width">
+                <label className="cargo-title-label">CARGO COMPATIBILITY</label>
+                <div className="cargo-options-grid">
+                  {cargoCategories.length === 0 && <p>No cargo categories configured.</p>}
+                  {cargoCategories.map(c => ({ id: c.id, label: c.name })).map((option) => {
+                    const isSelected = vehicleForm.cargoCompatibility?.includes(option.id);
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={`cargo-option-btn ${isSelected ? "selected" : ""}`}
+                        onClick={() => handleCargoToggle(option.id)}
+                      >
+                        {isSelected && (
+                          <svg
+                            className="checkmark-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                           >
-                            {isSelected && (
-                              <svg
-                                className="checkmark-icon"
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
-                            )}
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {vehicleStep === 2 && (
-                <div className="compliance-documents-view">
-                  {/* Form Grid for Document Text Fields */}
-                  <div className="form-grid" style={{ marginBottom: "24px" }}>
-                    <div className="form-group">
-                      <label>OR NUMBER <span className="required">*</span></label>
-                      <input
-                        type="text"
-                        placeholder="Enter Official Receipt Number"
-                        value={vehicleForm.orNumber || ""}
-                        onChange={(e) => setVehicleForm({ ...vehicleForm, orNumber: e.target.value })}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>CR NUMBER <span className="required">*</span></label>
-                      <input
-                        type="text"
-                        placeholder="Enter Certificate of Registration Number"
-                        value={vehicleForm.crNumber || ""}
-                        onChange={(e) => setVehicleForm({ ...vehicleForm, crNumber: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Section Title for File Uploads */}
-                  <label className="cargo-title-label" style={{ marginBottom: "12px" }}>
-                    Upload Official Compliance Digital Files
-                  </label>
-
-                  {/* File Upload Grid Area */}
-                  <div className="form-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
-                    {/* Upload Box 1: OR File */}
-                    <div className="file-upload-dropzone">
-                      <div className="upload-icon-container">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                      </div>
-                      <div className="upload-text-content">
-                        <p className="upload-main-text">
-                          <span>Choose a file</span>
-                        </p>
-                        <p className="upload-sub-text">{vehicleForm.orFile ? vehicleForm.orFile.name + " — ready to upload" : "Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
-                      </div>
-                      <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Official receipt file" onChange={e => handleFile(e, "orFile")} />
-                    </div>
-
-                    {/* Upload Box 2: CR File */}
-                    <div className="file-upload-dropzone">
-                      <div className="upload-icon-container">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                          <polyline points="17 8 12 3 7 8" />
-                          <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
-                      </div>
-                      <div className="upload-text-content">
-                        <p className="upload-main-text">
-                          <span>Choose a file</span>
-                        </p>
-                        <p className="upload-sub-text">{vehicleForm.crFile ? vehicleForm.crFile.name + " — ready to upload" : "Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
-                      </div>
-                      <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Registration file" onChange={e => handleFile(e, "crFile")} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer">
-              {vehicleStep === 1 && (
-                <>
-                  <button
-                    className="btn-link"
-                    disabled={isSubmittingTruck}
-                    onClick={handleCloseVehicleModal}
-                  >
-                    CANCEL
-                  </button>
-
-                  <div className="footer-right-buttons">
-                    <button
-                      className="btn-primary"
-                      onClick={() => setVehicleStep(2)}
-                    >
-                      NEXT STEP →
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {vehicleStep === 2 && (
-                <>
-                  <button
-                    className="btn-link"
-                    disabled={isSubmittingTruck} onClick={() => setVehicleStep(1)}
-                  >
-                    ← BACK
-                  </button>
-
-                  <div className="footer-right-buttons">
-                    <button
-                      className="btn-secondary"
-                      onClick={handleVehicleSubmit}
-                      disabled={isSubmittingTruck}
-                    >
-                      Save registration
-                    </button>
-
-                    <button
-                      className="btn-primary"
-                      disabled={isSubmittingTruck}
-                      onClick={handleVehicleSubmit}
-                    >
-                      {isSubmittingTruck ? "Registering..." : "Complete Registration ✓"}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {showVehicleSuccess && (
-              <div className="modal-backdrop">
-                <div className="vehicle-success-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-success-modal-title">
-                  <div className="success-icon">
-                    ✓
-                  </div>
-
-                  <h2 id="vehicle-success-modal-title">
-                    Vehicle Registered
-                    <br />
-                    Successfully
-                  </h2>
-
-                  <div className="vehicle-id">
-                    SYSTEM ID:
-                    <strong> {registeredTruckId}</strong>
-                  </div>
-
-                  <div className="success-status-box">
-                    <p>
-                      Status:
-                      <strong> REGISTERED</strong>
-                    </p>
-
-                    <p>
-                      The vehicle has been saved. Any supplied documents are pending review in the Compliance tab.
-                    </p>
-                  </div>
-
-                  <button
-                    className="btn-primary success-full-btn"
-                    onClick={handleCloseVehicleModal}
-                  >
-                    View Vehicle Information
-                  </button>
-
-                  <button
-                    className="btn-secondary success-full-btn"
-                    onClick={resetVehicleForm}
-                  >
-                    Register Another Vehicle
-                  </button>
-
-                  <button
-                    className="success-close"
-                    onClick={handleCloseVehicleModal}
-                    aria-label="Close dialog"
-                  >
-                    ✕
-                  </button>
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                        {option.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+          {vehicleStep === 2 && (
+            <div className="compliance-documents-view">
+              {/* Form Grid for Document Text Fields */}
+              <div className="form-grid" style={{ marginBottom: "24px" }}>
+                <div className="form-group">
+                  <label>OR NUMBER <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Enter Official Receipt Number"
+                    value={vehicleForm.orNumber || ""}
+                    onChange={(e) => setVehicleForm({ ...vehicleForm, orNumber: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>CR NUMBER <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="Enter Certificate of Registration Number"
+                    value={vehicleForm.crNumber || ""}
+                    onChange={(e) => setVehicleForm({ ...vehicleForm, crNumber: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Section Title for File Uploads */}
+              <label className="cargo-title-label" style={{ marginBottom: "12px" }}>
+                Upload Official Compliance Digital Files
+              </label>
+
+              {/* File Upload Grid Area */}
+              <div className="form-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
+                {/* Upload Box 1: OR File */}
+                <div className="file-upload-dropzone">
+                  <div className="upload-icon-container">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <div className="upload-text-content">
+                    <p className="upload-main-text">
+                      <span>Choose a file</span>
+                    </p>
+                    <p className="upload-sub-text">{vehicleForm.orFile ? vehicleForm.orFile.name + " — ready to upload" : "Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                  </div>
+                  <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Official receipt file" onChange={e => handleFile(e, "orFile")} />
+                </div>
+
+                {/* Upload Box 2: CR File */}
+                <div className="file-upload-dropzone">
+                  <div className="upload-icon-container">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <div className="upload-text-content">
+                    <p className="upload-main-text">
+                      <span>Choose a file</span>
+                    </p>
+                    <p className="upload-sub-text">{vehicleForm.crFile ? vehicleForm.crFile.name + " — ready to upload" : "Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                  </div>
+                  <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Registration file" onChange={e => handleFile(e, "crFile")} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          {vehicleStep === 1 && (
+            <>
+              <button
+                className="btn-link"
+                disabled={isSubmittingTruck}
+                onClick={handleCloseVehicleModal}
+              >
+                CANCEL
+              </button>
+
+              <div className="footer-right-buttons">
+                <button
+                  className="btn-primary"
+                  onClick={() => setVehicleStep(2)}
+                >
+                  NEXT STEP →
+                </button>
+              </div>
+            </>
+          )}
+
+          {vehicleStep === 2 && (
+            <>
+              <button
+                className="btn-link"
+                disabled={isSubmittingTruck} onClick={() => setVehicleStep(1)}
+              >
+                ← BACK
+              </button>
+
+              <div className="footer-right-buttons">
+                <button
+                  className="btn-secondary"
+                  onClick={handleVehicleSubmit}
+                  disabled={isSubmittingTruck}
+                >
+                  Save registration
+                </button>
+
+                <button
+                  className="btn-primary"
+                  disabled={isSubmittingTruck}
+                  onClick={handleVehicleSubmit}
+                >
+                  {isSubmittingTruck ? "Registering..." : "Complete Registration ✓"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {showVehicleSuccess && (
+          <div className="modal-backdrop">
+            <div className="vehicle-success-modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-success-modal-title">
+              <div className="success-icon">
+                ✓
+              </div>
+
+              <h2 id="vehicle-success-modal-title">
+                Vehicle Registered
+                <br />
+                Successfully
+              </h2>
+
+              <div className="vehicle-id">
+                SYSTEM ID:
+                <strong> {registeredTruckId}</strong>
+              </div>
+
+              <div className="success-status-box">
+                <p>
+                  Status:
+                  <strong> REGISTERED</strong>
+                </p>
+
+                <p>
+                  The vehicle has been saved. Any supplied documents are pending review in the Compliance tab.
+                </p>
+              </div>
+
+              <button
+                className="btn-primary success-full-btn"
+                onClick={handleCloseVehicleModal}
+              >
+                View Vehicle Information
+              </button>
+
+              <button
+                className="btn-secondary success-full-btn"
+                onClick={resetVehicleForm}
+              >
+                Register Another Vehicle
+              </button>
+
+              <button
+                className="success-close"
+                onClick={handleCloseVehicleModal}
+                aria-label="Close dialog"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </FleetModal>
 
       {confirmDiscardTarget && (
