@@ -389,26 +389,56 @@
   font-style: italic;
 }
 
+.office-help-support-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 10px;
+}
+
 .office-help-contacts {
   margin: 8px 0 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 16px;
 }
 
 .office-help-contacts > div {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 4px 12px;
-  padding: 6px 0;
-  border-top: 1px solid #f1f5f9;
+  align-items: center;
+  gap: 6px 16px;
+  padding: 10px 0;
+}
+
+.office-help-contacts > div + div {
+  border-top: 1px solid #e2e8f0;
 }
 
 .office-help-contacts dt {
   font-weight: 600;
+  font-size: 13.5px;
   color: #0f172a;
 }
 
 .office-help-contacts dd {
   margin: 0;
+  font-size: 13.5px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.office-help-contact-link {
+  color: #1a4b9c;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.office-help-contact-link:hover {
+  color: #0f3066;
+  text-decoration: underline;
 }
 
 .office-help-actions {

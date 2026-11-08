@@ -208,7 +208,7 @@ test('Tab and Shift+Tab wrap focus inside the help dialog', async () => {
   assert.equal(body.props.role, 'region');
 });
 
-test('help guide covers booking review, toll pricing, manual dispatch and marks unpublished support contacts', async () => {
+test('help guide covers booking review, toll pricing, manual dispatch and publishes verified support contacts', async () => {
   const { tree } = await helpDialog(null);
   const headings = find(tree, n => n.type === 'h3').map(textOf);
   assert.deepEqual(headings, ['Booking review', 'Toll pricing rules', 'Manual dispatch eligibility', 'Support contacts']);
@@ -221,9 +221,14 @@ test('help guide covers booking review, toll pricing, manual dispatch and marks 
   }
   const contacts = find(tree, n => n.props.className === 'office-help-contacts')[0];
   const rows = find(contacts, n => n.type === 'div');
-  assert.deepEqual(rows.map(row => textOf(find(row, n => n.type === 'dt')[0])), ['Dispatch hotline', 'Support email', 'Office hours', 'After-hours escalation']);
-  assert.ok(rows.every(row => /Not yet published/.test(textOf(find(row, n => n.type === 'dd')[0]))));
-  assert.ok(!/@|\+63|\d{3}[-\s]?\d{4}/.test(textOf(contacts)), 'no invented contact details');
+  assert.deepEqual(rows.map(row => textOf(find(row, n => n.type === 'dt')[0])), ['Dispatch Hotline', 'Support Email', 'Office Hours']);
+  assert.ok(textOf(contacts).includes('0977 851 7403'));
+  assert.ok(textOf(contacts).includes('mabutoltrucking2015@gmail.com'));
+  assert.ok(textOf(contacts).includes('Monday – Saturday, 8:00 AM – 5:00 PM (PHT)'));
+  assert.ok(!textOf(contacts).includes('After-hours escalation'));
+  const links = find(contacts, n => n.type === 'a');
+  assert.equal(links.find(l => l.props.href === 'tel:09778517403')?.children[0], '0977 851 7403');
+  assert.equal(links.find(l => l.props.href === 'mailto:mabutoltrucking2015@gmail.com')?.children[0], 'mabutoltrucking2015@gmail.com');
 });
 async function sidebar(signOut) {
   const events = [];

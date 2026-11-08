@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
 
-const UNPUBLISHED = "Not yet published — company policy pending";
-
 // Guidance mirrors guards already enforced by the booking, pricing and assignment code.
 // It is reference text only; the server-side checks remain authoritative.
 const HELP_SECTIONS = [
@@ -40,7 +38,23 @@ const HELP_SECTIONS = [
   },
 ];
 
-const SUPPORT_CONTACTS = ["Dispatch hotline", "Support email", "Office hours", "After-hours escalation"];
+const SUPPORT_CONTACTS = [
+  {
+    label: "Dispatch Hotline",
+    value: "0977 851 7403",
+    href: "tel:09778517403",
+  },
+  {
+    label: "Support Email",
+    value: "mabutoltrucking2015@gmail.com",
+    href: "mailto:mabutoltrucking2015@gmail.com",
+  },
+  {
+    label: "Office Hours",
+    value: "Monday – Saturday, 8:00 AM – 5:00 PM (PHT)",
+    href: null,
+  },
+];
 
 export default function OfficeHelpDialog({ onClose }) {
   const dialogRef = useRef(null);
@@ -79,10 +93,21 @@ export default function OfficeHelpDialog({ onClose }) {
         ))}
         <section aria-labelledby="office-help-support">
           <h3 id="office-help-support">Support contacts</h3>
-          <p className="office-help-unpublished">These contacts have not been published by the company. Ask your supervisor until they are available.</p>
+          <p className="office-help-support-desc">Official operations and support channels for office staff:</p>
           <dl className="office-help-contacts">
-            {SUPPORT_CONTACTS.map(label => (
-              <div key={label}><dt>{label}</dt><dd className="office-help-unpublished">{UNPUBLISHED}</dd></div>
+            {SUPPORT_CONTACTS.map(contact => (
+              <div key={contact.label}>
+                <dt>{contact.label}</dt>
+                <dd>
+                  {contact.href ? (
+                    <a href={contact.href} className="office-help-contact-link">
+                      {contact.value}
+                    </a>
+                  ) : (
+                    <span>{contact.value}</span>
+                  )}
+                </dd>
+              </div>
             ))}
           </dl>
         </section>
