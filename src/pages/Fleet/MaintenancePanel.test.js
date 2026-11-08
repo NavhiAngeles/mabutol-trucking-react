@@ -92,3 +92,57 @@ test('empty maintenance list renders centered and padded message matching fleet 
   assert.equal(emptyCell.props.style.textAlign, 'center');
   assert.equal(emptyCell.children[0], 'No maintenance records.');
 });
+
+test('maintenance search filters records and renders query empty notice when none match', async () => {
+  const ui = await screen();
+  ui.fleet.maintenanceRecords = [
+    { id: 's1', kind: 'oil change', scheduled_date: '2026-11-10', status: 'scheduled', trucks: { plate_number: 'TRUCK-101' }, vendor: 'Quick Lube' },
+    { id: 's2', kind: 'tire rotation', scheduled_date: '2026-11-12', status: 'scheduled', trucks: { plate_number: 'TRUCK-202' }, vendor: 'Goodyear' },
+  ];
+  let tree = ui.render();
+  const searchInput = find(tree, n => n.type === 'input' && n.props?.className?.includes('inner-search'))[0];
+  assert.ok(searchInput, 'search input must exist in list view');
+
+  // Filter for TRUCK-101
+  searchInput.props.onChange({ target: { value: 'TRUCK-101' } });
+  tree = ui.render();
+  assert.ok(JSON.stringify(tree).includes('TRUCK-101'));
+  assert.ok(!JSON.stringify(tree).includes('TRUCK-202'));
+
+  // Filter for nonexistent query
+  searchInput.props.onChange({ target: { value: 'NONEXISTENT' } });
+  tree = ui.render();
+  const emptyCell = find(tree, n => n.type === 'td' && n.props?.colSpan === '7')[0];
+  assert.equal(emptyCell.children[0], 'No maintenance records match your search.');
+});
+
+test('maintenance pagination breaks records into pages of 10 and updates pagination controls', async () => {
+  const ui = await screen();
+  ui.fleet.maintenanceRecords = Array.from({ length: 15 }, (_, i) => ({
+    id: `srv-${i + 1}`,
+    kind: 'maintenance',
+    scheduled_date: '2026-11-15',
+    status: 'scheduled',
+    trucks: { plate_number: `PLT-${String(i + 1).padStart(3, '0')}` },
+  }));
+  let tree = ui.render();
+
+  // Initial page 1
+  const summary = find(tree, n => n.props?.className === 'pagination-summary')[0];
+  assert.equal(summary.children[0], 'Showing 1–10 of 15 records');
+  const indicator = find(tree, n => n.props?.className === 'pagination-page-indicator')[0];
+  assert.equal(indicator.children[0], 'Page 1 of 2');
+
+  const nextBtn = find(tree, n => n.type === 'button' && n.props?.className?.includes('page-nav-next'))[0];
+  assert.equal(nextBtn.props.disabled, false);
+  const prevBtn = find(tree, n => n.type === 'button' && n.props?.className?.includes('page-nav-prev'))[0];
+  assert.equal(prevBtn.props.disabled, true);
+
+  // Navigate to page 2
+  nextBtn.props.onClick();
+  tree = ui.render();
+  const page2Summary = find(tree, n => n.props?.className === 'pagination-summary')[0];
+  assert.equal(page2Summary.children[0], 'Showing 11–15 of 15 records');
+  const page2Indicator = find(tree, n => n.props?.className === 'pagination-page-indicator')[0];
+  assert.equal(page2Indicator.children[0], 'Page 2 of 2');
+});

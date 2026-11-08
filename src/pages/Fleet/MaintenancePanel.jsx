@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { FleetEditor } from './FleetDialogs';
 import { manilaDate } from '../../services/dashboardAnalytics.js';
 
+const PAGE_SIZE = 10;
+
 export default function MaintenancePanel({ fleet }) {
   const [view, setView] = useState('list');
   const [month, setMonth] = useState(() => manilaDate(Date.now()).slice(0, 7));
   const [editing, setEditing] = useState(undefined);
   const [today] = useState(() => manilaDate(Date.now()));
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+
   const first = new Date(month + '-01T12:00:00');
   const days = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
   const offset = first.getDay();
@@ -15,6 +20,21 @@ export default function MaintenancePanel({ fleet }) {
     const d = new Date(first.getFullYear(), first.getMonth() + delta, 1, 12);
     setMonth(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
   }
+
+  const filteredRecords = (fleet.maintenanceRecords || []).filter((r) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    const plate = (r.trucks?.plate_number || '').toLowerCase();
+    const kind = (r.kind || '').toLowerCase();
+    const desc = (r.description || '').toLowerCase();
+    const vendor = (r.vendor || '').toLowerCase();
+    const status = (r.status || '').toLowerCase();
+    return plate.includes(q) || kind.includes(q) || desc.includes(q) || vendor.includes(q) || status.includes(q);
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedRecords = filteredRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <section id="fleet-maintenance">
@@ -78,92 +98,143 @@ export default function MaintenancePanel({ fleet }) {
 
       <div id="maintenance-view" role="region" aria-label={view === 'list' ? 'Maintenance list view' : 'Maintenance calendar view'}>
         {view === 'list' ? (
-          <div className="fleet-table-scroll">
-            <table className="premium-table">
-              <thead>
-                <tr>
-                  <th>VEHICLE</th>
-                  <th>SERVICE</th>
-                  <th>SCHEDULED</th>
-                  <th>COMPLETED</th>
-                  <th>WORKSHOP / COST</th>
-                  <th>STATUS</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!fleet.loading && !fleet.maintenanceRecords.length && (
+          <>
+            <div className="table-filter-bar">
+              <div className="filter-search-wrapper">
+                <input
+                  type="text"
+                  className="inner-search"
+                  placeholder="Search maintenance by plate, service, workshop..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  aria-label="Search maintenance records"
+                />
+              </div>
+            </div>
+            <div className="fleet-table-scroll">
+              <table className="premium-table">
+                <thead>
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: "36px 20px", color: "#64748B" }}>
-                      {fleet.error ? 'Maintenance unavailable; retry above.' : 'No maintenance records.'}
-                    </td>
+                    <th>VEHICLE</th>
+                    <th>SERVICE</th>
+                    <th>SCHEDULED</th>
+                    <th>COMPLETED</th>
+                    <th>WORKSHOP / COST</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
                   </tr>
-                )}
-                {fleet.maintenanceRecords.map(r => {
-                  let statusClass = "status-pill status-transit";
-                  let statusLabel = r.status.replaceAll('_', ' ').toUpperCase();
-                  if (r.status === 'completed') {
-                    statusClass = "status-pill status-active";
-                  } else if (r.status === 'scheduled') {
-                    if (r.scheduled_date && r.scheduled_date < today) {
-                      statusClass = "status-pill status-danger";
-                      statusLabel = "OVERDUE";
-                    } else if (r.warningState === 'critical') {
-                      statusClass = "status-pill status-danger";
-                      statusLabel = "CRITICAL — DUE SOON";
-                    } else if (r.warningState === 'expiring_soon') {
-                      statusClass = "status-pill status-warning";
-                      statusLabel = "DUE SOON";
-                    } else {
-                      statusClass = "status-pill status-transit";
-                      statusLabel = "SCHEDULED";
-                    }
-                  } else if (r.status === 'in_progress') {
-                    statusClass = "status-pill status-transit";
-                    statusLabel = "IN PROGRESS";
-                  } else if (r.status === 'cancelled') {
-                    statusClass = "status-pill status-inactive";
-                    statusLabel = "CANCELLED";
-                  }
-
-                  return (
-                    <tr key={r.id}>
-                      <td><strong>{r.trucks?.plate_number || '—'}</strong></td>
-                      <td>
-                        <span style={{ fontWeight: 600 }}>{r.kind}</span>
-                        {r.description && <span className="subtext" style={{ display: 'block' }}>{r.description}</span>}
-                      </td>
-                      <td>{r.scheduled_date || '—'}</td>
-                      <td>{r.completed_date || '—'}</td>
-                      <td>
-                        {r.vendor || '—'}
-                        <span className="subtext" style={{ display: 'block' }}>
-                          {r.cost == null ? '—' : `PHP ${Number(r.cost).toLocaleString()}`}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={statusClass}>● {statusLabel}</span>
-                      </td>
-                      <td className="fleet-actions-cell">
-                        <button
-                          type="button"
-                          className="fleet-btn-action fleet-btn-edit"
-                          onClick={() => setEditing(r)}
-                          title={`Edit maintenance record for ${r.trucks?.plate_number || 'vehicle'}`}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                          Edit service
-                        </button>
+                </thead>
+                <tbody>
+                  {!fleet.loading && !filteredRecords.length && (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: "center", padding: "36px 20px", color: "#64748B" }}>
+                        {fleet.error
+                          ? 'Maintenance unavailable; retry above.'
+                          : search.trim()
+                          ? 'No maintenance records match your search.'
+                          : 'No maintenance records.'}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  )}
+                  {pagedRecords.map(r => {
+                    let statusClass = "status-pill status-transit";
+                    let statusLabel = r.status.replaceAll('_', ' ').toUpperCase();
+                    if (r.status === 'completed') {
+                      statusClass = "status-pill status-active";
+                    } else if (r.status === 'scheduled') {
+                      if (r.scheduled_date && r.scheduled_date < today) {
+                        statusClass = "status-pill status-danger";
+                        statusLabel = "OVERDUE";
+                      } else if (r.warningState === 'critical') {
+                        statusClass = "status-pill status-danger";
+                        statusLabel = "CRITICAL — DUE SOON";
+                      } else if (r.warningState === 'expiring_soon') {
+                        statusClass = "status-pill status-warning";
+                        statusLabel = "DUE SOON";
+                      } else {
+                        statusClass = "status-pill status-transit";
+                        statusLabel = "SCHEDULED";
+                      }
+                    } else if (r.status === 'in_progress') {
+                      statusClass = "status-pill status-transit";
+                      statusLabel = "IN PROGRESS";
+                    } else if (r.status === 'cancelled') {
+                      statusClass = "status-pill status-inactive";
+                      statusLabel = "CANCELLED";
+                    }
+
+                    return (
+                      <tr key={r.id}>
+                        <td><strong>{r.trucks?.plate_number || '—'}</strong></td>
+                        <td>
+                          <span style={{ fontWeight: 600 }}>{r.kind}</span>
+                          {r.description && <span className="subtext" style={{ display: 'block' }}>{r.description}</span>}
+                        </td>
+                        <td>{r.scheduled_date || '—'}</td>
+                        <td>{r.completed_date || '—'}</td>
+                        <td>
+                          {r.vendor || '—'}
+                          <span className="subtext" style={{ display: 'block' }}>
+                            {r.cost == null ? '—' : `PHP ${Number(r.cost).toLocaleString()}`}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={statusClass}>● {statusLabel}</span>
+                        </td>
+                        <td className="fleet-actions-cell">
+                          <button
+                            type="button"
+                            className="fleet-btn-action fleet-btn-edit"
+                            onClick={() => setEditing(r)}
+                            title={`Edit maintenance record for ${r.trucks?.plate_number || 'vehicle'}`}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Edit service
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="table-pagination-footer" role="navigation" aria-label="Maintenance table pagination">
+              <span className="pagination-summary">
+                {filteredRecords.length === 0
+                  ? "Showing 0 of 0 records"
+                  : `Showing ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, filteredRecords.length)} of ${filteredRecords.length} records`}
+              </span>
+              <nav className="pagination-controls-group" aria-label="Maintenance pages">
+                <button
+                  type="button"
+                  className="page-nav-btn page-nav-prev"
+                  disabled={fleet.loading || Boolean(fleet.error) || currentPage <= 1}
+                  onClick={() => setPage(currentPage - 1)}
+                  aria-label="Previous maintenance page"
+                >
+                  Previous
+                </button>
+                <span className="pagination-page-indicator" aria-live="polite">
+                  {`Page ${currentPage} of ${pageCount}`}
+                </span>
+                <button
+                  type="button"
+                  className="page-nav-btn page-nav-next"
+                  disabled={fleet.loading || Boolean(fleet.error) || currentPage >= pageCount}
+                  onClick={() => setPage(currentPage + 1)}
+                  aria-label="Next maintenance page"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </>
         ) : (
           <div className="fleet-calendar">
             <div className="calendar-header-mock">

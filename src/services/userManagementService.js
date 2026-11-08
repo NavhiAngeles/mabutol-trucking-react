@@ -110,8 +110,10 @@ export function userManagementService(client = supabase) {
       const { data, error } = await client.functions.invoke('manage-office-users', { body: { action: 'capabilities' } });
       provisioningReady = !error && data?.officePhoneEnrollment === true;
     } catch { /* Keep the directory readable when provisioning is unavailable. */ }
-    return { callerId, users, provisioningReady,
-      provisioningError: provisioningReady ? '' : 'New office accounts cannot be created yet. The SMS account-management backend is unavailable or needs its approved deployment. Existing accounts can still be viewed. Refresh users after the backend is ready.' };
+    return {
+      callerId, users, provisioningReady,
+      provisioningError: provisioningReady ? '' : 'New office accounts cannot be created yet. The SMS account-management backend is unavailable or needs its approved deployment. Existing accounts can still be viewed. Refresh users after the backend is ready.'
+    };
   }
   async function save(target, form) {
     await adminIdentity();
@@ -211,6 +213,43 @@ export function userManagementService(client = supabase) {
       };
     });
   }
-  return { load, save, recoveryPhone, create: form => provision('create', form), setPassword: form => provision('set_password', form), auditLogs };
+  async function getMfaFactors(target) {
+    await adminIdentity();
+    if (!target?.id) throw new Error('Choose an office account.');
+    const { data, error } = await client.functions.invoke('manage-office-users', {
+      body: { action: 'get_mfa_factors', userId: target.id },
+    });
+    if (error || data?.error) {
+      let detail = data?.error;
+      if (!detail && error?.context?.json) { try { detail = (await error.context.json()).error; } catch { /* fallback */ } }
+      throw new Error(detail || 'Unable to load authenticator factors.');
+    }
+    return Array.isArray(data?.factors) ? data.factors : [];
+  }
+  async function resetMfa(target, reason) {
+    await adminIdentity();
+    if (!target?.id) throw new Error('Choose an office account.');
+    const trimmed = (reason || '').trim();
+    if (trimmed.length < 5) throw new Error('Provide a reason for resetting this user’s authenticator (at least 5 characters).');
+    const { data, error } = await client.functions.invoke('manage-office-users', {
+      body: { action: 'reset_mfa', userId: target.id, reason: trimmed },
+    });
+    if (error || data?.error) {
+      let detail = data?.error;
+      if (!detail && error?.context?.json) { try { detail = (await error.context.json()).error; } catch { /* fallback */ } }
+      throw new Error(detail || 'Unable to reset authenticator. Reload the directory before retrying.');
+    }
+    return data;
+  }
+  return {
+    load,
+    save,
+    recoveryPhone,
+    create: form => provision('create', form),
+    setPassword: form => provision('set_password', form),
+    auditLogs,
+    getMfaFactors,
+    resetMfa,
+  };
 }
 export const userManagementApi = userManagementService();

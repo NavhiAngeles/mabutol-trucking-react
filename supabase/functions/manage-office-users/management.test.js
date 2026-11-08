@@ -7,20 +7,21 @@ import { normalizeOfficePhone } from '../_shared/officePhone.js';
 
 const { code } = await transformWithOxc(fs.readFileSync(new URL('./index.ts',import.meta.url),'utf8'),'index.ts');
 async function invoke(options = {}) {
-  const calls = { create: [], reset: [], cleanup: [], finalize: [], customerCleanup: [] }; let handler;
+  const calls = { create: [], reset: [], cleanup: [], finalize: [], customerCleanup: [], listMfa: [], deleteMfa: [], activityLogs: [] }; let handler;
   let createdRole = options.initialRole || 'customer';
   const caller = { auth: { getUser: async () => ({ data: { user: options.noUser ? null : { id: 'caller', user_metadata: { role: 'admin' } } }, error: options.authError }) } };
   const admin = {
     from: table => {
       let id, update, deleting = false;
       const q = { select: () => q, update: payload => {update=payload;return q;}, delete: () => {deleting=true;return q;},
+        insert: payload => { calls.activityLogs.push(payload); return Promise.resolve({ error: null }); },
         eq: (key,value) => {
           if(deleting){assert.equal(table,'customers');assert.equal(key,'user_id');assert.equal(value,'created');calls.customerCleanup.push(value);return Promise.resolve({error:options.customerCleanupError});}
           if(key==='id') id=value; else {assert.equal(key,'role');assert.equal(value,'customer');}return q;
         },
         single:async()=>{
           if(update){assert.equal(id,'created');calls.finalize.push({id,...update});if(options.finalizeError)return{error:Error('finalize denied')};createdRole=update.role;}
-          return{data:id==='caller'?{role:options.role||'admin',is_active:options.active!==false}:id==='created'?{id,role:createdRole,is_active:true}:{role:options.targetRole||'staff',is_active:true},error:options.profileError};
+          return{data:id==='caller'?{role:options.role||'admin',is_active:options.active!==false}:id==='created'?{id,role:createdRole,is_active:true}:{id,email:'target@example.test',full_name:'Target Staff',role:options.targetRole||'staff',is_active:true},error:options.profileError};
         },
       };return q;
     },
@@ -29,6 +30,18 @@ async function invoke(options = {}) {
       getUserById: async id => ({data:{user:{id,phone:options.authPhone || null}},error:options.authPhoneError}),
       updateUserById: async (...args) => { calls.reset.push(args); return { data:{user:{id:args[0],phone:args[1].phone}},error: options.resetError }; },
       deleteUser: async id => { calls.cleanup.push(id); return { error: options.cleanupError }; },
+      mfa: {
+        listFactors: async ({ userId }) => {
+          calls.listMfa.push(userId);
+          if (options.mfaListError) return { error: options.mfaListError };
+          return { data: { factors: options.mfaFactors !== undefined ? options.mfaFactors : [{ id: 'factor-1', friendly_name: 'Staff TOTP', factor_type: 'totp', status: 'verified' }] } };
+        },
+        deleteFactor: async ({ userId, id }) => {
+          calls.deleteMfa.push({ userId, id });
+          if (options.mfaDeleteError) return { error: options.mfaDeleteError };
+          return { data: { id } };
+        },
+      },
     } },
   };
   const scope = vm.createContext({ Response, Request, normalizeOfficePhone, Deno: { env: { get: key => key }, serve: fn => { handler = fn; } }, createClient: (_, key, config) => config ? caller : admin });
@@ -104,4 +117,57 @@ test('admin recovery enrollment allows own office account, normalizes phone and 
   const stale=await invoke({body,authPhone:'639181234567'});assert.equal(stale.response.status,409);assert.equal(stale.calls.reset.length,0);
   const duplicate=await invoke({body,resetError:Error('duplicate phone')});assert.equal(duplicate.response.status,409);assert.equal(duplicate.calls.cleanup.length,0);
   assert.equal((await invoke({body:{...body,phone:'bad'}})).response.status,400);
+});
+
+test('capability check reports mfaReset capability', async () => {
+  const result = await invoke({ body: { action: 'capabilities' } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.mfaReset, true);
+});
+
+test('admin can inspect enrolled MFA factors for another office user', async () => {
+  const result = await invoke({ body: { action: 'get_mfa_factors', userId: 'target' } });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.userId, 'target');
+  assert.equal(result.body.factors.length, 1);
+  assert.equal(result.body.factors[0].friendlyName, 'Staff TOTP');
+
+  // Fails closed for non-admin
+  assert.equal((await invoke({ role: 'staff', body: { action: 'get_mfa_factors', userId: 'target' } })).response.status, 403);
+  // Fails for non-office target
+  assert.equal((await invoke({ targetRole: 'customer', body: { action: 'get_mfa_factors', userId: 'target' } })).response.status, 404);
+  // Fails if target missing
+  assert.equal((await invoke({ body: { action: 'get_mfa_factors' } })).response.status, 400);
+});
+
+test('admin resets TOTP MFA for another office user with reason and audit log', async () => {
+  const body = { action: 'reset_mfa', userId: 'target', reason: 'Staff member lost their mobile device.' };
+  const result = await invoke({ body });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.body.userId, 'target');
+  assert.deepEqual(result.body.removedFactors, ['factor-1']);
+  assert.equal(result.calls.deleteMfa.length, 1);
+  assert.equal(result.calls.deleteMfa[0].userId, 'target');
+  assert.equal(result.calls.deleteMfa[0].id, 'factor-1');
+
+  // Audit log recorded
+  assert.equal(result.calls.activityLogs.length, 1);
+  assert.equal(result.calls.activityLogs[0].action, 'RESET_MFA');
+  assert.equal(result.calls.activityLogs[0].entity_id, 'target');
+  assert.equal(result.calls.activityLogs[0].details.reason, 'Staff member lost their mobile device.');
+  assert.equal(result.calls.activityLogs[0].details.factors_count, 1);
+});
+
+test('admin cannot reset own MFA, requires valid reason and enrolled factors', async () => {
+  // Self reset blocked
+  assert.equal((await invoke({ body: { action: 'reset_mfa', userId: 'caller', reason: 'Lost my phone' } })).response.status, 400);
+
+  // Missing or short reason blocked
+  assert.equal((await invoke({ body: { action: 'reset_mfa', userId: 'target', reason: 'tiny' } })).response.status, 400);
+  assert.equal((await invoke({ body: { action: 'reset_mfa', userId: 'target' } })).response.status, 400);
+
+  // Target with zero enrolled factors blocked
+  const zeroFactors = await invoke({ mfaFactors: [], body: { action: 'reset_mfa', userId: 'target', reason: 'Lost authenticator' } });
+  assert.equal(zeroFactors.response.status, 400);
+  assert.match(zeroFactors.body.error, /no enrolled authenticator factors/);
 });
