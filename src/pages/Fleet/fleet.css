@@ -823,9 +823,9 @@ MODAL STRUCTURAL CONFIGURATIONS
 .success-actions-layout { display: flex; width: 100%; gap: 12px; justify-content: center; }
 
 /* Global Topbar Overrides */
-.topbar { background-color: #FFFFFF !important; padding: 12px 40px !important; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; position: relative; z-index: 5; pointer-events: auto; }
+.topbar { background-color: #FFFFFF !important; padding: 12px 40px !important; display: flex; justify-content: flex-end !important; align-items: center; border-bottom: 1px solid #E2E8F0; position: relative; z-index: 5; pointer-events: auto; }
 
-.topbar-right { display: flex; align-items: center; gap: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 
 .search-container { position: relative; display: flex; align-items: center; }
 

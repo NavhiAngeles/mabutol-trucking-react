@@ -206,26 +206,12 @@ export default function Shipment() {
     <MainLayout>
       {/* TOPBAR */}
       <header className="topbar">
-        <div className="search-container">
-          <i className="las la-search topbar-search-icon" />
-
-          <input
-            type="text"
-            id="shipmentSearch"
-            placeholder="Search shipments..."
-            value={searchQuery}
-            onChange={(event) =>
-              setSearchQuery(event.target.value)
-            }
-          />
-        </div>
-
         <div className="topbar-right">
           <OfficeTools />
         </div>
       </header>
 
-      <section className="content">
+      <section className="content shipment-page">
         {/* HEADER */}
         <div className="header-row">
           <div className="header">
@@ -510,6 +496,8 @@ export default function Shipment() {
 
             <input
               type="text"
+              id="shipmentSearch"
+              aria-label="Search shipments"
               className="table-search"
               placeholder="Search by ID, route, driver or customer..."
               value={searchQuery}

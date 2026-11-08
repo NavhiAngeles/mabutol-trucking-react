@@ -9,7 +9,7 @@ function find(node, predicate) {
   if (!node || typeof node !== 'object') return [];
   return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
 }
-test('Compliance connects stable loader/table subscriptions, both searches, empty and error/retry states', async () => {
+test('Compliance connects stable loader/table subscriptions, search filter, empty and error/retry states', async () => {
   const { code } = await transformWithOxc(fs.readFileSync(new URL('./compliance.jsx', import.meta.url), 'utf8'), 'compliance.jsx', { jsx: { runtime: 'classic' } });
   const states = []; let index = 0, refreshes = 0;
   let live = { data: null, loading: true, error: null };
@@ -29,6 +29,7 @@ test('Compliance connects stable loader/table subscriptions, both searches, empt
   assert.equal(render().type, 'SharedLayout');
   assert.equal(find(render(), n => n.type === 'aside' || n.type === 'main').length, 0);
   assert.equal(find(render(), n => n.props.role === 'status').length, 1);
+  assert.equal(find(render(), n => n.props.className === 'search-container').length, 0);
   live = { data: null, loading: false, error: Error('Offline') };
   const alert = find(render(), n => n.props.role === 'alert')[0];
   find(alert, n => n.type === 'button')[0].props.onClick(); assert.equal(refreshes, 1);
@@ -40,11 +41,12 @@ test('Compliance connects stable loader/table subscriptions, both searches, empt
   assert.equal(dialog.props.entity.id, 'one'); assert.equal(dialog.props.kind, 'driver');
   dialog.props.onSaved(); assert.equal(refreshes, 2);
   dialog.props.onClose(); assert.equal(find(render(), n => n.type === 'ComplianceDialog').length, 0);
-  find(render(), n => n.props.id === 'complianceSearch')[0].props.onChange({ target: { value: 'absent' } });
+  const searchInput = find(render(), n => n.props.id === 'complianceSearch')[0];
+  searchInput.props.onChange({ target: { value: 'absent' } });
   assert.ok(JSON.stringify(render()).includes('No drivers match your search.'));
-  const tableSearch = find(render(), n => n.props.className === 'table-search')[0];
-  assert.equal(tableSearch.props.value, 'absent'); tableSearch.props.onChange({ target: { value: 'one' } });
+  searchInput.props.onChange({ target: { value: 'one' } });
   assert.equal(find(render(), n => n.props.id === 'complianceSearch')[0].props.value, 'one');
+  assert.ok(JSON.stringify(render()).includes('Driver One'));
   live = { ...live, error: Error('Offline') }; assert.ok(JSON.stringify(render()).includes('Showing previously loaded records.'));
   live = { data: [], loading: false, error: null }; assert.ok(JSON.stringify(render()).includes('No registered drivers.'));
 });
@@ -146,12 +148,11 @@ test('Compliance pagination slices 10 rows per page, resets to page 1 on search,
   assert.ok(renderedText.includes('All three documents valid'));
   assert.ok(renderedText.includes('Requires document attention'));
 
-  // 6. Verify topbar search synchronizes with table filter and resets to page 1:
-  const topbarSearch = find(tree, n => n.props.id === 'complianceSearch')[0];
-  assert.equal(topbarSearch.props.value, 'Driver 0');
-
-  // Clearing topbar search resets to full list on Page 1:
-  topbarSearch.props.onChange({ target: { value: '' } });
+  // 6. Verify topbar has no redundant search and clear button resets search to Page 1:
+  assert.equal(find(tree, n => n.props.className === 'search-container').length, 0);
+  const clearBtn = find(tree, n => n.props['aria-label'] === 'Clear compliance search')[0];
+  assert.ok(clearBtn, 'Clear search button should be present when search query is active');
+  clearBtn.props.onClick();
   tree = render();
   renderedText = JSON.stringify(tree);
   assert.ok(renderedText.includes('Showing 1–10 of 25 drivers'));

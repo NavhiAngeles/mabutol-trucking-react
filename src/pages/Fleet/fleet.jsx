@@ -318,18 +318,6 @@ export default function Fleet() {
     <MainLayout>
       {/* Dynamic Topbar Header Context */}
       <header className="topbar">
-        <div className="search-container">
-          <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            placeholder="Search vehicles…"
-            id="fleetSearch" aria-label="Search vehicles" value={vehicleSearch}
-            onChange={(e) => setVehicleSearch(e.target.value)}
-          />
-        </div>
         <div className="topbar-right"><OfficeTools /></div>
       </header>
 
@@ -429,6 +417,8 @@ export default function Fleet() {
               <div className="filter-search-wrapper">
                 <input
                   type="text"
+                  id="fleetSearch"
+                  aria-label="Search vehicles"
                   className="inner-search"
                   placeholder="Search by plate, vehicle type..."
                   value={vehicleSearch}

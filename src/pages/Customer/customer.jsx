@@ -117,17 +117,13 @@ export default function Customer() {
     <MainLayout>
       {/* Topbar */}
       <header className="topbar">
-        <div className="search-container">
-          <span className="icon">🔍</span>
-          <input type="text" placeholder="Search customers..." id="customerSearch" value={query} onChange={event => changeSearch(event.target.value)} />
-        </div>
         <div className="topbar-right">
           <OfficeTools />
         </div>
       </header>
 
       {/* Main Content */}
-      <section className="content">
+      <section className="content customer-page">
         <div className="content-header">
           <div>
             <h2 className="page-title">Customers</h2>
@@ -187,7 +183,7 @@ export default function Customer() {
         <div className="filter-action-bar">
           <div className="search-wrapper">
             <span className="search-icon">🔍</span>
-            <input type="text" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
+            <input type="text" id="customerSearch" aria-label="Search customers" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
           </div>
           <div className="filter-buttons">
             <button className="filter-btn" onClick={() => { setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : "newest"); setPage(1); }} title="Cycle newest, name, and booking count">SORT: {sort.toUpperCase()} <span className="btn-icon">≡</span></button>

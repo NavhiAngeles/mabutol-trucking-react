@@ -101,7 +101,7 @@ export default function Dashboard() {
       </header>
 
       {/* Content */}
-      <section className="content">
+      <section className="content dashboard-page">
         <div className="header dashboard-intro">
           <span className="dashboard-eyebrow">OPERATIONS CENTER</span>
           <h2>Dashboard</h2>

@@ -49,25 +49,13 @@ export default function Compliance() {
     <MainLayout>
       {/* Topbar */}
       <header className="topbar">
-        <div className="search-container">
-          <span className="search-icon" aria-hidden="true">🔍</span>
-          <input
-            type="text"
-            placeholder="Search compliance..."
-            id="complianceSearch"
-            aria-label="Search driver compliance"
-            value={query}
-            onChange={e => handleSearchChange(e.target.value)}
-          />
-        </div>
-
         <div className="topbar-right">
           <OfficeTools />
         </div>
       </header>
 
       {/* Content */}
-      <section className="content">
+      <section className="content compliance-page">
         <div className="header compliance-header">
           <div>
             <span className="compliance-pretitle">DRIVER REGULATIONS</span>
@@ -120,9 +108,9 @@ export default function Compliance() {
           </div>
         )}
 
-        <div className="stats stats-container">
+        <div className="compliance-stats-grid stats stats-container">
           {metrics.map(([label, count, detail, cardClass]) => (
-            <div className={`stat-card ${cardClass || ''}`} key={label}>
+            <div className={`compliance-stat-card stat-card ${cardClass || ''}`} key={label}>
               <h4>{label}</h4>
               <h2>{data ? count : '—'}</h2>
               <p>{detail}</p>
@@ -154,6 +142,7 @@ export default function Compliance() {
               <span className="search-icon" aria-hidden="true">🔍</span>
               <input
                 type="text"
+                id="complianceSearch"
                 className="table-search"
                 aria-label="Filter compliance table"
                 value={query}
