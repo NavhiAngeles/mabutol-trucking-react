@@ -8,6 +8,10 @@ import {
   INITIAL_VEHICLE_FORM,
   isDriverFormDirty,
   isVehicleFormDirty,
+  validateDriverStep1,
+  validateDriverSubmit,
+  validateVehicleStep1,
+  validateVehicleSubmit,
 } from "./fleetDraftHelpers.js";
 
 async function getFleetComponents() {
@@ -380,3 +384,256 @@ test("close workflow: completed driver or vehicle registration closes without pr
   assert.equal(targetDiscard, null, "Vehicle on success screen should close without discard dialog");
   assert.equal(isVehicleModalOpen, false);
 });
+
+// ── 5. Inline Accessible Alert Banners & Modal Step 1 Field Validation ───────
+
+test("validateVehicleStep1 requires plateNumber, model, type, and positive capacity before advancing", () => {
+  // Empty form fails
+  assert.equal(
+    validateVehicleStep1(INITIAL_VEHICLE_FORM),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+
+  // Missing plateNumber
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "   ",
+      model: "Isuzu Giga",
+      type: "type-1",
+      capacity: "15000",
+    }),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+
+  // Missing model
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "",
+      type: "type-1",
+      capacity: "15000",
+    }),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+
+  // Missing type
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "Isuzu Giga",
+      type: "",
+      capacity: "15000",
+    }),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+
+  // Non-positive capacity: zero or negative or non-numeric
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "Isuzu Giga",
+      type: "type-1",
+      capacity: "0",
+    }),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "Isuzu Giga",
+      type: "type-1",
+      capacity: "-500",
+    }),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "Isuzu Giga",
+      type: "type-1",
+      capacity: "invalid",
+    }),
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+
+  // All valid fields pass
+  assert.equal(
+    validateVehicleStep1({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "Isuzu Giga CYH52 Wing Van",
+      type: "type-1",
+      capacity: "15000",
+    }),
+    null
+  );
+
+  // validateVehicleSubmit checks identical constraints on submission
+  assert.equal(
+    validateVehicleSubmit(INITIAL_VEHICLE_FORM),
+    "Please provide a plate number, model, vehicle type and positive capacity."
+  );
+  assert.equal(
+    validateVehicleSubmit({
+      ...INITIAL_VEHICLE_FORM,
+      plateNumber: "NBC 1024",
+      model: "Isuzu Giga CYH52 Wing Van",
+      type: "type-1",
+      capacity: "15000",
+    }),
+    null
+  );
+});
+
+test("validateDriverStep1 requires fullName, contactNumber, and licenseNumber before advancing", () => {
+  // Empty form
+  assert.equal(
+    validateDriverStep1(INITIAL_DRIVER_FORM),
+    "Please fill in Full Name and Contact Number before proceeding."
+  );
+
+  // Missing contact number
+  assert.equal(
+    validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "" }),
+    "Please fill in Full Name and Contact Number before proceeding."
+  );
+
+  // Missing license number
+  assert.equal(
+    validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09123456789", licenseNumber: " " }),
+    "Please provide the License Number before proceeding."
+  );
+
+  // Valid step 1
+  assert.equal(
+    validateDriverStep1({
+      ...INITIAL_DRIVER_FORM,
+      fullName: "Juan dela Cruz",
+      contactNumber: "09123456789",
+      licenseNumber: "N01-23-45678",
+    }),
+    null
+  );
+
+  // validateDriverSubmit checks driver identity and license on submission
+  assert.equal(
+    validateDriverSubmit(INITIAL_DRIVER_FORM),
+    "Please provide the driver's full name and contact number."
+  );
+  assert.equal(
+    validateDriverSubmit({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09123456789", licenseNumber: "" }),
+    "Please provide the professional license number."
+  );
+  assert.equal(
+    validateDriverSubmit({
+      ...INITIAL_DRIVER_FORM,
+      fullName: "Juan dela Cruz",
+      contactNumber: "09123456789",
+      licenseNumber: "N01-23-45678",
+    }),
+    null
+  );
+});
+
+test("Vehicle Step 1 NEXT STEP advances only when required fields are valid and displays inline alert on error", () => {
+  let vehicleStep = 1;
+  let vehicleError = "";
+  let vehicleForm = { ...INITIAL_VEHICLE_FORM };
+
+  const handleVehicleNextStep = () => {
+    const error = validateVehicleStep1(vehicleForm);
+    if (error) {
+      vehicleError = error;
+      return;
+    }
+    vehicleError = "";
+    vehicleStep = 2;
+  };
+
+  // Attempting to advance with empty form
+  handleVehicleNextStep();
+  assert.equal(vehicleStep, 1, "Must not advance to Step 2 when form is empty");
+  assert.equal(
+    vehicleError,
+    "Please provide a plate number, model, vehicle type and positive capacity before proceeding."
+  );
+
+  // Partially filled: plate only
+  vehicleForm.plateNumber = "NBC 1024";
+  handleVehicleNextStep();
+  assert.equal(vehicleStep, 1, "Must not advance with missing model, type, or capacity");
+
+  // Valid required fields
+  vehicleForm.model = "Isuzu Giga CYH52 Wing Van";
+  vehicleForm.type = "type-wing-van";
+  vehicleForm.capacity = "15000";
+
+  handleVehicleNextStep();
+  assert.equal(vehicleStep, 2, "Advances to Step 2 when all required fields are valid");
+  assert.equal(vehicleError, "", "Error banner must be cleared on successful validation");
+});
+
+test("Driver Step 1 NEXT STEP advances only when required fields are valid and displays inline alert on error", () => {
+  let driverStep = 1;
+  let driverError = "";
+  let driverForm = { ...INITIAL_DRIVER_FORM };
+
+  const handleDriverNextStep = () => {
+    const error = validateDriverStep1(driverForm);
+    if (error) {
+      driverError = error;
+      return;
+    }
+    driverError = "";
+    driverStep = 2;
+  };
+
+  // Attempting to advance with empty form
+  handleDriverNextStep();
+  assert.equal(driverStep, 1, "Must not advance to Step 2 when form is empty");
+  assert.equal(driverError, "Please fill in Full Name and Contact Number before proceeding.");
+
+  // Filled name and contact, but missing license
+  driverForm.fullName = "Juan dela Cruz";
+  driverForm.contactNumber = "09123456789";
+  handleDriverNextStep();
+  assert.equal(driverStep, 1, "Must not advance without license number");
+  assert.equal(driverError, "Please provide the License Number before proceeding.");
+
+  // Full valid step 1
+  driverForm.licenseNumber = "N01-23-45678";
+  handleDriverNextStep();
+  assert.equal(driverStep, 2, "Advances to Step 2 when required fields are valid");
+  assert.equal(driverError, "", "Error banner must be cleared on successful validation");
+});
+
+test("fleet.jsx source contains zero blocking window.alert calls and binds accessible inline error alerts with role=alert", () => {
+  const fleetSource = fs.readFileSync(new URL("./fleet.jsx", import.meta.url), "utf8");
+
+  // Zero window.alert or alert() function calls
+  const alertCalls = fleetSource.match(/\balert\s*\(/g);
+  assert.equal(alertCalls, null, "fleet.jsx must contain zero window.alert() calls");
+
+  // Inline error banners with role="alert" must be present for both modals
+  assert.ok(
+    fleetSource.includes('{driverError && (\n            <div className="error-message fleet-dialog-error" role="alert">') ||
+    fleetSource.includes('role="alert"') && fleetSource.includes("driverError"),
+    "Driver modal must render accessible inline error banner with role='alert'"
+  );
+  assert.ok(
+    fleetSource.includes('{vehicleError && (\n            <div className="error-message fleet-dialog-error" role="alert">') ||
+    fleetSource.includes('role="alert"') && fleetSource.includes("vehicleError"),
+    "Vehicle modal must render accessible inline error banner with role='alert'"
+  );
+
+  // Both modals bind NEXT STEP to validation guards
+  assert.ok(fleetSource.includes("onClick={handleDriverNextStep}"), "Driver modal must bind NEXT STEP to validation handler");
+  assert.ok(fleetSource.includes("onClick={handleVehicleNextStep}"), "Vehicle modal must bind NEXT STEP to validation handler");
+});
+

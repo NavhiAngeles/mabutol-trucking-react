@@ -56,3 +56,39 @@ test('calendar does not report empty success while loading or failed, and retry 
   button(tree, 'Retry maintenance').props.onClick(); assert.equal(ui.refreshes(), 1);
   ui.fleet.maintenanceRecords = [ui.record]; tree = ui.render(); assert.ok(JSON.stringify(tree).includes('Showing previously loaded records.'));
 });
+
+test('maintenance list table matches system design headers, section titles, and action button semantics', async () => {
+  const ui = await screen();
+  const tree = ui.render();
+
+  // Section titles & subtitle
+  const sectionTitles = find(tree, n => n.props?.className === 'section-titles')[0];
+  assert.ok(sectionTitles, 'section-titles container must exist');
+  const h3 = find(sectionTitles, n => n.type === 'h3')[0];
+  assert.equal(h3.children[0], 'Maintenance Schedule');
+  const subtitle = find(sectionTitles, n => n.props?.className === 'section-subtitle')[0];
+  assert.equal(subtitle.children[0], 'SCHEDULE AND UPDATE VEHICLE SERVICE RECORDS.');
+
+  // Uppercase table headers
+  const ths = find(tree, n => n.type === 'th').map(th => th.children[0]);
+  assert.deepEqual(ths, ['VEHICLE', 'SERVICE', 'SCHEDULED', 'COMPLETED', 'WORKSHOP / COST', 'STATUS', 'ACTIONS']);
+
+  // Edit action button
+  const editBtn = find(tree, n => n.type === 'button' && n.props?.className?.includes('fleet-btn-edit'))[0];
+  assert.ok(editBtn, 'fleet-btn-edit button must be rendered for records');
+  assert.equal(editBtn.props.title, 'Edit maintenance record for TEST-01');
+
+  // Status badge pill
+  const statusPill = find(tree, n => n.props?.className?.includes('status-pill'))[0];
+  assert.ok(statusPill, 'status badge pill must be present');
+});
+
+test('empty maintenance list renders centered and padded message matching fleet design', async () => {
+  const ui = await screen();
+  ui.fleet.maintenanceRecords = [];
+  const tree = ui.render();
+  const emptyCell = find(tree, n => n.type === 'td' && n.props?.colSpan === '7')[0];
+  assert.ok(emptyCell, 'empty state cell spanning 7 columns must exist');
+  assert.equal(emptyCell.props.style.textAlign, 'center');
+  assert.equal(emptyCell.children[0], 'No maintenance records.');
+});

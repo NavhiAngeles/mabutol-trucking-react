@@ -7,7 +7,7 @@ import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
 import { FleetEditor, ComplianceDialog, FleetModal, FleetDiscardDialog } from "./FleetDialogs";
-import { isDriverFormDirty, isVehicleFormDirty } from "./fleetDraftHelpers";
+import { isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
 import MaintenancePanel from "./MaintenancePanel";
 import { vehicleCategories, vehicleCategoryId } from './vehicleCategories';
 import { validateComplianceFile } from "../../services/fleetWorkspaceService";
@@ -93,11 +93,13 @@ export default function Fleet() {
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
   const [driverStep, setDriverStep] = useState(1); // 1: Info, 2: Documents, 3: Success
   const [registeredDriverId, setRegisteredDriverId] = useState("");
+  const [driverError, setDriverError] = useState("");
 
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Success
   const [showVehicleSuccess, setShowVehicleSuccess] = useState(false);
   const [registeredTruckId, setRegisteredTruckId] = useState("");
+  const [vehicleError, setVehicleError] = useState("");
   const [confirmDiscardTarget, setConfirmDiscardTarget] = useState(null); // 'driver' | 'vehicle' | null
 
   // Form Field States
@@ -174,6 +176,7 @@ export default function Fleet() {
       confirmPassword: "",
     });
     setDriverStep(1);
+    setDriverError("");
   };
 
   const resetVehicleForm = () => {
@@ -192,6 +195,7 @@ export default function Fleet() {
     });
     setVehicleStep(1);
     setShowVehicleSuccess(false);
+    setVehicleError("");
   };
 
   const handleRegisterDriverClick = () => {
@@ -226,7 +230,8 @@ export default function Fleet() {
   }, [isSubmittingTruck, vehicleForm, vehicleStep, showVehicleSuccess]);
 
   const handleDriverInputChange = (e, field) => {
-    setDriverForm({ ...driverForm, [field]: e.target.value });
+    setDriverForm(previous => ({ ...previous, [field]: e.target.value }));
+    setDriverError("");
   };
 
   const handleCargoToggle = (id) => {
@@ -236,50 +241,80 @@ export default function Fleet() {
       : [...currentCargo, id];
 
     setVehicleForm({ ...vehicleForm, cargoCompatibility: updatedCargo });
+    setVehicleError("");
   };
 
   const handleVehicleInputChange = (e, field) => {
-    setVehicleForm({ ...vehicleForm, [field]: e.target.value });
+    setVehicleForm(previous => ({ ...previous, [field]: e.target.value }));
+    setVehicleError("");
   };
 
   const handleFile = (event, key) => {
     const file = event.target.files[0] || null;
-    try { validateComplianceFile(file); setVehicleForm(previous => ({ ...previous, [key]: file })); }
-    catch (error) { event.target.value = ''; alert(error.message); }
+    try {
+      validateComplianceFile(file);
+      setVehicleForm(previous => ({ ...previous, [key]: file }));
+      setVehicleError("");
+    }
+    catch (error) {
+      event.target.value = '';
+      setVehicleError(error.message);
+    }
+  };
+
+  // Next Step Handlers
+  const handleDriverNextStep = () => {
+    const error = validateDriverStep1(driverForm);
+    if (error) {
+      setDriverError(error);
+      return;
+    }
+    setDriverError("");
+    setDriverStep(2);
+  };
+
+  const handleVehicleNextStep = () => {
+    const error = validateVehicleStep1(vehicleForm);
+    if (error) {
+      setVehicleError(error);
+      return;
+    }
+    setVehicleError("");
+    setVehicleStep(2);
   };
 
   // Submission Handlers
   const handleDriverSubmit = async () => {
-    if (!driverForm.fullName || !driverForm.contactNumber) {
-      alert("Please provide the driver's full name and contact number.");
-      return;
-    }
-    if (!driverForm.licenseNumber) {
-      alert("Please provide the professional license number.");
+    const error = validateDriverSubmit(driverForm);
+    if (error) {
+      setDriverError(error);
       return;
     }
     try {
+      setDriverError("");
       const created = await submitNewDriver(driverForm);
       setRegisteredDriverId(created?.id ? `DRV-${created.id.slice(0, 8).toUpperCase()}` : "");
       setDriverStep(3);
     } catch (err) {
       console.error("Failed to register driver:", err);
-      alert("Failed to register driver: " + (err.message || "Unknown error"));
+      setDriverError("Failed to register driver: " + (err.message || "Unknown error"));
     }
   };
 
   const handleVehicleSubmit = async () => {
-    if (!vehicleForm.plateNumber.trim() || !vehicleForm.model.trim() || !vehicleForm.type || !(Number(vehicleForm.capacity) > 0)) {
-      alert("Please provide a plate number, model, vehicle type and positive capacity.");
+    const error = validateVehicleSubmit(vehicleForm);
+    if (error) {
+      setVehicleError(error);
       return;
     }
     try {
+      setVehicleError("");
       const created = await submitNewTruck(vehicleForm);
       setRegisteredTruckId(created?.id ? `TRK-${created.id.slice(0, 8).toUpperCase()}` : "");
       setShowVehicleSuccess(true);
     } catch (err) {
       console.error("Failed to register vehicle:", err);
-      alert("Failed to register vehicle: " + (err.message || "Unknown error"));
+      setVehicleError("Failed to register vehicle: " + (err.message || "Unknown error"));
     }
   };
 
@@ -1076,6 +1111,16 @@ export default function Fleet() {
 
         {/* Modal Form Body Segment Switcher */}
         <div className="modal-body">
+          {driverError && (
+            <div className="error-message fleet-dialog-error" role="alert">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{driverError}</span>
+            </div>
+          )}
           {driverStep === 1 && (
             <div className="form-grid">
               <div className="form-group">
@@ -1251,17 +1296,7 @@ export default function Fleet() {
                 </button>
                 <button
                   className="btn-primary"
-                  onClick={() => {
-                    if (!driverForm.fullName || !driverForm.contactNumber) {
-                      alert("Please fill in Full Name and Contact Number before proceeding.");
-                      return;
-                    }
-                    if (!driverForm.licenseNumber) {
-                      alert("Please provide the License Number before proceeding.");
-                      return;
-                    }
-                    setDriverStep(2);
-                  }}
+                  onClick={handleDriverNextStep}
                 >
                   NEXT STEP →
                 </button>
@@ -1273,7 +1308,10 @@ export default function Fleet() {
             <>
               <button
                 className="btn-link"
-                onClick={() => setDriverStep(1)}
+                onClick={() => {
+                  setDriverError("");
+                  setDriverStep(1);
+                }}
               >
                 ← BACK
               </button>
@@ -1343,6 +1381,16 @@ export default function Fleet() {
         </div>
 
         <div className="modal-body">
+          {vehicleError && (
+            <div className="error-message fleet-dialog-error" role="alert">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{vehicleError}</span>
+            </div>
+          )}
           {vehicleStep === 1 && (
             <div className="form-grid">
               <div className="form-group">
@@ -1491,7 +1539,7 @@ export default function Fleet() {
               <div className="footer-right-buttons">
                 <button
                   className="btn-primary"
-                  onClick={() => setVehicleStep(2)}
+                  onClick={handleVehicleNextStep}
                 >
                   NEXT STEP →
                 </button>
@@ -1503,7 +1551,11 @@ export default function Fleet() {
             <>
               <button
                 className="btn-link"
-                disabled={isSubmittingTruck} onClick={() => setVehicleStep(1)}
+                disabled={isSubmittingTruck}
+                onClick={() => {
+                  setVehicleError("");
+                  setVehicleStep(1);
+                }}
               >
                 ← BACK
               </button>

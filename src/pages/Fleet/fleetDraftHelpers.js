@@ -45,3 +45,48 @@ export function isVehicleFormDirty(form, step = 1, showSuccess = false) {
   return hasText || hasCargo || hasFiles;
 }
 
+export function validateDriverStep1(form) {
+  if (!form?.fullName?.trim() || !form?.contactNumber?.trim()) {
+    return "Please fill in Full Name and Contact Number before proceeding.";
+  }
+  if (!form?.licenseNumber?.trim()) {
+    return "Please provide the License Number before proceeding.";
+  }
+  return null;
+}
+
+export function validateDriverSubmit(form) {
+  if (!form?.fullName?.trim() || !form?.contactNumber?.trim()) {
+    return "Please provide the driver's full name and contact number.";
+  }
+  if (!form?.licenseNumber?.trim()) {
+    return "Please provide the professional license number.";
+  }
+  return null;
+}
+
+export function validateVehicleStep1(form) {
+  if (
+    !form?.plateNumber?.trim() ||
+    !form?.model?.trim() ||
+    !form?.type ||
+    !(Number(form?.capacity) > 0)
+  ) {
+    return "Please provide a plate number, model, vehicle type and positive capacity before proceeding.";
+  }
+  return null;
+}
+
+export function validateVehicleSubmit(form) {
+  if (
+    !form?.plateNumber?.trim() ||
+    !form?.model?.trim() ||
+    !form?.type ||
+    !(Number(form?.capacity) > 0)
+  ) {
+    return "Please provide a plate number, model, vehicle type and positive capacity.";
+  }
+  return null;
+}
+
+

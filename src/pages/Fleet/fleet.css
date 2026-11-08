@@ -400,6 +400,11 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   color: #DC2626;
 }
 
+.status-inactive {
+  background-color: #F1F5F9;
+  color: #64748B;
+}
+
 .doc-pill {
   display: inline-block;
   padding: 2px 8px;
@@ -1708,6 +1713,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
+.modal-window .fleet-dialog-error,
 .fleet-dialog .error-message.fleet-dialog-error {
   background: #FEF2F2;
   border: 1px solid #FCA5A5;
@@ -1719,6 +1725,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.modal-window .fleet-dialog-error svg,
+.fleet-dialog .error-message.fleet-dialog-error svg {
+  flex-shrink: 0;
+  stroke: #EF4444;
 }
 
 .fleet-cargo-section {
@@ -2049,9 +2062,11 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 .fleet-calendar {
-  border: 1px solid #e2e8f0;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   overflow: auto;
 }
 
