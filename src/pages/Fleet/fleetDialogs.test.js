@@ -45,6 +45,12 @@ test("isDriverFormDirty detects pristine vs dirty states accurately", () => {
   assert.equal(isDriverFormDirty({ ...INITIAL_DRIVER_FORM, licenseNumber: "N01-12-345678" }, 2), true);
   assert.equal(isDriverFormDirty({ ...INITIAL_DRIVER_FORM, email: "driver@example.test" }, 1), true);
 
+  // Attached compliance files mark the draft dirty
+  const dummyDoc = { name: "document.pdf", size: 1024 };
+  assert.equal(isDriverFormDirty({ ...INITIAL_DRIVER_FORM, licenseFile: dummyDoc }, 2), true);
+  assert.equal(isDriverFormDirty({ ...INITIAL_DRIVER_FORM, medicalFile: dummyDoc }, 2), true);
+  assert.equal(isDriverFormDirty({ ...INITIAL_DRIVER_FORM, nbiFile: dummyDoc }, 2), true);
+
   // When step === 3 (registration confirmed / executed), it is no longer an in-progress draft
   assert.equal(isDriverFormDirty({ ...INITIAL_DRIVER_FORM, fullName: "Nav Angeles" }, 3), false);
 
@@ -635,5 +641,33 @@ test("fleet.jsx source contains zero blocking window.alert calls and binds acces
   // Both modals bind NEXT STEP to validation guards
   assert.ok(fleetSource.includes("onClick={handleDriverNextStep}"), "Driver modal must bind NEXT STEP to validation handler");
   assert.ok(fleetSource.includes("onClick={handleVehicleNextStep}"), "Vehicle modal must bind NEXT STEP to validation handler");
+});
+
+test("Register New Driver Step 2 binds validated file uploads for License, Medical, and NBI", () => {
+  const fleetSource = fs.readFileSync(new URL("./fleet.jsx", import.meta.url), "utf8");
+
+  // Step 2 dropzones
+  assert.ok(fleetSource.includes('aria-label="Driver\'s license file"'), "Must have file input for Driver's License");
+  assert.ok(fleetSource.includes('aria-label="Medical certificate file"'), "Must have file input for Medical Certificate");
+  assert.ok(fleetSource.includes('aria-label="NBI clearance file"'), "Must have file input for NBI Clearance");
+
+  // Accepted file types: .pdf,.png,.jpg,.jpeg,.webp
+  assert.ok(fleetSource.includes('accept=".pdf,.png,.jpg,.jpeg,.webp"'), "Must specify supported document extensions");
+
+  // Handler calls handleDriverFile
+  assert.ok(fleetSource.includes('handleDriverFile(e, "licenseFile")'), "Must bind handleDriverFile for licenseFile");
+  assert.ok(fleetSource.includes('handleDriverFile(e, "medicalFile")'), "Must bind handleDriverFile for medicalFile");
+  assert.ok(fleetSource.includes('handleDriverFile(e, "nbiFile")'), "Must bind handleDriverFile for nbiFile");
+
+  // Validation function is used
+  assert.ok(fleetSource.includes("validateComplianceFile"), "Must invoke validateComplianceFile on file selection");
+});
+
+test("FleetViewModel submits driver compliance documents with attached files", () => {
+  const vmSource = fs.readFileSync(new URL("../../viewmodels/FleetViewModel.js", import.meta.url), "utf8");
+  assert.ok(vmSource.includes("file: form.licenseFile"), "Must map licenseFile in submitNewDriver");
+  assert.ok(vmSource.includes("file: form.medicalFile"), "Must map medicalFile in submitNewDriver");
+  assert.ok(vmSource.includes("file: form.nbiFile"), "Must map nbiFile in submitNewDriver");
+  assert.ok(vmSource.includes("doc.file"), "Filter must retain records with attached files");
 });
 

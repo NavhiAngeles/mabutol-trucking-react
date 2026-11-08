@@ -56,9 +56,10 @@ export function validateComplianceFile(file) {
   if (!['application/pdf', 'image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a PDF, PNG, JPEG or WebP file.');
   if (file.size <= 0 || file.size > 10 * 1024 * 1024) throw new Error('Files must be between 1 byte and 10 MB.');
 }
-export async function saveFleetRecord(kind, record, payload, { categories = null, documents = [] } = {}) {
+
+export async function stageComplianceDocuments(documents = []) {
   // Prevalidate every file before uploading any of them.
-  documents.forEach(d => validateComplianceFile(d.file));
+  documents.forEach(d => validateComplianceFile(d?.file));
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) throw new Error('Please sign in again.');
   const uploads = [];
@@ -71,10 +72,24 @@ export async function saveFleetRecord(kind, record, payload, { categories = null
         const path = user.id + '/' + crypto.randomUUID() + '/document.' + extension;
         const { error } = await supabase.storage.from('compliance-documents').upload(path, file, { contentType: file.type, upsert: false });
         if (error) throw new Error('Document upload failed. Please retry.');
-        uploads.push(path); metadata.file_path = path;
+        uploads.push(path);
+        metadata.file_path = path;
       }
       staged.push(metadata);
     }
+    return { staged, uploads };
+  } catch (error) {
+    if (uploads.length) {
+      const cleanup = await supabase.storage.from('compliance-documents').remove(uploads);
+      if (cleanup.error) throw new Error(error.message + ' Unlinked uploaded files could not be cleaned up; ask an administrator to check storage.', { cause: error });
+    }
+    throw error;
+  }
+}
+
+export async function saveFleetRecord(kind, record, payload, { categories = null, documents = [] } = {}) {
+  const { staged, uploads } = await stageComplianceDocuments(documents);
+  try {
     const data = kind === 'document' ? { ...payload, ...staged[0] } : payload;
     const { data: id, error } = await supabase.rpc('fleet_save', {
       p_kind: kind, p_id: record?.id || null, p_data: data, p_categories: categories,
@@ -101,20 +116,31 @@ export async function openComplianceFile(path) {
   if (error || !data?.signedUrl) throw new Error('Unable to open the document.');
   return data.signedUrl;
 }
-export async function registerDriver(form, docs) {
+export async function registerDriver(form, docs = []) {
   const payload = { full_name: form.fullName.trim(), contact_number: form.contactNumber.trim(), date_hired: form.dateHired || null,
     emergency_contact_number: form.emergencyContact || null, license_number: form.licenseNumber.trim(), assigned_truck_id: form.assignVehicle || null };
   if (!!form.email !== !!form.password) throw new Error('Provide both email and password, or leave both empty for a roster-only driver.');
+  if (form.password && form.password !== form.confirmPassword) throw new Error('Passwords do not match.');
+
   if (!form.email) return saveFleetRecord('driver', null, payload, { documents: docs });
-  if (form.password !== form.confirmPassword) throw new Error('Passwords do not match.');
-  const { data, error } = await supabase.functions.invoke('create-driver-user', { body: {
-    email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), phone: form.contactNumber.trim(), registration: { payload, documents: docs },
-  } });
-  if (error) {
-    let message = 'Unable to create the driver account. Please retry.';
-    try { message = (await error.context.json()).error || message; } catch { /* no structured response */ }
-    throw new Error(message);
+
+  const { staged, uploads } = await stageComplianceDocuments(docs);
+  try {
+    const { data, error } = await supabase.functions.invoke('create-driver-user', { body: {
+      email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), phone: form.contactNumber.trim(), registration: { payload, documents: staged },
+    } });
+    if (error) {
+      let message = error.message || 'Unable to create the driver account. Please retry.';
+      try { message = (await error.context.json()).error || message; } catch { /* no structured response */ }
+      throw new Error(message);
+    }
+    if (!data?.driverId) throw new Error('Driver registration was not confirmed. Contact an administrator before retrying.');
+    return { id: data.driverId };
+  } catch (error) {
+    if (uploads.length) {
+      const cleanup = await supabase.storage.from('compliance-documents').remove(uploads);
+      if (cleanup.error) throw new Error(error.message + ' Unlinked uploaded files could not be cleaned up; ask an administrator to check storage.', { cause: error });
+    }
+    throw error;
   }
-  if (!data?.driverId) throw new Error('Driver registration was not confirmed. Contact an administrator before retrying.');
-  return { id: data.driverId };
 }

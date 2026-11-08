@@ -15,6 +15,9 @@ export const INITIAL_DRIVER_FORM = Object.freeze({
   email: "",
   password: "",
   confirmPassword: "",
+  licenseFile: null,
+  medicalFile: null,
+  nbiFile: null,
 });
 
 export const INITIAL_VEHICLE_FORM = Object.freeze({
@@ -33,7 +36,9 @@ export const INITIAL_VEHICLE_FORM = Object.freeze({
 
 export function isDriverFormDirty(form, step = 1) {
   if (step === 3 || !form) return false;
-  return Object.values(form).some(value => typeof value === 'string' && value.trim().length > 0);
+  const hasText = Object.values(form).some(value => typeof value === 'string' && value.trim().length > 0);
+  const hasFiles = Boolean(form.licenseFile || form.medicalFile || form.nbiFile);
+  return hasText || hasFiles;
 }
 
 export function isVehicleFormDirty(form, step = 1, showSuccess = false) {

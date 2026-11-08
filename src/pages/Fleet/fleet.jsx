@@ -118,6 +118,9 @@ export default function Fleet() {
     email: "",
     password: "",
     confirmPassword: "",
+    licenseFile: null,
+    medicalFile: null,
+    nbiFile: null,
   });
 
   const [vehicleForm, setVehicleForm] = useState({
@@ -174,6 +177,9 @@ export default function Fleet() {
       email: "",
       password: "",
       confirmPassword: "",
+      licenseFile: null,
+      medicalFile: null,
+      nbiFile: null,
     });
     setDriverStep(1);
     setDriverError("");
@@ -259,6 +265,19 @@ export default function Fleet() {
     catch (error) {
       event.target.value = '';
       setVehicleError(error.message);
+    }
+  };
+
+  const handleDriverFile = (event, key) => {
+    const file = event.target.files[0] || null;
+    try {
+      validateComplianceFile(file);
+      setDriverForm(previous => ({ ...previous, [key]: file }));
+      setDriverError("");
+    }
+    catch (error) {
+      event.target.value = '';
+      setDriverError(error.message);
     }
   };
 
@@ -1207,6 +1226,22 @@ export default function Fleet() {
                       />
                     </div>
                   </div>
+                  <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
+                    <div className="upload-icon-container">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="upload-text-content">
+                      <p className="upload-main-text">
+                        <span>Choose a file</span>
+                      </p>
+                      <p className="upload-sub-text">{driverForm.licenseFile ? driverForm.licenseFile.name + " — ready to upload" : "Driver's License Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                    </div>
+                    <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Driver's license file" onChange={e => handleDriverFile(e, "licenseFile")} />
+                  </div>
                 </div>
 
                 {/* Card 2: Medical Clearance Certificate */}
@@ -1231,6 +1266,22 @@ export default function Fleet() {
                       />
                     </div>
                   </div>
+                  <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
+                    <div className="upload-icon-container">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="upload-text-content">
+                      <p className="upload-main-text">
+                        <span>Choose a file</span>
+                      </p>
+                      <p className="upload-sub-text">{driverForm.medicalFile ? driverForm.medicalFile.name + " — ready to upload" : "Medical Certificate Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                    </div>
+                    <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Medical certificate file" onChange={e => handleDriverFile(e, "medicalFile")} />
+                  </div>
                 </div>
 
                 {/* Card 3: NBI Clearance */}
@@ -1254,6 +1305,22 @@ export default function Fleet() {
                         onChange={(e) => handleDriverInputChange(e, "nbiExpiry")}
                       />
                     </div>
+                  </div>
+                  <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
+                    <div className="upload-icon-container">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="upload-text-content">
+                      <p className="upload-main-text">
+                        <span>Choose a file</span>
+                      </p>
+                      <p className="upload-sub-text">{driverForm.nbiFile ? driverForm.nbiFile.name + " — ready to upload" : "NBI Clearance Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                    </div>
+                    <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="NBI clearance file" onChange={e => handleDriverFile(e, "nbiFile")} />
                   </div>
                 </div>
               </div>

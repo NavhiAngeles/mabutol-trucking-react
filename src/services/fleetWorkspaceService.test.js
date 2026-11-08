@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-function service({ rpcError = null, uploadError = null, cleanupError = null, signedIn = true, trucks = [], drivers = [], deliveries = [] } = {}) {
-  const uploads = [], removed = [], saves = [];
+function service({ rpcError = null, uploadError = null, cleanupError = null, functionError = null, signedIn = true, trucks = [], drivers = [], deliveries = [] } = {}) {
+  const uploads = [], removed = [], saves = [], functionCalls = [];
   const context = { getTrucks: async () => trucks, getDrivers: async () => drivers,
     getMaintenanceRecords: async () => [], getVehicleTypes: async () => [], getCargoCategories: async () => [],
     getTruckComplianceRows: async () => [], getDriverComplianceRows: async () => [],
@@ -13,11 +13,16 @@ function service({ rpcError = null, uploadError = null, cleanupError = null, sig
     auth: { getUser: async () => ({ data: { user: signedIn ? { id: 'office' } : null }, error: null }) },
     storage: { from: () => ({ upload: async path => { uploads.push(path); return { error: uploadError }; }, remove: async paths => { removed.push(...paths); return { error: cleanupError }; } }) },
     rpc: async (name, args) => { saves.push({ name, args }); return { data: rpcError ? null : 'saved-id', error: rpcError }; },
+    functions: { invoke: async (name, options) => {
+      functionCalls.push({ name, options });
+      if (functionError) return { error: functionError };
+      return { data: { driverId: 'created-driver-id' } };
+    } },
   } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL('./fleetWorkspaceService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
-  vm.runInContext(source + '\nthis.api={saveFleetRecord,validateComplianceFile,fleetDisplayStatus,getFleetSnapshot};', context);
-  return { ...context.api, uploads, removed, saves };
+  vm.runInContext(source + '\nthis.api={saveFleetRecord,registerDriver,stageComplianceDocuments,validateComplianceFile,fleetDisplayStatus,getFleetSnapshot};', context);
+  return { ...context.api, uploads, removed, saves, functionCalls };
 }
 const file = { type: 'application/pdf', size: 20 };
 test('driver vehicle display follows the active booking truck without changing permanent assignments', async () => {
@@ -106,4 +111,85 @@ test('file size limits and cleanup failure are visible; missing RPC does not cla
   assert.throws(() => api.validateComplianceFile({ type: 'application/pdf', size: 10485761 }), /10 MB/);
   await assert.rejects(api.saveFleetRecord('truck', null, {}, { documents: [{ file }] }), /cleanup|cleaned up/);
   await assert.rejects(service({ rpcError: { code: 'PGRST202' } }).saveFleetRecord('truck', null, {}), /setup is pending/);
+});
+
+test('registerDriver for roster-only driver stages compliance files and rolls back on DB failure', async () => {
+  const driverForm = { fullName: 'Juan dela Cruz', contactNumber: '09171234567', licenseNumber: 'N01-23-45678' };
+  const docs = [
+    { doc_type: 'drivers_license', document_number: 'N01-23-45678', file },
+    { doc_type: 'medical_certificate', document_number: 'MED-101', file: { type: 'image/png', size: 1024 } },
+    { doc_type: 'nbi_clearance', document_number: 'NBI-202', file: { type: 'image/jpeg', size: 2048 } },
+  ];
+
+  // Success case
+  const api = service();
+  const res = await api.registerDriver(driverForm, docs);
+  assert.equal(res.id, 'saved-id');
+  assert.equal(api.uploads.length, 3);
+  assert.equal(api.removed.length, 0);
+  assert.equal(api.saves.length, 1);
+  assert.equal(api.saves[0].args.p_kind, 'driver');
+  assert.equal(api.saves[0].args.p_documents.length, 3);
+  assert.equal(api.saves[0].args.p_documents[0].file_path, 'office/unique-file/document.pdf');
+  assert.equal(api.saves[0].args.p_documents[1].file_path, 'office/unique-file/document.png');
+  assert.equal(api.saves[0].args.p_documents[2].file_path, 'office/unique-file/document.jpg');
+
+  // Rollback on RPC error
+  const failingApi = service({ rpcError: { message: 'Duplicate driver license' } });
+  await assert.rejects(failingApi.registerDriver(driverForm, docs), /Duplicate driver license/);
+  assert.equal(failingApi.uploads.length, 3);
+  assert.deepEqual(failingApi.removed, failingApi.uploads);
+});
+
+test('registerDriver with mobile account stages compliance files and rolls back on edge function failure', async () => {
+  const driverForm = {
+    fullName: 'Maria Santos',
+    contactNumber: '09189876543',
+    licenseNumber: 'N02-99-12345',
+    email: 'maria@tanawlogistics.com',
+    password: 'Password123!',
+    confirmPassword: 'Password123!',
+  };
+  const docs = [
+    { doc_type: 'drivers_license', document_number: 'N02-99-12345', file },
+    { doc_type: 'medical_certificate', file: { type: 'image/webp', size: 4096 } },
+  ];
+
+  // Success case
+  const api = service();
+  const res = await api.registerDriver(driverForm, docs);
+  assert.equal(res.id, 'created-driver-id');
+  assert.equal(api.uploads.length, 2);
+  assert.equal(api.removed.length, 0);
+  assert.equal(api.functionCalls.length, 1);
+  assert.equal(api.functionCalls[0].name, 'create-driver-user');
+  const reg = api.functionCalls[0].options.body.registration;
+  assert.equal(reg.documents.length, 2);
+  assert.equal(reg.documents[0].file_path, 'office/unique-file/document.pdf');
+  assert.equal(reg.documents[1].file_path, 'office/unique-file/document.webp');
+
+  // Rollback on function failure
+  const failingApi = service({ functionError: new Error('Auth user creation failed') });
+  await assert.rejects(failingApi.registerDriver(driverForm, docs), /Auth user creation failed/);
+  assert.equal(failingApi.uploads.length, 2);
+  assert.deepEqual(failingApi.removed, failingApi.uploads);
+});
+
+test('registerDriver prevalidation rejects invalid file format or size before any upload or function call', async () => {
+  const driverForm = { fullName: 'Pedro Reyes', contactNumber: '09191112233', licenseNumber: 'N03-11-22334' };
+  const api = service();
+
+  // Invalid mime type
+  await assert.rejects(
+    api.registerDriver(driverForm, [{ doc_type: 'drivers_license', file: { type: 'application/zip', size: 100 } }]),
+    /Choose a PDF, PNG, JPEG or WebP file/
+  );
+  assert.equal(api.uploads.length, 0);
+
+  // Exceeds 10MB
+  await assert.rejects(
+    api.registerDriver(driverForm, [{ doc_type: 'medical_certificate', file: { type: 'application/pdf', size: 10 * 1024 * 1024 + 1 } }]),
+    /Files must be between 1 byte and 10 MB/
+  );
+  assert.equal(api.uploads.length, 0);
 });
