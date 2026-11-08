@@ -88,3 +88,58 @@ test('unmount during SMS verification disposes temporary session and ignores lat
   ui.input('recovery-sms-code', '123456'); const work = ui.submit(); ui.unmount(); resolve({ required: false, factors: [] }); await work;
   assert.equal(disposals, 1); assert.equal(find(ui.render(), n => n.props.id === 'recovery-password').length, 0);
 });
+
+test('navigating away during TOTP verification disposes isolated recovery client and ignores late result', async () => {
+  let resolveTotp, disposals = 0;
+  const ui = await screen({
+    verifyPhone: async () => ({ required: true, factors: [{ id: 'totp-factor' }] }),
+    verify: () => new Promise(yes => { resolveTotp = yes; }),
+    dispose: async () => { disposals++; }
+  });
+  await ui.ready();
+  assert.equal(find(ui.render(), n => n.props.id === 'recovery-code').length, 1);
+
+  ui.input('recovery-code', '654321');
+  const work = ui.submit();
+  ui.unmount();
+
+  assert.equal(disposals, 1, 'Isolated recovery client must be disposed when user navigates away during TOTP verification');
+  resolveTotp({ required: false, factors: [] });
+  await work;
+  assert.equal(find(ui.render(), n => n.props.id === 'recovery-password').length, 0, 'Late TOTP verification result must not transition unmounted component');
+});
+
+test('navigating away while on TOTP challenge screen disposes isolated recovery client', async () => {
+  let disposals = 0;
+  const ui = await screen({
+    verifyPhone: async () => ({ required: true, factors: [{ id: 'totp-factor' }] }),
+    dispose: async () => { disposals++; }
+  });
+  await ui.ready();
+  assert.equal(find(ui.render(), n => n.props.id === 'recovery-code').length, 1);
+
+  // User navigates away before entering TOTP code
+  ui.unmount();
+  assert.equal(disposals, 1, 'Isolated recovery client must be disposed when navigating away from TOTP prompt');
+});
+
+test('navigating away during password reset submission disposes isolated recovery client and ignores late result', async () => {
+  let resolveReset, disposals = 0;
+  const ui = await screen({
+    security: async () => ({ required: false, factors: [] }),
+    reset: () => new Promise(yes => { resolveReset = yes; }),
+    dispose: async () => { disposals++; }
+  });
+  await ui.ready();
+  ui.input('recovery-password', 'NewPass123!');
+  ui.input('recovery-confirmation', 'NewPass123!');
+
+  const work = ui.submit();
+  await new Promise(yes => setImmediate(yes));
+  ui.unmount();
+
+  assert.equal(disposals, 1, 'Isolated recovery client must be disposed when navigating away during password reset submission');
+  if (resolveReset) resolveReset('Your password has been reset.');
+  await work;
+  assert.ok(!JSON.stringify(ui.render()).includes('has been reset'), 'Late reset resolution must not update unmounted component state');
+});

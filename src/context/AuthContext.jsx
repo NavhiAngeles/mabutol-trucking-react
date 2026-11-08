@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
     });
     const poll = setInterval(loadSession, 30000);
     window.addEventListener('focus', schedule);
-    return () => { disposed = true; listener.subscription.unsubscribe(); clearInterval(poll); pending.forEach(clearTimeout); window.removeEventListener('focus', schedule); };
+    return () => { disposed = true; listener?.subscription?.unsubscribe?.(); clearInterval(poll); pending.forEach(clearTimeout); window.removeEventListener('focus', schedule); };
   }, []);
   return <AuthContext.Provider value={{ user, role, loading, clearAuth, completeSignIn, signInMessage, dismissSignInMessage }}>{children}</AuthContext.Provider>;
 }
