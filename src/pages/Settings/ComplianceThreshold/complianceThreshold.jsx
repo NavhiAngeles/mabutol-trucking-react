@@ -27,8 +27,12 @@ function ThresholdForm({ role }) {
     }).catch(cause => { if (!disposed) setLoadError(cause.message); });
     return () => { disposed = true; };
   }, [reload]);
+  const dirty = Boolean(snapshot && JSON.stringify(form) !== JSON.stringify(snapshot.thresholds || DEFAULT_THRESHOLDS));
   function refresh() {
     if (operation.current) return;
+    if (dirty && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      if (!window.confirm('Discard unsaved threshold changes and reload saved values?')) return;
+    }
     setSnapshot(null); setForm(null); setError(''); setLoadError(''); setNotice(''); setReload(value => value + 1);
   }
   async function submit(event) {
@@ -39,18 +43,19 @@ function ThresholdForm({ role }) {
     operation.current = true; setBusy(true); setError(''); setNotice('');
     try {
       const saved = await complianceThresholdApi.save(value, snapshot);
-      if (mounted.current) { setSnapshot(saved); setForm(saved.thresholds); setNotice('Compliance thresholds saved. Dashboard, Fleet and Reports use these on their next refresh.'); }
+      if (mounted.current) { setSnapshot(saved); setForm(saved.thresholds); setNotice('Compliance thresholds saved. Dashboard, Fleet, standalone Compliance, and Reports use these on their next refresh.'); }
     } catch (cause) { if (mounted.current) setError(cause.message); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
   }
-  const dirty = snapshot && JSON.stringify(form) !== JSON.stringify(snapshot.thresholds || DEFAULT_THRESHOLDS);
   return <section className="content compliance-threshold-settings">
     <div className="page-header"><div><h2>Settings — Compliance Thresholds</h2><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div></div>
-    {loadError ? <div role="alert"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status">Loading compliance thresholds…</p> : <form onSubmit={submit} className="settings-card">
-      <p className="intro-text">First Alert marks an approaching expiry or service date. Critical Alert marks the final warning window, including the due date. Past dates remain expired or overdue. All dates use Philippine time.</p>
-      {!snapshot.thresholds && <p role="status">No per-document thresholds are saved. Documents currently use the existing {snapshot.legacyDays}-day warning window; maintenance warnings currently cover overdue work only. The values below are suggested settings and take effect only after an administrator saves them.</p>}
-      {role !== 'admin' && <p>Only administrators can edit these shared settings.</p>}
-      <p>These settings control on-screen Dashboard, Fleet and Report indicators. They do not send email, SMS or push alerts, or change dispatch eligibility. The standalone Compliance page is not yet connected.</p>
+    {loadError ? <div className="threshold-error-banner" role="alert"><p>{loadError}</p><button type="button" className="secondary-btn" onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status" className="threshold-loading">Loading compliance thresholds…</p> : <form onSubmit={submit} className="settings-card">
+      <div className="threshold-notice-box">
+        <p className="intro-text">First Alert marks an approaching expiry or service date. Critical Alert marks the final warning window, including the due date. Past dates remain expired or overdue. All dates use Philippine time.</p>
+        {!snapshot.thresholds && <p className="threshold-suggested-notice" role="status">No per-document thresholds are saved. Documents currently use the existing {snapshot.legacyDays}-day warning window; maintenance warnings currently cover overdue work only. The values below are suggested settings and take effect only after an administrator saves them.</p>}
+        {role !== 'admin' && <p className="threshold-admin-notice">Only administrators can edit these shared settings.</p>}
+        <p className="threshold-system-notice">These settings control on-screen Dashboard, Fleet, standalone Compliance, and Report indicators. Dashboard, Fleet, standalone Compliance, and Reports all consume these shared thresholds on refresh. They do not send email, SMS or push alerts, or change dispatch eligibility.</p>
+      </div>
       <fieldset disabled={busy || role !== 'admin'} style={{ border: 0, padding: 0, margin: 0 }}>
         {['DRIVER DOCUMENTATION', 'VEHICLE DOCUMENTATION'].map((title, index) => <div className="section-block" key={title}><h3 className="section-title">{title}</h3>{THRESHOLD_FIELDS.slice(index === 0 ? 0 : 3, index === 0 ? 3 : undefined).map(([key, label]) => <div className="threshold-row" key={key}><div className="threshold-info"><strong>{label}</strong></div><div className="threshold-inputs">{[['first', 'First Alert'], ['critical', 'Critical Alert']].map(([field, caption]) => <div className="input-wrap" key={field}><label htmlFor={`${key}-${field}`}>{caption}</label><input id={`${key}-${field}`} aria-label={`${label} ${caption}`} type="number" min={field === 'first' ? 1 : 0} max={365} step={1} required value={form[key][field]} onChange={event => {
           const raw = event.target.value;
@@ -59,8 +64,8 @@ function ThresholdForm({ role }) {
       </fieldset>
       {error && <p role="alert" className="threshold-error">{error}</p>}
       {notice && <p role="status" className="threshold-success">{notice}</p>}
-      {dirty && <p role="status">Unsaved changes.</p>}
-      <div className="threshold-actions"><button type="submit" disabled={busy || role !== 'admin'}>{busy ? 'Saving…' : 'Save Thresholds'}</button><button type="button" disabled={busy} onClick={refresh}>Reload Saved Values</button></div>
+      {dirty && <p role="status" className="threshold-unsaved">Unsaved changes.</p>}
+      <div className="threshold-actions"><button type="submit" className="primary-btn" disabled={busy || role !== 'admin'}>{busy ? 'Saving…' : 'Save Thresholds'}</button><button type="button" className="secondary-btn" disabled={busy} onClick={refresh}>Reload Saved Values</button></div>
     </form>}
   </section>;
 }

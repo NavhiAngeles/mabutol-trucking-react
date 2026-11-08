@@ -1,126 +1,355 @@
-
 /* =========================
-HEADER
-========================= */
+   PAGE HEADER
+   ========================= */
 
-.page-header {
+.compliance-threshold-settings .page-header {
   margin-bottom: 24px;
 }
 
-.page-header h2 {
-  font-size: 34px;
-  margin-bottom: 8px;
+.compliance-threshold-settings .page-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+  line-height: 1.25;
 }
 
-.page-header p {
-  color: #6B7280;
+.compliance-threshold-settings .page-header p {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* =========================
-CARD
-========================= */
+   SETTINGS CARD & NOTICES
+   ========================= */
 
-.settings-card {
-  background: white;
-
-  border: 1px solid #E5E7EB;
-
+.compliance-threshold-settings .settings-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
-
   padding: 28px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-.intro-text {
-  color: #64748B;
-
+.compliance-threshold-settings .threshold-notice-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  border-radius: 10px;
+  padding: 18px 20px;
   margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  line-height: 1.7;
+.compliance-threshold-settings .threshold-notice-box p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.compliance-threshold-settings .threshold-notice-box .intro-text {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.compliance-threshold-settings .threshold-notice-box .threshold-suggested-notice {
+  color: #854d0e;
+  background: #fefce8;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #fef08a;
+  font-size: 13px;
+}
+
+.compliance-threshold-settings .threshold-notice-box .threshold-admin-notice {
+  color: #991b1b;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+}
+
+.compliance-threshold-settings .threshold-notice-box .threshold-system-notice {
+  color: #64748b;
 }
 
 /* =========================
-SECTION
-========================= */
+   SECTIONS & FIELDSETS
+   ========================= */
 
-.section-block {
+.compliance-threshold-settings .section-block {
   margin-top: 32px;
-
-  border-top: 1px solid #E5E7EB;
-
+  border-top: 1px solid #e2e8f0;
   padding-top: 24px;
 }
 
-.section-title {
-  font-size: 14px;
+.compliance-threshold-settings .section-block:first-of-type {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
 
+.compliance-threshold-settings .section-title {
+  font-size: 12px;
   font-weight: 700;
-
-  color: #0F172A;
-
-  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+  color: #475569;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 /* =========================
-ROWS
-========================= */
+   THRESHOLD ROWS
+   ========================= */
 
-.threshold-row {
+.compliance-threshold-settings .threshold-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  padding: 18px 0;
-
-  border-bottom: 1px solid #F1F5F9;
+  padding: 14px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+  gap: 20px;
 }
 
-.threshold-info {
+.compliance-threshold-settings .threshold-row:hover {
+  background-color: #f8fafc;
+}
+
+.compliance-threshold-settings .threshold-info {
   flex: 1;
 }
 
-/* =========================
-INPUTS
-========================= */
-
-.threshold-inputs {
-  display: flex;
-  gap: 28px;
+.compliance-threshold-settings .threshold-info strong {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.input-wrap {
+/* =========================
+   INPUTS & LABELS
+   ========================= */
+
+.compliance-threshold-settings .threshold-inputs {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.compliance-threshold-settings .input-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.input-wrap label {
+.compliance-threshold-settings .input-wrap label {
   font-size: 12px;
-  color: #64748B;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
 }
 
-.input-wrap input {
-  width: 70px;
-
-  padding: 10px;
-
-  border: 1px solid #CBD5E1;
-
+.compliance-threshold-settings .input-wrap input {
+  width: 68px;
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-  background: #F8FAFC;
+.compliance-threshold-settings .input-wrap input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
 
+.compliance-threshold-settings .input-wrap span {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* =========================
+   STATUSES & ALERTS
+   ========================= */
+
+.compliance-threshold-settings .threshold-error {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.compliance-threshold-settings .threshold-success {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 20px;
+}
+
+.compliance-threshold-settings .threshold-unsaved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 20px;
+}
+
+.compliance-threshold-settings .threshold-loading {
+  color: #64748b;
+  font-size: 14px;
+  padding: 32px 0;
   text-align: center;
 }
 
-.input-wrap span {
-  font-size: 13px;
-  color: #64748B;
+.compliance-threshold-settings .threshold-error-banner {
+  padding: 20px;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-.compliance-threshold-settings .threshold-row { gap: 20px; }
-.compliance-threshold-settings .threshold-actions { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
-.compliance-threshold-settings .threshold-error { color: #991b1b; margin-top: 16px; }
-.compliance-threshold-settings .threshold-success { color: #166534; margin-top: 16px; }
+
+.compliance-threshold-settings .threshold-error-banner p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* =========================
+   ACTION BUTTONS
+   ========================= */
+
+.compliance-threshold-settings .threshold-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+}
+
+.compliance-threshold-settings .threshold-actions .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 20px;
+  border: 1px solid #0f172a;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.compliance-threshold-settings .threshold-actions .primary-btn:hover:not(:disabled) {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.compliance-threshold-settings .threshold-actions .primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.compliance-threshold-settings .threshold-actions .secondary-btn,
+.compliance-threshold-settings .threshold-error-banner .secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.compliance-threshold-settings .threshold-actions .secondary-btn:hover:not(:disabled),
+.compliance-threshold-settings .threshold-error-banner .secondary-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.compliance-threshold-settings .threshold-actions .secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================
+   RESPONSIVENESS
+   ========================= */
+
 @media (max-width: 950px) {
-  .compliance-threshold-settings .threshold-row { flex-direction: column; align-items: flex-start; }
-  .compliance-threshold-settings .threshold-inputs { flex-wrap: wrap; gap: 16px; }
+  .compliance-threshold-settings .threshold-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .compliance-threshold-settings .threshold-inputs {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .compliance-threshold-settings .settings-card {
+    padding: 20px;
+  }
+
+  .compliance-threshold-settings .threshold-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .compliance-threshold-settings .threshold-actions button {
+    width: 100%;
+  }
 }
