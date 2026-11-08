@@ -12,6 +12,8 @@ import MaintenancePanel from "./MaintenancePanel";
 import { vehicleCategories, vehicleCategoryId } from './vehicleCategories';
 import { validateComplianceFile } from "../../services/fleetWorkspaceService";
 
+const PAGE_SIZE = 10;
+
 export default function Fleet() {
   const [params, setParams] = useSearchParams();
   const readyOnly = params.get('availability') === 'dispatch-ready';
@@ -77,11 +79,15 @@ export default function Fleet() {
   const [driverTab, setDriverTab] = useState(() => params.get("view") === "compliance" ? "compliance" : "details");
 
 
-  // Search Filter States
+  // Search Filter & Pagination States
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [vehicleCategory, setVehicleCategory] = useState('all');
+  const [vehiclePage, setVehiclePage] = useState(1);
   const [vehicleComplianceSearch, setVehicleComplianceSearch] = useState("");
+  const [vehicleCompliancePage, setVehicleCompliancePage] = useState(1);
   const [driverSearch, setDriverSearch] = useState("");
+  const [driverPage, setDriverPage] = useState(1);
+  const [driverCompliancePage, setDriverCompliancePage] = useState(1);
 
   // Multi-step Modal States
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
@@ -132,7 +138,7 @@ export default function Fleet() {
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+      return d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "2-digit", year: "numeric" });
     } catch {
       return dateStr;
     }
@@ -314,6 +320,24 @@ export default function Fleet() {
     );
   });
 
+  // Client Pagination Slices
+  const vehiclePageCount = Math.max(1, Math.ceil(filteredTrucks.length / PAGE_SIZE));
+  const currentVehiclePage = Math.min(vehiclePage, vehiclePageCount);
+  const pagedTrucks = filteredTrucks.slice((currentVehiclePage - 1) * PAGE_SIZE, currentVehiclePage * PAGE_SIZE);
+
+  const vehicleCompliancePageCount = Math.max(1, Math.ceil(filteredTruckCompliance.length / PAGE_SIZE));
+  const currentVehicleCompliancePage = Math.min(vehicleCompliancePage, vehicleCompliancePageCount);
+  const pagedTruckCompliance = filteredTruckCompliance.slice((currentVehicleCompliancePage - 1) * PAGE_SIZE, currentVehicleCompliancePage * PAGE_SIZE);
+
+  const driverPageCount = Math.max(1, Math.ceil(filteredDrivers.length / PAGE_SIZE));
+  const currentDriverPage = Math.min(driverPage, driverPageCount);
+  const pagedDrivers = filteredDrivers.slice((currentDriverPage - 1) * PAGE_SIZE, currentDriverPage * PAGE_SIZE);
+
+  const filteredDriverCompliance = driverComplianceRows.filter(row => !driverSearch.trim() || row.driver.full_name.toLowerCase().includes(driverSearch.trim().toLowerCase()));
+  const driverCompliancePageCount = Math.max(1, Math.ceil(filteredDriverCompliance.length / PAGE_SIZE));
+  const currentDriverCompliancePage = Math.min(driverCompliancePage, driverCompliancePageCount);
+  const pagedDriverCompliance = filteredDriverCompliance.slice((currentDriverCompliancePage - 1) * PAGE_SIZE, currentDriverCompliancePage * PAGE_SIZE);
+
   return (
     <MainLayout>
       {/* Dynamic Topbar Header Context */}
@@ -324,7 +348,7 @@ export default function Fleet() {
       {/* Primary Scrolling Content Frame */}
       <section className="content scrollable-panel">
         {fleet.error && <p role="alert">Could not refresh fleet records. {fleet.hasData ? 'Showing last loaded data.' : 'Data is unavailable.'} <button onClick={fleet.refresh}>Retry</button></p>}
-        {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => setParams({})}>Show all vehicles</button></p>}
+        {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => { setParams({}); setVehiclePage(1); }}>Show all vehicles</button></p>}
 
         {/* HEADER ACTIONS BLOCK */}
         <div className="header-actions-row">
@@ -448,7 +472,10 @@ export default function Fleet() {
                   className="inner-search"
                   placeholder="Search by plate, vehicle type..."
                   value={vehicleSearch}
-                  onChange={(e) => setVehicleSearch(e.target.value)}
+                  onChange={(e) => {
+                    setVehicleSearch(e.target.value);
+                    setVehiclePage(1);
+                  }}
                 />
               </div>
             </div>
@@ -456,7 +483,10 @@ export default function Fleet() {
               {categories.map(category => <button key={category.id} type="button"
                 className={`fleet-vehicle-category${activeCategory === category.id ? ' active' : ''}`}
                 aria-pressed={activeCategory === category.id} aria-controls="fleet-vehicle-details"
-                onClick={() => setVehicleCategory(category.id)}>
+                onClick={() => {
+                  setVehicleCategory(category.id);
+                  setVehiclePage(1);
+                }}>
                 {category.label}<span className="fleet-category-count">{categoryCountsUnavailable ? '—' : category.count}</span>
               </button>)}
             </nav>
@@ -485,7 +515,7 @@ export default function Fleet() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTrucks.map((truck) => (
+                  pagedTrucks.map((truck) => (
                     <tr key={truck.id}>
                       <td>
                         <strong>{truck.plate_number}</strong>
@@ -555,6 +585,36 @@ export default function Fleet() {
                 )}
               </tbody>
             </table></div>
+            <div className="table-pagination-footer" role="navigation" aria-label="Vehicles table pagination">
+              <span className="pagination-summary">
+                {filteredTrucks.length === 0
+                  ? "Showing 0 of 0 vehicles"
+                  : `Showing ${(currentVehiclePage - 1) * PAGE_SIZE + 1}–${Math.min(currentVehiclePage * PAGE_SIZE, filteredTrucks.length)} of ${filteredTrucks.length} vehicles`}
+              </span>
+              <nav className="pagination-controls-group" aria-label="Vehicles pages">
+                <button
+                  type="button"
+                  className="page-nav-btn page-nav-prev"
+                  disabled={trucksLoading || Boolean(fleet.error) || currentVehiclePage <= 1}
+                  onClick={() => setVehiclePage(currentVehiclePage - 1)}
+                  aria-label="Previous vehicles page"
+                >
+                  Previous
+                </button>
+                <span className="pagination-page-indicator" aria-live="polite">
+                  {`Page ${currentVehiclePage} of ${vehiclePageCount}`}
+                </span>
+                <button
+                  type="button"
+                  className="page-nav-btn page-nav-next"
+                  disabled={trucksLoading || Boolean(fleet.error) || currentVehiclePage >= vehiclePageCount}
+                  onClick={() => setVehiclePage(currentVehiclePage + 1)}
+                  aria-label="Next vehicles page"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
           </>
         ) : (
           <>
@@ -565,7 +625,10 @@ export default function Fleet() {
                   className="inner-search"
                   placeholder="Search compliance by plate..."
                   value={vehicleComplianceSearch}
-                  onChange={(e) => setVehicleComplianceSearch(e.target.value)}
+                  onChange={(e) => {
+                    setVehicleComplianceSearch(e.target.value);
+                    setVehicleCompliancePage(1);
+                  }}
                 />
               </div>
             </div>
@@ -594,7 +657,7 @@ export default function Fleet() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTruckCompliance.map((row) => {
+                  pagedTruckCompliance.map((row) => {
                     const orCrDoc = row.docs.find((d) => d.docType === "lto_registration");
                     const ltfrbDoc = row.docs.find((d) => d.docType === "franchise_permit");
                     const emissionDoc = row.docs.find((d) => d.docType === "emission_test");
@@ -650,6 +713,36 @@ export default function Fleet() {
                 )}
               </tbody>
             </table></div>
+            <div className="table-pagination-footer" role="navigation" aria-label="Vehicle compliance table pagination">
+              <span className="pagination-summary">
+                {filteredTruckCompliance.length === 0
+                  ? "Showing 0 of 0 records"
+                  : `Showing ${(currentVehicleCompliancePage - 1) * PAGE_SIZE + 1}–${Math.min(currentVehicleCompliancePage * PAGE_SIZE, filteredTruckCompliance.length)} of ${filteredTruckCompliance.length} records`}
+              </span>
+              <nav className="pagination-controls-group" aria-label="Vehicle compliance pages">
+                <button
+                  type="button"
+                  className="page-nav-btn page-nav-prev"
+                  disabled={truckComplianceLoading || Boolean(fleet.error) || currentVehicleCompliancePage <= 1}
+                  onClick={() => setVehicleCompliancePage(currentVehicleCompliancePage - 1)}
+                  aria-label="Previous vehicle compliance page"
+                >
+                  Previous
+                </button>
+                <span className="pagination-page-indicator" aria-live="polite">
+                  {`Page ${currentVehicleCompliancePage} of ${vehicleCompliancePageCount}`}
+                </span>
+                <button
+                  type="button"
+                  className="page-nav-btn page-nav-next"
+                  disabled={truckComplianceLoading || Boolean(fleet.error) || currentVehicleCompliancePage >= vehicleCompliancePageCount}
+                  onClick={() => setVehicleCompliancePage(currentVehicleCompliancePage + 1)}
+                  aria-label="Next vehicle compliance page"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
           </>
         )}
 
@@ -680,9 +773,10 @@ export default function Fleet() {
           </div>
         </div>
 
-        <div className="table-filter-bar"><input className="inner-search" placeholder="Search drivers by name, phone or license…" aria-label="Search drivers" value={driverSearch} onChange={event => setDriverSearch(event.target.value)} /></div>
+        <div className="table-filter-bar"><input className="inner-search" placeholder="Search drivers by name, phone or license…" aria-label="Search drivers" value={driverSearch} onChange={event => { setDriverSearch(event.target.value); setDriverPage(1); setDriverCompliancePage(1); }} /></div>
         {driverTab === "details" ? (
-          <div className="fleet-table-scroll"><table className="premium-table">
+          <>
+            <div className="fleet-table-scroll"><table className="premium-table">
             <thead>
               <tr>
                 <th>DRIVER DETAILS</th>
@@ -708,7 +802,7 @@ export default function Fleet() {
                   </td>
                 </tr>
               ) : (
-                filteredDrivers.map((driver) => {
+                pagedDrivers.map((driver) => {
                   const complianceRow = driverComplianceRows.find((r) => r.driver.id === driver.id);
                   const isVerified = complianceRow?.overallStatus === "verified";
                   const assignedTrucks = driver.assignedTrucks || (driver.assignedTruck ? [driver.assignedTruck] : []);
@@ -736,7 +830,7 @@ export default function Fleet() {
                           <span style={{ color: "#94A3B8" }}>Unassigned</span>
                         )}
                       </td>
-                      <td>{driver.location ? <><span>{driver.location.latitude.toFixed(4)}, {driver.location.longitude.toFixed(4)}</span><span className="subtext">{driver.location.stale ? "Last known GPS · " : "GPS · "}{new Date(driver.location.recorded_at).toLocaleString()}</span></> : "No GPS report"}</td>
+                      <td>{driver.location ? <><span>{driver.location.latitude.toFixed(4)}, {driver.location.longitude.toFixed(4)}</span><span className="subtext">{driver.location.stale ? "Last known GPS · " : "GPS · "}{new Date(driver.location.recorded_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</span></> : "No GPS report"}</td>
                       <td>
                         {driver.status === "on_route" || driver.status === "on_trip" ? (
                           <span className="status-pill status-transit">ON ROUTE</span>
@@ -789,8 +883,40 @@ export default function Fleet() {
               )}
             </tbody>
           </table></div>
+          <div className="table-pagination-footer" role="navigation" aria-label="Drivers table pagination">
+            <span className="pagination-summary">
+              {filteredDrivers.length === 0
+                ? "Showing 0 of 0 drivers"
+                : `Showing ${(currentDriverPage - 1) * PAGE_SIZE + 1}–${Math.min(currentDriverPage * PAGE_SIZE, filteredDrivers.length)} of ${filteredDrivers.length} drivers`}
+            </span>
+            <nav className="pagination-controls-group" aria-label="Drivers pages">
+              <button
+                type="button"
+                className="page-nav-btn page-nav-prev"
+                disabled={driversLoading || Boolean(fleet.error) || currentDriverPage <= 1}
+                onClick={() => setDriverPage(currentDriverPage - 1)}
+                aria-label="Previous drivers page"
+              >
+                Previous
+              </button>
+              <span className="pagination-page-indicator" aria-live="polite">
+                {`Page ${currentDriverPage} of ${driverPageCount}`}
+              </span>
+              <button
+                type="button"
+                className="page-nav-btn page-nav-next"
+                disabled={driversLoading || Boolean(fleet.error) || currentDriverPage >= driverPageCount}
+                onClick={() => setDriverPage(currentDriverPage + 1)}
+                aria-label="Next drivers page"
+              >
+                Next
+              </button>
+            </nav>
+          </div>
+        </>
         ) : (
-          <div className="fleet-table-scroll"><table className="premium-table">
+          <>
+            <div className="fleet-table-scroll"><table className="premium-table">
             <thead>
               <tr>
                 <th>DRIVER DETAILS</th>
@@ -808,14 +934,14 @@ export default function Fleet() {
                     Loading driver compliance records...
                   </td>
                 </tr>
-              ) : driverComplianceRows.length === 0 ? (
+              ) : filteredDriverCompliance.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    {fleet.error ? "Compliance data unavailable; retry above." : "No driver compliance records found."}
+                    {fleet.error ? "Compliance data unavailable; retry above." : driverSearch.trim() ? "No driver compliance records matching search filter." : "No driver compliance records found."}
                   </td>
                 </tr>
               ) : (
-                driverComplianceRows.filter(row => !driverSearch.trim() || row.driver.full_name.toLowerCase().includes(driverSearch.trim().toLowerCase())).map((row) => {
+                pagedDriverCompliance.map((row) => {
                   const licenseDoc = row.docs.find((d) => d.docType === "drivers_license");
                   const medicalDoc = row.docs.find((d) => d.docType === "medical_certificate");
                   const nbiDoc = row.docs.find((d) => d.docType === "nbi_clearance");
@@ -871,6 +997,37 @@ export default function Fleet() {
               )}
             </tbody>
           </table></div>
+          <div className="table-pagination-footer" role="navigation" aria-label="Driver compliance table pagination">
+            <span className="pagination-summary">
+              {filteredDriverCompliance.length === 0
+                ? "Showing 0 of 0 records"
+                : `Showing ${(currentDriverCompliancePage - 1) * PAGE_SIZE + 1}–${Math.min(currentDriverCompliancePage * PAGE_SIZE, filteredDriverCompliance.length)} of ${filteredDriverCompliance.length} records`}
+            </span>
+            <nav className="pagination-controls-group" aria-label="Driver compliance pages">
+              <button
+                type="button"
+                className="page-nav-btn page-nav-prev"
+                disabled={driverComplianceLoading || Boolean(fleet.error) || currentDriverCompliancePage <= 1}
+                onClick={() => setDriverCompliancePage(currentDriverCompliancePage - 1)}
+                aria-label="Previous driver compliance page"
+              >
+                Previous
+              </button>
+              <span className="pagination-page-indicator" aria-live="polite">
+                {`Page ${currentDriverCompliancePage} of ${driverCompliancePageCount}`}
+              </span>
+              <button
+                type="button"
+                className="page-nav-btn page-nav-next"
+                disabled={driverComplianceLoading || Boolean(fleet.error) || currentDriverCompliancePage >= driverCompliancePageCount}
+                onClick={() => setDriverCompliancePage(currentDriverCompliancePage + 1)}
+                aria-label="Next driver compliance page"
+              >
+                Next
+              </button>
+            </nav>
+          </div>
+        </>
         )}
 
         <MaintenancePanel fleet={fleet} />
