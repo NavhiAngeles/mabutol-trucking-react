@@ -5,6 +5,7 @@ import { supabase } from "./supabaseClient.js";
 import { complianceState, latestDocuments } from "./dashboardAnalytics.js";
 import { getComplianceConfiguration } from './complianceThresholdService.js';
 import { thresholdState, normalizeManilaDate, MANILA_TIMEZONE } from './complianceThresholds.js';
+import { sanitizeTruck } from './officialVehicleModels.js';
 
 export { normalizeManilaDate, MANILA_TIMEZONE };
 
@@ -73,10 +74,13 @@ const TRUCK_SELECT = `
 /** Fetch all trucks with vehicle type + assigned driver + cargo categories joined in. */
 export async function getTrucks() {
     const data = await allRows("trucks", TRUCK_SELECT, q => q.order("created_at", { ascending: false }));
-    return (data || []).map((t) => ({
-        ...t,
-        cargoCategories: t.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
-    }));
+    return (data || []).map((t, index) => {
+        const clean = typeof sanitizeTruck === 'function' ? sanitizeTruck(t, index) : t;
+        return {
+            ...clean,
+            cargoCategories: clean.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
+        };
+    });
 }
 
 /** Fetch a single truck by id, joined the same way as getTrucks(). */
@@ -88,9 +92,10 @@ export async function getTruckById(truckId) {
         .single();
 
     if (error) throw error;
+    const clean = typeof sanitizeTruck === 'function' ? sanitizeTruck(data) : data;
     return {
-        ...data,
-        cargoCategories: data.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
+        ...clean,
+        cargoCategories: clean.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
     };
 }
 
@@ -448,12 +453,13 @@ export async function getComplianceDocumentsForDriver(driverId) {
  */
 export async function getTruckComplianceRows(options = {}) {
     const now = typeof options === 'number' || options instanceof Date ? options : (options?.now ?? Date.now());
-    const [trucks, docs, configuration] = await Promise.all([
-        allRows("trucks", "id, plate_number, model, model_year"),
+    const [rawTrucks, docs, configuration] = await Promise.all([
+        allRows("trucks", "id, plate_number, model, model_year, capacity_kg, vehicle_type_id, vehicle_types ( id, name )"),
         allRows("compliance_documents", "*", q => q.not("truck_id", "is", null).in("doc_type", TRUCK_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
         getComplianceConfiguration(),
     ]);
 
+    const trucks = (rawTrucks || []).map((truck, index) => typeof sanitizeTruck === 'function' ? sanitizeTruck(truck, index) : truck);
     const latest = latestDocuments(docs);
 
     return trucks.map((truck) => {

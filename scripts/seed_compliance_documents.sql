@@ -67,7 +67,9 @@ CROSS JOIN (VALUES
 ) AS req(doc_type, code)
 WHERE t.plate_number IN (
   'DEMO-VAN-01', 'DEMO-VAN-02', 'DEMO-6W-02', 'DEMO-6W-03',
-  'DEMO-ELF-01', 'DEMO-DROP-01', 'DEMO-WING-02', 'DEMO-HV10-01', 'DEMO-MED4-01'
+  'DEMO-ELF-01', 'DEMO-DROP-01', 'DEMO-WING-02', 'DEMO-HV10-01', 'DEMO-MED4-01',
+  'NBC 1024', 'NBC 1025', 'NDB 5821', 'NDB 5822',
+  'CAH 7392', 'NFP 4190', 'RFA 2841', 'RFA 3912', 'NDB 6104'
 )
 AND NOT EXISTS (
   SELECT 1 FROM public.compliance_documents cd
