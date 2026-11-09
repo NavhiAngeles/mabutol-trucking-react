@@ -196,6 +196,7 @@ export default function OfficeTools() {
   const { user } = useAuth();
   const { data, loading, error, refresh } = useLiveData(loadOfficeTools, TABLES);
   const [open, setOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
   const [locallyReadIds, setLocallyReadIds] = useState(new Set());
   const [saving, setSaving] = useState(null);
   const [saveError, setSaveError] = useState('');
@@ -243,6 +244,7 @@ export default function OfficeTools() {
       refresh();
       if (notification.shipment_id) {
         setOpen(false);
+        setMessagesOpen(false);
         navigate('/shipment?tab=all&record=' + notification.shipment_id);
       }
     } catch {
@@ -309,7 +311,11 @@ export default function OfficeTools() {
         aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}
         aria-expanded={open}
         aria-controls="office-notifications-panel"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          if (next) setMessagesOpen(false);
+        }}
       >
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
@@ -317,13 +323,25 @@ export default function OfficeTools() {
         </svg>
         {unread > 0 && <span className="office-unread-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       </button>
-      <DeliveryConversationInbox />
+      <DeliveryConversationInbox
+        isOpen={messagesOpen}
+        onToggle={() => {
+          const next = !messagesOpen;
+          setMessagesOpen(next);
+          if (next) setOpen(false);
+        }}
+        onClose={() => setMessagesOpen(false)}
+      />
       <button
         type="button"
         className="avatar"
         aria-label="Open account settings"
         title={data?.name || 'Account'}
-        onClick={() => navigate('/settings/account')}
+        onClick={() => {
+          setOpen(false);
+          setMessagesOpen(false);
+          navigate('/settings/account');
+        }}
       >
         {(data?.name || user?.email || 'Account').slice(0, 2).toUpperCase()}
       </button>

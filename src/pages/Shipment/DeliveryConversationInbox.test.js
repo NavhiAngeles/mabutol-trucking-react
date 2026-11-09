@@ -16,6 +16,7 @@ async function mount(initialRows = rows, useThreadsMethod = false, defaultOpen =
   const context = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = si++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
+    useCallback(fn) { return fn; },
     useRef(initial) { return { current: initial }; },
     useEffect(effect, next) { const i = ei++; if (!deps[i] || next.some((v, j) => v !== deps[i][j])) { effects.push(() => { cleanups[i]?.(); cleanups[i] = effect(); }); deps[i] = next; } },
     deliveryConversationService: () => serviceImpl, supabase: {}, DeliveryConversation: 'DeliveryConversation',

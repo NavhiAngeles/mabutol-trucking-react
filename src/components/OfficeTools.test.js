@@ -217,3 +217,91 @@ test('driver messages are excluded from notification bell and notify in Drivers 
   assert.equal(bellBtn.props['aria-label'], 'Notifications, 1 unread', 'Bell unread count only reflects non-driver message notifications');
 });
 
+test('Notifications bell and Driver Messages dropdown panels are mutually exclusive', async () => {
+  const source = await readFile(new URL('./OfficeTools.jsx', import.meta.url), 'utf8');
+  const { code } = await transformWithOxc(source, 'OfficeTools.jsx', { jsx: { runtime: 'classic' } });
+  const states = [];
+  let si = 0;
+  let inboxProps = null;
+  const context = vm.createContext({
+    React: {
+      createElement: (type, props, ...children) => {
+        if (type === 'DeliveryConversationInbox') inboxProps = props;
+        return { type, props: props || {}, children };
+      },
+    },
+    useState: (val) => {
+      const i = si++;
+      if (!(i in states)) states[i] = val;
+      return [states[i], next => { states[i] = next; }];
+    },
+    useRef: (val) => ({ current: val }),
+    useEffect: () => {},
+    useNavigate: () => () => {},
+    useAuth: () => ({ user: { id: 'own' } }),
+    DeliveryConversationInbox: 'DeliveryConversationInbox',
+    useLiveData: () => ({
+      data: {
+        name: 'Office',
+        notifications: [{ id: '1', title: 'Booking', created_at: '2026-11-10' }],
+      },
+      error: '',
+      refresh: () => {},
+    }),
+    supabase: { from: () => ({}) },
+  });
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.renderComponent = OfficeTools;', context);
+
+  // 1. Initial state: both panels closed
+  let tree = context.renderComponent();
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
+  assert.equal(inboxProps.isOpen, false);
+
+  // 2. Click bell to open notifications: notifications open, messages closed
+  si = 0;
+  find(tree, n => n.type === 'button' && n.props.title === 'Notifications')[0].props.onClick();
+  si = 0;
+  tree = context.renderComponent();
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 1);
+  assert.equal(inboxProps.isOpen, false);
+
+  // 3. Toggle messages: messages open, notifications closed
+  si = 0;
+  inboxProps.onToggle();
+  si = 0;
+  tree = context.renderComponent();
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
+  assert.equal(inboxProps.isOpen, true);
+
+  // 4. Click bell again: notifications open, messages closed
+  si = 0;
+  find(tree, n => n.type === 'button' && n.props.title === 'Notifications')[0].props.onClick();
+  si = 0;
+  tree = context.renderComponent();
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 1);
+  assert.equal(inboxProps.isOpen, false);
+
+  // 5. Click bell again to close notifications: both closed
+  si = 0;
+  find(tree, n => n.type === 'button' && n.props.title === 'Notifications')[0].props.onClick();
+  si = 0;
+  tree = context.renderComponent();
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
+  assert.equal(inboxProps.isOpen, false);
+
+  // 6. Messages onClose callback closes messages
+  si = 0;
+  inboxProps.onToggle();
+  si = 0;
+  tree = context.renderComponent();
+  assert.equal(inboxProps.isOpen, true);
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
+  si = 0;
+  inboxProps.onClose();
+  si = 0;
+  tree = context.renderComponent();
+  assert.equal(inboxProps.isOpen, false);
+  assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
+});
+
+

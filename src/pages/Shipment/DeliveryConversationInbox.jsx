@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { deliveryConversationService } from '../../services/deliveryConversationService';
@@ -49,8 +49,39 @@ export default function DeliveryConversationInbox(props = {}) {
 }
 
 function Inbox(props = {}) {
-  const { defaultOpen = false } = props || {};
-  const [open, setOpen] = useState(defaultOpen);
+  const { defaultOpen = false, isOpen, open: propOpen, onToggle, onClose, onOpen } = props || {};
+  const isControlled = typeof isOpen === 'boolean' || typeof propOpen === 'boolean';
+  const controlledOpen = typeof isOpen === 'boolean' ? isOpen : propOpen;
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = isControlled ? controlledOpen : internalOpen;
+
+  const handleSetOpen = useCallback((next) => {
+    const nextVal = typeof next === 'function' ? next(open) : next;
+    if (!isControlled) {
+      setInternalOpen(nextVal);
+    }
+    if (nextVal !== open) {
+      if (nextVal) {
+        onOpen?.();
+      } else {
+        onClose?.();
+      }
+    }
+  }, [isControlled, onClose, onOpen, open]);
+
+  const handleToggle = () => {
+    const next = !open;
+    if (!isControlled) {
+      setInternalOpen(next);
+    }
+    if (typeof onToggle === 'function') {
+      onToggle(next);
+    } else {
+      if (next) onOpen?.();
+      else onClose?.();
+    }
+  };
+
   const [rows, setRows] = useState(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState(null), [opened, setOpened] = useState([]), [refreshing, setRefreshing] = useState(false);
   const containerRef = useRef(null);
@@ -66,13 +97,13 @@ function Inbox(props = {}) {
     const outside = event => {
       if (containerRef.current && typeof containerRef.current.contains === 'function') {
         if (!containerRef.current.contains(event.target)) {
-          setOpen(false);
+          handleSetOpen(false);
         }
       }
     };
     const escape = event => {
       if (event.key === 'Escape') {
-        setOpen(false);
+        handleSetOpen(false);
         triggerRef.current?.focus();
       }
     };
@@ -86,7 +117,7 @@ function Inbox(props = {}) {
         document.removeEventListener('keydown', escape);
       }
     };
-  }, [open]);
+  }, [open, handleSetOpen]);
 
   useEffect(() => {
     const refresh = () => {
@@ -160,7 +191,7 @@ function Inbox(props = {}) {
         aria-label={`Driver messages${unread > 0 ? `, ${unread} unread` : ''}`}
         aria-expanded={open}
         aria-controls="office-messages-panel"
-        onClick={() => setOpen(value => !value)}
+        onClick={handleToggle}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2Z"/>
@@ -203,7 +234,7 @@ function Inbox(props = {}) {
                 className="office-messages-close"
                 aria-label="Close driver messages"
                 onClick={() => {
-                  setOpen(false);
+                  handleSetOpen(false);
                   triggerRef.current?.focus();
                 }}
               >
