@@ -314,6 +314,7 @@ export default function OfficeTools() {
   const [saving, setSaving] = useState(null);
   const [saveError, setSaveError] = useState('');
   const [failedNotification, setFailedNotification] = useState(null);
+  const [failedAction, setFailedAction] = useState(null);
   const saveInFlight = useRef(false);
   const container = useRef(null);
   const bell = useRef(null);
@@ -336,6 +337,7 @@ export default function OfficeTools() {
     setSaving(notification.id);
     setSaveError('');
     setFailedNotification(null);
+    setFailedAction(null);
     try {
       persistReadId(user.id, notification.id);
       if (notification.message_id) {
@@ -373,6 +375,7 @@ export default function OfficeTools() {
       }
     } catch {
       setFailedNotification(notification);
+      setFailedAction('single');
       setSaveError('Unable to mark notification read. Please retry.');
     } finally {
       saveInFlight.current = false;
@@ -382,12 +385,14 @@ export default function OfficeTools() {
 
   async function markAllAsRead() {
     if (saveInFlight.current || !data?.notifications?.length) return;
-    const unreadList = data.notifications.filter(n => !n.read_at);
+    const unreadList = data.notifications.filter(n => !n.read_at && !(locallyReadIds?.has && locallyReadIds.has(n.id)));
     if (!unreadList.length) return;
 
     saveInFlight.current = true;
     setSaving('all');
     setSaveError('');
+    setFailedNotification(null);
+    setFailedAction(null);
     try {
       const unreadDbIds = unreadList.filter(n => !n.synthetic).map(n => n.id);
       const unreadMsgIds = unreadList.filter(n => n.message_id).map(n => n.message_id);
@@ -398,16 +403,15 @@ export default function OfficeTools() {
       for (const mid of unreadMsgIds) persistReadId(user.id, `msg-${mid}`);
 
       if (unreadDbIds.length > 0) {
-        try {
-          const q = supabase.from('notifications').update({ read_at: new Date().toISOString() });
-          if (typeof q?.in === 'function') {
-            await q.in('id', unreadDbIds).eq('user_id', user.id);
-          } else if (typeof q?.eq === 'function') {
-            await q.eq('user_id', user.id);
-          }
-        } catch {
-          // Non-blocking
+        let q = supabase.from('notifications').update({ read_at: new Date().toISOString() });
+        if (typeof q?.in === 'function') {
+          q = q.in('id', unreadDbIds);
         }
+        if (typeof q?.eq === 'function') {
+          q = q.eq('user_id', user.id);
+        }
+        const res = await q;
+        if (res && res.error) throw res.error;
       }
 
       if (unreadMsgIds.length > 0) {
@@ -427,6 +431,7 @@ export default function OfficeTools() {
       setLocallyReadIds(new Set([...(locallyReadIds?.values ? locallyReadIds.values() : []), ...unreadList.map(n => n.id)]));
       refresh();
     } catch {
+      setFailedAction('all');
       setSaveError('Unable to mark all notifications read. Please retry.');
     } finally {
       saveInFlight.current = false;
@@ -492,11 +497,11 @@ export default function OfficeTools() {
                   type="button"
                   className="office-notifications-tool-btn office-notifications-mark-read"
                   title="Mark all notifications as read"
-                  aria-label="Mark all as read"
+                  aria-label="Mark all read"
                   disabled={loading || !!saving}
                   onClick={markAllAsRead}
                 >
-                  {saving === 'all' ? 'Saving…' : 'Mark as Read'}
+                  {saving === 'all' ? 'Saving…' : 'Mark all read'}
                 </button>
               )}
               <button
@@ -514,7 +519,17 @@ export default function OfficeTools() {
             {(error || saveError) && (
               <p className="office-notification-error" role="alert">
                 {saveError || 'Unable to load notifications.'}{' '}
-                <button type="button" disabled={!!saving} onClick={() => (failedNotification ? markRead(failedNotification) : refresh())}>
+                <button
+                  type="button"
+                  disabled={!!saving}
+                  onClick={() => (
+                    failedAction === 'all'
+                      ? markAllAsRead()
+                      : failedNotification
+                        ? markRead(failedNotification)
+                        : refresh()
+                  )}
+                >
                   Retry
                 </button>
               </p>
