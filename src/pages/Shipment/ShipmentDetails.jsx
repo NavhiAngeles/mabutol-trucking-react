@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fetchShipmentDetails } from '../../services/shipmentService';
 import DeliveryOperations from './DeliveryOperations';
 import AssignmentManager from './AssignmentManager';
+import PaymentLedger from './PaymentLedger';
 import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
 
 const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
@@ -311,6 +312,8 @@ export default function ShipmentDetails({ shipment, onClose }) {
             </div>
           </div>
         </dl>
+
+        <PaymentLedger shipment={details} onChanged={reload} />
 
         <div className="shipment-details-assignments-section">
           <h3>Delivery assignments</h3>

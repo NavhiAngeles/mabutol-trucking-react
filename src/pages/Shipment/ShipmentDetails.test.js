@@ -10,22 +10,27 @@ function find(node, predicate) {
   return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
-const record = { id: 's', tracking_number: 'SHIP-1', status: 'cancelled', customer: { name: 'Test Customer' },
+const record = {
+  id: 's', tracking_number: 'SHIP-1', status: 'cancelled', customer: { name: 'Test Customer' },
   driver_notes: 'Call first.\nUse rear gate.', quoted_amount: 2500, override_amount: 0, final_amount: null,
-  cancelled_reason: 'Customer requested', scheduled_departure: 'invalid', deliveries: [] };
+  cancelled_reason: 'Customer requested', scheduled_departure: 'invalid', deliveries: []
+};
 async function mount(load) {
   const { code } = await transformWithOxc(fs.readFileSync(new URL('./ShipmentDetails.jsx', import.meta.url), 'utf8'), 'ShipmentDetails.jsx', { jsx: { runtime: 'classic' } });
   const states = [], refs = [], effects = []; let index = 0, refIndex = 0, effectIndex = 0, pending = [], closes = 0, focused = 0;
   const context = vm.createContext({
-    React: { createElement: (type, props, ...children) => {
-      if (props?.ref) props.ref.current = { focus() { focused++; } };
-      return { type, props: props || {}, children };
-    } }, document: { activeElement: null },
+    React: {
+      createElement: (type, props, ...children) => {
+        if (props?.ref) props.ref.current = { focus() { focused++; } };
+        return { type, props: props || {}, children };
+      }
+    }, document: { activeElement: null },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
-    useEffect(effect, deps) { const i = effectIndex++; const old = effects[i];
+    useEffect(effect, deps) {
+      const i = effectIndex++; const old = effects[i];
       if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
-    }, fetchShipmentDetails: load, AssignmentManager:'AssignmentManager', DeliveryOperations:'DeliveryOperations',
+    }, fetchShipmentDetails: load, AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
   const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, onClose: () => closes++ }); pending.forEach(run => run()); return tree; };
@@ -41,7 +46,8 @@ test('details shows saved fields, zero override, unknown charge, notes and cance
   assert.equal(find(tree, n => n.props.className === 'shipment-details-notes')[0].children[0], record.driver_notes);
   assert.ok(text.includes('No delivery assignment recorded.')); assert.ok(text.includes('Unavailable')); assert.ok(ui.focused() > 0);
   assert.equal(find(tree, n => n.type === 'AssignmentManager').length, 1);
-  find(tree, n => n.props.role === 'dialog')[0].props.onKeyDown({ key: 'Escape', preventDefault() {} }); assert.equal(ui.closes(), 1);
+  assert.equal(find(tree, n => n.type === 'PaymentLedger').length, 1);
+  find(tree, n => n.props.role === 'dialog')[0].props.onKeyDown({ key: 'Escape', preventDefault() { } }); assert.equal(ui.closes(), 1);
 });
 
 test('details displays confirmed route duration, toll expressway routing, gate breakdown, and driver allowance', async () => {
@@ -137,11 +143,17 @@ test('DELIVERY-01: successful read clears error, preserve reload retains last go
 test('details service scopes shipment and deliveries to selected ID and propagates both read failures', async () => {
   let shipment = { data: record }, deliveries = { data: [{ id: 'd' }] };
   const calls = [];
-  const context = vm.createContext({ supabase: { from(table) {
-    return { select(columns) { calls.push({ table, columns }); return this; },
-      eq(column, id) { assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id'); assert.equal(id, 's'); return table === 'shipments' ? this : Promise.resolve(deliveries); },
-      async single() { return shipment; } };
-  } } });
+  const context = vm.createContext({
+    supabase: {
+      from(table) {
+        return {
+          select(columns) { calls.push({ table, columns }); return this; },
+          eq(column, id) { assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id'); assert.equal(id, 's'); return table === 'shipments' ? this : Promise.resolve(deliveries); },
+          async single() { return shipment; }
+        };
+      }
+    }
+  });
   const source = fs.readFileSync(new URL('../../services/shipmentService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
   vm.runInContext(source + '\nthis.load = fetchShipmentDetails;', context);
   const result = await context.load('s'); assert.equal(result.driver_notes, record.driver_notes); assert.equal(result.deliveries.length, 1);
@@ -154,26 +166,30 @@ test('details service scopes shipment and deliveries to selected ID and propagat
 test('details service falls back gracefully when additive route/allowance columns do not exist in live schema', async () => {
   let attempts = 0;
   const calls = [];
-  const context = vm.createContext({ supabase: { from(table) {
-    return {
-      select(columns) {
-        calls.push({ table, columns });
-        return this;
-      },
-      eq(column, id) {
-        assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id');
-        assert.equal(id, 's');
-        return table === 'shipments' ? this : Promise.resolve({ data: [{ id: 'd' }] });
-      },
-      async single() {
-        attempts += 1;
-        if (attempts === 1) {
-          return { error: { code: '42703', message: 'column shipments.driver_allowance does not exist' } };
-        }
-        return { data: record };
-      },
-    };
-  } } });
+  const context = vm.createContext({
+    supabase: {
+      from(table) {
+        return {
+          select(columns) {
+            calls.push({ table, columns });
+            return this;
+          },
+          eq(column, id) {
+            assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id');
+            assert.equal(id, 's');
+            return table === 'shipments' ? this : Promise.resolve({ data: [{ id: 'd' }] });
+          },
+          async single() {
+            attempts += 1;
+            if (attempts === 1) {
+              return { error: { code: '42703', message: 'column shipments.driver_allowance does not exist' } };
+            }
+            return { data: record };
+          },
+        };
+      }
+    }
+  });
   const source = fs.readFileSync(new URL('../../services/shipmentService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
   vm.runInContext(source + '\nthis.load = fetchShipmentDetails;', context);
   const result = await context.load('s');
@@ -191,14 +207,15 @@ test('details forwards draftSuggestion to AssignmentManager when provided on ins
     document: { activeElement: null },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
-    useEffect(effect, deps) { const i = effectIndex++; const old = effects[i];
+    useEffect(effect, deps) {
+      const i = effectIndex++; const old = effects[i];
       if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
     },
     fetchShipmentDetails: async () => record,
-    AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations',
+    AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
-  const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1', draftSuggestion: draft }, onClose: () => {} }); pending.forEach(run => run()); return tree; };
+  const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1', draftSuggestion: draft }, onClose: () => { } }); pending.forEach(run => run()); return tree; };
   render(); await tick(); const tree = render();
   const am = find(tree, n => n.type === 'AssignmentManager')[0];
   assert.equal(am.props.draftSuggestion.driverId, 'd-ret');
