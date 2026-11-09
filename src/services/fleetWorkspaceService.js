@@ -110,6 +110,25 @@ export async function saveFleetRecord(kind, record, payload, { categories = null
     throw error;
   }
 }
+export async function deleteFleetRecord(kind, id) {
+  if (!id) throw new Error('A valid record ID is required for deletion.');
+  if (!['truck', 'driver'].includes(kind)) throw new Error('Invalid deletion target.');
+
+  const { error } = await supabase.rpc('fleet_delete', {
+    p_kind: kind,
+    p_id: id,
+  });
+
+  if (error) {
+    if (error.code === 'PGRST202' || error.code === '42883') {
+      throw new Error('Fleet database setup is pending. Record could not be removed.');
+    }
+    throw new Error(error.message || 'Unable to delete the record.');
+  }
+
+  return { success: true, id };
+}
+
 export async function openComplianceFile(path) {
   if (!path || /^(https?:|data:)/i.test(path)) throw new Error('No private stored file is linked to this document.');
   const { data, error } = await supabase.storage.from('compliance-documents').createSignedUrl(path, 60);

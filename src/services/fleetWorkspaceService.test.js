@@ -21,7 +21,7 @@ function service({ rpcError = null, uploadError = null, cleanupError = null, fun
   } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL('./fleetWorkspaceService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
-  vm.runInContext(source + '\nthis.api={saveFleetRecord,registerDriver,stageComplianceDocuments,validateComplianceFile,fleetDisplayStatus,getFleetSnapshot};', context);
+  vm.runInContext(source + '\nthis.api={saveFleetRecord,registerDriver,stageComplianceDocuments,validateComplianceFile,fleetDisplayStatus,getFleetSnapshot,deleteFleetRecord};', context);
   return { ...context.api, uploads, removed, saves, functionCalls };
 }
 const file = { type: 'application/pdf', size: 20 };
@@ -192,4 +192,34 @@ test('registerDriver prevalidation rejects invalid file format or size before an
     /Files must be between 1 byte and 10 MB/
   );
   assert.equal(api.uploads.length, 0);
+});
+
+test('deleteFleetRecord validates arguments and invokes fleet_delete RPC', async () => {
+  const api = service();
+  await assert.rejects(api.deleteFleetRecord('truck', ''), /A valid record ID is required/);
+  await assert.rejects(api.deleteFleetRecord('invalid_kind', '123'), /Invalid deletion target/);
+
+  const res = await api.deleteFleetRecord('truck', 'trk-101');
+  assert.equal(res.success, true);
+  assert.equal(res.id, 'trk-101');
+  assert.equal(api.saves.length, 1);
+  assert.equal(api.saves[0].name, 'fleet_delete');
+  assert.equal(api.saves[0].args.p_kind, 'truck');
+  assert.equal(api.saves[0].args.p_id, 'trk-101');
+
+  const driverRes = await api.deleteFleetRecord('driver', 'drv-202');
+  assert.equal(driverRes.success, true);
+  assert.equal(driverRes.id, 'drv-202');
+  assert.equal(api.saves.length, 2);
+  assert.equal(api.saves[1].name, 'fleet_delete');
+  assert.equal(api.saves[1].args.p_kind, 'driver');
+  assert.equal(api.saves[1].args.p_id, 'drv-202');
+});
+
+test('deleteFleetRecord reports user-friendly pending setup or database errors', async () => {
+  const pendingApi = service({ rpcError: { code: 'PGRST202', message: 'Could not find function' } });
+  await assert.rejects(pendingApi.deleteFleetRecord('truck', 'trk-101'), /Fleet database setup is pending/);
+
+  const errorApi = service({ rpcError: { message: 'Vehicle has an active delivery and cannot be removed.' } });
+  await assert.rejects(errorApi.deleteFleetRecord('truck', 'trk-101'), /Vehicle has an active delivery/);
 });

@@ -1,12 +1,12 @@
 // fleet.jsx
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getDispatchReadyTruckIds, subscribeToDashboardChanges } from '../../services/dashboardService';
 import MainLayout from "../../layouts/mainLayout";
 import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
-import { FleetEditor, ComplianceDialog, FleetModal, FleetDiscardDialog } from "./FleetDialogs";
+import { FleetEditor, ComplianceDialog, FleetModal, FleetDiscardDialog, FleetDeleteDialog } from "./FleetDialogs";
 import { isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
 import MaintenancePanel from "./MaintenancePanel";
 import { vehicleCategories, vehicleCategoryId } from './vehicleCategories';
@@ -70,9 +70,70 @@ export default function Fleet() {
     // Mutations
     submitNewDriver,
     submitNewTruck,
+    removeTruck,
+    removeDriver,
     isSubmittingDriver,
     isSubmittingTruck,
   } = fleet;
+
+  // Deletion States
+  const [deleteTarget, setDeleteTarget] = useState(null); // { kind: 'truck'|'driver', record }
+  const [deleteError, setDeleteError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState("");
+  const [openMenuId, setOpenMenuId] = useState(null); // 'truck-<id>' | 'driver-<id>' | null
+  const [menuPosition, setMenuPosition] = useState(null);
+  const menuRef = useRef(null);
+
+  const handleOpenMenu = useCallback((e, menuKey) => {
+    e.stopPropagation();
+    if (openMenuId === menuKey) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const spaceBelow = winHeight - rect.bottom;
+    const openUpward = spaceBelow < 165 && rect.top > 165;
+
+    setMenuPosition({
+      top: openUpward ? 'auto' : `${rect.bottom + 4}px`,
+      bottom: openUpward ? `${winHeight - rect.top + 4}px` : 'auto',
+      right: `${Math.max(12, winWidth - rect.right)}px`,
+    });
+    setOpenMenuId(menuKey);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+        setMenuPosition(null);
+      }
+    }
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        setOpenMenuId(null);
+        setMenuPosition(null);
+      }
+    }
+    function handleDismiss() {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
+  }, []);
 
   // Tab and Subview States
   const [vehicleTab, setVehicleTab] = useState(() => params.get("view") === "compliance" ? "compliance" : "details");
@@ -312,7 +373,10 @@ export default function Fleet() {
     try {
       setDriverError("");
       const created = await submitNewDriver(driverForm);
-      setRegisteredDriverId(created?.id ? `DRV-${created.id.slice(0, 8).toUpperCase()}` : "");
+      if (!created?.id) {
+        throw new Error("Driver registration was not confirmed by the database.");
+      }
+      setRegisteredDriverId(`DRV-${created.id.slice(0, 8).toUpperCase()}`);
       setDriverStep(3);
     } catch (err) {
       console.error("Failed to register driver:", err);
@@ -329,7 +393,10 @@ export default function Fleet() {
     try {
       setVehicleError("");
       const created = await submitNewTruck(vehicleForm);
-      setRegisteredTruckId(created?.id ? `TRK-${created.id.slice(0, 8).toUpperCase()}` : "");
+      if (!created?.id) {
+        throw new Error("Vehicle registration was not confirmed by the database.");
+      }
+      setRegisteredTruckId(`TRK-${created.id.slice(0, 8).toUpperCase()}`);
       setShowVehicleSuccess(true);
     } catch (err) {
       console.error("Failed to register vehicle:", err);
@@ -392,6 +459,26 @@ export default function Fleet() {
   const currentDriverCompliancePage = Math.min(driverCompliancePage, driverCompliancePageCount);
   const pagedDriverCompliance = filteredDriverCompliance.slice((currentDriverCompliancePage - 1) * PAGE_SIZE, currentDriverCompliancePage * PAGE_SIZE);
 
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      if (deleteTarget.kind === "truck") {
+        await removeTruck(deleteTarget.record.id);
+        setActionFeedback(`Vehicle "${deleteTarget.record.plate_number}" was successfully removed.`);
+      } else if (deleteTarget.kind === "driver") {
+        await removeDriver(deleteTarget.record.id);
+        setActionFeedback(`Driver "${deleteTarget.record.full_name}" was successfully removed.`);
+      }
+      setDeleteTarget(null);
+    } catch (err) {
+      setDeleteError(err.message || "Failed to remove the record.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <MainLayout>
       {/* Dynamic Topbar Header Context */}
@@ -401,6 +488,25 @@ export default function Fleet() {
 
       {/* Primary Scrolling Content Frame */}
       <section className="content scrollable-panel">
+        {actionFeedback && (
+          <div className="fleet-feedback-banner is-success" role="status" aria-live="polite">
+            <div className="fleet-feedback-content">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="fleet-feedback-icon" aria-hidden="true">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span>{actionFeedback}</span>
+            </div>
+            <button
+              type="button"
+              className="fleet-feedback-close"
+              aria-label="Dismiss notification"
+              onClick={() => setActionFeedback("")}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         {fleet.error && <p role="alert">Could not refresh fleet records. {fleet.hasData ? 'Showing last loaded data.' : 'Data is unavailable.'} <button onClick={fleet.refresh}>Retry</button></p>}
         {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => { setParams({}); setVehiclePage(1); }}>Show all vehicles</button></p>}
 
@@ -604,34 +710,87 @@ export default function Fleet() {
                           <span className="status-pill status-warning">● {(truck.displayStatus || truck.status || "OFFLINE").replaceAll('_', ' ').toUpperCase()}</span>
                         )}
                       </td>
-                      <td className="fleet-actions-cell">
-                        <div className="fleet-action-buttons">
+                      <td className="fleet-actions-cell text-center">
+                        <div className="action-menu-wrapper" ref={openMenuId === `truck-${truck.id}` ? menuRef : null}>
                           <button
                             type="button"
-                            className="fleet-btn-action fleet-btn-edit"
-                            onClick={() => setEditing({ kind: "truck", record: truck })}
-                            title={`Edit ${truck.plate_number}`}
+                            className="action-dots-btn"
+                            aria-label={`Actions for vehicle ${truck.plate_number}`}
+                            aria-expanded={openMenuId === `truck-${truck.id}`}
+                            onClick={(e) => handleOpenMenu(e, `truck-${truck.id}`)}
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                              <circle cx="12" cy="19" r="1.5" fill="currentColor" />
                             </svg>
-                            <span>Edit vehicle</span>
                           </button>
-                          <button
-                            type="button"
-                            className="fleet-btn-action fleet-btn-docs"
-                            onClick={() => setComplianceTarget({ kind: "truck", entity: truck })}
-                            title={`Manage compliance documents for ${truck.plate_number}`}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                              <line x1="16" y1="13" x2="8" y2="13" />
-                              <line x1="16" y1="17" x2="8" y2="17" />
-                            </svg>
-                            <span>Documents</span>
-                          </button>
+                          {openMenuId === `truck-${truck.id}` && (
+                            <div
+                              className="action-dropdown"
+                              role="menu"
+                              style={menuPosition ? {
+                                position: "fixed",
+                                top: menuPosition.top,
+                                bottom: menuPosition.bottom,
+                                right: menuPosition.right,
+                                left: "auto",
+                                zIndex: 9999,
+                              } : undefined}
+                            >
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                  setEditing({ kind: "truck", record: truck });
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                <span>Edit vehicle</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                  setComplianceTarget({ kind: "truck", entity: truck });
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                  <line x1="16" y1="13" x2="8" y2="13" />
+                                  <line x1="16" y1="17" x2="8" y2="17" />
+                                </svg>
+                                <span>Documents</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="dropdown-item danger"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                  setDeleteError("");
+                                  setDeleteTarget({ kind: "truck", record: truck });
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -901,34 +1060,87 @@ export default function Fleet() {
                           <span className="text-warning">Pending Review</span>
                         )}
                       </td>
-                      <td className="fleet-actions-cell">
-                        <div className="fleet-action-buttons">
+                      <td className="fleet-actions-cell text-center">
+                        <div className="action-menu-wrapper" ref={openMenuId === `driver-${driver.id}` ? menuRef : null}>
                           <button
                             type="button"
-                            className="fleet-btn-action fleet-btn-edit"
-                            onClick={() => setEditing({ kind: "driver", record: driver })}
-                            title={`Edit ${driver.full_name}`}
+                            className="action-dots-btn"
+                            aria-label={`Actions for driver ${driver.full_name}`}
+                            aria-expanded={openMenuId === `driver-${driver.id}`}
+                            onClick={(e) => handleOpenMenu(e, `driver-${driver.id}`)}
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                              <circle cx="12" cy="19" r="1.5" fill="currentColor" />
                             </svg>
-                            <span>Edit driver</span>
                           </button>
-                          <button
-                            type="button"
-                            className="fleet-btn-action fleet-btn-docs"
-                            onClick={() => setComplianceTarget({ kind: "driver", entity: driver })}
-                            title={`Manage compliance documents for ${driver.full_name}`}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                              <line x1="16" y1="13" x2="8" y2="13" />
-                              <line x1="16" y1="17" x2="8" y2="17" />
-                            </svg>
-                            <span>Documents</span>
-                          </button>
+                          {openMenuId === `driver-${driver.id}` && (
+                            <div
+                              className="action-dropdown"
+                              role="menu"
+                              style={menuPosition ? {
+                                position: "fixed",
+                                top: menuPosition.top,
+                                bottom: menuPosition.bottom,
+                                right: menuPosition.right,
+                                left: "auto",
+                                zIndex: 9999,
+                              } : undefined}
+                            >
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                  setEditing({ kind: "driver", record: driver });
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                <span>Edit driver</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                  setComplianceTarget({ kind: "driver", entity: driver });
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
+                                  <line x1="16" y1="13" x2="8" y2="13" />
+                                  <line x1="16" y1="17" x2="8" y2="17" />
+                                </svg>
+                                <span>Documents</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="dropdown-item danger"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                  setDeleteError("");
+                                  setDeleteTarget({ kind: "driver", record: driver });
+                                }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1720,6 +1932,27 @@ export default function Fleet() {
             }
             setConfirmDiscardTarget(null);
           }}
+        />
+      )}
+
+      {deleteTarget && (
+        <FleetDeleteDialog
+          title={deleteTarget.kind === "truck" ? `Delete Vehicle ${deleteTarget.record.plate_number}?` : `Delete Driver ${deleteTarget.record.full_name}?`}
+          description={
+            deleteTarget.kind === "truck"
+              ? `Are you sure you want to remove vehicle ${deleteTarget.record.plate_number} (${deleteTarget.record.model || "Unknown model"}) from the fleet? Associated cargo categories, maintenance records, and compliance records will also be removed. Vehicles with active deliveries cannot be deleted.`
+              : `Are you sure you want to remove driver ${deleteTarget.record.full_name} from the roster? Any assigned vehicle will be unlinked, and compliance documents will be removed. Drivers with active deliveries cannot be deleted.`
+          }
+          confirmLabel={deleteTarget.kind === "truck" ? "Delete Vehicle" : "Delete Driver"}
+          isDeleting={isDeleting}
+          error={deleteError}
+          onCancel={() => {
+            if (!isDeleting) {
+              setDeleteTarget(null);
+              setDeleteError("");
+            }
+          }}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </MainLayout>

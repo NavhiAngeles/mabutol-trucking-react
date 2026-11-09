@@ -25,8 +25,8 @@ async function getFleetComponents() {
     useState: initial => [initial, () => {}],
     document: { activeElement: { focus() {} } },
   });
-  vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/^export /gm, "") + "\nthis.FleetModal = FleetModal;\nthis.FleetDiscardDialog = FleetDiscardDialog;", scope);
-  return { FleetModal: scope.FleetModal, FleetDiscardDialog: scope.FleetDiscardDialog };
+  vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/^export /gm, "") + "\nthis.FleetModal = FleetModal;\nthis.FleetDiscardDialog = FleetDiscardDialog;\nthis.FleetDeleteDialog = FleetDeleteDialog;", scope);
+  return { FleetModal: scope.FleetModal, FleetDiscardDialog: scope.FleetDiscardDialog, FleetDeleteDialog: scope.FleetDeleteDialog };
 }
 
 // ── 1. Helpers for Pure Draft Dirtiness Logic ────────────────────────────────
@@ -670,4 +670,126 @@ test("FleetViewModel submits driver compliance documents with attached files", (
   assert.ok(vmSource.includes("file: form.nbiFile"), "Must map nbiFile in submitNewDriver");
   assert.ok(vmSource.includes("doc.file"), "Filter must retain records with attached files");
 });
+
+test("FleetViewModel and fleet UI harden registration by requiring confirmed ID and blocking false success screen", () => {
+  const vmSource = fs.readFileSync(new URL("../../viewmodels/FleetViewModel.js", import.meta.url), "utf8");
+  const fleetSource = fs.readFileSync(new URL("./fleet.jsx", import.meta.url), "utf8");
+
+  // FleetViewModel requires confirmed record ID in submit
+  assert.ok(
+    vmSource.includes("if (!result?.id) throw new Error") ||
+    vmSource.includes("!result?.id"),
+    "FleetViewModel must fail closed if the save operation does not return a confirmed record ID"
+  );
+
+  // handleDriverSubmit checks created?.id before transitioning to success step (3)
+  assert.ok(
+    fleetSource.includes("if (!created?.id) {\n        throw new Error(\"Driver registration was not confirmed by the database.\");\n      }\n      setRegisteredDriverId(`DRV-${created.id.slice(0, 8).toUpperCase()}`);\n      setDriverStep(3);") ||
+    (fleetSource.includes("if (!created?.id)") && fleetSource.includes("setDriverStep(3)")),
+    "handleDriverSubmit must verify created?.id before navigating to step 3"
+  );
+
+  // handleVehicleSubmit checks created?.id before showing vehicle success modal
+  assert.ok(
+    fleetSource.includes("if (!created?.id) {\n        throw new Error(\"Vehicle registration was not confirmed by the database.\");\n      }\n      setRegisteredTruckId(`TRK-${created.id.slice(0, 8).toUpperCase()}`);\n      setShowVehicleSuccess(true);") ||
+    (fleetSource.includes("if (!created?.id)") && fleetSource.includes("setShowVehicleSuccess(true)")),
+    "handleVehicleSubmit must verify created?.id before opening success modal"
+  );
+});
+
+test("FleetDeleteDialog renders alertdialog structure, warning message, and action buttons", async () => {
+  const { FleetDeleteDialog } = await getFleetComponents();
+  let cancelled = false;
+  let confirmed = false;
+
+  const element = FleetDeleteDialog({
+    title: "Delete Vehicle ABC-1234?",
+    description: "Are you sure you want to remove vehicle ABC-1234?",
+    confirmLabel: "Delete Vehicle",
+    onCancel: () => { cancelled = true; },
+    onConfirm: () => { confirmed = true; },
+  });
+
+  assert.equal(element.type, "dialog");
+  assert.equal(element.props.role, "alertdialog");
+  assert.equal(element.props["aria-labelledby"], "fleet-delete-title");
+  assert.equal(element.props["aria-describedby"], "fleet-delete-description");
+  assert.ok(element.props.className.includes("fleet-delete-dialog"));
+
+  // Check children: icon, title, description, actions
+  const children = element.props.children;
+  const titleChild = children.find(c => c?.props?.id === "fleet-delete-title");
+  assert.equal(titleChild.props.children, "Delete Vehicle ABC-1234?");
+
+  const descChild = children.find(c => c?.props?.id === "fleet-delete-description");
+  assert.equal(descChild.props.children, "Are you sure you want to remove vehicle ABC-1234?");
+
+  const actions = children.find(c => c?.props?.className === "fleet-discard-actions");
+  const buttons = actions.props.children;
+  assert.equal(buttons.length, 2);
+  assert.equal(buttons[0].props.children, "Cancel");
+  assert.equal(buttons[1].props.children, "Delete Vehicle");
+
+  // Invoke handlers
+  buttons[0].props.onClick();
+  assert.equal(cancelled, true);
+  buttons[1].props.onClick();
+  assert.equal(confirmed, true);
+});
+
+test("FleetDeleteDialog displays error banner and disables actions when isDeleting", async () => {
+  const { FleetDeleteDialog } = await getFleetComponents();
+  const element = FleetDeleteDialog({
+    title: "Delete Driver Nav?",
+    description: "Remove driver permanently?",
+    error: "Driver has an active delivery and cannot be removed.",
+    isDeleting: true,
+  });
+
+  const children = element.props.children;
+  const errorBanner = children.find(c => c?.props?.role === "alert");
+  assert.ok(errorBanner, "Must render alert banner when error is passed");
+  const errorText = errorBanner.props.children.find(c => c?.type === "span");
+  assert.equal(errorText.props.children, "Driver has an active delivery and cannot be removed.");
+
+  const actions = children.find(c => c?.props?.className === "fleet-discard-actions");
+  const [cancelBtn, confirmBtn] = actions.props.children;
+  assert.equal(cancelBtn.props.disabled, true);
+  assert.equal(confirmBtn.props.disabled, true);
+  assert.equal(confirmBtn.props.children, "Deleting…");
+});
+
+test("fleet.jsx has 3-dots action menu with Edit, Documents, and Delete in Vehicles and Drivers tables and mounts FleetDeleteDialog", () => {
+  const fleetSource = fs.readFileSync(new URL("./fleet.jsx", import.meta.url), "utf8");
+
+  // 3-dots action menu in Vehicles and Drivers tables
+  assert.ok(fleetSource.includes('className="action-menu-wrapper"'), "Must include action-menu-wrapper");
+  assert.ok(fleetSource.includes('className="action-dots-btn"'), "Must include action-dots-btn");
+  assert.ok(fleetSource.includes('aria-label={`Actions for vehicle ${truck.plate_number}`}'), "Must provide accessible title for vehicle 3-dots button");
+  assert.ok(fleetSource.includes('aria-label={`Actions for driver ${driver.full_name}`}'), "Must provide accessible title for driver 3-dots button");
+
+  // Options inside action dropdown
+  assert.ok(fleetSource.includes("Edit vehicle"), "Must include Edit vehicle in dropdown");
+  assert.ok(fleetSource.includes("Edit driver"), "Must include Edit driver in dropdown");
+  assert.ok(fleetSource.includes("Documents"), "Must include Documents in dropdown");
+  assert.ok(fleetSource.includes('className="dropdown-item danger"'), "Must include Delete as danger dropdown item");
+  assert.ok(fleetSource.includes("handleOpenMenu"), "Must invoke handleOpenMenu with dynamic viewport positioning");
+  assert.ok(fleetSource.includes("zIndex: 9999"), "Must place dropdown forward in front of all sections with high z-index");
+
+  // Mounts FleetDeleteDialog
+  assert.ok(fleetSource.includes("<FleetDeleteDialog"), "Must mount FleetDeleteDialog");
+  assert.ok(fleetSource.includes("removeTruck"), "Must invoke removeTruck");
+  assert.ok(fleetSource.includes("removeDriver"), "Must invoke removeDriver");
+  assert.ok(fleetSource.includes("fleet-feedback-banner"), "Must display feedback banner on successful deletion");
+});
+
+test("FleetViewModel exports deletion operations and tracking states", () => {
+  const vmSource = fs.readFileSync(new URL("../../viewmodels/FleetViewModel.js", import.meta.url), "utf8");
+  assert.ok(vmSource.includes("deleteRecord"), "Must export deleteRecord");
+  assert.ok(vmSource.includes("removeTruck"), "Must export removeTruck");
+  assert.ok(vmSource.includes("removeDriver"), "Must export removeDriver");
+  assert.ok(vmSource.includes("isDeleting"), "Must export isDeleting");
+  assert.ok(vmSource.includes("deleteFleetRecord"), "Must import and invoke deleteFleetRecord");
+});
+
 

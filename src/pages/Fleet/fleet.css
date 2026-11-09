@@ -1555,8 +1555,121 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-color: #93C5FD;
 }
 
+.fleet-btn-action.fleet-btn-delete {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.fleet-btn-action.fleet-btn-delete:hover {
+  background-color: #FEE2E2;
+  color: #B91C1C;
+  border-color: #FCA5A5;
+}
+
+.fleet-btn-action.fleet-btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .fleet-btn-action:focus-visible {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+/* Fleet Action 3-dots Menu & Dropdown */
+.action-menu-wrapper {
+  position: relative;
+  display: inline-block;
+  text-align: left;
+}
+
+.action-dots-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #64748B;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: all 0.15s ease-in-out;
+  outline: none;
+}
+
+.action-dots-btn:hover,
+.action-dots-btn[aria-expanded="true"] {
+  color: #0F172A;
+  background-color: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.action-dots-btn:focus-visible {
+  box-shadow: 0 0 0 2px #2563EB;
+}
+
+.action-dropdown {
+  position: fixed;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.16), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  min-width: 160px;
+  z-index: 9999;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.12s ease;
+  padding: 4px;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: #F8FAFC;
+  color: #0F172A;
+}
+
+.dropdown-item.danger {
+  color: #DC2626;
+}
+
+.dropdown-item.danger:hover {
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+
+.dropdown-item svg {
+  flex-shrink: 0;
 }
 
 /* Dashboard/Fleet integration: modern dialog & form layout */
@@ -2417,4 +2530,65 @@ MODAL STRUCTURAL CONFIGURATIONS
     gap: 12px;
     align-items: center;
   }
+}
+
+/* Fleet Feedback Banner */
+.fleet-feedback-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  animation: fleetBannerSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #166534;
+}
+
+@keyframes fleetBannerSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fleet-feedback-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.fleet-feedback-icon {
+  flex-shrink: 0;
+  color: #16A34A;
+}
+
+.fleet-feedback-close {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.8;
+  font-weight: 600;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.fleet-feedback-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
 }

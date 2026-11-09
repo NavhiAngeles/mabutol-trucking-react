@@ -105,6 +105,26 @@ export async function getTruckById(truckId) {
  * `cargoCategoryIds` is an optional array of cargo_categories UUIDs.
  */
 export async function createTruck(payload, cargoCategoryIds = []) {
+    // 1. Primary path: transactional RPC execution via fleet_save
+    const { data: id, error: rpcError } = await supabase.rpc("fleet_save", {
+        p_kind: "truck",
+        p_id: null,
+        p_data: payload,
+        p_categories: cargoCategoryIds && cargoCategoryIds.length > 0 ? cargoCategoryIds : null,
+        p_documents: [],
+        p_expected: null,
+    });
+
+    if (!rpcError && id) {
+        return getTruckById(id);
+    }
+
+    // Rethrow any business or permission error from fleet_save
+    if (rpcError && rpcError.code !== "PGRST202" && rpcError.code !== "42883") {
+        throw new Error(rpcError.message || "Failed to create truck.");
+    }
+
+    // 2. Direct write fallback with strict compensation on failure
     const { data, error } = await supabase
         .from("trucks")
         .insert(payload)
@@ -122,10 +142,9 @@ export async function createTruck(payload, cargoCategoryIds = []) {
             .from("truck_cargo_categories")
             .insert(rows);
         if (catErr) {
-            console.error("Failed to link cargo categories:", {
-                code: catErr.code || "DB_ERROR",
-                message: catErr.message || "Operation failed",
-            });
+            // Compensate: roll back the newly inserted truck
+            await supabase.from("trucks").delete().eq("id", data.id);
+            throw new Error(`Failed to link cargo categories: ${catErr.message || "Operation failed"}`);
         }
     }
 
@@ -237,15 +256,58 @@ export async function createDriverAuthUser({ email, password, fullName, phone })
  * Optional `userId` links the driver to their Supabase auth/public user.
  */
 export async function createDriver(payload, assignVehicleId, complianceDocs = [], userId = null) {
-    const driverPayload = userId ? { ...payload, user_id: userId } : payload;
+    const driverPayload = {
+        ...payload,
+        ...(userId ? { user_id: userId } : {}),
+        ...(assignVehicleId ? { assigned_truck_id: assignVehicleId } : {}),
+    };
 
+    // Staged storage files tracking for rollback
+    const stagedUploads = (complianceDocs || [])
+        .map((d) => d.file_path)
+        .filter((p) => p && typeof p === "string" && !/^(https?:|data:)/i.test(p));
+
+    const cleanupStaged = async () => {
+        if (stagedUploads.length > 0) {
+            try {
+                await supabase.storage.from("compliance-documents").remove(stagedUploads);
+            } catch {
+                /* best-effort cleanup */
+            }
+        }
+    };
+
+    // 1. Primary path: transactional RPC execution via fleet_save
+    const { data: id, error: rpcError } = await supabase.rpc("fleet_save", {
+        p_kind: "driver",
+        p_id: null,
+        p_data: driverPayload,
+        p_categories: null,
+        p_documents: complianceDocs || [],
+        p_expected: null,
+    });
+
+    if (!rpcError && id) {
+        return getDriverById(id);
+    }
+
+    if (rpcError && rpcError.code !== "PGRST202" && rpcError.code !== "42883") {
+        await cleanupStaged();
+        throw new Error(rpcError.message || "Failed to create driver.");
+    }
+
+    // 2. Direct write fallback with strict compensation on failure
+    const rawPayload = userId ? { ...payload, user_id: userId } : payload;
     const { data: driver, error } = await supabase
         .from("drivers")
-        .insert(driverPayload)
+        .insert(rawPayload)
         .select(DRIVER_SELECT)
         .single();
 
-    if (error) throw error;
+    if (error) {
+        await cleanupStaged();
+        throw error;
+    }
 
     if (assignVehicleId) {
         const { error: assignErr } = await supabase
@@ -254,16 +316,15 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
             .eq("id", assignVehicleId);
 
         if (assignErr) {
-            console.error("Failed to assign vehicle:", {
-                code: assignErr.code || "DB_ERROR",
-                message: assignErr.message || "Operation failed",
-            });
+            await supabase.from("drivers").delete().eq("id", driver.id);
+            await cleanupStaged();
+            throw new Error(`Failed to assign vehicle: ${assignErr.message || "Operation failed"}`);
         }
     }
 
     if (complianceDocs && complianceDocs.length > 0) {
         const docRows = complianceDocs
-            .filter((d) => d.document_number || d.expiry_date)
+            .filter((d) => d.document_number || d.expiry_date || d.file_path)
             .map((d) => ({
                 driver_id: driver.id,
                 doc_type: d.doc_type,
@@ -271,6 +332,7 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
                 expiry_date: d.expiry_date || null,
                 issued_date: d.issued_date || null,
                 review_status: d.review_status || "valid",
+                file_path: d.file_path || null,
             }));
 
         if (docRows.length > 0) {
@@ -279,10 +341,15 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
                 .insert(docRows);
 
             if (docErr) {
-                console.error("Failed to insert driver compliance documents:", {
-                    code: docErr.code || "DB_ERROR",
-                    message: docErr.message || "Operation failed",
-                });
+                if (assignVehicleId) {
+                    await supabase
+                        .from("trucks")
+                        .update({ assigned_driver_id: null })
+                        .eq("id", assignVehicleId);
+                }
+                await supabase.from("drivers").delete().eq("id", driver.id);
+                await cleanupStaged();
+                throw new Error(`Failed to insert driver compliance documents: ${docErr.message || "Operation failed"}`);
             }
         }
     }
@@ -539,4 +606,49 @@ export async function updateComplianceDocument(docId, payload) {
 
     if (error) throw error;
     return data;
+}
+
+/**
+ * Delete a truck by ID.
+ * Uses atomic fleet_delete RPC to safely verify no active deliveries exist
+ * and remove all cascading child relations (cargo categories, maintenance, compliance, route plans).
+ */
+export async function deleteTruck(truckId) {
+    if (!truckId) throw new Error("A valid truck ID is required.");
+    const { error } = await supabase.rpc("fleet_delete", {
+        p_kind: "truck",
+        p_id: truckId,
+    });
+    if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+            const { error: delErr } = await supabase.from("trucks").delete().eq("id", truckId);
+            if (delErr) throw delErr;
+            return { success: true, id: truckId };
+        }
+        throw new Error(error.message || "Failed to delete truck.");
+    }
+    return { success: true, id: truckId };
+}
+
+/**
+ * Delete a driver by ID.
+ * Uses atomic fleet_delete RPC to safely verify no active deliveries exist,
+ * unassign any assigned truck, and remove compliance documents before deleting the driver.
+ */
+export async function deleteDriver(driverId) {
+    if (!driverId) throw new Error("A valid driver ID is required.");
+    const { error } = await supabase.rpc("fleet_delete", {
+        p_kind: "driver",
+        p_id: driverId,
+    });
+    if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+            await supabase.from("trucks").update({ assigned_driver_id: null }).eq("assigned_driver_id", driverId);
+            const { error: delErr } = await supabase.from("drivers").delete().eq("id", driverId);
+            if (delErr) throw delErr;
+            return { success: true, id: driverId };
+        }
+        throw new Error(error.message || "Failed to delete driver.");
+    }
+    return { success: true, id: driverId };
 }

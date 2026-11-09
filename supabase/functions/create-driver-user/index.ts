@@ -134,6 +134,9 @@ Deno.serve(async (req) => {
 
           let driverId = null;
           if (registration) {
+            if (!registration.payload) {
+              throw new Error("Registration payload is required when registration details are provided.");
+            }
             const pData = {
               ...registration.payload,
               user_id: existingProfile.id,
@@ -182,6 +185,9 @@ Deno.serve(async (req) => {
     // Use the caller JWT so fleet_save enforces the active office role and RLS.
     let driverId = null;
     if (registration) {
+      if (!registration.payload) {
+        throw new Error("Registration payload is required when registration details are provided.");
+      }
       const pData = {
         ...registration.payload,
         user_id: newUser.user.id,
@@ -207,6 +213,13 @@ Deno.serve(async (req) => {
   } catch (err) {
     // Registration failure must not leave a working, unlinked login account.
     if (createdUserId && cleanupClient) {
+      if (typeof cleanupClient.from === "function") {
+        try {
+          await cleanupClient.from("users").delete().eq("id", createdUserId);
+        } catch {
+          /* proceed to auth deletion */
+        }
+      }
       const { error: cleanupError } = await cleanupClient.auth.admin.deleteUser(createdUserId);
       if (cleanupError) return new Response(JSON.stringify({ error: "Registration failed and account cleanup needs administrator attention. Do not retry yet." }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 });
     }

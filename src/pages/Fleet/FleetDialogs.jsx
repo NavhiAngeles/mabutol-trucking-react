@@ -705,3 +705,105 @@ export function FleetDiscardDialog({
     </dialog>
   );
 }
+
+export function FleetDeleteDialog({
+  onCancel,
+  onConfirm,
+  title = "Delete record?",
+  description = "Are you sure you want to delete this record? This action cannot be undone.",
+  confirmLabel = "Delete",
+  isDeleting = false,
+  error = null,
+}) {
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    const trigger = typeof document !== 'undefined' ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    if (dialog && typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    }
+    return () => {
+      if (dialog && typeof dialog.close === 'function' && dialog.open) {
+        dialog.close();
+      }
+      if (trigger?.isConnected && typeof trigger.focus === 'function') {
+        trigger.focus();
+      }
+    };
+  }, []);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="fleet-discard-dialog fleet-delete-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="fleet-delete-title"
+      aria-describedby="fleet-delete-description"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!isDeleting && onCancel) onCancel();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          if (!isDeleting && onCancel) onCancel();
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const buttons = [...event.currentTarget.querySelectorAll('button:not([disabled])')];
+        if (buttons.length === 0) return;
+        const destination = event.shiftKey && document.activeElement === buttons[0]
+          ? buttons.at(-1)
+          : !event.shiftKey && document.activeElement === buttons.at(-1)
+          ? buttons[0]
+          : null;
+        if (destination) {
+          event.preventDefault();
+          destination.focus();
+        }
+      }}
+    >
+      <div className="fleet-discard-icon" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
+        </svg>
+      </div>
+      <h2 id="fleet-delete-title">{title}</h2>
+      <p id="fleet-delete-description">{description}</p>
+      {error && (
+        <div className="error-message fleet-dialog-error" role="alert" style={{ marginTop: '14px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
+      <div className="fleet-discard-actions">
+        <button
+          type="button"
+          className="fleet-discard-keep"
+          autoFocus
+          disabled={isDeleting}
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="fleet-discard-confirm"
+          disabled={isDeleting}
+          onClick={onConfirm}
+        >
+          {isDeleting ? "Deleting…" : confirmLabel}
+        </button>
+      </div>
+    </dialog>
+  );
+}
