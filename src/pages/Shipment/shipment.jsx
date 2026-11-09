@@ -312,6 +312,39 @@ export default function Shipment() {
 
         {/* STATISTICS */}
         <div className="stats">
+          {(currentTab === "all" || !["active", "delayed", "completed", "review"].includes(currentTab)) && (
+            <>
+              <div className="stat-card">
+                <div className="stat-header">
+                  <h4>Total Shipments</h4>
+                  <i className="las la-boxes stat-icon" />
+                </div>
+                <h2>{visibleShipments.length}</h2>
+                <p>Recorded in system</p>
+              </div>
+
+              <div className="stat-card completed">
+                <div className="stat-header">
+                  <h4>In Transit</h4>
+                  <i className="las la-truck stat-icon text-transit" />
+                </div>
+                <h2>{stats.transitCount ?? 0}</h2>
+                <p>Currently on the road</p>
+              </div>
+
+              <div className="stat-card late">
+                <div className="stat-header">
+                  <h4>Delayed</h4>
+                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
+                </div>
+                <h2>{stats.delayedCount ?? 0}</h2>
+                <p className="text-danger-accent">
+                  Requires attention
+                </p>
+              </div>
+            </>
+          )}
+
           {currentTab === "active" && (
             <>
               <div className="stat-card completed">
@@ -573,8 +606,8 @@ export default function Shipment() {
                           </div>
                         </td>
 
-                        <td>
-                          <div className="text-dark-bold">
+                        <td className="location-cell" title={`${s.origin} → ${s.destination}`}>
+                          <div className="location-text">
                             {s.origin}{" "}
                             <span className="route-arrow">
                               →
@@ -660,22 +693,18 @@ export default function Shipment() {
                           </details>
                         </td>
 
-                        <td>
-                          <div className="text-dark-bold">
+                        <td className="location-cell" title={s.origin}>
+                          <div className="location-text">
                             {s.origin}
                           </div>
-                          <div className="cell-sub">
-                            {s.originSub}
-                          </div>
+                          {s.originSub ? <div className="cell-sub">{s.originSub}</div> : null}
                         </td>
 
-                        <td>
-                          <div className="text-dark-bold">
+                        <td className="location-cell" title={s.destination}>
+                          <div className="location-text">
                             {s.destination}
                           </div>
-                          <div className="cell-sub">
-                            {s.destinationSub}
-                          </div>
+                          {s.destinationSub ? <div className="cell-sub">{s.destinationSub}</div> : null}
                         </td>
 
                         <td>

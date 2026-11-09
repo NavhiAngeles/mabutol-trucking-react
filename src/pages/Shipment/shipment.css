@@ -68,42 +68,43 @@
 .header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 28px;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .header h2 {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #0F172A;
-  letter-spacing: -0.5px;
+  color: #0B192E;
+  letter-spacing: -0.3px;
+  margin: 0;
 }
 
 .header p {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748B;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .btn-primary {
-  background: #0F172A;
+  background: #042544;
   color: #FFFFFF;
-  padding: 12px 20px;
+  padding: 10px 18px;
   border-radius: 6px;
   font-weight: 600;
   font-size: 13px;
   border: none;
   cursor: pointer !important;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   letter-spacing: 0.3px;
-  transition: background 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-primary:hover {
-  background: #1E293B;
+  background: #083761;
 }
 
 /* --- STATS GRID OVERVIEW --- */
@@ -112,49 +113,59 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
   background: #FFFFFF;
-  padding: 20px;
+  padding: 18px 20px;
   border-radius: 8px;
   border: 1px solid #E2E8F0;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
 }
 
 .stat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .stat-header h4 {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: #64748B;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.04em;
+  margin: 0;
 }
 
 .stat-icon {
-  font-size: 20px;
+  font-size: 18px;
   color: #94A3B8;
 }
 
 .stat-card h2 {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   color: #0F172A;
-  margin-bottom: 4px;
+  margin: 0 0 4px 0;
+  line-height: 1.15;
 }
 
 .stat-card p {
   font-size: 12px;
   color: #94A3B8;
   font-weight: 500;
+  margin: 0;
 }
 
 /* Dynamic status modifications */
@@ -178,45 +189,70 @@
 /* --- VIEW SUB-NAVIGATION TABS --- */
 .view-tabs {
   display: flex;
-  gap: 24px;
+  align-items: center;
+  gap: 8px;
   border-bottom: 1px solid #E2E8F0;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
+  padding-bottom: 0;
+  overflow-x: auto;
 }
 
 .tab {
-  padding: 12px 4px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
   color: #64748B;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  border: none;
   border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  border-radius: 4px 4px 0 0;
   transition: all 0.15s ease;
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
 }
 
 .tab:hover {
-  color: #334155;
+  color: #0F172A;
+  background: #F8FAFC;
 }
 
 .tab.active {
   color: #0F172A;
+  font-weight: 600;
   border-bottom-color: #0F172A;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.tab:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: -2px;
+  border-radius: 4px;
 }
 
 .badge {
   font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 9999px;
   background: #F1F5F9;
   color: #475569;
+  line-height: 1.4;
 }
 
 .badge-danger {
   background: #FEE2E2;
-  color: #EF4444;
+  color: #DC2626;
 }
 
 .badge-warning {
@@ -227,55 +263,68 @@
 /* --- CONTROLS TOOLBAR --- */
 .table-controls {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  background: #F1F5F9;
-  padding: 8px;
-  border-radius: 8px;
+  justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 .table-controls .search-wrapper {
   position: relative;
   flex: 1;
+  max-width: 480px;
 }
 
 .table-search-icon {
   position: absolute;
-  left: 14px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: #94A3B8;
-  font-size: 16px;
+  font-size: 15px;
+  pointer-events: none;
 }
 
 .table-search {
   width: 100%;
-  padding: 10px 16px 10px 42px;
+  padding: 9px 14px 9px 36px;
   border-radius: 6px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #CBD5E1;
   background: #FFFFFF;
-  font-size: 14px;
+  font-size: 13px;
+  color: #0F172A;
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.table-search:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .control-btn {
   background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #CBD5E1;
   border-radius: 6px;
-  padding: 10px 16px;
-  display: flex;
+  padding: 8px 14px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #334155;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .control-btn:hover {
   background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
 }
 
 /* --- REGISTRY REGULAR DATA TABLES --- */
@@ -285,7 +334,7 @@
   border: 1px solid #E2E8F0;
   overflow: visible;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .shipment-table {
@@ -313,37 +362,45 @@
   background: #F8FAFC;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   color: #475569;
-  font-weight: 600;
-  padding: 14px 20px;
+  font-weight: 700;
+  padding: 13px 18px;
   border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
 }
 
 .shipment-table td {
-  padding: 16px 20px;
+  padding: 13px 18px;
   border-bottom: 1px solid #F1F5F9;
-  font-size: 14px;
+  font-size: 13px;
   color: #0F172A;
   vertical-align: middle;
 }
 
+.shipment-table tbody tr {
+  transition: background 0.12s ease;
+}
+
 .shipment-table tbody tr:hover {
-  background: #FAFAFA;
+  background: #F8FAFC;
 }
 
 /* Row typography rules */
 .cell-bold {
-  font-weight: 700;
-  color: #1E3A8A;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1D4ED8;
+  letter-spacing: -0.2px;
 }
 
 .cell-sub {
   font-size: 11px;
-  color: #94A3B8;
+  color: #64748B;
   text-transform: uppercase;
   margin-top: 2px;
   font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
 .text-dark-bold {
@@ -351,32 +408,111 @@
   color: #1E293B;
 }
 
+/* Location cell formatting for clean, non-sprawling rows */
+.shipment-table td.location-cell {
+  max-width: 240px;
+}
+
+.shipment-table .location-text {
+  font-weight: 500;
+  font-size: 13px;
+  color: #0F172A;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Driver instructions disclosure */
+.shipment-driver-instructions {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.shipment-driver-instructions summary {
+  cursor: pointer;
+  color: #64748B;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+
+.shipment-driver-instructions summary:hover {
+  color: #2563EB;
+}
+
+.shipment-driver-instructions p {
+  margin-top: 4px;
+  padding: 6px 10px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #334155;
+  white-space: pre-wrap;
+  max-width: 240px;
+}
+
 /* Custom Table Status Pills */
 .status {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
-  border-radius: 4px;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.3;
 }
 
 .status.transit-pill {
-  background: #DBEAFE;
-  color: #1E40AF;
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
 }
 
 .status.loading-pill {
-  background: #F1F5F9;
-  color: #475569;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #DBEAFE;
 }
 
-.status.unknown-timing { background: #f1f5f9; color: #475569; }
+.status.delayed-pill {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+.status.review-pill {
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.status.cancelled-pill {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+.status.unknown-timing {
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+}
 
 .status.transit {
-  background: #D1FAE5;
-  color: #065F46;
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
 }
 
 .status-sub-indicator {
@@ -1857,5 +1993,59 @@
 
 .payment-form-field-full {
   grid-column: 1 / -1;
+}
+
+/* --- COMPACT OPERATIONS PANELS ON SHIPMENT PAGE --- */
+.shipment-page .driver-messages-inbox {
+  margin: 0 0 12px 0;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.shipment-page .driver-messages-inbox-header {
+  gap: 8px;
+}
+
+.shipment-page .driver-messages-inbox h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.shipment-page .driver-messages-inbox-title p {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.shipment-page .conversation-empty {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748B;
+}
+
+.shipment-page .return-load-panel {
+  margin: 0 0 16px 0 !important;
+  padding: 12px 18px !important;
+  border-radius: 8px !important;
+  border: 1px solid #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+}
+
+.shipment-page .return-load-panel.is-collapsed {
+  background: #F8FAFC !important;
+  padding: 10px 16px !important;
+}
+
+.shipment-page .return-load-title-row h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.shipment-page .return-load-subtitle {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 2px;
 }
 
