@@ -1,6 +1,7 @@
 import OfficeTools from "../../components/OfficeTools";
 import CustomerEditDialog from "./CustomerEditDialog";
 import CustomerStatusDialog from "./CustomerStatusDialog";
+import CustomerAddDialog from "./CustomerAddDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
@@ -15,8 +16,17 @@ export default function Customer() {
   const canEdit = ["admin", "staff"].includes(role);
   const [editing, setEditing] = useState(null);
   const [statusTarget, setStatusTarget] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  useEffect(() => {
+    if (!saveMessage) return;
+    const timer = setTimeout(() => {
+      setSaveMessage("");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [saveMessage]);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
   const [historyCustomerId, setHistoryCustomerId] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -129,47 +139,60 @@ export default function Customer() {
             <h2 className="page-title">Customers</h2>
             <p className="page-subtitle">View and monitor registered customers.</p>
           </div>
-          <div className="customer-export-container" ref={exportMenuRef}>
-            <button
-              type="button"
-              className="btn-export"
-              disabled={loading || Boolean(error) || !filtered.length}
-              aria-haspopup="true"
-              aria-expanded={showExportMenu}
-              onClick={() => setShowExportMenu((open) => !open)}
-              title="Export customer list to CSV or PDF"
-            >
-              <span>📥 Export</span>
-              <span className={`export-chevron ${showExportMenu ? "open" : ""}`} aria-hidden="true">▾</span>
-            </button>
-            {showExportMenu && (
-              <div className="customer-export-menu" role="menu" aria-label="Export options">
-                <button
-                  type="button"
-                  className="customer-export-menu-item"
-                  role="menuitem"
-                  onClick={() => handleExport("csv")}
-                >
-                  <span className="export-menu-icon" aria-hidden="true">📊</span>
-                  <div className="export-menu-text">
-                    <span className="export-menu-title">Export as CSV</span>
-                    <span className="export-menu-desc">Spreadsheet data (.csv)</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="customer-export-menu-item"
-                  role="menuitem"
-                  onClick={() => handleExport("pdf")}
-                >
-                  <span className="export-menu-icon" aria-hidden="true">📄</span>
-                  <div className="export-menu-text">
-                    <span className="export-menu-title">Export as PDF</span>
-                    <span className="export-menu-desc">Print-ready document (.pdf)</span>
-                  </div>
-                </button>
-              </div>
+          <div className="customer-header-actions">
+            {canEdit && (
+              <button
+                type="button"
+                className="btn-add-customer"
+                onClick={() => setShowAddModal(true)}
+                title="Register a new billing customer"
+              >
+                <span aria-hidden="true">➕</span>
+                <span>Add Customer</span>
+              </button>
             )}
+            <div className="customer-export-container" ref={exportMenuRef}>
+              <button
+                type="button"
+                className="btn-export"
+                disabled={loading || Boolean(error) || !filtered.length}
+                aria-haspopup="true"
+                aria-expanded={showExportMenu}
+                onClick={() => setShowExportMenu((open) => !open)}
+                title="Export customer list to CSV or PDF"
+              >
+                <span>📥 Export</span>
+                <span className={`export-chevron ${showExportMenu ? "open" : ""}`} aria-hidden="true">▾</span>
+              </button>
+              {showExportMenu && (
+                <div className="customer-export-menu" role="menu" aria-label="Export options">
+                  <button
+                    type="button"
+                    className="customer-export-menu-item"
+                    role="menuitem"
+                    onClick={() => handleExport("csv")}
+                  >
+                    <span className="export-menu-icon" aria-hidden="true">📊</span>
+                    <div className="export-menu-text">
+                      <span className="export-menu-title">Export as CSV</span>
+                      <span className="export-menu-desc">Spreadsheet data (.csv)</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="customer-export-menu-item"
+                    role="menuitem"
+                    onClick={() => handleExport("pdf")}
+                  >
+                    <span className="export-menu-icon" aria-hidden="true">📄</span>
+                    <div className="export-menu-text">
+                      <span className="export-menu-title">Export as PDF</span>
+                      <span className="export-menu-desc">Print-ready document (.pdf)</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -195,7 +218,22 @@ export default function Customer() {
         </div>
 
         {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button className="filter-btn" onClick={refresh}>Retry</button></div>}
-        {saveMessage && <div className="customer-save-success" role="status">{saveMessage} <button type="button" className="filter-btn" onClick={() => setSaveMessage("")}>Dismiss</button></div>}
+        {saveMessage && (
+          <div className="customer-feedback-banner is-success" role="status" aria-live="polite">
+            <div className="customer-feedback-content">
+              <i className="las la-check-circle customer-feedback-icon" aria-hidden="true" />
+              <span>{saveMessage}</span>
+            </div>
+            <button
+              type="button"
+              className="customer-feedback-close"
+              aria-label="Dismiss notification"
+              onClick={() => setSaveMessage("")}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div className="customer-table-card" aria-busy={loading}>
           <table className="customer-table">
             <thead>
@@ -301,6 +339,17 @@ export default function Customer() {
             setStatusTarget(null);
             const actionName = updated.is_active ? "reactivated" : "suspended";
             setSaveMessage(`Customer account ${actionName} successfully.`);
+            void refresh();
+          }}
+        />
+      )}
+      {canEdit && showAddModal && (
+        <CustomerAddDialog
+          callerRole={role}
+          onClose={() => setShowAddModal(false)}
+          onSaved={(newCustomer) => {
+            setShowAddModal(false);
+            setSaveMessage(`Customer "${newCustomer.name}" (${newCustomer.customer_code || 'new'}) registered successfully.`);
             void refresh();
           }}
         />

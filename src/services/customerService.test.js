@@ -14,7 +14,7 @@ function service(result) {
   }, channel: () => channel, removeChannel: value => removed.push(value) } };
   vm.createContext(context);
   const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
-  vm.runInContext(source + "\nthis.api={fetchCustomers,fetchBillingCustomers,fetchCustomerBookings,subscribeCustomerBookings,clearCustomerCache};", context);
+  vm.runInContext(source + "\nthis.api={fetchCustomers,fetchBillingCustomers,fetchCustomerBookings,subscribeCustomerBookings,clearCustomerCache,createCustomer};", context);
   return { ...context.api, requests, removed, channel };
 }
 
@@ -273,3 +273,174 @@ test("setCustomerActiveStatus reactivates suspended customer and rejects duplica
   const updatePayload = api.requests.find(r => r[0] === "update")[1];
   assert.deepEqual(JSON.parse(JSON.stringify(updatePayload)), { is_active: true });
 });
+
+function createCustomerMock({ rpcResult, fromHandler } = {}) {
+  const requests = [];
+  const query = {
+    select(columns) { requests.push(["select", columns]); return query; },
+    eq(col, val) { requests.push(["eq", col, val]); return query; },
+    ilike(col, val) { requests.push(["ilike", col, val]); return query; },
+    limit(num) { requests.push(["limit", num]); return query; },
+    insert(payload) { requests.push(["insert", payload]); return query; },
+    single: async () => fromHandler ? fromHandler("single") : { data: { id: "new-cust-1", customer_code: "CUST-0001", name: "Acme Inc" }, error: null },
+  };
+
+  const scope = {
+    supabase: {
+      rpc: async (fn, params) => {
+        requests.push(["rpc", fn, params]);
+        if (rpcResult) return rpcResult(fn, params);
+        return { data: { id: "new-cust-1", customer_code: "CUST-0001", ...params }, error: null };
+      },
+      from: (table) => {
+        requests.push(["table", table]);
+        if (fromHandler) return fromHandler(table);
+        return query;
+      },
+    },
+  };
+
+  vm.createContext(scope);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8").replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={createCustomer,clearCustomerCache,fetchCustomers,fetchBillingCustomers,AUTHORIZED_OFFICE_ROLES};", scope);
+  return { ...scope.api, requests };
+}
+
+test("createCustomer enforces authorized office role (admin or staff)", async () => {
+  const api = createCustomerMock();
+  await assert.rejects(api.createCustomer({ name: "Valid Name" }, { callerRole: "driver" }), /Unauthorized/);
+  await assert.rejects(api.createCustomer({ name: "Valid Name" }, { callerRole: "customer" }), /Unauthorized/);
+
+  // Succeeds for staff and admin
+  const staffRes = await api.createCustomer({ name: "Valid Staff Corp" }, { callerRole: "staff" });
+  assert.ok(staffRes.id);
+
+  const adminRes = await api.createCustomer({ name: "Valid Admin Corp" }, { callerRole: "admin" });
+  assert.ok(adminRes.id);
+});
+
+test("createCustomer validates mandatory name and optional email/phone formats", async () => {
+  const api = createCustomerMock();
+
+  // Missing or short name
+  await assert.rejects(api.createCustomer({ name: "" }), /name is required/);
+  await assert.rejects(api.createCustomer({ name: "A" }), /at least 2 characters/);
+  await assert.rejects(api.createCustomer({ name: "   " }), /name is required/);
+
+  // Invalid email format
+  await assert.rejects(api.createCustomer({ name: "Valid Name", email: "bad-email" }), /valid email/);
+  await assert.rejects(api.createCustomer({ name: "Valid Name", email: "bad@" }), /valid email/);
+
+  // Invalid phone format
+  await assert.rejects(api.createCustomer({ name: "Valid Name", phone: "12345" }), /valid contact number/);
+  await assert.rejects(api.createCustomer({ name: "Valid Name", phone: "123456789012345678" }), /valid contact number/);
+});
+
+test("createCustomer invokes office_create_customer RPC and surfaces duplicate email or phone exceptions", async () => {
+  // Duplicate email from RPC
+  const dupEmailApi = createCustomerMock({
+    rpcResult: async () => ({ data: null, error: { code: "23505", message: 'A customer with email "dup@example.com" already exists.' } }),
+  });
+  await assert.rejects(
+    dupEmailApi.createCustomer({ name: "Valid Co", email: "dup@example.com" }),
+    /already exists/
+  );
+
+  // Duplicate phone from RPC
+  const dupPhoneApi = createCustomerMock({
+    rpcResult: async () => ({ data: null, error: { code: "23505", message: 'A customer with phone number "09171234567" already exists.' } }),
+  });
+  await assert.rejects(
+    dupPhoneApi.createCustomer({ name: "Valid Co", phone: "0917-123-4567" }),
+    /already exists/
+  );
+
+  // Normal successful RPC execution
+  const successApi = createCustomerMock({
+    rpcResult: async (fn, params) => ({
+      data: { id: "cust-123", customer_code: "CUST-0088", name: params.p_name, email: params.p_email, is_active: true },
+      error: null,
+    }),
+  });
+  const created = await successApi.createCustomer({
+    name: "San Miguel Logistics",
+    email: "billing@smc.ph",
+    phone: "0918-123-4567",
+    address: "Highway 1",
+    barangay: "Bgy 1",
+    city: "Mandaluyong",
+    province: "NCR",
+    notes: "VIP corporate customer",
+  });
+
+  assert.equal(created.id, "cust-123");
+  assert.equal(created.customer_code, "CUST-0088");
+  assert.equal(created.name, "San Miguel Logistics");
+
+  const rpcReq = successApi.requests.find(r => r[0] === "rpc");
+  assert.ok(rpcReq);
+  assert.equal(rpcReq[1], "office_create_customer");
+  assert.equal(rpcReq[2].p_name, "San Miguel Logistics");
+  assert.equal(rpcReq[2].p_email, "billing@smc.ph");
+  assert.equal(rpcReq[2].p_phone, "0918-123-4567");
+  assert.equal(rpcReq[2].p_notes, "VIP corporate customer");
+});
+
+test("createCustomer fallback path performs client-side duplicate verification before RLS insert", async () => {
+  // RPC unavailable (e.g. mock or test schema missing RPC)
+  let insertPayload = null;
+  const existingCustomers = [
+    { id: "c-old", email: "existing@example.com", phone: "0917-999-0000", is_active: true },
+  ];
+
+  const fallbackApi = createCustomerMock({
+    rpcResult: async () => ({ data: null, error: { code: "42883", message: "function not found" } }),
+    fromHandler: (table) => {
+      if (table === "customers") {
+        const q = {
+          select: () => q,
+          eq: () => q,
+          ilike: (col, val) => ({
+            limit: async () => ({
+              data: existingCustomers.filter(c => c.email.toLowerCase() === val.toLowerCase()),
+              error: null,
+            }),
+          }),
+          insert: (payload) => {
+            insertPayload = payload;
+            return {
+              select: () => ({
+                single: async () => ({
+                  data: { id: "cust-fb-1", customer_code: "CUST-0002", ...payload },
+                  error: null,
+                }),
+              }),
+            };
+          },
+        };
+        // For phone query
+        q.then = (resolve) => resolve({ data: existingCustomers, error: null });
+        return q;
+      }
+    },
+  });
+
+  // Duplicate email detected in fallback
+  await assert.rejects(
+    fallbackApi.createCustomer({ name: "New Co", email: "existing@example.com" }),
+    /already exists/
+  );
+
+  // Successful insert in fallback
+  const created = await fallbackApi.createCustomer({
+    name: "Brand New Co",
+    email: "fresh@example.com",
+    phone: "0920-111-2222",
+  });
+  assert.equal(created.id, "cust-fb-1");
+  assert.equal(created.name, "Brand New Co");
+  assert.equal(insertPayload.name, "Brand New Co");
+  assert.equal(insertPayload.email, "fresh@example.com");
+  assert.equal(insertPayload.is_active, true);
+});
+

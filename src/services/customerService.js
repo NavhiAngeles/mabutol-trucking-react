@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 
-const CUSTOMER_COLUMNS = "id, customer_code, user_id, name, email, phone, address, barangay, city, province, is_active, created_at, updated_at";
+const CUSTOMER_COLUMNS = "id, customer_code, user_id, name, email, phone, address, barangay, city, province, notes, is_active, created_at, updated_at";
 const BOOKING_COLUMNS = "id, customer_id, tracking_number, pickup_address, dropoff_address, cargo_description, status, created_at, estimated_arrival, actual_delivery_at";
 
 async function fetchAll(table, columns, filter = query => query) {
@@ -80,9 +80,9 @@ export function fetchCustomerBookings({ force = false } = {}) {
 
 // Historical customer records survive role conversions. Billing must use the
 // linked account's current role, while retaining staff-managed business rows.
-export async function fetchBillingCustomers() {
+export async function fetchBillingCustomers({ force = false } = {}) {
   const [customers, accounts] = await Promise.all([
-    fetchCustomers(),
+    fetchCustomers({ force }),
     fetchAll('users', 'id,role,is_active,created_at', query => query.eq('role', 'customer').eq('is_active', true)),
   ]);
   const eligible = new Set(accounts.filter(account => account.role === 'customer' && account.is_active === true).map(account => account.id));
@@ -93,10 +93,120 @@ export async function fetchBillingCustomers() {
 // Only directory details may be changed here; identity, status and bookings stay intact.
 export function customerEditValues(customer) {
   return Object.fromEntries(["name", "email", "phone", "address", "barangay", "city", "province"]
-    .map(key => [key, typeof customer[key] === "string" ? customer[key] : ""]));
+    .map(key => [key, typeof customer?.[key] === "string" ? customer[key] : ""]));
 }
 
 export const AUTHORIZED_OFFICE_ROLES = ["admin", "staff"];
+
+export async function createCustomer(values, { callerRole } = {}) {
+  if (callerRole && !AUTHORIZED_OFFICE_ROLES.includes(callerRole)) {
+    throw new Error("Unauthorized: Only office staff and administrators can register customers.");
+  }
+
+  const name = typeof values?.name === "string" ? values.name.trim() : "";
+  if (name.length < 2) {
+    throw new Error("Customer name is required and must be at least 2 characters.");
+  }
+
+  const emailRaw = typeof values?.email === "string" ? values.email.trim().toLowerCase() : "";
+  if (emailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+    throw new Error("Enter a valid email address.");
+  }
+
+  const phoneRaw = typeof values?.phone === "string" ? values.phone.trim() : "";
+  const phoneDigits = phoneRaw.replace(/\D/g, "");
+  if (phoneRaw && (phoneDigits.length < 7 || phoneDigits.length > 15)) {
+    throw new Error("Enter a valid contact number (7–15 digits).");
+  }
+
+  const address = typeof values?.address === "string" ? values.address.trim() || null : null;
+  const barangay = typeof values?.barangay === "string" ? values.barangay.trim() || null : null;
+  const city = typeof values?.city === "string" ? values.city.trim() || null : null;
+  const province = typeof values?.province === "string" ? values.province.trim() || null : null;
+  const notes = typeof values?.notes === "string" ? values.notes.trim() || null : null;
+
+  // Try RPC first (atomic check and audit logging on database)
+  const { data: rpcData, error: rpcError } = await supabase.rpc("office_create_customer", {
+    p_name: name,
+    p_email: emailRaw || null,
+    p_phone: phoneRaw || null,
+    p_address: address,
+    p_barangay: barangay,
+    p_city: city,
+    p_province: province,
+    p_notes: notes,
+  });
+
+  if (!rpcError && rpcData) {
+    clearCustomerCache();
+    return rpcData;
+  }
+
+  // If error was a duplicate or validation error raised by the database, rethrow it directly
+  if (rpcError) {
+    const msg = rpcError.message || "";
+    if (
+      rpcError.code === "23505" ||
+      msg.toLowerCase().includes("already exists") ||
+      msg.toLowerCase().includes("must be at least") ||
+      msg.toLowerCase().includes("valid email") ||
+      msg.toLowerCase().includes("valid contact")
+    ) {
+      throw new Error(msg);
+    }
+  }
+
+  // Direct RLS Fallback with client duplicate checks (e.g. for mock test environments)
+  if (emailRaw) {
+    const { data: existingEmail } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("is_active", true)
+      .ilike("email", emailRaw)
+      .limit(1);
+    if (existingEmail && existingEmail.length > 0) {
+      throw new Error(`A customer with email "${emailRaw}" already exists.`);
+    }
+  }
+
+  if (phoneDigits) {
+    const { data: existingPhone } = await supabase
+      .from("customers")
+      .select("id, phone")
+      .eq("is_active", true);
+    if (
+      Array.isArray(existingPhone) &&
+      existingPhone.some(
+        (c) => typeof c.phone === "string" && c.phone.replace(/\D/g, "") === phoneDigits
+      )
+    ) {
+      throw new Error(`A customer with phone number "${phoneRaw}" already exists.`);
+    }
+  }
+
+  const { data: insertData, error: insertError } = await supabase
+    .from("customers")
+    .insert({
+      name,
+      email: emailRaw || null,
+      phone: phoneRaw || null,
+      address,
+      barangay,
+      city,
+      province,
+      notes,
+      is_active: true,
+    })
+    .select(CUSTOMER_COLUMNS)
+    .single();
+
+  if (insertError) {
+    throw new Error(insertError.message || "Failed to create customer.");
+  }
+
+  clearCustomerCache();
+  return insertData;
+}
 
 export async function setCustomerActiveStatus(customer, isActive, reason, { callerRole } = {}) {
   if (!callerRole || !AUTHORIZED_OFFICE_ROLES.includes(callerRole)) {
