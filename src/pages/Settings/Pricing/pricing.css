@@ -718,6 +718,107 @@
   border-color: #fca5a5 !important;
 }
 
+/* 3-dots Action Menu & Dropdown */
+.pricing-page .toll-action-menu-wrapper {
+  position: relative;
+  display: inline-block;
+  text-align: left;
+}
+
+.pricing-page .toll-action-dots-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: all 0.15s ease-in-out;
+  outline: none;
+}
+
+.pricing-page .toll-action-dots-btn:hover:not(:disabled),
+.pricing-page .toll-action-dots-btn[aria-expanded="true"] {
+  color: #0f172a;
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.pricing-page .toll-action-dots-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pricing-page .toll-action-dots-btn:focus-visible {
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+.pricing-page .toll-action-dropdown {
+  position: fixed;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.16), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  min-width: 140px;
+  z-index: 9999;
+  overflow: hidden;
+  animation: tollDropdownFadeIn 0.12s ease;
+  padding: 4px;
+}
+
+@keyframes tollDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-page .toll-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pricing-page .toll-dropdown-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.pricing-page .toll-dropdown-item.danger {
+  color: #dc2626;
+}
+
+.pricing-page .toll-dropdown-item.danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.pricing-page .toll-dropdown-item svg {
+  flex-shrink: 0;
+}
+
 /* Footer note & button */
 .pricing-page .toll-footer {
   display: flex;
