@@ -1,5 +1,4 @@
 import OfficeTools from "../../components/OfficeTools";
-import DeliveryConversationInbox from "./DeliveryConversationInbox";
 import ReturnLoadPlanner from "./ReturnLoadPlanner";
 
 import { useEffect, useRef, useState } from "react";
@@ -228,7 +227,6 @@ export default function Shipment() {
           </button>
         </div>
 
-        <DeliveryConversationInbox />
         <ReturnLoadPlanner onInspect={setDetailsShipment} />
         {/* STATUS & FEEDBACK NOTIFICATIONS */}
         {assignmentMessage && (

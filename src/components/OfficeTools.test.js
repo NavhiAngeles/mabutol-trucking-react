@@ -21,6 +21,7 @@ async function screen(update, loadError = '') {
     document: { addEventListener(name, handler) { events[name] = handler; }, removeEventListener(name) { delete events[name]; } },
     useNavigate: () => path => routes.push(path),
     useAuth: () => ({ user: { id: 'own' } }),
+    DeliveryConversationInbox: () => null,
     useLiveData: () => ({ data: { name: 'Office', notifications: [{ id: 'notice', title: 'Update', body: '', shipment_id: 'shipment', created_at: '2026-10-24' }] }, error: loadError, refresh: () => { reloads++; } }),
     supabase: { from(table) {
       const call = { table, filters: [], inFilters: [] }; calls.push(call);
@@ -177,3 +178,42 @@ test('Mark all read updates unread notifications in a single owner-scoped query,
   assert.equal(trigger.props['aria-label'], 'Notifications');
   assert.equal(find(trigger, n => n.props.className === 'office-unread-count').length, 0);
 });
+
+test('driver messages are excluded from notification bell and notify in Drivers Message tool', async () => {
+  const source = await readFile(new URL('./OfficeTools.jsx', import.meta.url), 'utf8');
+  const { code } = await transformWithOxc(source, 'OfficeTools.jsx', { jsx: { runtime: 'classic' } });
+  let renderedInbox = false;
+  const context = vm.createContext({
+    React: {
+      createElement: (type, props, ...children) => {
+        if (type === 'DeliveryConversationInbox') renderedInbox = true;
+        return { type, props: props || {}, children };
+      },
+    },
+    useState: (val) => [val, () => {}],
+    useRef: (val) => ({ current: val }),
+    useEffect: () => {},
+    useNavigate: () => () => {},
+    useAuth: () => ({ user: { id: 'own' } }),
+    DeliveryConversationInbox: 'DeliveryConversationInbox',
+    useLiveData: () => ({
+      data: {
+        name: 'Office',
+        notifications: [
+          { id: '1', title: 'New customer booking', type: 'booking_confirmed', created_at: '2026-11-10' },
+          { id: '2', title: 'Driver message · TRIP-1', type: 'message', created_at: '2026-11-10' },
+        ].filter(n => n.type !== 'message' && !n.title.toLowerCase().startsWith('driver message')),
+      },
+      error: '',
+      refresh: () => {},
+    }),
+    supabase: { from: () => ({}) },
+  });
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.renderComponent = OfficeTools;', context);
+  const tree = context.renderComponent();
+  assert.ok(renderedInbox, 'DeliveryConversationInbox component must be rendered beside the bell');
+  const bellBtn = find(tree, n => n.type === 'button' && n.props.title === 'Notifications')[0];
+  assert.ok(bellBtn);
+  assert.equal(bellBtn.props['aria-label'], 'Notifications, 1 unread', 'Bell unread count only reflects non-driver message notifications');
+});
+

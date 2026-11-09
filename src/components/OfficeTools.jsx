@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { useLiveData } from '../hooks/useLiveData';
+import DeliveryConversationInbox from '../pages/Shipment/DeliveryConversationInbox';
 import './OfficeTools.css';
 
 const TABLES = [
   'notifications',
-  'delivery_messages',
   'shipments',
   'delivery_incidents',
   'delivery_expenses',
@@ -57,9 +57,6 @@ async function loadOfficeTools(client = supabase) {
   const [
     profileResult,
     notificationsResult,
-    driverMessagesResult,
-    messageReadsResult,
-    unreadThreadsResult,
     mobileBookingsResult,
     incidentsResult,
     expensesResult,
@@ -71,17 +68,6 @@ async function loadOfficeTools(client = supabase) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30),
-    client
-      .from('delivery_messages')
-      .select('id,delivery_id,driver_id,sender_role,body,created_at')
-      .eq('sender_role', 'driver')
-      .order('created_at', { ascending: false })
-      .limit(20),
-    client
-      .from('delivery_message_reads')
-      .select('message_id')
-      .eq('user_id', user.id),
-    client.rpc('delivery_conversation_unread'),
     client
       .from('shipments')
       .select('id,tracking_number,cargo_description,created_at')
@@ -108,119 +94,19 @@ async function loadOfficeTools(client = supabase) {
   }
 
   const profile = profileResult.status === 'fulfilled' && !profileResult.value.error ? profileResult.value.data : null;
-  const dbNotifications = notificationsResult.status === 'fulfilled' && !notificationsResult.value.error && Array.isArray(notificationsResult.value.data)
+  // Exclude any driver message notifications so they notify exclusively in Drivers Message
+  const dbNotifications = (notificationsResult.status === 'fulfilled' && !notificationsResult.value.error && Array.isArray(notificationsResult.value.data)
     ? notificationsResult.value.data
-    : [];
+    : []).filter(n => {
+      const title = String(n?.title || '').toLowerCase();
+      return n?.type !== 'message' && !title.startsWith('driver message');
+    });
 
   const combined = [...dbNotifications];
   const knownKeys = new Set(dbNotifications.map(n => `${n.shipment_id || ''}:${n.title}`));
   const persistedReads = getPersistedReadIds(user.id);
 
-  // Track read receipts for delivery messages
-  const readMessageIds = new Set();
-  if (messageReadsResult.status === 'fulfilled' && !messageReadsResult.value.error && Array.isArray(messageReadsResult.value.data)) {
-    for (const r of messageReadsResult.value.data) {
-      if (r.message_id != null) readMessageIds.add(String(r.message_id));
-    }
-  }
-
-  // 1. Driver messages from mobile
-  let processedDriverMessages = false;
-  if (driverMessagesResult.status === 'fulfilled' && !driverMessagesResult.value.error && Array.isArray(driverMessagesResult.value.data) && driverMessagesResult.value.data.length > 0) {
-    const rawMessages = driverMessagesResult.value.data;
-    const deliveryIds = [...new Set(rawMessages.map(m => m.delivery_id).filter(Boolean))];
-    let deliveryShipments = {};
-    let shipmentTrackings = {};
-
-    if (deliveryIds.length > 0) {
-      try {
-        const { data: dels } = await client.from('deliveries').select('id,shipment_id').in('id', deliveryIds);
-        if (Array.isArray(dels)) {
-          deliveryShipments = Object.fromEntries(dels.map(d => [d.id, d.shipment_id]));
-          const shipmentIds = [...new Set(dels.map(d => d.shipment_id).filter(Boolean))];
-          if (shipmentIds.length > 0) {
-            const { data: ships } = await client.from('shipments').select('id,tracking_number').in('id', shipmentIds);
-            if (Array.isArray(ships)) {
-              shipmentTrackings = Object.fromEntries(ships.map(s => [s.id, s.tracking_number]));
-            }
-          }
-        }
-      } catch {
-        // Non-blocking metadata lookup
-      }
-    }
-
-    for (const m of rawMessages) {
-      const key = `msg-${m.id}`;
-      const isRead = readMessageIds.has(String(m.id)) ||
-                     persistedReads.has(key) ||
-                     persistedReads.has(`msg-${m.id}`) ||
-                     dismissedSyntheticIds.has(key);
-
-      const shipmentId = deliveryShipments[m.delivery_id] || null;
-      const tracking = (shipmentId && shipmentTrackings[shipmentId]) || null;
-      const title = tracking ? `Driver message · ${tracking}` : 'Driver message';
-      const msgKey = `${shipmentId || ''}:${title}:${m.id}`;
-      const alreadyInDb = knownKeys.has(`${shipmentId || ''}:${title}`) || knownKeys.has(`${shipmentId || ''}:Driver message`);
-
-      if (!alreadyInDb && !knownKeys.has(msgKey)) {
-        knownKeys.add(msgKey);
-        combined.push({
-          id: key,
-          synthetic: true,
-          type: 'message',
-          title,
-          body: m.body ? (m.body.length > 140 ? `${m.body.slice(0, 137)}…` : m.body) : 'Driver sent a message.',
-          shipment_id: shipmentId,
-          delivery_id: m.delivery_id,
-          message_id: m.id,
-          read_at: isRead ? m.created_at : null,
-          created_at: m.created_at,
-        });
-      }
-    }
-    processedDriverMessages = true;
-  }
-
-  // Fallback to conversation threads if direct delivery_messages table returned no messages
-  if (!processedDriverMessages && unreadThreadsResult.status === 'fulfilled' && !unreadThreadsResult.value.error && Array.isArray(unreadThreadsResult.value.data)) {
-    const unreadThreads = unreadThreadsResult.value.data.filter(t => Number(t.unread) > 0);
-    if (unreadThreads.length) {
-      const deliveryIds = unreadThreads.map(t => t.delivery_id).filter(Boolean);
-      let deliveryShipments = {};
-      if (deliveryIds.length) {
-        try {
-          const { data: dels } = await client.from('deliveries').select('id,shipment_id').in('id', deliveryIds);
-          if (Array.isArray(dels)) {
-            deliveryShipments = Object.fromEntries(dels.map(d => [d.id, d.shipment_id]));
-          }
-        } catch {
-          // Non-blocking
-        }
-      }
-      for (const thread of unreadThreads) {
-        const shipmentId = deliveryShipments[thread.delivery_id] || null;
-        const key = `msg-${thread.delivery_id}`;
-        const isRead = persistedReads.has(key) || dismissedSyntheticIds.has(key);
-        const title = `Driver message · ${thread.tracking_number || 'Shipment'}`;
-        if (!knownKeys.has(`${shipmentId || ''}:${title}`)) {
-          combined.push({
-            id: key,
-            synthetic: true,
-            type: 'message',
-            title,
-            body: `${thread.unread} unread message${Number(thread.unread) > 1 ? 's' : ''} from driver.`,
-            shipment_id: shipmentId,
-            delivery_id: thread.delivery_id,
-            read_at: isRead ? new Date().toISOString() : null,
-            created_at: new Date().toISOString(),
-          });
-        }
-      }
-    }
-  }
-
-  // 2. Pending customer mobile bookings
+  // 1. Pending customer mobile bookings
   if (mobileBookingsResult.status === 'fulfilled' && Array.isArray(mobileBookingsResult.value.data)) {
     for (const b of mobileBookingsResult.value.data) {
       const key = `booking-${b.id}`;
@@ -340,20 +226,6 @@ export default function OfficeTools() {
     setFailedAction(null);
     try {
       persistReadId(user.id, notification.id);
-      if (notification.message_id) {
-        persistReadId(user.id, `msg-${notification.message_id}`);
-        try {
-          const readsTable = supabase.from('delivery_message_reads');
-          if (typeof readsTable?.insert === 'function') {
-            await readsTable.insert({
-              message_id: notification.message_id,
-              user_id: user.id,
-            });
-          }
-        } catch {
-          // Non-blocking write to read-receipt table
-        }
-      }
       if (notification.synthetic) {
         dismissedSyntheticIds.add(notification.id);
       } else {
@@ -395,12 +267,10 @@ export default function OfficeTools() {
     setFailedAction(null);
     try {
       const unreadDbIds = unreadList.filter(n => !n.synthetic).map(n => n.id);
-      const unreadMsgIds = unreadList.filter(n => n.message_id).map(n => n.message_id);
       const syntheticIds = unreadList.filter(n => n.synthetic).map(n => n.id);
 
       for (const id of syntheticIds) dismissedSyntheticIds.add(id);
       persistReadIds(user.id, unreadList.map(n => n.id));
-      for (const mid of unreadMsgIds) persistReadId(user.id, `msg-${mid}`);
 
       if (unreadDbIds.length > 0) {
         let q = supabase.from('notifications').update({ read_at: new Date().toISOString() });
@@ -412,18 +282,6 @@ export default function OfficeTools() {
         }
         const res = await q;
         if (res && res.error) throw res.error;
-      }
-
-      if (unreadMsgIds.length > 0) {
-        try {
-          const readsTable = supabase.from('delivery_message_reads');
-          if (typeof readsTable?.insert === 'function') {
-            const rows = unreadMsgIds.map(mid => ({ message_id: mid, user_id: user.id }));
-            await readsTable.insert(rows);
-          }
-        } catch {
-          // Non-blocking
-        }
       }
 
       const now = new Date().toISOString();
@@ -459,6 +317,7 @@ export default function OfficeTools() {
         </svg>
         {unread > 0 && <span className="office-unread-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       </button>
+      <DeliveryConversationInbox />
       <button
         type="button"
         className="avatar"
