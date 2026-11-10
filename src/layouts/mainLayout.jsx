@@ -1,5 +1,5 @@
 import Sidebar from "../components/Sidebar/sidebar";
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "../context/AuthContext";
 import { useIdleTimeout } from '../hooks/useIdleTimeout';
@@ -8,6 +8,7 @@ import './mainLayout.css';
 export default function MainLayout({ children }) {
   const navigate = useNavigate();
   const { role } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleIdleTimeout = useCallback(() => navigate("/"), [navigate]);
   const idleState = useIdleTimeout(role, handleIdleTimeout);
@@ -19,9 +20,47 @@ export default function MainLayout({ children }) {
   const seconds = remainingSeconds % 60;
   const formattedCountdown = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [mobileMenuOpen]);
+
   return (
-    <div className="dashboard">
-      <Sidebar />
+    <div className={`dashboard ${mobileMenuOpen ? 'mobile-menu-active' : ''}`}>
+      <button
+        type="button"
+        className="mobile-menu-trigger"
+        onClick={() => setMobileMenuOpen(prev => !prev)}
+        aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="main-sidebar"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+        </svg>
+      </button>
+
+      {mobileMenuOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <Sidebar
+        id="main-sidebar"
+        mobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
 
       <main className="main">
         {children}

@@ -1303,3 +1303,63 @@
   background: #e2e8f0;
   color: #0f172a;
 }
+
+/* ==========================================================================
+   DASHBOARD MOBILE RESPONSIVENESS
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .dashboard-stats,
+  .dashboard-page .stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px;
+  }
+
+  .dashboard-columns {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    padding: 12px 14px 12px 64px !important;
+    gap: 10px;
+  }
+
+  .search-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .topbar input {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 13px;
+  }
+
+  .dashboard-header {
+    margin-bottom: 16px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats,
+  .dashboard-page .stats {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 14px 16px;
+  }
+
+  .stat-card h2 {
+    font-size: 24px;
+  }
+}
+

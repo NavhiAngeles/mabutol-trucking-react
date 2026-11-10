@@ -460,3 +460,64 @@
   outline: 2px solid #1A4B9C;
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   MOBILE DRAWER NAVIGATION SPECIFICATION
+   ========================================================================== */
+
+.sidebar-mobile-close {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 280px;
+    max-width: 85vw;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: none;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.25);
+  }
+
+  .sidebar-mobile-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #64748b;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .sidebar-mobile-close:hover,
+  .sidebar-mobile-close:focus-visible {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+    outline: 2px solid #1a4b9c;
+    outline-offset: 1px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .sidebar {
+    transform: none !important;
+  }
+
+  .sidebar-mobile-close {
+    display: none !important;
+  }
+}
+

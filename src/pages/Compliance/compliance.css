@@ -795,3 +795,54 @@
   padding: 0 6px;
   user-select: none;
 }
+
+/* ==========================================================================
+   COMPLIANCE MOBILE RESPONSIVENESS
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .compliance-stats-grid,
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .stats.stats-container {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .compliance-table-card,
+  .compliance-table-container {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 640px) {
+  .compliance-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .compliance-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .compliance-stats-grid,
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .stats.stats-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .compliance-stats-grid,
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .stats.stats-container {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+

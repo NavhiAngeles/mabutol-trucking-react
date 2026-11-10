@@ -32,3 +32,88 @@
   flex: 1 1 auto;
 }
 
+/* Mobile navigation menu trigger */
+.mobile-menu-trigger {
+  display: none;
+}
+
+/* Sidebar backdrop overlay for mobile drawer */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT BREAKPOINTS
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .mobile-menu-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    width: 42px;
+    height: 42px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #0f2a52;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+    cursor: pointer;
+    z-index: 120;
+    transition: background-color 0.15s, border-color 0.15s;
+  }
+
+  .mobile-menu-trigger:hover,
+  .mobile-menu-trigger:focus-visible {
+    background-color: #f1f5f9;
+    border-color: #94a3b8;
+    outline: 2px solid #1a4b9c;
+    outline-offset: 2px;
+  }
+
+  .main {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .content {
+    padding: 20px 16px !important;
+  }
+
+  /* Provide clearance for the fixed hamburger button on all topbars */
+  .topbar,
+  .reports-topbar,
+  .settings-topbar,
+  .dr-topbar,
+  .ov-topbar,
+  .sr-topbar {
+    padding-left: 68px !important;
+    padding-right: 16px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 16px 12px !important;
+  }
+
+  .topbar,
+  .reports-topbar,
+  .settings-topbar,
+  .dr-topbar,
+  .ov-topbar,
+  .sr-topbar {
+    padding-left: 64px !important;
+    padding-right: 12px !important;
+  }
+}
+
+

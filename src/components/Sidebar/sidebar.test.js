@@ -469,3 +469,40 @@ test('SignInFeedback auto-dismisses after 5 seconds, cleans up timer on manual c
   const emptyTree = feedback.render();
   assert.equal(emptyTree, null);
 });
+
+test('sidebar supports mobile drawer props: reflects mobileOpen and invokes onClose on dismiss or navigation', async () => {
+  let closedCount = 0;
+  const routes = [];
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => path => routes.push(path),
+    useLocation: () => ({ pathname: '/dashboard' }),
+    useAuth: () => ({ clearAuth() {} }),
+    supabase: { auth: { signOut: async () => ({}) } },
+  });
+
+  // 1. Render closed without onClose prop
+  const closedTree = ui.render({ mobileOpen: false });
+  const asideClosed = find(closedTree, n => n.type === 'aside')[0];
+  assert.ok(asideClosed);
+  assert.equal(asideClosed.props.className, 'sidebar');
+  assert.equal(find(closedTree, n => n.props.className === 'sidebar-mobile-close').length, 0);
+
+  // 2. Render open with mobileOpen and onClose
+  const openTree = ui.render({ mobileOpen: true, onClose: () => { closedCount++; } });
+  const asideOpen = find(openTree, n => n.type === 'aside')[0];
+  assert.ok(asideOpen.props.className.includes('mobile-open'));
+
+  const closeBtn = find(openTree, n => n.props.className === 'sidebar-mobile-close')[0];
+  assert.ok(closeBtn, 'Close button should render when onClose is provided');
+  assert.equal(closeBtn.props['aria-label'], 'Close navigation sidebar');
+  closeBtn.props.onClick();
+  assert.equal(closedCount, 1, 'Clicking close button should invoke onClose');
+
+  // 3. Clicking navigation link also invokes onClose and navigates
+  const navItems = find(openTree, n => typeof n.props.onClick === 'function');
+  const shipmentsBtn = navItems.find(n => n.children.includes('Shipments'));
+  assert.ok(shipmentsBtn);
+  shipmentsBtn.props.onClick();
+  assert.equal(closedCount, 2, 'Navigating should invoke onClose');
+  assert.deepEqual(routes, ['/shipment']);
+});

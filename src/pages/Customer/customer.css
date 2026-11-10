@@ -1937,3 +1937,56 @@
   border-color: #B91C1C;
   box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
 }
+
+/* ==========================================================================
+   CUSTOMER MOBILE RESPONSIVENESS
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .customer-stats-container,
+  .customer-page .stats-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px;
+  }
+
+  .customer-table-card {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .content {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .content-header button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 16px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .customer-stats-container,
+  .customer-page .stats-container {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+}
+
