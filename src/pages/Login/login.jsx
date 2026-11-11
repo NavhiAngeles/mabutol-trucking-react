@@ -13,14 +13,44 @@ export default function Login() {
     status,
     handleSubmit,
     handleEmailChange,
-    handlePasswordChange
+    handlePasswordChange,
+    navigate
   } = useLoginViewModel();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [navigatingHome, setNavigatingHome] = useState(false);
   const isPending = status === "loading" || status === "success";
 
+  const handleBackToHome = (e) => {
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+    if (navigatingHome) return;
+    setNavigatingHome(true);
+
+    const timer = typeof setTimeout === "function" ? setTimeout : globalThis.setTimeout;
+    const executeNav = () => {
+      if (typeof navigate === "function") {
+        navigate("/");
+      } else if (typeof window !== "undefined" && window.location) {
+        window.location.href = "/";
+      }
+    };
+
+    if (typeof timer === "function") {
+      timer(executeNav, 240);
+    } else {
+      executeNav();
+    }
+  };
+
   return (
-    <div className="login-page">
+    <div className={`login-page ${navigatingHome ? "navigating-home" : ""}`}>
+      {navigatingHome && (
+        <div className="modern-top-loader" aria-hidden="true">
+          <div className="modern-top-loader-bar" />
+        </div>
+      )}
       <main className="container">
         {/* Branding */}
         <div className="branding">
@@ -129,7 +159,19 @@ export default function Login() {
               {status === "loading" ? "Signing in…" : status === "success" ? "Signed in" : "Sign In →"}
             </button>
           </form>
-          {!isPending && <Link className="forgot-password-link" to="/forgot-password">Forgot password?</Link>}
+          {!isPending && (
+            <div className="login-footer-links">
+              <Link className="forgot-password-link" to="/forgot-password">Forgot password?</Link>
+              <span className="login-footer-divider" aria-hidden="true">•</span>
+              <Link
+                className="back-to-landing-link"
+                to="/"
+                onClick={handleBackToHome}
+              >
+                <span className="back-to-landing-arrow" aria-hidden="true">←</span> Back to Home
+              </Link>
+            </div>
+          )}
         </section>
       </main>
     </div>

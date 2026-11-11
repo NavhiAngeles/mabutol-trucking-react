@@ -4,6 +4,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import "./AppRouter.css";
 
 // Auth entry routes (kept static for instant landing TTI)
+import Landing from "../pages/Landing/Landing";
 import Login from "../pages/Login/login";
 import { ForgotPassword, ResetPassword } from '../pages/Login/PasswordRecovery';
 
@@ -42,7 +43,8 @@ function AppRouter() {
     <BrowserRouter>
       <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
