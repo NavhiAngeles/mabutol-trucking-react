@@ -181,3 +181,48 @@ test('assignment retry returns delivery or no availability and propagates failur
   assert.equal(await service().assignShipmentResources('s'), null);
   await assert.rejects(service({ rpcError: Error('access denied') }).assignShipmentResources('s'), /access denied/);
 });
+
+test('createShipment gracefully recovers from schema cache missing column error', async () => {
+  let attempt = 0;
+  const insertedPayloads = [];
+  const context = { console, supabase: {
+    from(table) {
+      const q = {
+        insert(payload) {
+          insertedPayloads.push({ ...payload });
+          return q;
+        },
+        select() { return q; }, eq() { return q; }, neq() { return q; },
+        async single() {
+          attempt++;
+          if (attempt === 1) {
+            return {
+              data: null,
+              error: { message: "Could not find the 'driver_allowance' column of 'shipments' in the schema cache", code: "PGRST204" }
+            };
+          }
+          return { data: { id: 's-fallback', status: 'booked' }, error: null };
+        },
+        async maybeSingle() { return { data: null, error: null }; }
+      };
+      assert.ok(['shipments', 'deliveries'].includes(table));
+      return q;
+    }
+  }};
+  vm.createContext(context);
+  const source = fs.readFileSync(new URL('./shipmentService.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.api = {createShipment};', context);
+  const result = await context.api.createShipment({
+    pickup_address: 'A',
+    dropoff_address: 'B',
+    driver_allowance: 500,
+    toll_fees: 100
+  });
+  assert.equal(result.id, 's-fallback');
+  assert.equal(attempt, 2);
+  assert.equal(insertedPayloads[0].driver_allowance, 500);
+  assert.equal('driver_allowance' in insertedPayloads[1], false);
+  assert.equal(insertedPayloads[1].toll_fees, 100);
+});
+
