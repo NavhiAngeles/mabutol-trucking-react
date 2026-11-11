@@ -65,52 +65,132 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
     finally { setBusy(false); }
   };
   return <section className="assignment-manager" aria-labelledby="assignment-manager-title">
-    <h3 id="assignment-manager-title">Office assignment</h3>
-    {!options && !error && <div role="status" className="shipment-dialog-alert is-loading"><i className="las la-spinner la-spin" /> <span>Loading eligible drivers and trucks…</span></div>}
-    {error && <div className="shipment-dialog-alert is-error" role="alert"><i className="las la-exclamation-circle" /> <span style={{ flex: 1 }}>{error}</span> <button type="button" className="retry-btn" onClick={() => { setOptions(null); setRevision(value => value + 1); }}>Retry</button></div>}
-    {options?.blockedReason && <div className="assignment-blocked shipment-dialog-alert is-warning" role="status"><i className="las la-ban" /> <span>{options.blockedReason}</span></div>}
-    {options && !options.blockedReason && <form onSubmit={submit}>
-      {draftSuggestion && (
-        <div className="shipment-dialog-alert is-info return-load-draft-notice" role="status">
-          <i className="las la-route" />
-          <span>
-            <strong>Return load suggestion:</strong> Returning driver and truck pre-selected for backhaul review. Verify capacity and compliance before assigning.
-          </span>
+    <div className="assignment-manager-header">
+      <div className="assignment-manager-header-icon">
+        <i className="las la-user-check" />
+      </div>
+      <div className="assignment-manager-header-text">
+        <h3 id="assignment-manager-title">Office assignment</h3>
+        <p className="assignment-manager-subtitle">
+          {options?.current
+            ? 'Reassignment is allowed only before pickup or route activity begins.'
+            : 'Select the driver and truck for this booked shipment.'}
+        </p>
+      </div>
+    </div>
+
+    {!options && !error && (
+      <div role="status" className="shipment-dialog-alert is-loading">
+        <i className="las la-spinner la-spin" />
+        <span>Loading eligible drivers and trucks…</span>
+      </div>
+    )}
+
+    {error && (
+      <div className="shipment-dialog-alert is-error" role="alert">
+        <i className="las la-exclamation-circle" />
+        <span style={{ flex: 1 }}>{error}</span>
+        <button
+          type="button"
+          className="retry-btn"
+          onClick={() => { setOptions(null); setRevision(value => value + 1); }}
+        >
+          Retry
+        </button>
+      </div>
+    )}
+
+    {options?.blockedReason && (
+      <div className="assignment-blocked shipment-dialog-alert is-warning" role="status">
+        <i className="las la-ban" />
+        <span>{options.blockedReason}</span>
+      </div>
+    )}
+
+    {options && !options.blockedReason && (
+      <form onSubmit={submit}>
+        {draftSuggestion && (
+          <div className="shipment-dialog-alert is-info return-load-draft-notice" role="status">
+            <i className="las la-route" />
+            <span>
+              <strong>Return load suggestion:</strong> Returning driver and truck pre-selected for backhaul review. Verify capacity and compliance before assigning.
+            </span>
+          </div>
+        )}
+
+        <div className="assignment-fields-card">
+          <label>
+            Driver
+            <select value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
+              <option value="">Choose a driver</option>
+              {drivers.map(row => (
+                <option key={row.id} value={row.id}>
+                  {row.full_name}{options?.current?.driver_id === row.id ? ' (Current)' : row.id === draftSuggestion?.driverId ? ' (Suggested return driver)' : ''}{!row.eligible && row.reason ? ` (${row.reason})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedDriver && !selectedDriver.eligible && selectedDriver.reason && (
+            <p className="assignment-warning" role="status">
+              <i className="las la-exclamation-triangle" />
+              <span><strong>Driver note:</strong> {selectedDriver.reason}</span>
+            </p>
+          )}
+
+          <label>
+            Truck{shipmentWeight > 0 ? ` (min. ${shipmentWeight.toLocaleString()} kg capacity)` : ''}
+            <select value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
+              <option value="">Choose a truck</option>
+              {trucks.map(row => (
+                <option key={row.id} value={row.id}>
+                  {row.plate_number}{row.capacity_kg ? ` · ${Number(row.capacity_kg).toLocaleString()} kg` : ''}{options?.current?.truck_id === row.id ? ' (Current)' : row.id === draftSuggestion?.truckId ? ' (Suggested return truck)' : ''}{!row.eligible && row.reason ? ` (${row.reason})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedTruck && !selectedTruck.eligible && selectedTruck.reason && (
+            <p className="assignment-warning" role="status">
+              <i className="las la-exclamation-triangle" />
+              <span><strong>Truck note:</strong> {selectedTruck.reason}</span>
+            </p>
+          )}
+
+          {(!drivers.length || !trucks.length) && (
+            <div role="status" className="assignment-warning shipment-dialog-alert is-warning">
+              <i className="las la-exclamation-triangle" />
+              <span>No eligible pair is currently available. Review Fleet availability, maintenance, reservations and Compliance. Excluded: {excluded.drivers} driver(s), {excluded.trucks} truck(s).</span>
+            </div>
+          )}
+
+          <div className="assignment-field-group">
+            <label>
+              Assignment reason
+              <textarea
+                value={reason}
+                maxLength={1000}
+                disabled={busy}
+                onChange={event => setReason(event.target.value)}
+                placeholder="Record why this pair was selected or changed."
+              />
+            </label>
+            <div className="assignment-char-count">
+              {reason.trim().length} / 1000 characters (min. 5)
+            </div>
+          </div>
+
+          {currentPair && (
+            <div role="alert" className="assignment-warning shipment-dialog-alert is-warning">
+              <i className="las la-info-circle" />
+              <span>Choose a different driver or truck for reassignment.</span>
+            </div>
+          )}
         </div>
-      )}
-      <p>{options.current ? 'Reassignment is allowed only before pickup or route activity begins.' : 'Select the driver and truck for this booked shipment.'}</p>
-      <label>Driver<select value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
-        <option value="">Choose a driver</option>
-        {drivers.map(row => (
-          <option key={row.id} value={row.id}>
-            {row.full_name}{options?.current?.driver_id === row.id ? ' (Current)' : row.id === draftSuggestion?.driverId ? ' (Suggested return driver)' : ''}{!row.eligible && row.reason ? ` (${row.reason})` : ''}
-          </option>
-        ))}
-      </select></label>
-      {selectedDriver && !selectedDriver.eligible && selectedDriver.reason && (
-        <p className="assignment-warning" role="status">
-          <strong>Driver note:</strong> {selectedDriver.reason}
-        </p>
-      )}
-      <label>Truck{shipmentWeight > 0 ? ` (min. ${shipmentWeight.toLocaleString()} kg capacity)` : ''}
-        <select value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
-        <option value="">Choose a truck</option>
-        {trucks.map(row => (
-          <option key={row.id} value={row.id}>
-            {row.plate_number}{row.capacity_kg ? ` · ${Number(row.capacity_kg).toLocaleString()} kg` : ''}{options?.current?.truck_id === row.id ? ' (Current)' : row.id === draftSuggestion?.truckId ? ' (Suggested return truck)' : ''}{!row.eligible && row.reason ? ` (${row.reason})` : ''}
-          </option>
-        ))}
-      </select></label>
-      {selectedTruck && !selectedTruck.eligible && selectedTruck.reason && (
-        <p className="assignment-warning" role="status">
-          <strong>Truck note:</strong> {selectedTruck.reason}
-        </p>
-      )}
-      {(!drivers.length || !trucks.length) && <div role="status" className="assignment-warning shipment-dialog-alert is-warning"><i className="las la-exclamation-triangle" /> <span>No eligible pair is currently available. Review Fleet availability, maintenance, reservations and Compliance. Excluded: {excluded.drivers} driver(s), {excluded.trucks} truck(s).</span></div>}
-      <label>Assignment reason<textarea value={reason} maxLength={1000} disabled={busy}
-        onChange={event => setReason(event.target.value)} placeholder="Record why this pair was selected or changed." /></label>
-      {currentPair && <div role="alert" className="assignment-warning shipment-dialog-alert is-warning"><i className="las la-info-circle" /> <span>Choose a different driver or truck for reassignment.</span></div>}
-      <button type="submit" disabled={!canSave}>{busy ? 'Saving…' : options.current ? 'Reassign before trip' : 'Assign driver and truck'}</button>
-    </form>}
+
+        <button type="submit" className="btn-primary assignment-submit-btn" disabled={!canSave}>
+          <i className={`las ${busy ? 'la-spinner la-spin' : options.current ? 'la-exchange-alt' : 'la-check-circle'}`} />
+          <span>{busy ? 'Saving…' : options.current ? 'Reassign before trip' : 'Assign driver and truck'}</span>
+        </button>
+      </form>
+    )}
   </section>;
 }

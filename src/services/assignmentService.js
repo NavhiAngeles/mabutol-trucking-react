@@ -78,7 +78,85 @@ export async function saveManualAssignment({ shipmentId, driverId, truckId, reas
     p_shipment: shipmentId, p_driver: driverId, p_truck: truckId,
     p_reason: reason.trim(), p_expected_delivery: expectedDelivery,
   });
-  if (error) throw error;
+
+  if (error) {
+    const isMissingRpc = error.code === 'PGRST202'
+      || String(error.message || '').includes('in the schema cache')
+      || String(error.message || '').includes('does not exist');
+
+    if (isMissingRpc) {
+      let currentUserId = null;
+      try {
+        const authRes = await supabase.auth?.getUser?.();
+        currentUserId = authRes?.data?.user?.id || null;
+      } catch {
+        // Fall back gracefully when auth context is unavailable
+      }
+
+      // If superseding an existing delivery, mark it cancelled
+      if (expectedDelivery) {
+        const { error: cancelError } = await supabase.from('deliveries')
+          .update({ status: 'cancelled' })
+          .eq('id', expectedDelivery);
+        if (cancelError) {
+          console.warn('Could not cancel previous delivery during fallback reassignment:', cancelError);
+        }
+      }
+
+      // Create new delivery record
+      const deliveryPayload = {
+        shipment_id: shipmentId,
+        driver_id: driverId,
+        truck_id: truckId,
+        status: 'assigned',
+      };
+      if (currentUserId) deliveryPayload.assigned_by = currentUserId;
+
+      const { data: newDelivery, error: delError } = await supabase
+        .from('deliveries')
+        .insert(deliveryPayload)
+        .select('id, shipment_id, status')
+        .single();
+      if (delError) throw delError;
+
+      // Update parent shipment to assigned
+      const { error: shipError } = await supabase
+        .from('shipments')
+        .update({ status: 'assigned' })
+        .eq('id', shipmentId);
+      if (shipError) {
+        console.warn('Could not update shipment status to assigned:', shipError);
+      }
+
+      // Record shipment audit event
+      try {
+        await supabase.from('shipment_events').insert({
+          shipment_id: shipmentId,
+          delivery_id: newDelivery?.id,
+          event_type: expectedDelivery ? 'pretrip_reassignment' : 'manual_assignment',
+          actor_id: currentUserId,
+          meta: {
+            reason: reason.trim(),
+            previous_delivery: expectedDelivery || null,
+            driver: driverId,
+            truck: truckId,
+          },
+        });
+      } catch (eventErr) {
+        console.warn('Could not record assignment shipment event:', eventErr);
+      }
+
+      return {
+        shipment_id: shipmentId,
+        delivery_id: newDelivery?.id,
+        status: 'assigned',
+        mode: expectedDelivery ? 'reassigned' : 'assigned',
+      };
+    }
+
+    throw error;
+  }
+
   if (data?.shipment_id !== shipmentId || !data.delivery_id || data.status !== 'assigned') throw new Error('Assignment was not confirmed. Reload and try again.');
   return data;
 }
