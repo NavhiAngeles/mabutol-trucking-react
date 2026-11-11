@@ -98,7 +98,7 @@ export default function Landing() {
             </div>
             <div className="landing-brand-text">
               <span className="landing-brand-name">TANAW</span>
-              <span className="landing-brand-tag">NUEVA ECIJA LOGISTICS</span>
+              <span className="landing-brand-tag">MABUTOL TRUCKING</span>
             </div>
           </Link>
 
@@ -221,7 +221,7 @@ export default function Landing() {
                 <div className="preview-stat-card border-green">
                   <span className="stat-label">Active Shipments</span>
                   <strong className="stat-num text-green">1</strong>
-                  <span className="stat-note">En route to Bulacan</span>
+                  <span className="stat-note">All Active Shipments</span>
                 </div>
                 <div className="preview-stat-card border-red">
                   <span className="stat-label">Delayed Shipments</span>
