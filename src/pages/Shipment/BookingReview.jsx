@@ -1,30 +1,73 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchBookingRequest, reviewBookingRequest } from '../../services/shipmentService';
 import OfficeQuoteForm from './OfficeQuoteForm';
+import ShipmentEditDialog from './ShipmentEditDialog';
 import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
 import './deliveryWorkflow.css';
 
 const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
+const SafeShipmentEditDialog = typeof ShipmentEditDialog !== 'undefined' ? ShipmentEditDialog : () => null;
 
 const money = value => value == null ? 'Unavailable' : new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
 const departure = value => value && Number.isFinite(Date.parse(value))
   ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
 
+function estimateTravelDistance(lat1, lon1, lat2, lon2) {
+  const p1 = [Number(lat1), Number(lon1)];
+  const p2 = [Number(lat2), Number(lon2)];
+  if (!p1.every(Number.isFinite) || !p2.every(Number.isFinite)) return null;
+  if (p1[0] === 0 && p1[1] === 0 && p2[0] === 0 && p2[1] === 0) return null;
+  const rad = v => (v * Math.PI) / 180;
+  const dlat = rad(p2[0] - p1[0]);
+  const dlon = rad(p2[1] - p1[1]);
+  const a = Math.sin(dlat / 2) ** 2 + Math.cos(rad(p1[0])) * Math.cos(rad(p2[0])) * Math.sin(dlon / 2) ** 2;
+  const straightKm = 6371 * 2 * Math.asin(Math.sqrt(Math.min(1, a)));
+  const roadKm = Math.round(straightKm * 1.11 * 10) / 10;
+  return roadKm > 0 ? roadKm : null;
+}
+
+function computeEstimatedCharge({ km, rate, minimumFee, handlingSurcharges, specialHandling }) {
+  if (!km || !(km > 0) || !rate || rate.per_km_rate == null) return null;
+  const perKm = Number(rate.per_km_rate) || 0;
+  const minCharge = Number(rate.min_charge) || 0;
+  const minFee = Number(minimumFee) || 0;
+  const handlingMap = {
+    'None': 'none',
+    'Fragile': 'fragile',
+    'Keep Dry': 'keepdry',
+    'Temperature Sensitive': 'temp',
+    'Perishable': 'perishable',
+    'Cold Chain (Refrigerated)': 'cold',
+  };
+  const key = handlingMap[specialHandling] || 'none';
+  const surcharge = Number(handlingSurcharges?.[key]) || 0;
+  const base = Math.max(km * perKm, minCharge, minFee);
+  const handling = key === 'cold' ? surcharge * km : surcharge;
+  return Math.round((base + handling) * 100) / 100;
+}
+
 export default function BookingReview({ shipment, onClose, onReviewed }) {
   const [request, setRequest] = useState(null);
+  const [calculatedRoute, setCalculatedRoute] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [reason, setReason] = useState('');
   const [revision, setRevision] = useState(0);
   const [needsReload, setNeedsReload] = useState(false);
+  const [editingDeparture, setEditingDeparture] = useState(false);
+  const [isPastDeparture, setIsPastDeparture] = useState(false);
   const busy = useRef(false);
   const dialog = useRef(null);
 
   useEffect(() => {
     let active = true;
     fetchBookingRequest(shipment.dbId).then(data => {
-      if (active) { setRequest(data); setNeedsReload(false); }
+      if (active) {
+        setRequest(data);
+        setIsPastDeparture(Boolean(data?.scheduled_departure && Number.isFinite(Date.parse(data.scheduled_departure)) && Date.parse(data.scheduled_departure) <= Date.now()));
+        setNeedsReload(false);
+      }
     }).catch(err => { if (active) setError(err.message || 'Could not load request.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -40,7 +83,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
     };
   }, []);
 
-  const reload = () => { setLoading(true); setRequest(null); setError(''); setRevision(value => value + 1); };
+  const reload = () => { setLoading(true); setRequest(null); setCalculatedRoute(null); setError(''); setRevision(value => value + 1); };
   const decide = async decision => {
     if (busy.current || !request || needsReload) return;
     busy.current = true; setSaving(true); setError('');
@@ -71,6 +114,20 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
       first.focus();
     }
   };
+
+  const estimatedKm = request
+    ? estimateTravelDistance(request.pickup_lat, request.pickup_lng, request.dropoff_lat, request.dropoff_lng)
+    : null;
+  const effectiveKm = request?.distance_km ?? calculatedRoute?.distance_km ?? estimatedKm;
+  const estimatedQuote = request
+    ? computeEstimatedCharge({
+        km: effectiveKm,
+        rate: request.pricing_rate,
+        minimumFee: request.minimum_booking_fee,
+        handlingSurcharges: request.handling_surcharges,
+        specialHandling: request.special_handling,
+      })
+    : null;
 
   return <div className="booking-review-backdrop">
     <div className="booking-review-dialog shipment-details-dialog booking-review-modal" ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="booking-review-title" aria-busy={saving} onKeyDown={onKeyDown}>
@@ -151,12 +208,46 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
               </div>
               <div>
                 <dt>Distance</dt>
-                <dd>{request.distance_km ?? 'Unavailable'} km</dd>
+                <dd>
+                  {request.distance_km != null ? (
+                    <span>{request.distance_km} km</span>
+                  ) : calculatedRoute?.distance_km != null ? (
+                    <span className="booking-review-estimated-distance">
+                      <strong>{calculatedRoute.distance_km} km</strong>
+                      <span className="booking-review-tag-badge">(Calculated road route)</span>
+                    </span>
+                  ) : estimatedKm != null ? (
+                    <span className="booking-review-estimated-distance">
+                      <strong>~{estimatedKm} km</strong>
+                      <span className="booking-review-tag-badge">(Estimated travel distance)</span>
+                    </span>
+                  ) : (
+                    <span>Unavailable</span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Departure (Philippines)</dt>
-                <dd>{departure(request.scheduled_departure)}</dd>
+                <dd className={isPastDeparture ? "booking-review-overdue-departure" : undefined}>
+                  <span>{departure(request.scheduled_departure)}</span>
+                  {isPastDeparture && (
+                    <span className="overdue-departure-tag" title="Departure date/time is in the past">
+                      ⚠️ Past date
+                    </span>
+                  )}
+                </dd>
               </div>
+              {isPastDeparture && (
+                <div className="shipment-field-full">
+                  <button
+                    type="button"
+                    className="btn-update-departure"
+                    onClick={() => setEditingDeparture(true)}
+                  >
+                    <span>Update departure date & time</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -172,11 +263,40 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
             <div className="shipment-card-fields">
               <div>
                 <dt>Quoted charge</dt>
-                <dd className="shipment-money-val">{money(request.quoted_amount)}</dd>
+                <dd className="shipment-money-val">
+                  {request.quoted_amount != null ? (
+                    money(request.quoted_amount)
+                  ) : estimatedQuote != null ? (
+                    <span className="booking-review-estimated-price">
+                      <span>~{money(estimatedQuote)}</span>
+                      <span className="booking-review-tag-badge">(Estimated from rate)</span>
+                    </span>
+                  ) : (
+                    <span className="booking-review-pending-quote">
+                      Pending route quotation
+                      <small className="booking-review-quote-sub">Save calculated quotation below</small>
+                    </span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Accepted charge</dt>
-                <dd className="shipment-final-val">{money(request.override_amount ?? request.quoted_amount)}</dd>
+                <dd className="shipment-final-val">
+                  {request.override_amount != null ? (
+                    money(request.override_amount)
+                  ) : request.quoted_amount != null ? (
+                    money(request.quoted_amount)
+                  ) : estimatedQuote != null ? (
+                    <span className="booking-review-estimated-price">
+                      <span>~{money(estimatedQuote)}</span>
+                      <span className="booking-review-tag-badge">(Pending confirmation)</span>
+                    </span>
+                  ) : (
+                    <span className="booking-review-pending-quote">
+                      Pending route quotation
+                    </span>
+                  )}
+                </dd>
               </div>
               {request.override_amount != null && (
                 <div className="shipment-field-full">
@@ -188,7 +308,28 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
           </div>
         </dl>
 
-        <OfficeQuoteForm key={request.updated_at} request={request} onQuoted={reload} disabled={saving || needsReload} />
+        <OfficeQuoteForm
+          key={request.updated_at}
+          request={request}
+          onQuoted={reload}
+          onRouteCalculated={setCalculatedRoute}
+          onEditDeparture={() => setEditingDeparture(true)}
+          disabled={saving || needsReload}
+        />
+
+        {(request.quoted_amount == null || !(request.distance_km > 0)) && (
+          <div className="booking-review-warning-notice" role="status">
+            <span aria-hidden="true" style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>⚠️</span>
+            <div className="booking-review-warning-body">
+              <strong className="booking-review-warning-title">Quotation required before approval</strong>
+              <p>
+                {isPastDeparture
+                  ? 'The scheduled departure for this booking is in the past. Deliveries cannot be quoted or approved for past departures. Click "Update departure date & time" above to set a future date first.'
+                  : 'This booking has no saved distance or quotation yet. Confirm the coordinates, click "Calculate provider route", and then click "Save calculated quotation" above. Once saved, the "Approve request" button will become active.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="booking-review-notice">
           <p>Approval accepts this charge and attempts to assign an available driver and matching truck. Without availability, the approved booking waits for assignment.</p>
@@ -211,8 +352,26 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
         <button type="button" className="btn-secondary" disabled={saving} onClick={onClose}>Close</button>
         <button type="button" className="btn-secondary" disabled={saving || loading} onClick={reload}>Reload request</button>
         <button type="button" className="btn-danger" disabled={saving || loading || !request || needsReload || !reason.trim()} onClick={() => decide('reject')}>Reject request</button>
-        <button type="button" className="btn-primary" disabled={saving || loading || !request || needsReload || request.quoted_amount==null || !(request.distance_km>0)} onClick={() => decide('approve')}>{saving ? 'Saving decision…' : 'Approve request'}</button>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={saving || loading || !request || needsReload || request.quoted_amount==null || !(request.distance_km>0)}
+          title={request && (request.quoted_amount == null || !(request.distance_km > 0)) ? "Save a calculated quotation above to enable approval" : undefined}
+          onClick={() => decide('approve')}
+        >
+          {saving ? 'Saving decision…' : 'Approve request'}
+        </button>
       </div>
+      {editingDeparture && (
+        <SafeShipmentEditDialog
+          shipment={shipment}
+          onClose={() => setEditingDeparture(false)}
+          onSaved={async () => {
+            setEditingDeparture(false);
+            reload();
+          }}
+        />
+      )}
     </div>
   </div>;
 }

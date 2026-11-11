@@ -1027,6 +1027,182 @@
 .shipment-edit-grid input,.shipment-edit-grid select,.shipment-edit-grid textarea { width:100%; box-sizing:border-box; }
 .shipment-edit-wide { grid-column:1/-1; }
 @media (max-width:640px){.shipment-edit-grid{grid-template-columns:1fr}.shipment-edit-wide{grid-column:auto}}
+
+/* =============================================================================
+   SHIPMENT EDIT DIALOG & FORM STYLING
+   ============================================================================= */
+.shipment-edit-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shipment-edit-success-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #065F46;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.shipment-edit-success-msg i {
+  font-size: 16px;
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+.shipment-edit-policy-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.shipment-edit-policy-banner.is-locked {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.shipment-edit-policy-banner.is-editable {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1E40AF;
+}
+
+.shipment-edit-policy-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.shipment-edit-policy-banner.is-locked .shipment-edit-policy-icon {
+  color: #D97706;
+}
+
+.shipment-edit-policy-banner.is-editable .shipment-edit-policy-icon {
+  color: #2563EB;
+}
+
+.shipment-edit-policy-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shipment-edit-policy-body strong {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.shipment-edit-policy-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.shipment-edit-policy-subtext {
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+.shipment-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shipment-edit-field > span {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.shipment-edit-input,
+.shipment-edit-select,
+.shipment-edit-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  color: #0F172A;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shipment-edit-input:focus,
+.shipment-edit-select:focus,
+.shipment-edit-textarea:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.shipment-edit-textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.shipment-edit-schedule-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 540px) {
+  .shipment-edit-schedule-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shipment-edit-readonly-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.shipment-edit-field-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748B;
+}
+
+.shipment-edit-field-val {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0F172A;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.shipment-edit-address-val {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1E293B;
+  line-height: 1.45;
+  word-break: break-word;
+}
 .booking-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 20px; }
 .booking-review-actions button { min-height: 40px; cursor: pointer; }
 .booking-review-actions button:disabled { cursor: not-allowed; opacity: .6; }
@@ -1430,6 +1606,124 @@
   font-size: 13px;
   line-height: 1.5;
   margin-top: 18px;
+}
+
+.booking-review-warning-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  color: #92400E;
+  margin-top: 16px;
+}
+
+.booking-review-warning-notice .booking-review-warning-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-review-warning-notice .booking-review-warning-title {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #78350F;
+  margin-bottom: 4px;
+}
+
+.booking-review-warning-notice p {
+  margin: 0;
+  color: #92400E;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.booking-review-warning-notice p strong {
+  display: inline !important;
+  font-weight: 700;
+  color: #78350F;
+}
+
+.booking-review-overdue-departure {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.overdue-departure-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  border-radius: 4px;
+  color: #991B1B;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.btn-update-departure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 6px;
+  color: #1D4ED8;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-update-departure:hover {
+  background: #DBEAFE;
+  border-color: #93C5FD;
+}
+
+.booking-review-estimated-distance,
+.booking-review-estimated-price {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.booking-review-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 4px;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.booking-review-pending-quote {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #64748B;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.booking-review-quote-sub {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 400;
 }
 
 .booking-review-notice p {

@@ -28,17 +28,47 @@ export async function fetchShipmentDetails(id) {
 
 export async function fetchBookingRequest(id) {
   let { data, error } = await supabase.from('shipments')
-    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
+    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,requested_vehicle_type_id,vehicle:vehicle_types(name)')
     .eq('id', id).single();
   if (error && (error.code === '42703' || String(error.message || '').includes('does not exist'))) {
     const fallback = await supabase.from('shipments')
-      .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
+      .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,requested_vehicle_type_id,vehicle:vehicle_types(name)')
       .eq('id', id).single();
     data = fallback.data;
     error = fallback.error;
   }
   if (error) throw error;
   if (data?.status !== 'pending') throw new Error('This request is no longer pending. Close and refresh the list.');
+
+  if (data && data.quoted_amount == null && data.requested_vehicle_type_id) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const [rateRes, settingsRes] = await Promise.all([
+        supabase.from('pricing_rates')
+          .select('per_km_rate, min_charge')
+          .eq('vehicle_type_id', data.requested_vehicle_type_id)
+          .eq('is_active', true)
+          .lte('effective_from', today)
+          .order('effective_from', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase.from('system_settings')
+          .select('key, value')
+          .in('key', ['minimum_booking_fee', 'handling_surcharges']),
+      ]);
+      if (rateRes?.data) {
+        data.pricing_rate = rateRes.data;
+      }
+      if (settingsRes?.data) {
+        const settingsMap = Object.fromEntries(settingsRes.data.map(item => [item.key, item.value]));
+        data.minimum_booking_fee = settingsMap.minimum_booking_fee;
+        data.handling_surcharges = settingsMap.handling_surcharges;
+      }
+    } catch {
+      // Non-blocking fallback for offline environments or unit tests
+    }
+  }
+
   return data;
 }
 

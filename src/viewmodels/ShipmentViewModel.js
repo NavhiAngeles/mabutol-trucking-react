@@ -46,7 +46,6 @@ export const TAB_CONFIG = {
     description:
       "Historical record of safely fulfilled regional freight movements across the Nueva Ecija network.",
     filter: (s) => s.status === "completed",
-    hideBadge: true,
   },
   cancelled: {
     label: "Cancelled",
