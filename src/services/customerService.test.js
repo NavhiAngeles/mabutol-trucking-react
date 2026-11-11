@@ -444,3 +444,301 @@ test("createCustomer fallback path performs client-side duplicate verification b
   assert.equal(insertPayload.is_active, true);
 });
 
+test("createCustomer validates password requirements when mobile account credentials are provided", async () => {
+  const api = createCustomerMock();
+
+  // Short password rejected
+  await assert.rejects(
+    api.createCustomer({
+      name: "Acme Mobile Customer",
+      email: "acme@mobile.test",
+      password: "short",
+    }),
+    /at least 8 characters/
+  );
+
+  // Mismatched passwords rejected
+  await assert.rejects(
+    api.createCustomer({
+      name: "Acme Mobile Customer",
+      email: "acme@mobile.test",
+      password: "validpassword123",
+      confirmPassword: "differentpassword",
+    }),
+    /Passwords do not match/
+  );
+
+  // Missing email with password rejected
+  await assert.rejects(
+    api.createCustomer({
+      name: "Acme Mobile Customer",
+      email: "",
+      password: "validpassword123",
+      confirmPassword: "validpassword123",
+    }),
+    /Email address is required/
+  );
+});
+
+test("createCustomer invokes create-customer-user Edge Function when password is provided", async () => {
+  let invokedFn = null;
+  let invokedBody = null;
+
+  const context = {
+    supabase: {
+      functions: {
+        invoke: async (fn, { body }) => {
+          invokedFn = fn;
+          invokedBody = body;
+          return {
+            data: {
+              userId: "user-mobile-456",
+              customerId: "cust-mobile-789",
+              customerCode: "CUST-0099",
+              customer: {
+                id: "cust-mobile-789",
+                customer_code: "CUST-0099",
+                user_id: "user-mobile-456",
+                name: body.fullName,
+                email: body.email,
+                is_active: true,
+              },
+            },
+            error: null,
+          };
+        },
+      },
+    },
+  };
+
+  const scope = vm.createContext(context);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8")
+    .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={createCustomer,clearCustomerCache};", scope);
+
+  const res = await scope.api.createCustomer({
+    name: "Juan Mobile Client",
+    email: "juan@customer.ph",
+    phone: "0917-555-1234",
+    password: "Password123!",
+    confirmPassword: "Password123!",
+  });
+
+  assert.equal(invokedFn, "create-customer-user");
+  assert.equal(invokedBody.email, "juan@customer.ph");
+  assert.equal(invokedBody.fullName, "Juan Mobile Client");
+  assert.equal(invokedBody.password, "Password123!");
+  assert.equal(res.id, "cust-mobile-789");
+  assert.equal(res.user_id, "user-mobile-456");
+});
+
+test("createCustomer falls back to direct auth signup and links user_id when edge function is not deployed", async () => {
+  let signedUpPayload = null;
+  let customerUpdated = null;
+  let rpcConfirmed = null;
+
+  const mockCustomer = {
+    id: "cust-direct-101",
+    customer_code: "CUST-0101",
+    user_id: null,
+    name: "Maria Santos",
+    email: "maria@customer.ph",
+    phone: "0918-123-4567",
+    is_active: true,
+  };
+
+  const context = {
+    supabase: {
+      supabaseUrl: "https://mock.supabase.co",
+      supabaseKey: "mock-key",
+      functions: {
+        invoke: async () => ({
+          data: null,
+          error: { status: 404, message: "Function not found" },
+        }),
+      },
+      auth: {
+        signUp: async ({ email, password, options }) => {
+          signedUpPayload = { email, password, options };
+          return {
+            data: {
+              user: {
+                id: "auth-user-maria-999",
+                email,
+                identities: [{ id: "maria-identity" }],
+              },
+            },
+            error: null,
+          };
+        },
+      },
+      from: (table) => {
+        if (table === "customers") {
+          return {
+            select: () => ({
+              or: () => ({
+                limit: async () => ({
+                  data: [mockCustomer],
+                  error: null,
+                }),
+              }),
+            }),
+            update: (payload) => {
+              customerUpdated = payload;
+              return {
+                eq: () => ({
+                  select: () => ({
+                    single: async () => ({
+                      data: { ...mockCustomer, ...payload },
+                      error: null,
+                    }),
+                  }),
+                }),
+              };
+            },
+          };
+        }
+        return {};
+      },
+      rpc: async (fn, params) => {
+        if (fn === "office_confirm_customer_user") {
+          rpcConfirmed = params;
+          return { data: true, error: null };
+        }
+        return { data: null, error: null };
+      },
+    },
+  };
+
+  const scope = vm.createContext(context);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8")
+    .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={createCustomer,clearCustomerCache};", scope);
+
+  const res = await scope.api.createCustomer({
+    name: "Maria Santos",
+    email: "maria@customer.ph",
+    phone: "0918-123-4567",
+    password: "Password123!",
+    confirmPassword: "Password123!",
+  });
+
+  assert.equal(signedUpPayload.email, "maria@customer.ph");
+  assert.equal(signedUpPayload.password, "Password123!");
+  assert.equal(customerUpdated.user_id, "auth-user-maria-999");
+  assert.equal(rpcConfirmed.p_user_id, "auth-user-maria-999");
+  assert.equal(res.user_id, "auth-user-maria-999");
+});
+
+test("createCustomer rejects and alerts when direct auth reports duplicate email", async () => {
+  const context = {
+    supabase: {
+      supabaseUrl: "https://mock.supabase.co",
+      supabaseKey: "mock-key",
+      functions: {
+        invoke: async () => ({
+          data: null,
+          error: { status: 404, message: "Function not found" },
+        }),
+      },
+      auth: {
+        signUp: async () => ({
+          data: { user: null },
+          error: { message: "User already registered" },
+        }),
+      },
+    },
+  };
+
+  const scope = vm.createContext(context);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8")
+    .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={createCustomer,clearCustomerCache};", scope);
+
+  await assert.rejects(
+    scope.api.createCustomer({
+      name: "Existing Client",
+      email: "already@exists.com",
+      password: "Password123!",
+      confirmPassword: "Password123!",
+    }),
+    /already exists/
+  );
+});
+
+test("updateCustomer provisions mobile auth user and links user_id when password is provided", async () => {
+  let updatedPayload = null;
+  let signedUpEmail = null;
+
+  const existingCustomer = {
+    id: "cust-edit-1",
+    user_id: null,
+    name: "Pedro Penduko",
+    email: "pedro@test.com",
+    phone: "0917-111-2222",
+    updated_at: "2026-11-10T10:00:00Z",
+  };
+
+  const context = {
+    supabase: {
+      supabaseUrl: "https://mock.supabase.co",
+      supabaseKey: "mock-key",
+      functions: {
+        invoke: async () => ({
+          data: null,
+          error: { status: 404, message: "Function not found" },
+        }),
+      },
+      auth: {
+        signUp: async ({ email }) => {
+          signedUpEmail = email;
+          return {
+            data: { user: { id: "auth-pedro-777", identities: [{ id: "1" }] } },
+            error: null,
+          };
+        },
+      },
+      from: (table) => {
+        if (table === "customers") {
+          return {
+            update: (payload) => {
+              updatedPayload = payload;
+              return {
+                eq: () => ({
+                  eq: () => ({
+                    select: () => ({
+                      maybeSingle: async () => ({
+                        data: { ...existingCustomer, ...payload },
+                        error: null,
+                      }),
+                    }),
+                  }),
+                }),
+              };
+            },
+          };
+        }
+        return {};
+      },
+      rpc: async () => ({ data: true, error: null }),
+    },
+  };
+
+  const scope = vm.createContext(context);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8")
+    .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={updateCustomer,customerEditValues};", scope);
+
+  const res = await scope.api.updateCustomer(existingCustomer, {
+    name: "Pedro Penduko",
+    email: "pedro@test.com",
+    phone: "0917-111-2222",
+    password: "NewPassword123!",
+    confirmPassword: "NewPassword123!",
+  });
+
+  assert.equal(signedUpEmail, "pedro@test.com");
+  assert.equal(updatedPayload.user_id, "auth-pedro-777");
+  assert.equal(res.user_id, "auth-pedro-777");
+});
+

@@ -163,3 +163,66 @@ test("CustomerAddDialog displays duplicate or validation errors and retains ente
   assert.equal(ui.saved.length, 0);
 });
 
+test("CustomerAddDialog supports enabling mobile application credentials and validates passwords", async () => {
+  let submittedPayload = null;
+  const ui = await fixture(async (payload) => {
+    submittedPayload = payload;
+    return { id: "c-mobile-1", name: payload.name, user_id: "user-auth-1" };
+  });
+
+  let tree = ui.render();
+  const nameInput = find(tree, "input").find(i => i.props.name === "name");
+  const emailInput = find(tree, "input").find(i => i.props.name === "email");
+  nameInput.props.onChange({ target: { value: "Mobile Customer Inc" } });
+  emailInput.props.onChange({ target: { value: "app@mobilecustomer.ph" } });
+  tree = ui.render();
+
+  // Click "+ Enable Mobile Access"
+  const toggleBtn = find(tree, "button").find(b => b.children && b.children.some(c => typeof c === "object" && c.children && c.children.includes("+ Enable Mobile Access")));
+  assert.ok(toggleBtn, "Must find + Enable Mobile Access button");
+  toggleBtn.props.onClick();
+  tree = ui.render();
+
+  // Now password inputs exist
+  const pwdInputs = find(tree, "input").filter(i => i.props.name === "password" || i.props.name === "confirmPassword");
+  assert.equal(pwdInputs.length, 2, "Must render password and confirmPassword inputs");
+
+  // Submitting with empty password shows validation error
+  await find(tree, "form")[0].props.onSubmit(event());
+  tree = ui.render();
+  let alert = find(tree, "div").find(d => d.props.role === "alert");
+  assert.ok(alert);
+  assert.match(JSON.stringify(alert), /temporary password/i);
+
+  // Submitting with short password shows validation error
+  find(tree, "input").find(i => i.props.name === "password").props.onChange({ target: { value: "123" } });
+  find(tree, "input").find(i => i.props.name === "confirmPassword").props.onChange({ target: { value: "123" } });
+  tree = ui.render();
+  await find(tree, "form")[0].props.onSubmit(event());
+  tree = ui.render();
+  alert = find(tree, "div").find(d => d.props.role === "alert");
+  assert.match(JSON.stringify(alert), /at least 8 characters/i);
+
+  // Submitting with mismatched password shows validation error
+  find(tree, "input").find(i => i.props.name === "password").props.onChange({ target: { value: "SecurePass123" } });
+  find(tree, "input").find(i => i.props.name === "confirmPassword").props.onChange({ target: { value: "MismatchedPass123" } });
+  tree = ui.render();
+  await find(tree, "form")[0].props.onSubmit(event());
+  tree = ui.render();
+  alert = find(tree, "div").find(d => d.props.role === "alert");
+  assert.match(JSON.stringify(alert), /passwords do not match/i);
+
+  // Submitting with matching valid password succeeds
+  find(tree, "input").find(i => i.props.name === "confirmPassword").props.onChange({ target: { value: "SecurePass123" } });
+  tree = ui.render();
+  await find(tree, "form")[0].props.onSubmit(event());
+  ui.render();
+
+  assert.equal(submittedPayload.name, "Mobile Customer Inc");
+  assert.equal(submittedPayload.email, "app@mobilecustomer.ph");
+  assert.equal(submittedPayload.password, "SecurePass123");
+  assert.equal(submittedPayload.confirmPassword, "SecurePass123");
+  assert.equal(ui.saved.length, 1);
+  assert.equal(ui.saved[0].user_id, "user-auth-1");
+});
+

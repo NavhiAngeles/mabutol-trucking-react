@@ -17,11 +17,17 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
   const locked = useRef(false);
   const alive = useRef(true);
   const [values, setValues] = useState(initialValues);
+  const [createMobileAccount, setCreateMobileAccount] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [showDiscard, setShowDiscard] = useState(false);
 
-  const dirty = Object.values(values).some((val) => val.trim() !== "");
+  const dirty = Object.values(values).some((val) => val.trim() !== "") ||
+    createMobileAccount || Boolean(password.trim());
 
   useEffect(() => {
     alive.current = true;
@@ -57,12 +63,36 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
   async function submit(event) {
     event.preventDefault();
     if (locked.current) return;
-    locked.current = true;
-    setSaving(true);
     setError("");
 
+    if (createMobileAccount) {
+      if (!values.email.trim()) {
+        setError("Contact Email is required to create a mobile application account.");
+        return;
+      }
+      if (!password) {
+        setError("Please enter a temporary password for the mobile account.");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError("Passwords do not match. Please re-enter the confirmation password.");
+        return;
+      }
+    }
+
+    locked.current = true;
+    setSaving(true);
+
     try {
-      const created = await createCustomer(values, { callerRole });
+      const payload = {
+        ...values,
+        ...(createMobileAccount ? { password, confirmPassword } : {}),
+      };
+      const created = await createCustomer(payload, { callerRole });
       if (alive.current) {
         onSaved(created);
       }
@@ -240,6 +270,97 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
                 onChange={handleChange("province")}
               />
             </div>
+          </div>
+
+          {/* Customer Mobile Application Account (Credentials) */}
+          <div className="customer-cred-box">
+            <div className="customer-cred-header">
+              <div className="customer-cred-header-info">
+                <div className="customer-cred-icon-badge" aria-hidden="true">
+                  <i className="las la-mobile-alt" />
+                </div>
+                <div>
+                  <h4 className="customer-cred-title">Customer Mobile Application Account</h4>
+                  <p className="customer-cred-subtitle">
+                    Create credentials so this customer can sign in to Tanaw Mobile to book and track shipments.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={`customer-cred-toggle-btn ${createMobileAccount ? "is-active" : ""}`}
+                disabled={saving}
+                onClick={() => setCreateMobileAccount(!createMobileAccount)}
+              >
+                <i className={`las ${createMobileAccount ? "la-check-circle" : "la-plus-circle"}`} />
+                <span>{createMobileAccount ? "Mobile Access Active" : "+ Enable Mobile Access"}</span>
+              </button>
+            </div>
+
+            {createMobileAccount && (
+              <div className="customer-cred-body">
+                <div className="customer-add-grid">
+                  <div className="customer-form-field">
+                    <label htmlFor="customer-add-password">
+                      Temporary Password <span className="field-required">*</span>
+                    </label>
+                    <div className="customer-password-input-wrap">
+                      <input
+                        id="customer-add-password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Min. 8 characters"
+                        disabled={saving}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="customer-pwd-toggle"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        tabIndex={-1}
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        <i className={`las ${showPassword ? "la-eye-slash" : "la-eye"}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="customer-form-field">
+                    <label htmlFor="customer-add-confirm-password">
+                      Confirm Password <span className="field-required">*</span>
+                    </label>
+                    <div className="customer-password-input-wrap">
+                      <input
+                        id="customer-add-confirm-password"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Repeat password"
+                        disabled={saving}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="customer-pwd-toggle"
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        tabIndex={-1}
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        <i className={`las ${showConfirmPassword ? "la-eye-slash" : "la-eye"}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="customer-cred-notice">
+                  <i className="las la-info-circle" />
+                  <span>
+                    The customer can sign in on Tanaw Mobile using either their contact email ({values.email ? `"${values.email}"` : "entered above"}) or contact number ({values.phone ? `"${values.phone}"` : "entered above"}).
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
