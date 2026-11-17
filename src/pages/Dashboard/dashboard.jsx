@@ -103,11 +103,10 @@ export default function Dashboard() {
       {/* Content */}
       <section className="content dashboard-page">
         <div className="header dashboard-intro">
-          <span className="dashboard-eyebrow">OPERATIONS CENTER</span>
-          <h2>Dashboard</h2>
+          <h1>Dashboard</h1>
           <p>
             Track live shipments, monitor driver activity, and manage
-            compliance — all in one place.
+            compliance, all in one place.
           </p>
         </div>
 
