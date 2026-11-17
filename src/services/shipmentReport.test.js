@@ -36,6 +36,30 @@ test('loader propagates query failures instead of showing invented zero totals',
   scope.fetchShipmentAssignments = async () => { throw new Error('Denied'); };
   await assert.rejects(scope.load(), /Denied/);
 });
+test('shipment report loader pushes Philippine date-bound filters when range is provided', async () => {
+  const source = fs.readFileSync(new URL('./shipmentReportService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  const filterCalls = [];
+  const scope = {
+    fetchShipmentAssignments: async () => [],
+    fetchOperationalRows: async (table, cols, filter) => {
+      if (filter && typeof filter === 'function') {
+        const query = {
+          gte(col, val) { filterCalls.push([table, 'gte', col, val]); return query; },
+          lte(col, val) { filterCalls.push([table, 'lte', col, val]); return query; },
+        };
+        filter(query);
+      }
+      return [];
+    },
+  };
+  vm.createContext(scope); vm.runInContext(source + '\nthis.load=getShipmentReportRecords;', scope);
+  const range = { start: '2026-10-01', end: '2026-10-15' };
+  await scope.load(range);
+  assert.deepEqual(filterCalls, [
+    ['shipments', 'gte', 'created_at', '2026-10-01T00:00:00+08:00'],
+    ['shipments', 'lte', 'created_at', '2026-10-15T23:59:59.999+08:00'],
+  ]);
+});
 test('ledger renders ten rows per page, filters/reset page, clamps after refresh, and exposes loading/error states', async () => {
   const { transformWithOxc } = await import('vite');
   const date = new Date().toISOString();
@@ -62,4 +86,44 @@ test('ledger renders ten rows per page, filters/reset page, clamps after refresh
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 1);
   assert.match(JSON.stringify(tree), /Showing the last loaded snapshot/);
   data.data.shipments = []; assert.match(JSON.stringify(render()), /No shipments match/);
+});
+
+test('shipment page exports CSV and PDF via split button', async () => {
+  const { transformWithOxc } = await import('vite');
+  let exportedArgs = null;
+  const data = { loading: false, data: { shipments: [], deliveries: [] }, error: null, refresh() {} };
+  const state = []; let index = 0;
+  const scope = {
+    ReportSchedule() {}, useLiveData: () => data, getShipmentReportRecords() {}, SHIPMENT_REPORT_TABLES: [], reportRange,
+    useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key),
+    downloadReport: (...args) => { exportedArgs = args; },
+    buildShipmentReport,
+    Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools',
+    useRef: () => ({ current: null }), useEffect() {},
+    useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) }
+  };
+  const path = new URL('../pages/Report/ShipmentReport/shipmentReport.jsx', import.meta.url);
+  const { code } = await transformWithOxc(fs.readFileSync(path, 'utf8'), path.pathname, { jsx: { runtime: 'classic' } });
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.Page=ShipmentReport;', scope);
+  const render = () => { index = 0; return scope.Page(); };
+  const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
+
+  // Primary CSV click
+  let tree = render();
+  const mainBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
+  mainBtn.props.onClick();
+  assert.equal(exportedArgs[0], 'Shipments');
+  assert.equal(exportedArgs[4], 'csv');
+
+  // Toggle dropdown
+  const toggleBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-toggle'));
+  toggleBtn.props.onClick();
+  tree = render();
+  const pdfItem = find(tree, 'button').find(b => b.children && b.children.includes('Export PDF'));
+  assert.ok(pdfItem, 'Export PDF button rendered in dropdown menu');
+  pdfItem.props.onClick();
+  assert.equal(exportedArgs[0], 'Shipments');
+  assert.equal(exportedArgs[4], 'pdf');
 });

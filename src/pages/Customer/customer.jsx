@@ -1,64 +1,106 @@
 import OfficeTools from "../../components/OfficeTools";
 import CustomerEditDialog from "./CustomerEditDialog";
+import CustomerStatusDialog from "./CustomerStatusDialog";
+import CustomerAddDialog from "./CustomerAddDialog";
 import { useAuth } from "../../context/AuthContext";
 import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
+import { downloadCustomerExport } from "../../services/customerExport";
+
+const PAGE_SIZE = 10;
 
 export default function Customer() {
   const { user, role } = useAuth();
   const canEdit = ["admin", "staff"].includes(role);
   const [editing, setEditing] = useState(null);
+  const [statusTarget, setStatusTarget] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
+
+  useEffect(() => {
+    if (!saveMessage) return;
+    const timer = setTimeout(() => {
+      setSaveMessage("");
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [saveMessage]);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
   const [historyCustomerId, setHistoryCustomerId] = useState(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const menuRef = useRef(null);
+  const exportMenuRef = useRef(null);
   const { customers: records, bookings, loading, error, refresh } = useCustomerDirectory({ includeBookings: true });
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sort, setSort] = useState("newest");
   const [todayOnly, setTodayOnly] = useState(false);
   const [requestedPage, setPage] = useState(1);
   const rows = useMemo(() => buildCustomerRows(records, bookings), [records, bookings]);
+  const rowMap = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
   const stats = useMemo(() => customerStatistics(rows), [rows]);
-  const filtered = useMemo(() => filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly }), [rows, query, statusFilter, sort, todayOnly]);
-  const pageCount = Math.max(1, Math.ceil(filtered.length / 6));
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const activeSearchQuery = query === "" ? "" : debouncedQuery;
+  const filtered = useMemo(() => filterCustomerRows(rows, { query: activeSearchQuery, status: statusFilter, sort, todayOnly }), [rows, activeSearchQuery, statusFilter, sort, todayOnly]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount);
-  const customers = filtered.slice((page - 1) * 6, page * 6);
-  const profileModal = rows.find(row => row.id === profileCustomerId) || null;
-  const bookingHistoryModal = rows.find(row => row.id === historyCustomerId) || null;
+  const customers = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
+  const profileModal = profileCustomerId ? rowMap.get(profileCustomerId) || null : null;
+  const bookingHistoryModal = historyCustomerId ? rowMap.get(historyCustomerId) || null : null;
   const setProfileModal = customer => setProfileCustomerId(customer?.id || null);
   const setBookingHistoryModal = customer => setHistoryCustomerId(customer?.id || null);
-  const changeSearch = value => { setQuery(value); setPage(1); };
+  const changeSearch = value => {
+    setQuery(value);
+    setPage(1);
+    if (!value) setDebouncedQuery("");
+  };
   const countLabel = value => loading || error ? "—" : value;
-  const exportCustomers = () => {
-    const cell = value => {
-      const text = String(value ?? "");
-      const safe = /^[=+\-@\t\r]/.test(text.trimStart()) ? `'${text}` : text;
-      return `"${safe.replaceAll('"', '""')}"`;
-    };
-    const lines = [ ["Customer ID", "Name", "Email", "Phone", "Bookings", "Last booking", "Member since", "Status"],
-      ...filtered.map(row => [row.customer_code || row.id, row.name, row.email, row.phone, row.bookingCount, row.lastBooking, row.memberSince, row.status]),
-    ];
-    const url = URL.createObjectURL(new Blob(["\uFEFF" + lines.map(line => line.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url; link.download = "mabutol-customers.csv";
-    document.body.appendChild(link); link.click(); link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
+  const handleExport = (format = "csv") => {
+    setShowExportMenu(false);
+    const exportMatches = query && query !== activeSearchQuery
+      ? filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly })
+      : filtered;
+    if (!exportMatches.length) return;
+    downloadCustomerExport(exportMatches, format, {
+      query: activeSearchQuery,
+      status: statusFilter,
+      sort,
+      todayOnly,
+    });
   };
 
-
-  // Close dropdown on outside click
+  // Close dropdowns on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpenMenuId(null);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    }
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        setOpenMenuId(null);
+        setShowExportMenu(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // Lock body scroll when modal is open
@@ -85,23 +127,73 @@ export default function Customer() {
     <MainLayout>
       {/* Topbar */}
       <header className="topbar">
-        <div className="search-container">
-          <span className="icon">🔍</span>
-          <input type="text" placeholder="Search customers..." id="customerSearch" value={query} onChange={event => changeSearch(event.target.value)} />
-        </div>
         <div className="topbar-right">
           <OfficeTools />
         </div>
       </header>
 
       {/* Main Content */}
-      <section className="content">
+      <section className="content customer-page">
         <div className="content-header">
           <div>
             <h2 className="page-title">Customers</h2>
             <p className="page-subtitle">View and monitor registered customers.</p>
           </div>
-          <button className="btn-export" disabled={loading || Boolean(error) || !filtered.length} onClick={exportCustomers}>📥 Export</button>
+          <div className="customer-header-actions">
+            {canEdit && (
+              <button
+                type="button"
+                className="btn-add-customer"
+                onClick={() => setShowAddModal(true)}
+                title="Register a new billing customer"
+              >
+                <span aria-hidden="true">➕</span>
+                <span>Add Customer</span>
+              </button>
+            )}
+            <div className="customer-export-container" ref={exportMenuRef}>
+              <button
+                type="button"
+                className="btn-export"
+                disabled={loading || Boolean(error) || !filtered.length}
+                aria-haspopup="true"
+                aria-expanded={showExportMenu}
+                onClick={() => setShowExportMenu((open) => !open)}
+                title="Export customer list to CSV or PDF"
+              >
+                <span>📥 Export</span>
+                <span className={`export-chevron ${showExportMenu ? "open" : ""}`} aria-hidden="true">▾</span>
+              </button>
+              {showExportMenu && (
+                <div className="customer-export-menu" role="menu" aria-label="Export options">
+                  <button
+                    type="button"
+                    className="customer-export-menu-item"
+                    role="menuitem"
+                    onClick={() => handleExport("csv")}
+                  >
+                    <span className="export-menu-icon" aria-hidden="true">📊</span>
+                    <div className="export-menu-text">
+                      <span className="export-menu-title">Export as CSV</span>
+                      <span className="export-menu-desc">Spreadsheet data (.csv)</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="customer-export-menu-item"
+                    role="menuitem"
+                    onClick={() => handleExport("pdf")}
+                  >
+                    <span className="export-menu-icon" aria-hidden="true">📄</span>
+                    <div className="export-menu-text">
+                      <span className="export-menu-title">Export as PDF</span>
+                      <span className="export-menu-desc">Print-ready document (.pdf)</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="stats-container">
@@ -114,7 +206,7 @@ export default function Customer() {
         <div className="filter-action-bar">
           <div className="search-wrapper">
             <span className="search-icon">🔍</span>
-            <input type="text" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
+            <input type="text" id="customerSearch" aria-label="Search customers" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
           </div>
           <div className="filter-buttons">
             <button className="filter-btn" onClick={() => { setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : "newest"); setPage(1); }} title="Cycle newest, name, and booking count">SORT: {sort.toUpperCase()} <span className="btn-icon">≡</span></button>
@@ -126,7 +218,22 @@ export default function Customer() {
         </div>
 
         {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button className="filter-btn" onClick={refresh}>Retry</button></div>}
-        {saveMessage && <div className="customer-save-success" role="status">{saveMessage} <button type="button" className="filter-btn" onClick={() => setSaveMessage("")}>Dismiss</button></div>}
+        {saveMessage && (
+          <div className="customer-feedback-banner is-success" role="status" aria-live="polite">
+            <div className="customer-feedback-content">
+              <i className="las la-check-circle customer-feedback-icon" aria-hidden="true" />
+              <span>{saveMessage}</span>
+            </div>
+            <button
+              type="button"
+              className="customer-feedback-close"
+              aria-label="Dismiss notification"
+              onClick={() => setSaveMessage("")}
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div className="customer-table-card" aria-busy={loading}>
           <table className="customer-table">
             <thead>
@@ -184,9 +291,18 @@ export default function Customer() {
                           <button className="dropdown-item" onClick={() => handleViewBookingHistory(cust)}>
                             View Booking History
                           </button>
-                          <button className="dropdown-item danger" disabled title="Account suspension is not connected yet">
-                            Suspend Account
-                          </button>
+                          {canEdit && (
+                            <button
+                              className={`dropdown-item ${cust.is_active ? "danger" : ""}`}
+                              onClick={() => {
+                                const record = records.find(item => item.id === cust.id);
+                                if (record) { setStatusTarget(record); setSaveMessage(""); }
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              {cust.is_active ? "Suspend Account" : "Reactivate Account"}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -197,7 +313,7 @@ export default function Customer() {
           </table>
 
           <div className="table-pagination">
-            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * 6 + 1}–${Math.min(page * 6, filtered.length)}`} of {loading || error ? "—" : filtered.length} customers</span>
+            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {loading || error ? "—" : filtered.length} customers</span>
             <div className="pagination-controls">
               <button className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page">‹</button>
               {[...new Set([1, page - 1, page, page + 1, pageCount])].filter(number => number >= 1 && number <= pageCount).sort((a, b) => a - b).map(number => (
@@ -213,6 +329,31 @@ export default function Customer() {
       {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} onClose={() => setEditing(null)} onSaved={() => {
         setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
       }} />}
+      {canEdit && statusTarget && (
+        <CustomerStatusDialog
+          key={`status:${statusTarget.id}:${statusTarget.updated_at}`}
+          customer={statusTarget}
+          callerRole={role}
+          onClose={() => setStatusTarget(null)}
+          onConfirmed={(updated) => {
+            setStatusTarget(null);
+            const actionName = updated.is_active ? "reactivated" : "suspended";
+            setSaveMessage(`Customer account ${actionName} successfully.`);
+            void refresh();
+          }}
+        />
+      )}
+      {canEdit && showAddModal && (
+        <CustomerAddDialog
+          callerRole={role}
+          onClose={() => setShowAddModal(false)}
+          onSaved={(newCustomer) => {
+            setShowAddModal(false);
+            setSaveMessage(`Customer "${newCustomer.name}" (${newCustomer.customer_code || 'new'}) registered successfully.`);
+            void refresh();
+          }}
+        />
+      )}
       {profileModal && profile && (
         <div className="cp-backdrop" onClick={() => setProfileModal(null)}>
           <div className="cp-modal" onClick={(e) => e.stopPropagation()}>
@@ -285,10 +426,26 @@ export default function Customer() {
                       ● {profileModal.status === "ACTIVE" ? "Active" : "Suspended"}
                     </span>
                   </div>
-                  <button className="cp-suspend-btn" disabled title="Account suspension is not connected yet">
-                    🚫 Suspend Account
-                  </button>
-                  <p className="cp-suspend-hint">Account suspension is not connected yet.</p>
+                  {canEdit ? (
+                    <>
+                      <button
+                        className={`cp-suspend-btn ${profileModal.status === "ACTIVE" ? "" : "reactivate"}`}
+                        onClick={() => {
+                          const record = records.find(item => item.id === profileModal.id);
+                          if (record) { setStatusTarget(record); setSaveMessage(""); }
+                        }}
+                      >
+                        {profileModal.status === "ACTIVE" ? "🚫 Suspend Account" : "✓ Reactivate Account"}
+                      </button>
+                      <p className="cp-suspend-hint">
+                        {profileModal.status === "ACTIVE"
+                          ? "Deactivates customer access while preserving history."
+                          : "Restores customer access and booking privileges."}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="cp-suspend-hint">Only office staff can manage customer account status.</p>
+                  )}
                 </div>
 
               </div>

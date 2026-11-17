@@ -17,7 +17,7 @@ export async function fetchPricingData() {
     await Promise.all([
       supabase
         .from("vehicle_types")
-        .select("id, name, default_capacity_kg, is_active")
+        .select("id, name, default_capacity_kg, is_active, toll_class")
         .eq("is_active", true)
         .order("name"),
 

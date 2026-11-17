@@ -8,12 +8,18 @@ const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
 
 export async function fetchShipmentDetails(id) {
-  const [shipmentResult, deliveryResult] = await Promise.all([
+  const [initialShipmentResult, deliveryResult] = await Promise.all([
     supabase.from('shipments')
-      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
+      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
       .eq('id', id).single(),
     supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id),
   ]);
+  let shipmentResult = initialShipmentResult;
+  if (shipmentResult.error && (shipmentResult.error.code === '42703' || String(shipmentResult.error.message || '').includes('does not exist'))) {
+    shipmentResult = await supabase.from('shipments')
+      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
+      .eq('id', id).single();
+  }
   if (shipmentResult.error) throw shipmentResult.error;
   if (deliveryResult.error) throw deliveryResult.error;
   if (!shipmentResult.data?.id) throw new Error('Shipment not found or access denied.');
@@ -21,11 +27,48 @@ export async function fetchShipmentDetails(id) {
 }
 
 export async function fetchBookingRequest(id) {
-  const { data, error } = await supabase.from('shipments')
-    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,vehicle:vehicle_types(name)')
+  let { data, error } = await supabase.from('shipments')
+    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,requested_vehicle_type_id,vehicle:vehicle_types(name)')
     .eq('id', id).single();
+  if (error && (error.code === '42703' || String(error.message || '').includes('does not exist'))) {
+    const fallback = await supabase.from('shipments')
+      .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,requested_vehicle_type_id,vehicle:vehicle_types(name)')
+      .eq('id', id).single();
+    data = fallback.data;
+    error = fallback.error;
+  }
   if (error) throw error;
   if (data?.status !== 'pending') throw new Error('This request is no longer pending. Close and refresh the list.');
+
+  if (data && data.quoted_amount == null && data.requested_vehicle_type_id) {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const [rateRes, settingsRes] = await Promise.all([
+        supabase.from('pricing_rates')
+          .select('per_km_rate, min_charge')
+          .eq('vehicle_type_id', data.requested_vehicle_type_id)
+          .eq('is_active', true)
+          .lte('effective_from', today)
+          .order('effective_from', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase.from('system_settings')
+          .select('key, value')
+          .in('key', ['minimum_booking_fee', 'handling_surcharges']),
+      ]);
+      if (rateRes?.data) {
+        data.pricing_rate = rateRes.data;
+      }
+      if (settingsRes?.data) {
+        const settingsMap = Object.fromEntries(settingsRes.data.map(item => [item.key, item.value]));
+        data.minimum_booking_fee = settingsMap.minimum_booking_fee;
+        data.handling_surcharges = settingsMap.handling_surcharges;
+      }
+    } catch {
+      // Non-blocking fallback for offline environments or unit tests
+    }
+  }
+
   return data;
 }
 
@@ -51,7 +94,25 @@ export async function assignShipmentResources(shipmentId) {
 
 // A read failure after a successful insert must never invite a duplicate booking.
 export async function createShipment(payload) {
-  const { data, error } = await supabase.from('shipments').insert(payload).select().single();
+  let currentPayload = { ...payload };
+  let { data, error } = await supabase.from('shipments').insert(currentPayload).select().single();
+
+  // Gracefully handle schema cache mismatches when optional columns are missing in remote schema cache
+  while (error) {
+    const match = String(error.message || '').match(/Could not find the '(\w+)' column of 'shipments' in the schema cache/i)
+      || String(error.message || '').match(/column ["']?(\w+)["']? of relation ["']?shipments["']? does not exist/i)
+      || String(error.details || '').match(/column ["']?(\w+)["']? of relation ["']?shipments["']? does not exist/i);
+    const missingColumn = match?.[1];
+    if (missingColumn && missingColumn in currentPayload) {
+      delete currentPayload[missingColumn];
+      const retryResult = await supabase.from('shipments').insert(currentPayload).select().single();
+      data = retryResult.data;
+      error = retryResult.error;
+    } else {
+      break;
+    }
+  }
+
   if (error) throw error;
   try {
     const result = await supabase.from('deliveries').select(ASSIGNMENT_COLUMNS)
@@ -294,8 +355,7 @@ export function mapShipmentRow(row) {
 
     actualAt,
 
-    flaggedAt:
-      updatedAt ?? new Date(),
+    flaggedAt: updatedAt,
 
     delayMinutes,
   };
@@ -308,7 +368,7 @@ export function mapShipmentRow(row) {
     const onTime =
       actualAt && scheduledAt
         ? actualAt <= scheduledAt
-        : true;
+        : null;
 
     return {
       ...baseShipment,
@@ -320,7 +380,7 @@ export function mapShipmentRow(row) {
         formatDayTime(actualAt),
 
       deliveryStatus:
-        onTime ? "ON TIME" : "LATE",
+        onTime === null ? "UNKNOWN" : onTime ? "ON TIME" : "LATE",
     };
   }
 
@@ -362,6 +422,12 @@ export function mapShipmentRow(row) {
     etaNoteClass = "text-danger-accent";
   }
 
+  if (rawStatus === "pending") {
+    eta = formatDayTime(updatedAt);
+    etaNote = "Pending review";
+    etaNoteClass = "text-warning-amber";
+  }
+
   return {
     ...baseShipment,
     eta,
@@ -381,23 +447,20 @@ export async function fetchShipments() {
     );
 
     const [data, deliveries] = await Promise.all([
-      fetchOperationalRows('shipments', '*'), fetchShipmentAssignments(),
+      fetchOperationalRows('shipments', '*,customer:customers!customer_id(name)'), fetchShipmentAssignments(),
     ]);
     const error = null;
 
     if (error) {
-      console.error(
-        "Supabase shipment error:",
-        error
-      );
+      console.error("Supabase shipment error:", {
+        code: error?.code || "DB_ERROR",
+        message: error?.message || "Operation failed",
+      });
 
       throw error;
     }
 
-    console.log(
-      "Raw shipment data:",
-      data
-    );
+    console.log("Fetched shipments count:", (data ?? []).length);
 
     const mappedShipments = (
       (data ?? []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
@@ -405,17 +468,14 @@ export async function fetchShipments() {
       assignment: deliveries.find(d => d.shipment_id === row.id && d.status !== 'cancelled'),
       pendingDispatch: pendingDeparture(row, deliveries) }));
 
-    console.log(
-      "Mapped shipments:",
-      mappedShipments
-    );
+    console.log("Mapped shipments count:", mappedShipments.length);
 
     return mappedShipments;
   } catch (error) {
-    console.error(
-      "Failed to fetch shipments:",
-      error
-    );
+    console.error("Failed to fetch shipments:", {
+      name: error?.name,
+      message: error?.message || "Operation failed",
+    });
 
     throw error;
   }
@@ -452,10 +512,10 @@ export async function fetchWeeklyTripCount() {
       );
 
     if (error) {
-      console.error(
-        "Weekly trip count error:",
-        error
-      );
+      console.error("Weekly trip count error:", {
+        code: error?.code || "DB_ERROR",
+        message: error?.message || "Failed to count weekly trips.",
+      });
 
       // Do not prevent the shipment table
       // from loading if this count fails.
@@ -464,10 +524,10 @@ export async function fetchWeeklyTripCount() {
 
     return Number.isInteger(count) && count >= 0 ? count : null;
   } catch (error) {
-    console.error(
-      "Failed to fetch weekly trips:",
-      error
-    );
+    console.error("Failed to fetch weekly trips:", {
+      name: error?.name,
+      message: error?.message || "Failed to fetch weekly trips.",
+    });
 
     return null;
   }

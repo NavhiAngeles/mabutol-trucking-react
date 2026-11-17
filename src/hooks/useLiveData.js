@@ -4,7 +4,7 @@ import { supabase } from '../services/supabaseClient';
 // Keep the loader and table list stable. Reconnect, focus and polling recover missed events.
 let sequence = 0;
 export function useLiveData(loader, tables) {
-  const [state, setState] = useState({ data: null, loading: true, error: null });
+  const [state, setState] = useState({ data: null, loading: true, error: null, lastUpdated: null });
   const refreshRef = useRef(() => {});
   const refresh = useCallback(() => refreshRef.current(), []);
   useEffect(() => {
@@ -15,7 +15,7 @@ export function useLiveData(loader, tables) {
       running = true;
       try {
         const data = await loader();
-        if (!disposed) setState({ data, loading: false, error: null });
+        if (!disposed) setState({ data, loading: false, error: null, lastUpdated: Date.now() });
       } catch (error) {
         if (!disposed) setState(previous => ({ ...previous, loading: false, error }));
       } finally {

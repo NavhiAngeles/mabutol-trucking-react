@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
+import OfficeHelpDialog from "./OfficeHelpDialog";
 
-export default function Sidebar() {
+export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClose }) {
   const navigate = useNavigate();
   const { clearAuth } = useAuth();
   const logoutInFlight = useRef(false);
@@ -12,29 +13,42 @@ export default function Sidebar() {
   const [logoutError, setLogoutError] = useState("");
   const location = useLocation();
 
-  const [reportsOpen, setReportsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const handleNav = (path) => {
+    navigate(path);
+    if (typeof onClose === "function") {
+      onClose();
+    }
+  };
 
   const pathname = location.pathname.toLowerCase();
   const isActive = (path) => pathname === path.toLowerCase();
   const isParentActive = (prefix) => pathname.startsWith(prefix.toLowerCase());
 
-  // Synchronize menu open states and clean up highlights dynamically
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [reportsOpen, setReportsOpen] = useState(() => isParentActive("/report"));
+  const [settingsOpen, setSettingsOpen] = useState(() => isParentActive("/settings"));
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  let currentReportsOpen = reportsOpen;
+  let currentSettingsOpen = settingsOpen;
+
+  // Synchronize menu open states when the active route changes
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     if (isParentActive("/report")) {
-      setReportsOpen(true);
-      setSettingsOpen(false);
+      currentReportsOpen = true;
+      currentSettingsOpen = false;
     } else if (isParentActive("/settings")) {
-      setSettingsOpen(true);
-      setReportsOpen(false);
+      currentSettingsOpen = true;
+      currentReportsOpen = false;
     } else {
-      // FIX: When any other root menu is clicked, clear dropdown states and highlights
-      setReportsOpen(false);
-      setSettingsOpen(false);
+      currentReportsOpen = false;
+      currentSettingsOpen = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+    setReportsOpen(currentReportsOpen);
+    setSettingsOpen(currentSettingsOpen);
+  }
 
   const handleConfirmLogout = async () => {
     if (logoutInFlight.current) return;
@@ -56,7 +70,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="sidebar">
+      <aside id={id} className={`sidebar ${mobileOpen ? "mobile-open" : ""}`.trim()}>
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="brand-icon">
@@ -69,13 +83,26 @@ export default function Sidebar() {
             <h2>TANAW</h2>
             <p>NUEVA ECIJA LOGISTICS</p>
           </div>
+          {typeof onClose === "function" && (
+            <button
+              type="button"
+              className="sidebar-mobile-close"
+              onClick={onClose}
+              aria-label="Close navigation sidebar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
         <nav className="sidebar-nav">
           <button type="button"
             className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => handleNav("/dashboard")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -86,7 +113,7 @@ export default function Sidebar() {
 
           <button type="button"
             className={`nav-item ${isActive("/shipment") ? "active" : ""}`}
-            onClick={() => navigate("/shipment")}
+            onClick={() => handleNav("/shipment")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
@@ -98,7 +125,7 @@ export default function Sidebar() {
 
           <button type="button"
             className={`nav-item ${isActive("/fleet") ? "active" : ""}`}
-            onClick={() => navigate("/fleet")}
+            onClick={() => handleNav("/fleet")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <rect x="1" y="3" width="15" height="13" rx="2"/>
@@ -110,7 +137,7 @@ export default function Sidebar() {
 
           <button type="button"
             className={`nav-item ${isActive("/customer") ? "active" : ""}`}
-            onClick={() => navigate("/customer")}
+            onClick={() => handleNav("/customer")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -123,7 +150,7 @@ export default function Sidebar() {
 
           <button type="button"
             className={`nav-item ${isActive("/compliance") ? "active" : ""}`}
-            onClick={() => navigate("/compliance")}
+            onClick={() => handleNav("/compliance")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M9 12l2 2 4-4"/><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/>
@@ -134,11 +161,11 @@ export default function Sidebar() {
           {/* Reports Dropdown */}
           <div className="nav-group">
             <button type="button"
-              aria-expanded={reportsOpen}
+              aria-expanded={currentReportsOpen}
               aria-controls="sidebar-reports"
-              className={`nav-item ${isParentActive("/report") || reportsOpen ? "active" : ""}`}
+              className={`nav-item ${isParentActive("/report") || currentReportsOpen ? "active" : ""}`}
               onClick={() => {
-                setReportsOpen((prev) => !prev);
+                setReportsOpen(!currentReportsOpen);
                 setSettingsOpen(false);
               }}
             >
@@ -148,7 +175,7 @@ export default function Sidebar() {
               </svg>
               Reports
               <svg
-                className={`nav-chevron ${reportsOpen ? "open" : ""}`}
+                className={`nav-chevron ${currentReportsOpen ? "open" : ""}`}
                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
@@ -157,12 +184,12 @@ export default function Sidebar() {
               </svg>
             </button>
             
-            {reportsOpen && (
+            {currentReportsOpen && (
               <div id="sidebar-reports" className="submenu">
-                <button type="button" className={`submenu-item ${isActive("/report/overview") ? "active" : ""}`} onClick={() => navigate("/report/overview")}>Overview</button>
-                <button type="button" className={`submenu-item ${isActive("/report/shipmentReport") ? "active" : ""}`} onClick={() => navigate("/report/shipmentReport")}>Shipments</button>
-                <button type="button" className={`submenu-item ${isActive("/report/driverReport") ? "active" : ""}`} onClick={() => navigate("/report/driverReport")}>Drivers</button>
-                <button type="button" className={`submenu-item ${isActive("/report/revenueReport") ? "active" : ""}`} onClick={() => navigate("/report/revenueReport")}>Revenue</button>
+                <button type="button" className={`submenu-item ${isActive("/report/overview") ? "active" : ""}`} onClick={() => handleNav("/report/overview")}>Overview</button>
+                <button type="button" className={`submenu-item ${isActive("/report/shipmentReport") ? "active" : ""}`} onClick={() => handleNav("/report/shipmentReport")}>Shipments</button>
+                <button type="button" className={`submenu-item ${isActive("/report/driverReport") ? "active" : ""}`} onClick={() => handleNav("/report/driverReport")}>Drivers</button>
+                <button type="button" className={`submenu-item ${isActive("/report/revenueReport") ? "active" : ""}`} onClick={() => handleNav("/report/revenueReport")}>Revenue</button>
               </div>
             )}
           </div>
@@ -170,21 +197,21 @@ export default function Sidebar() {
           {/* Settings Dropdown */}
           <div className="nav-group">
             <button type="button"
-              aria-expanded={settingsOpen}
+              aria-expanded={currentSettingsOpen}
               aria-controls="sidebar-settings"
-              className={`nav-item ${isParentActive("/settings") || settingsOpen ? "active" : ""}`}
+              className={`nav-item ${isParentActive("/settings") || currentSettingsOpen ? "active" : ""}`}
               onClick={() => {
-                setSettingsOpen((prev) => !prev);
+                setSettingsOpen(!currentSettingsOpen);
                 setReportsOpen(false);
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0 1.51 1z"/>
               </svg>
               Settings
               <svg
-                className={`nav-chevron ${settingsOpen ? "open" : ""}`}
+                className={`nav-chevron ${currentSettingsOpen ? "open" : ""}`}
                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
@@ -193,14 +220,14 @@ export default function Sidebar() {
               </svg>
             </button>
 
-            {settingsOpen && (
+            {currentSettingsOpen && (
               <div id="sidebar-settings" className="submenu">
-                <button type="button" className={`submenu-item ${isActive("/settings/account") ? "active" : ""}`} onClick={() => navigate("/settings/account")}>Account</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/notification") ? "active" : ""}`} onClick={() => navigate("/settings/notification")}>Notifications</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/pricing") ? "active" : ""}`} onClick={() => navigate("/settings/pricing")}>Pricing</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/complianceThreshold") ? "active" : ""}`} onClick={() => navigate("/settings/complianceThreshold")}>Compliance thresholds</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/userManagement") ? "active" : ""}`} onClick={() => navigate("/settings/userManagement")}>User management</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/security") ? "active" : ""}`} onClick={() => navigate("/settings/security")}>Security</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/account") ? "active" : ""}`} onClick={() => handleNav("/settings/account")}>Account</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/notification") ? "active" : ""}`} onClick={() => handleNav("/settings/notification")}>Notifications</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/pricing") ? "active" : ""}`} onClick={() => handleNav("/settings/pricing")}>Pricing</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/complianceThreshold") ? "active" : ""}`} onClick={() => handleNav("/settings/complianceThreshold")}>Compliance thresholds</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/userManagement") ? "active" : ""}`} onClick={() => handleNav("/settings/userManagement")}>User management</button>
+                <button type="button" className={`submenu-item ${isActive("/settings/security") ? "active" : ""}`} onClick={() => handleNav("/settings/security")}>Security</button>
               </div>
             )}
           </div>
@@ -208,14 +235,14 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className="sidebar-footer">
-          <div className="sidebar-help-unavailable">
+          <button type="button" className="nav-item sidebar-help-button" aria-haspopup="dialog" aria-expanded={isHelpOpen} onClick={() => setIsHelpOpen(true)}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            <span>Help Center <span className="sidebar-help-status">Unavailable</span></span>
-          </div>
+            Help &amp; Operations Guide
+          </button>
           
           <button type="button" className="nav-item logout-button" onClick={() => { setLogoutError(""); setIsLogoutModalOpen(true); }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -227,6 +254,8 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+
+      {isHelpOpen && <OfficeHelpDialog onClose={() => setIsHelpOpen(false)} />}
 
       {/* Logout Confirmation Modal */}
       {isLogoutModalOpen && (

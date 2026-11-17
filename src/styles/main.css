@@ -20,6 +20,34 @@ body::before {
   pointer-events: none;
 }
 
+/* Core Layout Structure */
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #F8FAFC;
+  position: relative;
+}
+
+.main {
+  margin-left: 260px;
+  min-height: 100vh;
+  width: calc(100% - 260px);
+  display: flex;
+  flex-direction: column;
+  background-color: #F8FAFC;
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.content {
+  padding: 32px 40px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  pointer-events: auto;
+  position: relative;
+  flex: 1 1 auto;
+}
 
 .office-tools { display: flex; gap: 12px; align-items: center; position: relative; }
 .office-notifications { position: absolute; right: 0; top: 100%; width: min(380px,85vw); max-height: 65vh; overflow: auto; z-index: 100; padding: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 24px #0f172a22; }

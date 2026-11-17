@@ -14,6 +14,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const ROUTE_SOURCE = "shipment-driving-route";
 const ROUTE_LAYER = "shipment-driving-route-line";
+const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
 
 export default function TruckTrackingMap({
   pickerMode = null,
@@ -32,7 +33,7 @@ export default function TruckTrackingMap({
   const pickupMarkerRef = useRef(null);
   const destinationMarkerRef = useRef(null);
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => (!MAPTILER_API_KEY ? "Missing MapTiler API key in .env" : ""));
   const [mapReady, setMapReady] = useState(false);
   const [centerCoordinates, setCenterCoordinates] = useState(null);
 
@@ -41,10 +42,7 @@ export default function TruckTrackingMap({
     const container = containerRef.current;
     if (!container) return;
 
-    const apiKey = import.meta.env.VITE_MAPTILER_API_KEY;
-
-    if (!apiKey) {
-      setError("Missing MapTiler API key in .env");
+    if (!MAPTILER_API_KEY) {
       return;
     }
 
@@ -56,7 +54,7 @@ export default function TruckTrackingMap({
         container,
         style:
           "https://api.maptiler.com/maps/streets-v2/style.json" +
-          `?key=${encodeURIComponent(apiKey)}`,
+          `?key=${encodeURIComponent(MAPTILER_API_KEY)}`,
         center: LUZON_CENTER,
         zoom: 8,
         minZoom: LUZON_MIN_ZOOM,
@@ -108,8 +106,10 @@ export default function TruckTrackingMap({
         resizeObserver.observe(container);
       }
     } catch (err) {
-      console.error("Map initialization error:", err);
-      setError(err?.message || "Unable to initialize map.");
+      console.error("Map initialization error:", { message: err?.message || "Unable to initialize map." });
+      Promise.resolve().then(() => {
+        setError(err?.message || "Unable to initialize map.");
+      });
     }
 
     return () => {

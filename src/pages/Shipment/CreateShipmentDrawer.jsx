@@ -1,16 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import "./createShipment.css";
 import { createShipment } from "../../services/shipmentService";
 import { shipmentRouteFields } from "../../services/shipmentRoute";
 import TruckTrackingMap from "./TruckTrackingMap";
 import AddressAutocomplete from "./AddressAutocomplete";
+import TollPricingPanel from './TollPricingPanel';
+import ShipmentDiscardDialog from './ShipmentDiscardDialog';
 import { LUZON_BOUNDS } from "../../config/mapBound";
 import { departureLimits, parsePhilippineDeparture, validateDeparture } from "./departureSchedule";
 import { fetchPricingData } from "../../services/pricingService";
 import { HANDLING_OPTIONS, handlingCost } from "../../services/handlingPricing";
 import { vehicleBaseRate, vehicleCanCarry, vehicleFitsShipmentWeight, pricingDate, bookingDefaults } from "../../services/vehiclePricing";
 import { useCustomerDirectory } from "../../viewmodels/CustomerViewModel";
+import { fetchBillingCustomers } from '../../services/customerService';
+import { getTollGates } from '../../services/tollGateService';
+import { automaticTollQuote, vehicleTollClass, sameTollQuote, withBookingPricing } from '../../services/tollPricing';
+import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
+
+const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
 
 const HUBS = [
   {
@@ -58,7 +67,6 @@ const INITIAL_FORM = {
   estimatedMinutes: "",
   usesTollRoad: false,
   overrideAmount: "",
-  tollCost: "0",
   driverAllowance: "0",
 };
 
@@ -102,7 +110,22 @@ export default function CreateShipmentDrawer({
   onClose,
   onCreated,
 }) {
+  const { user } = useAuth();
   const [form, setForm] = useState(INITIAL_FORM);
+  const [tollRates, setTollRates] = useState([]);
+  const [tollRatesError, setTollRatesError] = useState('');
+  const [tollRatesLoading, setTollRatesLoading] = useState(true);
+  const [tollReload, setTollReload] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    getTollGates().then(rates => {
+      if (!cancelled) { setTollRates(rates); setTollRatesError(''); setTollRatesLoading(false); }
+    }).catch(error => {
+      if (!cancelled) { setTollRates([]); setTollRatesError(error.message || 'Unable to load toll rates.'); setTollRatesLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, tollReload]);
   const [pricingDefaults, setPricingDefaults] = useState(null);
   const allowanceEdited = useRef(false);
   const draftInitial = useRef(INITIAL_FORM);
@@ -172,10 +195,11 @@ export default function CreateShipmentDrawer({
     useState(false);
 
   const [routeError, setRouteError] = useState("");
+  const [routeNotice, setRouteNotice] = useState("");
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  const { customers, loading: loadingCustomers, error: customerError } = useCustomerDirectory({ enabled: isOpen });
+  const { customers, loading: loadingCustomers, error: customerError } = useCustomerDirectory({ enabled: isOpen, billingOnly: true });
 
   const [saveError, setSaveError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -193,20 +217,88 @@ export default function CreateShipmentDrawer({
   const routeControllerRef = useRef(null);
   const routeIdRef = useRef(0);
 
+  const drawerRef = useRef(null);
+  const launcherRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      launcherRef.current = document.activeElement;
+      if (drawerRef.current) {
+        drawerRef.current.focus();
+      }
+    } else if (launcherRef.current) {
+      if (launcherRef.current.isConnected) {
+        launcherRef.current.focus();
+      }
+      launcherRef.current = null;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (launcherRef.current?.isConnected) {
+        launcherRef.current.focus();
+        launcherRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleKeyDown = (event) => {
+    if (showDiscardDialog) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleCloseAll();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const modal = drawerRef.current?.querySelector(".alert-modal-card");
+    const container = modal || drawerRef.current;
+    if (!container) return;
+
+    const focusable = Array.from(
+      container.querySelectorAll(
+        'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement);
+
+    if (focusable.length === 0) {
+      event.preventDefault();
+      container.focus();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey) {
+      if (document.activeElement === first || document.activeElement === container || !container.contains(document.activeElement)) {
+        event.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last || document.activeElement === container || !container.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  };
+
   // UPDATE FORM FIELDS
   const update = (field, value) => {
     if (field === "driverAllowance") allowanceEdited.current = true;
-    if (field === "pickupLocation" || field === "destination") {
+    if (["pickupLocation", "destination", "usesTollRoad"].includes(field)) {
       routeIdRef.current += 1;
       routeControllerRef.current?.abort();
       setRouteGeoJSON(null);
       setRouteError("");
+      setRouteNotice("");
       setIsCalculatingRoute(false);
     }
     setForm((previous) => ({
       ...previous,
       [field]: value,
-      ...(["pickupLocation", "destination"].includes(field) ? { distanceKm: "", estimatedMinutes: "" } : {}),
+      ...(["pickupLocation", "destination", "usesTollRoad"].includes(field) ? { distanceKm: "", estimatedMinutes: "" } : {}),
     }));
 
     if (field === "pickupLocation") {
@@ -418,34 +510,14 @@ export default function CreateShipmentDrawer({
     routeControllerRef.current?.abort();
     routeControllerRef.current = null;
 
-    // Remove the previous route and calculations.
-    setRouteGeoJSON(null);
-    setRouteError("");
-    setIsCalculatingRoute(false);
-
-    setForm((previous) => ({
-      ...previous,
-      distanceKm: "",
-      estimatedMinutes: "",
-    }));
-
-    // Both locations must have confirmed coordinates.
-    if (
-      !isOpen ||
-      !validCoordinate(confirmedPickup) ||
-      !validCoordinate(confirmedDestination)
-    ) {
-      return;
-    }
-
     const requestId = routeIdRef.current;
-
     const controller = new AbortController();
     routeControllerRef.current = controller;
 
     const calculateRoute = async () => {
       setIsCalculatingRoute(true);
       setRouteError("");
+      setRouteNotice("");
 
       console.log(
         "Requesting truck route from Supabase:",
@@ -455,16 +527,16 @@ export default function CreateShipmentDrawer({
         }
       );
 
-      try {
-        // The browser contacts Supabase, not OpenRouteService.
-        // The deployed Edge Function contacts OpenRouteService.
+      const invokeEdgeFunction = async (usesToll) => {
+        const body = {
+          pickup: confirmedPickup,
+          destination: confirmedDestination,
+          ...(usesToll !== undefined ? { usesTollRoad: usesToll } : {}),
+        };
         const { data, error } = await supabase.functions.invoke(
           "calculate-route",
           {
-            body: {
-              pickup: confirmedPickup,
-              destination: confirmedDestination,
-            },
+            body,
             signal: controller.signal,
           }
         );
@@ -481,13 +553,78 @@ export default function CreateShipmentDrawer({
             }
           }
 
+          if (typeof message === "string" && message.includes("Select the port's truck entrance or access road")) {
+            const locText = `${form.pickupLocation} ${form.destination}`.toLowerCase();
+            const isPort = /port|harbor|harbour|pier|wharf|dock/.test(locText);
+            if (!isPort) {
+              message = "No direct road-only truck route was returned. If this pin is placed near a river, waterway, or unpaved crossing, please adjust the pin to the nearest paved highway or bridge access road.";
+            }
+          }
+
           throw new Error(message);
+        }
+        return data;
+      };
+
+      try {
+        let activeUsesTollRoad = form.usesTollRoad;
+        let notice = "";
+        let data = null;
+
+        if (activeUsesTollRoad) {
+          try {
+            data = await invokeEdgeFunction(true);
+          } catch (tollError) {
+            const errText = String(tollError?.message || "").toLowerCase();
+            const noExpresswayAvailable =
+              errText.includes("substantial toll expressway travel") ||
+              errText.includes("uncheck toll road") ||
+              errText.includes("could not verify a toll expressway route") ||
+              errText.includes("no route with substantial");
+
+            if (noExpresswayAvailable) {
+              console.warn("No toll expressway corridor available; falling back to ordinary road route.", tollError.message);
+              activeUsesTollRoad = false;
+              notice = "No toll expressway available for this corridor (e.g. Maharlika Highway / Cagayan Valley). Routed via ordinary national highways.";
+              try {
+                data = await invokeEdgeFunction(false);
+              } catch (ordinaryError) {
+                const ordText = String(ordinaryError?.message || "").toLowerCase();
+                if (ordText.includes("avoiding toll roads") || ordText.includes("enable toll road")) {
+                  data = await invokeEdgeFunction(undefined);
+                } else {
+                  throw ordinaryError;
+                }
+              }
+            } else {
+              throw tollError;
+            }
+          }
+        } else {
+          try {
+            data = await invokeEdgeFunction(false);
+          } catch (ordinaryError) {
+            const ordText = String(ordinaryError?.message || "").toLowerCase();
+            if (ordText.includes("avoiding toll roads") || ordText.includes("enable toll road")) {
+              console.warn("Ordinary road contains minor toll access links; querying standard route.", ordinaryError.message);
+              data = await invokeEdgeFunction(undefined);
+            } else {
+              throw ordinaryError;
+            }
+          }
         }
 
         if (requestId !== routeIdRef.current) return;
 
         if (data?.roadOnlyVerified !== true) {
           throw new Error("A road-only truck route could not be verified. Please try again later.");
+        }
+        if (activeUsesTollRoad && (data.tollPreference !== 'expressway' || data.usesTollRoad !== true)) {
+          throw new Error('The routing service did not confirm the selected toll-road option. Recalculate after the routing service is updated.');
+        }
+        if (activeUsesTollRoad && !data.geojson?.features?.some(feature =>
+          feature.properties?.expressway?.verified === true && feature.properties.expressway.distanceKm > 0)) {
+          throw new Error('The service did not verify substantial expressway travel. Recalculate after the routing service is updated.');
         }
         if (!Number.isFinite(data.distanceKm) || data.distanceKm < 0 ||
           !data.geojson?.features?.some(feature => feature.geometry?.type === "LineString" &&
@@ -497,9 +634,11 @@ export default function CreateShipmentDrawer({
         }
 
         setRouteGeoJSON(data.geojson);
+        setRouteNotice(notice);
 
         setForm((previous) => ({
           ...previous,
+          usesTollRoad: activeUsesTollRoad,
           distanceKm: String(data.distanceKm),
           estimatedMinutes: String(data.estimatedMinutes),
         }));
@@ -536,7 +675,32 @@ export default function CreateShipmentDrawer({
       }
     };
 
-    calculateRoute();
+    Promise.resolve().then(() => {
+      if (requestId !== routeIdRef.current) return;
+
+      // Remove the previous route and calculations.
+      setRouteGeoJSON(null);
+      setRouteError("");
+      setRouteNotice("");
+      setIsCalculatingRoute(false);
+
+      setForm((previous) => ({
+        ...previous,
+        distanceKm: "",
+        estimatedMinutes: "",
+      }));
+
+      // Both locations must have confirmed coordinates.
+      if (
+        !isOpen ||
+        !validCoordinate(confirmedPickup) ||
+        !validCoordinate(confirmedDestination)
+      ) {
+        return;
+      }
+
+      calculateRoute();
+    });
 
     return () => {
       controller.abort();
@@ -544,6 +708,7 @@ export default function CreateShipmentDrawer({
   }, [
     confirmedPickup,
     confirmedDestination,
+    form.usesTollRoad,
     isOpen,
   ]);
 
@@ -574,24 +739,31 @@ export default function CreateShipmentDrawer({
 
   const handlingCharge = handlingCost(handlingRates, form.specialHandling, form.distanceKm);
 
+  let tollEstimate = null;
+  let tollEstimateError = '';
+  try {
+    tollEstimate = automaticTollQuote(form.usesTollRoad, selectedVehicle, routeGeoJSON, tollRates);
+  } catch (error) { tollEstimateError = error.message; }
+  const tollCost = tollEstimate?.total ?? null;
+  const tollPending = form.usesTollRoad && (tollCost === null || tollRatesLoading || Boolean(tollRatesError));
+  const shipmentSubtotal = baseRate === null || handlingCharge === null ? null : baseRate + handlingCharge;
+
   const suggestedCharge =
-    handlingCharge === null || baseRate === null ? null : baseRate + handlingCharge;
+    handlingCharge === null || baseRate === null || tollCost === null ? null : baseRate + handlingCharge + tollCost;
 
   const finalCharge =
     form.overrideAmount.trim() === ""
       ? suggestedCharge
       : Number(form.overrideAmount);
 
-  const tollCost = Number(form.tollCost) || 0;
-
   const driverAllowance =
     Number(form.driverAllowance) || 0;
 
   const operationalCost =
-    tollCost + driverAllowance;
+    tollCost === null ? null : tollCost + driverAllowance;
 
   const estimatedProfit =
-    finalCharge === null ? null : finalCharge - operationalCost;
+    finalCharge === null || operationalCost === null ? null : finalCharge - operationalCost;
 
   // RESET DRAWER
   const reset = () => {
@@ -612,6 +784,7 @@ export default function CreateShipmentDrawer({
     setRouteGeoJSON(null);
     setIsCalculatingRoute(false);
     setRouteError("");
+    setRouteNotice("");
 
     setAddressError("");
     setCurrentStep(1);
@@ -621,6 +794,15 @@ export default function CreateShipmentDrawer({
     setShowSuccessModal(false);
   };
 
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
+  const handleDiscard = () => {
+    if (isSaving) return;
+    setShowDiscardDialog(false);
+    reset();
+    onClose?.();
+  };
+
   const handleCloseAll = () => {
     if (isSaving) return;
 
@@ -628,9 +810,10 @@ export default function CreateShipmentDrawer({
       Object.keys(INITIAL_FORM).some(key => form[key] !== draftInitial.current[key]) ||
       confirmedPickup !== null || confirmedDestination !== null
     );
-    if (hasUnsavedChanges && !window.confirm(
-      "Discard this shipment draft? Your entered details will be lost."
-    )) return;
+    if (hasUnsavedChanges) {
+      setShowDiscardDialog(true);
+      return;
+    }
 
     reset();
     onClose?.();
@@ -638,6 +821,7 @@ export default function CreateShipmentDrawer({
 
   // VALIDATE ROUTE STEP
   const validateRoute = () => {
+    if (!routeGeoJSON || isCalculatingRoute || routeError) return 'Calculate a valid route for the selected toll-road option first.';
     if (!form.pickupLocation.trim()) {
       return "Pickup location is required.";
     }
@@ -686,6 +870,9 @@ export default function CreateShipmentDrawer({
 
   // VALIDATE FINANCIAL DATA
   const validateFinance = () => {
+    if (form.usesTollRoad && (tollRatesLoading || tollRatesError || tollEstimateError)) {
+      return tollRatesError || tollEstimateError || 'Wait for toll rates to load.';
+    }
     if (baseRate === null || !selectedVehicle?.pricing?.id || !vehicleCanCarry(selectedVehicle, form.weight)) {
       return "Select a vehicle with valid pricing and sufficient capacity, and calculate a valid route.";
     }
@@ -693,7 +880,6 @@ export default function CreateShipmentDrawer({
       return handlingPricingError || "The selected handling price is unavailable. Check pricing settings and route distance.";
     }
     if (
-      !isValidMoney(form.tollCost) ||
       !isValidMoney(form.driverAllowance)
     ) {
       return "Enter valid non-negative financial amounts.";
@@ -793,10 +979,23 @@ export default function CreateShipmentDrawer({
     setSaveError("");
 
     try {
+      const billingCustomers = await fetchBillingCustomers();
+      if (!billingCustomers.some(customer => customer.id === selectedCustomer.id)) {
+        throw new Error('The selected customer is no longer eligible for billing. Choose an active customer from Customer Billing.');
+      }
       const currentPricing = await fetchPricingData();
+      const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
+      if (form.usesTollRoad) {
+        const currentTollRates = await getTollGates();
+        setTollRates(currentTollRates);
+        const currentTollQuote = automaticTollQuote(true, currentVehicle, routeGeoJSON, currentTollRates);
+        setVehicles(currentPricing.vehicles);
+        if (!sameTollQuote(tollEstimate, currentTollQuote)) {
+          throw new Error('Toll rates have changed. Review the updated total and submit again.');
+        }
+      }
       const currentDefaults = bookingDefaults(currentPricing.settings);
       const currentRates = currentPricing.settings.handling_surcharges;
-      const currentVehicle = currentPricing.vehicles.find(vehicle => vehicle.id === form.selectedVehicle);
       const currentBaseRate = vehicleBaseRate(currentVehicle, form.distanceKm, currentDefaults.minimumBookingFee);
       if (!vehicleCanCarry(currentVehicle, form.weight) || currentBaseRate === null) {
         setVehicles(currentPricing.vehicles);
@@ -824,7 +1023,8 @@ export default function CreateShipmentDrawer({
       const departure = parsePhilippineDeparture(form.departureDate, form.departureTime);
 
       const shipmentData = {
-        ...shipmentRouteFields(confirmedPickup, confirmedDestination, routeGeoJSON, form.estimatedMinutes),
+        ...shipmentRouteFields(confirmedPickup, confirmedDestination,
+          withBookingPricing(routeGeoJSON, form.usesTollRoad, tollEstimate), form.estimatedMinutes),
         customer_id: selectedCustomer.id,
 
         pickup_address:
@@ -856,6 +1056,9 @@ export default function CreateShipmentDrawer({
 
         status: "booked",
         booking_source: "web",
+        driver_allowance: Number(form.driverAllowance) || 0,
+        toll_fees: form.usesTollRoad ? (tollEstimate?.total ?? 0) : 0,
+        created_by: (typeof user !== "undefined" && user?.id) ? user.id : null,
       };
 
       const data = await createShipment(shipmentData);
@@ -895,6 +1098,8 @@ export default function CreateShipmentDrawer({
       Array.isArray(point) && validCoordinate({ lng: point[0], lat: point[1] })
     )
   ) && validCoordinate(confirmedPickup) && validCoordinate(confirmedDestination) && !isCalculatingRoute;
+  const verifiedExpressway = form.usesTollRoad && hasValidRoute
+    ? routeGeoJSON.features.find(feature => feature.properties?.expressway?.verified)?.properties.expressway : null;
 
   const renderAddressDetails = (type) => (
     <details className="location-details">
@@ -1037,12 +1242,17 @@ export default function CreateShipmentDrawer({
         <div className="summary-header">
           <h3>Route Summary</h3>
 
-          {form.usesTollRoad && (
+          {verifiedExpressway && (
             <span className="toll-badge">
-              TOLL ROAD
+              EXPRESSWAY
             </span>
           )}
         </div>
+
+        {verifiedExpressway && <p className="field-info-text expressway-route-status">
+          <strong>{verifiedExpressway.distanceKm} km on expressways</strong>
+          {verifiedExpressway.roadNames?.length > 0 && <> · {verifiedExpressway.roadNames.join(' · ')}</>}
+        </p>}
 
         <div className="summary-timeline">
           <div className="timeline-node blue-node">
@@ -1122,6 +1332,26 @@ export default function CreateShipmentDrawer({
           </p>
         )}
 
+      {routeNotice && (
+        <p
+          role="status"
+          className="field-info-text"
+          style={{
+            color: "#0369a1",
+            backgroundColor: "#f0f9ff",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            border: "1px solid #bae6fd",
+            margin: "6px 0 10px",
+            fontSize: "12px",
+            lineHeight: "1.4",
+          }}
+        >
+          <i className="las la-info-circle" style={{ marginRight: "4px" }} />
+          {routeNotice}
+        </p>
+      )}
+
       {routeError && (
         <p
           role="alert"
@@ -1152,8 +1382,11 @@ export default function CreateShipmentDrawer({
               )
             }
           />{" "}
-          Route uses a toll road
+          Use toll roads / expressways
         </label>
+        <p className="field-info-text">{form.usesTollRoad
+          ? 'Use a verified toll expressway. Toll class and matching entry–exit fees are calculated automatically from your selected truck and route.'
+          : 'Avoid toll roads. Changing this option recalculates the route, distance and travel time.'}</p>
       </div>
 
       {/* DEPARTURE DATE AND TIME */}
@@ -1233,21 +1466,23 @@ export default function CreateShipmentDrawer({
               )
             }
           >
-            <option value="">
+            <option value="" disabled hidden>
               {loadingCustomers
                 ? "Loading customers..."
                 : "Select registered customer"}
             </option>
 
-            {customers.map((customer) => (
-              <option
-                key={customer.id}
-                value={customer.id}
-                disabled={customer.is_active !== true}
-              >
-                {customerName(customer)}
-              </option>
-            ))}
+            <optgroup label="Select registered customer">
+              {customers.map((customer) => (
+                <option
+                  key={customer.id}
+                  value={customer.id}
+                  disabled={customer.is_active !== true}
+                >
+                  {customerName(customer)}
+                </option>
+              ))}
+            </optgroup>
           </select>
 
           <i className="las la-angle-down custom-select-arrow" />
@@ -1255,7 +1490,7 @@ export default function CreateShipmentDrawer({
 
         <p className="field-info-text">
           <i className="las la-info-circle" />{" "}
-          Registered customer accounts from Supabase.
+          Active customers only. Driver and office accounts are excluded.
         </p>
 
         {customerError && (
@@ -1445,7 +1680,7 @@ export default function CreateShipmentDrawer({
                 }}
               >
                 <div className="vehicle-card-icon">
-                  <i className="las la-truck" />
+                  <SafeVehicleSilhouette category={truck.name} size="md" />
                 </div>
 
                 <div className="vehicle-card-details">
@@ -1462,6 +1697,7 @@ export default function CreateShipmentDrawer({
                   <p>
                     Standard type capacity: {truckCapacity.toLocaleString()} kg
                   </p>
+                  <p>Toll class: {vehicleTollClass(truck) || 'Not configured'}</p>
 
                   <p>
                     {!truck.fleetCapacityKnown
@@ -1568,7 +1804,7 @@ export default function CreateShipmentDrawer({
               : "Travel time not set"}
           </span>
 
-          {form.usesTollRoad && (
+          {verifiedExpressway && (
             <span className="info-inline-pill highlight-orange">
               TOLL ROAD
             </span>
@@ -1645,7 +1881,7 @@ export default function CreateShipmentDrawer({
 
         <div className="assigned-entity-card">
           <div className="entity-icon-box">
-            <i className="las la-truck" />
+            <SafeVehicleSilhouette category={selectedVehicle?.name} size="md" />
           </div>
 
           <div className="entity-info-box">
@@ -1733,17 +1969,31 @@ export default function CreateShipmentDrawer({
           />
         </div>
 
+        <div className="financial-data-row">
+          <span>Toll road fees</span><strong className={tollPending ? 'toll-pending-text' : undefined}>{tollPending ? 'Fee pending' : currency(tollCost)}</strong>
+        </div>
+        {form.usesTollRoad && (
+          <TollPricingPanel rates={tollRates} loading={tollRatesLoading} error={tollRatesError}
+            vehicleClass={vehicleTollClass(selectedVehicle)} vehicleName={selectedVehicle?.name}
+            sections={routeGeoJSON?.features?.find(feature => feature.properties?.expressway)?.properties.expressway.sections || []}
+            matchedRates={tollEstimate?.rates || []} total={tollPending ? null : tollCost}
+            validationError={tollEstimateError} disabled={isSaving} currency={currency}
+            onRefresh={() => { setTollRatesLoading(true); setTollRatesError(''); setTollReload(value => value + 1); }} />
+        )}
+
         <div className="financial-total-row">
           <span>
-            Total Suggested Charge
+            {tollPending ? 'Subtotal before tolls' : 'Total Suggested Charge'}
           </span>
 
           <span className="total-price-text">
             {currency(
-              suggestedCharge
+              tollPending ? shipmentSubtotal : suggestedCharge
             )}
           </span>
         </div>
+
+        {tollPending && <p className="toll-total-notice">The final charge waits for a matching entry–exit toll rate. Truck class and expressways are identified automatically.</p>}
 
         <div className="override-input-group">
           <label className="override-label">
@@ -1755,7 +2005,8 @@ export default function CreateShipmentDrawer({
             min="0"
             step="0.01"
             className="override-text-field"
-            placeholder={`Suggested: ${suggestedCharge?.toFixed(2) ?? "Unavailable"}`}
+            placeholder={tollPending ? 'Waiting for matching toll fee' : `Suggested: ${suggestedCharge?.toFixed(2) ?? "Unavailable"}`}
+            disabled={tollPending || isSaving}
             value={form.overrideAmount}
             onChange={(e) =>
               update(
@@ -1785,19 +2036,7 @@ export default function CreateShipmentDrawer({
         <div className="financial-data-row">
           <span>Tolls (₱)</span>
 
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="override-text-field"
-            value={form.tollCost}
-            onChange={(e) =>
-              update(
-                "tollCost",
-                e.target.value
-              )
-            }
-          />
+          <strong className={tollPending ? 'toll-pending-text' : undefined}>{tollPending ? 'Fee pending' : currency(tollCost)}</strong>
         </div>
 
         <div className="financial-data-row">
@@ -1820,18 +2059,21 @@ export default function CreateShipmentDrawer({
 
         <div className="financial-total-row">
           <span>
-            TOTAL OPERATIONAL COST
+            {tollPending ? 'Allowance subtotal · before tolls' : 'TOTAL OPERATIONAL COST'}
           </span>
 
           <span className="total-price-text-sm">
             {currency(
-              operationalCost
+              tollPending ? driverAllowance : operationalCost
             )}
           </span>
         </div>
       </div>
 
       {/* PROFIT */}
+      {tollPending ? <div className="financial-statement-card toll-profit-pending">
+        <h3>Profit estimate pending</h3><p>Available once the toll fees are confirmed.</p>
+      </div> : (
       <div className="financial-statement-card profit-panel-white">
         <div className="financial-header-row border-none no-margin">
           <label className="review-section-title">
@@ -1888,6 +2130,7 @@ export default function CreateShipmentDrawer({
           costs may differ.
         </p>
       </div>
+      )}
     </div>
   );
 
@@ -1895,9 +2138,17 @@ export default function CreateShipmentDrawer({
   // MAIN DRAWER
   return (
     <div className="drawer-overlay">
+      {showDiscardDialog && <ShipmentDiscardDialog
+        onKeepEditing={() => setShowDiscardDialog(false)} onDiscard={handleDiscard} />}
       <div
-        className="drawer-container"
+        ref={drawerRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create New Shipment"
+        className={`drawer-container${currentStep === 3 ? ' shipment-review' : ''}`}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
 
 
@@ -2117,6 +2368,7 @@ export default function CreateShipmentDrawer({
                   onClick={handleCreateShipment}
                   disabled={
                     isSaving ||
+                    tollPending ||
                     baseRate === null ||
                     handlingCharge === null ||
                     Boolean(handlingPricingError) ||
@@ -2139,7 +2391,7 @@ export default function CreateShipmentDrawer({
 
                   {isSaving
                     ? "Saving Shipment..."
-                    : "Confirm Shipment Booking"}
+                    : tollPending ? "Toll fee required to confirm" : "Confirm Shipment Booking"}
                 </button>
 
                 <span className="footer-notice-subtext">

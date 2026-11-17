@@ -1,5 +1,4 @@
 import OfficeTools from "../../components/OfficeTools";
-import DeliveryConversationInbox from "./DeliveryConversationInbox";
 import ReturnLoadPlanner from "./ReturnLoadPlanner";
 
 import { useEffect, useRef, useState } from "react";
@@ -7,6 +6,8 @@ import MainLayout from "../../layouts/mainLayout";
 import CreateShipmentDrawer from "./CreateShipmentDrawer";
 import BookingReview from "./BookingReview";
 import ShipmentDetails from "./ShipmentDetails";
+import ShipmentEditDialog from "./ShipmentEditDialog";
+import ShipmentCancellationDialog from "./ShipmentCancellationDialog";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
@@ -15,6 +16,8 @@ export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [reviewShipment, setReviewShipment] = useState(null);
   const [detailsShipment, setDetailsShipment] = useState(null);
+  const [editShipment, setEditShipment] = useState(null);
+  const [cancelShipment, setCancelShipment] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [assignmentMessage, setAssignmentMessage] = useState("");
@@ -89,6 +92,10 @@ export default function Shipment() {
       delayed: "DELAYED",
       review: "REVIEW",
       completed: "COMPLETED",
+      pending: "PENDING REVIEW",
+      booked: "BOOKED",
+      assigned: "ASSIGNED",
+      cancelled: "CANCELLED",
     })[status] ??
     String(status || "UNKNOWN").toUpperCase();
 
@@ -98,13 +105,32 @@ export default function Shipment() {
       loading: "loading-pill",
       delayed: "delayed-pill",
       review: "review-pill",
+      pending: "review-pill",
+      booked: "loading-pill",
+      assigned: "loading-pill",
+      cancelled: "cancelled-pill",
     })[status] ?? "loading-pill";
 
   const renderMenu = (shipment, completed = false) => (
     <div
-      className="action-menu-wrapper"
+      className={`action-menu-wrapper${openMenuId === shipment.dbId ? " menu-open" : ""}`}
       ref={openMenuId === shipment.dbId ? menuRef : null}
     >
+      {shipment.rawStatus === "booked" && !shipment.assignmentId && (
+        <button
+          type="button"
+          className="action-pill-btn assign-pill-btn"
+          disabled={Boolean(assigningId)}
+          aria-label={`Assign driver and truck to ${shipment.id}`}
+          onClick={() => {
+            handleAssign(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          {assigningId === shipment.dbId ? "Assigning…" : "Assign"}
+        </button>
+      )}
+
       <button
         type="button"
         className="action-btn"
@@ -112,7 +138,17 @@ export default function Shipment() {
         aria-expanded={openMenuId === shipment.dbId}
         onClick={() => toggleMenu(shipment.dbId)}
       >
-        <i className="las la-ellipsis-v" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="3" r="1.5" />
+          <circle cx="8" cy="8" r="1.5" />
+          <circle cx="8" cy="13" r="1.5" />
+        </svg>
       </button>
 
       {openMenuId === shipment.dbId && (
@@ -121,7 +157,7 @@ export default function Shipment() {
             <button type="button" onClick={event => {
               reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
               setReviewShipment(shipment); setOpenMenuId(null);
-            }}>Review booking request</button>
+            }}><i className="las la-clipboard-check" /> Review booking request</button>
           )}
           {shipment.rawStatus === "booked" && !shipment.assignmentId && (
             <button type="button" disabled={Boolean(assigningId)}
@@ -140,28 +176,24 @@ export default function Shipment() {
             <i className="las la-eye" /> View Details
           </button>
 
-          {!completed && (
+          {!completed && shipment.status !== "cancelled" && (
             <>
-              <button
-                type="button"
-                disabled
-                aria-describedby={`shipment-edit-unavailable-${shipment.dbId}`}
-              >
-                <i className="las la-pen" /> Edit (unavailable)
+              <button type="button" onClick={() => { setEditShipment(shipment); setOpenMenuId(null); }}>
+                <i className="las la-pen" /> Edit shipment
               </button>
-              <p className="shipment-action-explanation" id={`shipment-edit-unavailable-${shipment.dbId}`}>Editing existing shipments is not supported yet.</p>
 
               {shipment.status !== "review" && (
                 <button
                   type="button"
                   className="action-danger"
-                  disabled
-                  aria-describedby={`shipment-cancel-unavailable-${shipment.dbId}`}
+                  onClick={event => {
+                    reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+                    setCancelShipment(shipment); setOpenMenuId(null);
+                  }}
                 >
-                  <i className="las la-times-circle" /> Cancel (unavailable)
+                  <i className="las la-times-circle" /> Cancel shipment
                 </button>
               )}
-              {shipment.status !== 'review' && <p className="shipment-action-explanation" id={`shipment-cancel-unavailable-${shipment.dbId}`}>General cancellation is not supported yet. Pending requests can be rejected through Review booking request.</p>}
             </>
           )}
         </div>
@@ -173,26 +205,12 @@ export default function Shipment() {
     <MainLayout>
       {/* TOPBAR */}
       <header className="topbar">
-        <div className="search-container">
-          <i className="las la-search topbar-search-icon" />
-
-          <input
-            type="text"
-            id="shipmentSearch"
-            placeholder="Search shipments..."
-            value={searchQuery}
-            onChange={(event) =>
-              setSearchQuery(event.target.value)
-            }
-          />
-        </div>
-
         <div className="topbar-right">
           <OfficeTools />
         </div>
       </header>
 
-      <section className="content">
+      <section className="content shipment-page">
         {/* HEADER */}
         <div className="header-row">
           <div className="header">
@@ -209,11 +227,66 @@ export default function Shipment() {
           </button>
         </div>
 
-        <DeliveryConversationInbox />
         <ReturnLoadPlanner onInspect={setDetailsShipment} />
-        {/* DATABASE ERROR */}
-        {assignmentMessage && <p role="status">{assignmentMessage}</p>}
-        {recordFilter && <p role="status">{!isLoading && !error && !visibleShipments.length ? 'The selected shipment is unavailable or does not match your search.' : 'Showing the shipment selected from Operations Feed.'} <button onClick={() => setCurrentTab('all')}>Show all shipments</button></p>}
+        {/* STATUS & FEEDBACK NOTIFICATIONS */}
+        {assignmentMessage && (
+          <div
+            className={`shipment-feedback-banner ${
+              assignmentMessage.toLowerCase().includes("could not") ||
+              assignmentMessage.toLowerCase().includes("error") ||
+              assignmentMessage.toLowerCase().includes("denied")
+                ? "is-error"
+                : assignmentMessage.toLowerCase().includes("no available") ||
+                  assignmentMessage.toLowerCase().includes("awaiting")
+                ? "is-warning"
+                : "is-success"
+            }`}
+            role="status"
+          >
+            <div className="feedback-content">
+              <i
+                className={`las ${
+                  assignmentMessage.toLowerCase().includes("could not") ||
+                  assignmentMessage.toLowerCase().includes("error") ||
+                  assignmentMessage.toLowerCase().includes("denied")
+                    ? "la-exclamation-circle"
+                    : assignmentMessage.toLowerCase().includes("no available") ||
+                      assignmentMessage.toLowerCase().includes("awaiting")
+                    ? "la-exclamation-triangle"
+                    : "la-check-circle"
+                } feedback-icon`}
+              />
+              <span>{assignmentMessage}</span>
+            </div>
+            <button
+              type="button"
+              className="feedback-close"
+              aria-label="Dismiss message"
+              onClick={() => setAssignmentMessage("")}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+        {recordFilter && (
+          <div className="shipment-feedback-banner is-info" role="status">
+            <div className="feedback-content">
+              <i className="las la-filter feedback-icon" />
+              <span>
+                {!isLoading && !error && !visibleShipments.length
+                  ? "The selected shipment is unavailable or does not match your search."
+                  : "Showing the shipment selected from Operations Feed."}
+              </span>
+              <button
+                type="button"
+                className="banner-action-btn"
+                onClick={() => setCurrentTab("all")}
+              >
+                Show all shipments
+              </button>
+            </div>
+          </div>
+        )}
         {error && (
           <div
             className="shipment-error-banner"
@@ -237,6 +310,39 @@ export default function Shipment() {
 
         {/* STATISTICS */}
         <div className="stats">
+          {(currentTab === "all" || !["active", "delayed", "completed", "review"].includes(currentTab)) && (
+            <>
+              <div className="stat-card">
+                <div className="stat-header">
+                  <h4>Total Shipments</h4>
+                  <i className="las la-boxes stat-icon" />
+                </div>
+                <h2>{visibleShipments.length}</h2>
+                <p>Recorded in system</p>
+              </div>
+
+              <div className="stat-card completed">
+                <div className="stat-header">
+                  <h4>In Transit</h4>
+                  <i className="las la-truck stat-icon text-transit" />
+                </div>
+                <h2>{stats.transitCount ?? 0}</h2>
+                <p>Currently on the road</p>
+              </div>
+
+              <div className="stat-card late">
+                <div className="stat-header">
+                  <h4>Delayed</h4>
+                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
+                </div>
+                <h2>{stats.delayedCount ?? 0}</h2>
+                <p className="text-danger-accent">
+                  Requires attention
+                </p>
+              </div>
+            </>
+          )}
+
           {currentTab === "active" && (
             <>
               <div className="stat-card completed">
@@ -318,7 +424,7 @@ export default function Shipment() {
                   <i className="las la-clock stat-icon" />
                 </div>
                 <h2>{stats.onTimeToday}</h2>
-                <p>{stats.onTimePct}% of today's handoffs</p>
+                <p>{stats.onTimePct == null ? 'Timing unavailable' : `${stats.onTimePct}% of today's handoffs with known timing`}</p>
               </div>
 
               <div className="stat-card late">
@@ -421,6 +527,8 @@ export default function Shipment() {
 
             <input
               type="text"
+              id="shipmentSearch"
+              aria-label="Search shipments"
               className="table-search"
               placeholder="Search by ID, route, driver or customer..."
               value={searchQuery}
@@ -471,7 +579,7 @@ export default function Shipment() {
 
                   <tbody>
                     {pagedShipments.map((s) => (
-                      <tr key={s.dbId}>
+                      <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
                         <td>
                           <div className="cell-bold">
                             {s.id}
@@ -496,8 +604,8 @@ export default function Shipment() {
                           </div>
                         </td>
 
-                        <td>
-                          <div className="text-dark-bold">
+                        <td className="location-cell" title={`${s.origin} → ${s.destination}`}>
+                          <div className="location-text">
                             {s.origin}{" "}
                             <span className="route-arrow">
                               →
@@ -522,8 +630,8 @@ export default function Shipment() {
                         </td>
 
                         <td>
-                          <span className="status transit">
-                            <i className="las la-check-circle" />{" "}
+                          <span className={`status ${s.deliveryStatus === 'UNKNOWN' ? 'unknown-timing' : 'transit'}`}>
+                            <i className={`las ${s.deliveryStatus === 'UNKNOWN' ? 'la-question-circle' : 'la-check-circle'}`} />{" "}
                             {s.deliveryStatus}
                           </span>
                         </td>
@@ -569,7 +677,7 @@ export default function Shipment() {
 
                   <tbody>
                     {pagedShipments.map((s) => (
-                      <tr key={s.dbId}>
+                      <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
                         <td>
                           <div className="cell-bold">
                             {s.id}
@@ -583,22 +691,18 @@ export default function Shipment() {
                           </details>
                         </td>
 
-                        <td>
-                          <div className="text-dark-bold">
+                        <td className="location-cell" title={s.origin}>
+                          <div className="location-text">
                             {s.origin}
                           </div>
-                          <div className="cell-sub">
-                            {s.originSub}
-                          </div>
+                          {s.originSub ? <div className="cell-sub">{s.originSub}</div> : null}
                         </td>
 
-                        <td>
-                          <div className="text-dark-bold">
+                        <td className="location-cell" title={s.destination}>
+                          <div className="location-text">
                             {s.destination}
                           </div>
-                          <div className="cell-sub">
-                            {s.destinationSub}
-                          </div>
+                          {s.destinationSub ? <div className="cell-sub">{s.destinationSub}</div> : null}
                         </td>
 
                         <td>
@@ -684,8 +788,17 @@ export default function Shipment() {
       </section>
 
       {/* CREATE SHIPMENT DRAWER */}
+      {cancelShipment && <ShipmentCancellationDialog key={cancelShipment.dbId} shipment={cancelShipment}
+        onClose={() => { setCancelShipment(null); reviewLauncher.current?.focus(); }}
+        onCancelled={result => {
+          setAssignmentMessage(`Shipment cancelled. Reservations released.${result.financial_review_required ? ' Existing payments require separate financial review.' : ' Recorded charges and payments are unchanged.'}`);
+          setCancelShipment(null); reviewLauncher.current?.focus(); refresh();
+        }} />}
       {detailsShipment && <ShipmentDetails key={detailsShipment.dbId} shipment={detailsShipment}
         onClose={() => { setDetailsShipment(null); reviewLauncher.current?.focus(); }} />}
+      {editShipment && <ShipmentEditDialog key={editShipment.dbId} shipment={editShipment}
+        onClose={() => { setEditShipment(null); reviewLauncher.current?.focus(); }}
+        onSaved={async () => { await refresh(); }} />}
       {reviewShipment && <BookingReview key={reviewShipment.dbId} shipment={reviewShipment}
         onClose={() => { setReviewShipment(null); reviewLauncher.current?.focus(); }}
         onReviewed={result => {

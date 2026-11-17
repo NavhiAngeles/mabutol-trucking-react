@@ -3,6 +3,85 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+test('shipment list retrieves linked customer names for display and search without losing assignments or orphan rows', async () => {
+  const shipments = [
+    { id: 'linked', customer_id: 'customer-1', customer: { name: 'Sample Trading' }, created_at: '2026-11-05' },
+    { id: 'deleted', customer_id: null, customer: null, created_at: '2026-11-04' },
+    { id: 'unavailable', customer_id: 'customer-2', customer: null, created_at: '2026-11-03' },
+  ];
+  const deliveries = [
+    { id: 'cancelled', shipment_id: 'linked', status: 'cancelled', driver: { full_name: 'Previous Driver' } },
+    { id: 'active', shipment_id: 'linked', status: 'assigned', driver: { full_name: 'Current Driver' }, truck: { plate_number: 'TEST-01' } },
+  ];
+  const calls = [];
+  const context = vm.createContext({ console: { log() {}, error() {} },
+    pendingDeparture: row => row.id === 'linked',
+    async fetchOperationalRows(table, columns) {
+      calls.push(table);
+      if (table === 'shipments') {
+        assert.equal(columns, '*,customer:customers!customer_id(name)');
+        return shipments;
+      }
+      assert.equal(table, 'deliveries');
+      assert.equal(columns, 'id,shipment_id,truck_id,driver_id,status,departed_at,driver:drivers(full_name),truck:trucks(plate_number)');
+      return deliveries;
+    },
+  });
+  const source = fs.readFileSync(new URL('./shipmentService.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.fetchList = fetchShipments;', context);
+  const rows = await context.fetchList();
+  assert.deepEqual(calls.sort(), ['deliveries', 'shipments']);
+  assert.equal(rows.length, 3);
+  assert.equal(rows[0].customer, 'Sample Trading');
+  assert.equal(rows[0].customerInitials, 'ST');
+  assert.equal(rows[0].assignmentId, 'active');
+  assert.equal(rows[0].driver, 'Current Driver');
+  assert.equal(rows[0].fleet, 'TEST-01');
+  assert.equal(rows[0].pendingDispatch, true);
+  for (const row of rows.slice(1)) {
+    assert.equal(row.customer, '—');
+    assert.equal(row.driver, 'Unassigned');
+    assert.equal(row.assignmentId, null);
+  }
+
+  // Execute the existing viewmodel search against the fetched/mapped rows.
+  const viewmodel = fs.readFileSync(new URL('../viewmodels/ShipmentViewModel.js', import.meta.url), 'utf8');
+  const search = viewmodel.split('const matchesSearch = ')[1].split('export function useShipmentViewModel')[0];
+  const matchesSearch = vm.runInNewContext('(' + search.trim().replace(/;$/, '') + ')');
+  assert.equal(rows.filter(row => matchesSearch(row, 'sample trad')).length, 1);
+  assert.equal(rows.filter(row => matchesSearch(row, 'missing customer')).length, 0);
+});
+
+test('customer mapping tolerates absent relationships and preserves legacy customer names', () => {
+  const api = service();
+  for (const customer of [undefined, null, {}]) {
+    assert.equal(api.mapShipmentRow({ customer_id: 'unavailable', customer }).customer, '—');
+    assert.equal(api.mapShipmentRow({ customer_name: 'Legacy Customer', customer }).customer, 'Legacy Customer');
+  }
+});
+
+test('completed timing is unknown for missing or invalid timestamps, preserving known outcomes', () => {
+  const api = service();
+  const base = { id: 's', status: 'completed', estimated_arrival: '2026-11-05T04:00:00Z', actual_delivery_at: '2026-11-05T04:00:00Z' };
+  assert.equal(api.mapShipmentRow(base).deliveryStatus, 'ON TIME');
+  assert.equal(api.mapShipmentRow({ ...base, actual_delivery_at: '2026-11-05T04:01:00Z' }).deliveryStatus, 'LATE');
+  for (const field of ['actual_delivery_at', 'estimated_arrival']) {
+    for (const value of [null, '', 'invalid']) assert.equal(api.mapShipmentRow({ ...base, [field]: value }).deliveryStatus, 'UNKNOWN');
+  }
+});
+
+test('completed-day metrics exclude unknown timing from on-time denominator and late count', () => {
+  const source = fs.readFileSync(new URL('../viewmodels/ShipmentViewModel.js', import.meta.url), 'utf8');
+  const body = source.split('const stats = useMemo(() => {')[1].split('}, [shipments, weeklyTrips, clock]);')[0];
+  const scope = vm.createContext({ shipments: ['ON TIME', 'LATE', 'UNKNOWN'].map(deliveryStatus => ({ status: 'completed', deliveryStatus, actualAt: new Date() })),
+    isToday: () => true, formatDuration: () => '', reviewAgeLabel: () => 'Unavailable', weeklyTrips: 0, clock: 0 });
+  const compute = () => vm.runInContext('(function(){'+body+'})()', scope);
+  assert.equal(compute().completedToday, 3); assert.equal(compute().onTimePct, 50); assert.equal(compute().lateToday, 1);
+  scope.shipments = [scope.shipments[2]];
+  assert.equal(compute().onTimePct, null); assert.equal(compute().lateToday, 0);
+});
+
 test('weekly count distinguishes confirmed zero from query errors, rejection and missing counts, then recovers', async () => {
   const results = [{ count: 0 }, { error: Error('Denied') }, Error('Offline'), { count: null }, {}, { count: 7 }];
   const context = vm.createContext({ console: { error() {} }, supabase: {
@@ -76,6 +155,13 @@ test('shipment mapping exposes stored instructions on assigned, in-transit and c
   for (const driver_notes of [null, undefined, '']) assert.equal(api.mapShipmentRow({ id: 's', driver_notes }).driverNotes, '');
 });
 
+test('review mapping preserves missing timestamps as unknown instead of inventing the current time', () => {
+  const api = service();
+  assert.equal(api.mapShipmentRow({ id: 'missing', status: 'under_review' }).flaggedAt, null);
+  const timestamp = '2026-11-05T04:00:00Z';
+  assert.equal(api.mapShipmentRow({ id: 'known', status: 'under_review', updated_at: timestamp }).flaggedAt.getTime(), Date.parse(timestamp));
+});
+
 test('lookup failure after insert preserves success instead of inviting duplicate submission', async () => {
   for (const options of [{ lookupError: Error('denied') }, { throws: true }]) {
     const api = service(options);
@@ -95,3 +181,48 @@ test('assignment retry returns delivery or no availability and propagates failur
   assert.equal(await service().assignShipmentResources('s'), null);
   await assert.rejects(service({ rpcError: Error('access denied') }).assignShipmentResources('s'), /access denied/);
 });
+
+test('createShipment gracefully recovers from schema cache missing column error', async () => {
+  let attempt = 0;
+  const insertedPayloads = [];
+  const context = { console, supabase: {
+    from(table) {
+      const q = {
+        insert(payload) {
+          insertedPayloads.push({ ...payload });
+          return q;
+        },
+        select() { return q; }, eq() { return q; }, neq() { return q; },
+        async single() {
+          attempt++;
+          if (attempt === 1) {
+            return {
+              data: null,
+              error: { message: "Could not find the 'driver_allowance' column of 'shipments' in the schema cache", code: "PGRST204" }
+            };
+          }
+          return { data: { id: 's-fallback', status: 'booked' }, error: null };
+        },
+        async maybeSingle() { return { data: null, error: null }; }
+      };
+      assert.ok(['shipments', 'deliveries'].includes(table));
+      return q;
+    }
+  }};
+  vm.createContext(context);
+  const source = fs.readFileSync(new URL('./shipmentService.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.api = {createShipment};', context);
+  const result = await context.api.createShipment({
+    pickup_address: 'A',
+    dropoff_address: 'B',
+    driver_allowance: 500,
+    toll_fees: 100
+  });
+  assert.equal(result.id, 's-fallback');
+  assert.equal(attempt, 2);
+  assert.equal(insertedPayloads[0].driver_allowance, 500);
+  assert.equal('driver_allowance' in insertedPayloads[1], false);
+  assert.equal(insertedPayloads[1].toll_fees, 100);
+});
+

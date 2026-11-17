@@ -25,6 +25,10 @@ export async function signIn(email, password) {
     throw new Error('This account has been deactivated.');
   }
 
+  // A verified sign-in starts a fresh idle clock. Without this, a stale
+  // lastActivityAt left over from an earlier session makes the idle timer
+  // sign the new session out immediately after login.
+  markActivity();
   return { ...data, role: profile.role };
 }
 
@@ -57,15 +61,29 @@ const IDLE_LIMITS_MINUTES = {
   customer: 60 * 24 * 7, // 7 days, mobile
 };
 
+export const IDLE_WARNING_MINUTES = 2;
+export const IDLE_WARNING_SECONDS = IDLE_WARNING_MINUTES * 60;
+
 export function getIdleLimitMinutes(role) {
   return IDLE_LIMITS_MINUTES[role] ?? 30;
 }
 
+export function getIdleWarningSeconds() {
+  return IDLE_WARNING_SECONDS;
+}
+
 export function markActivity() {
-  localStorage.setItem('lastActivityAt', Date.now().toString());
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('lastActivityAt', Date.now().toString());
+  }
 }
 
 export function getLastActivity() {
+  if (typeof localStorage === 'undefined') return null;
   const val = localStorage.getItem('lastActivityAt');
   return val ? parseInt(val, 10) : null;
+}
+
+export function staySignedIn() {
+  markActivity();
 }

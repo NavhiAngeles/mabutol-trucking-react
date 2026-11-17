@@ -1,0 +1,55 @@
+{
+  "summary": {
+    "distance": 16500,
+    "duration": 1200
+  },
+  "geometry": "w}qwA_gnaVrg@n_@bfBzr@vcAzm@n}@nd@n}@vcA~p@~iAbt@fiBzTn}@rNvj@rg@nd@",
+  "extras": {
+    "waycategory": {
+      "values": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          9,
+          3
+        ],
+        [
+          9,
+          10,
+          0
+        ]
+      ]
+    }
+  },
+  "segments": [
+    {
+      "steps": [
+        {
+          "name": "Roxas Boulevard",
+          "way_points": [
+            0,
+            1
+          ]
+        },
+        {
+          "name": "Manila-Cavite Expressway",
+          "way_points": [
+            1,
+            9
+          ]
+        },
+        {
+          "name": "Centennial Road",
+          "way_points": [
+            9,
+            10
+          ]
+        }
+      ]
+    }
+  ]
+}

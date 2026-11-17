@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getTollGates,
   addTollGate,
@@ -6,12 +6,36 @@ import {
   deleteTollGate,
   getCurrentPricingUser,
 } from "../../../services/tollGateService";
+import { VERIFIED_TOLL_PRESETS, cleanGateName } from "../../../services/tollPricing";
+
+const TollIcon = ({ size = 22 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 19V5" />
+    <path d="M20 19V5" />
+    <path d="M4 10h16" />
+    <path d="M9 10l-5 5" />
+    <path d="M15 10l-5 5" />
+    <circle cx="12" cy="7" r="1.5" />
+  </svg>
+);
 
 const EMPTY_FORM = {
   gate_name: "",
   highway: "NLEX",
   vehicle_class: "Class 2",
   fee: "",
+  pricing_scope: 'entry_exit',
+  entry_lat: '', entry_lng: '', exit_lat: '', exit_lng: '', bidirectional: false,
 };
 
 const formatPeso = (value) =>
@@ -23,9 +47,10 @@ const formatPeso = (value) =>
 const buttonStyle = {
   border: "1px solid #cbd5e1",
   borderRadius: 6,
-  padding: "8px 12px",
+  padding: "7px 12px",
   cursor: "pointer",
-  fontWeight: 600,
+  fontWeight: 500,
+  fontSize: 13,
   whiteSpace: "nowrap",
 };
 
@@ -41,8 +66,9 @@ const inputStyle = {
 const labelStyle = {
   display: "block",
   marginBottom: 16,
-  fontSize: 13,
-  fontWeight: 600,
+  fontSize: 14,
+  fontWeight: 500,
+  color: "#334155",
 };
 
 export default function TollGateManager() {
@@ -55,6 +81,17 @@ export default function TollGateManager() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const deleteTriggerRef = useRef(null);
+  const deleteCancelBtnRef = useRef(null);
+  const deleteDialogRef = useRef(null);
+
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState(null);
+  const menuRef = useRef(null);
 
   const [error, setError] = useState("");
   const [modalError, setModalError] = useState("");
@@ -122,10 +159,13 @@ export default function TollGateManager() {
     setEditingId(toll.id);
 
     setForm({
-      gate_name: toll.gate_name,
+      gate_name: cleanGateName(toll.gate_name),
       highway: toll.highway,
       vehicle_class: toll.vehicle_class,
       fee: String(toll.fee),
+      pricing_scope: toll.pricing_scope || 'entry_exit',
+      entry_lat: String(toll.entry_lat ?? ''), entry_lng: String(toll.entry_lng ?? ''),
+      exit_lat: String(toll.exit_lat ?? ''), exit_lng: String(toll.exit_lng ?? ''), bidirectional: toll.bidirectional === true,
     });
 
     setModalError("");
@@ -146,6 +186,33 @@ export default function TollGateManager() {
       ...previous,
       [field]: value,
     }));
+  };
+
+  const applyPreset = (presetName) => {
+    const preset = VERIFIED_TOLL_PRESETS.find(p => p.gate_name === presetName || cleanGateName(p.gate_name) === cleanGateName(presetName));
+    if (!preset) return;
+    setForm(prev => ({
+      ...prev,
+      gate_name: cleanGateName(preset.gate_name),
+      highway: preset.highway,
+      fee: String(prev.vehicle_class === 'Class 3' ? preset.class3_fee : preset.class2_fee),
+      pricing_scope: preset.pricing_scope,
+      entry_lat: preset.entry_lat != null ? String(preset.entry_lat) : '',
+      entry_lng: preset.entry_lng != null ? String(preset.entry_lng) : '',
+      exit_lat: preset.exit_lat != null ? String(preset.exit_lat) : '',
+      exit_lng: preset.exit_lng != null ? String(preset.exit_lng) : '',
+      bidirectional: preset.bidirectional === true,
+    }));
+  };
+
+  const handleVehicleClassChange = (newClass) => {
+    setForm(prev => {
+      const preset = VERIFIED_TOLL_PRESETS.find(p => cleanGateName(p.gate_name) === cleanGateName(prev.gate_name));
+      const fee = preset
+        ? String(newClass === 'Class 3' ? preset.class3_fee : newClass === 'Class 2' ? preset.class2_fee : prev.fee)
+        : prev.fee;
+      return { ...prev, vehicle_class: newClass, fee };
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -172,6 +239,7 @@ export default function TollGateManager() {
     try {
       const payload = {
         ...form,
+        gate_name: cleanGateName(form.gate_name),
         fee,
       };
 
@@ -202,33 +270,145 @@ export default function TollGateManager() {
     }
   };
 
-  const handleDelete = async (toll) => {
-    if (!isAdmin || saving) return;
+  const handleDeleteClick = (toll, event) => {
+    if (!isAdmin || saving || deleting) return;
+    deleteTriggerRef.current = event?.currentTarget || (typeof document !== "undefined" ? document.activeElement : null);
+    setDeleteError("");
+    setDeleteTarget(toll);
+  };
 
-    const confirmed = window.confirm(
-      `Delete "${toll.gate_name}" permanently?`
-    );
+  const handleCancelDelete = useCallback(() => {
+    if (deleting) return;
+    setDeleteTarget(null);
+    setDeleteError("");
+    if (deleteTriggerRef.current && typeof deleteTriggerRef.current.focus === "function") {
+      deleteTriggerRef.current.focus();
+    }
+  }, [deleting]);
 
-    if (!confirmed) return;
+  const handleConfirmDelete = async () => {
+    if (!isAdmin || !deleteTarget || deleting) return;
 
-    setSaving(true);
+    setDeleting(true);
+    setDeleteError("");
     setError("");
     setSuccess("");
 
     try {
-      await deleteTollGate(toll.id);
+      await deleteTollGate(deleteTarget.id);
       await loadTolls();
-      setSuccess("Toll gate deleted successfully.");
+      setSuccess(`Toll gate "${deleteTarget.gate_name}" deleted successfully.`);
+      const trigger = deleteTriggerRef.current;
+      setDeleteTarget(null);
+      if (trigger && typeof trigger.focus === "function") {
+        trigger.focus();
+      }
     } catch (err) {
-      setError(err.message || "Unable to delete toll gate.");
+      setDeleteError(err.message || "Unable to delete toll gate.");
     } finally {
-      setSaving(false);
+      setDeleting(false);
     }
   };
 
+  useEffect(() => {
+    if (!deleteTarget) return;
+
+    const timer = setTimeout(() => {
+      if (deleteCancelBtnRef.current) {
+        deleteCancelBtnRef.current.focus();
+      }
+    }, 0);
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!deleting) {
+          handleCancelDelete();
+        }
+      } else if (event.key === "Tab" && deleteDialogRef.current) {
+        const buttons = Array.from(
+          deleteDialogRef.current.querySelectorAll("button:not([disabled])")
+        );
+        if (buttons.length === 0) return;
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+
+        if (event.shiftKey) {
+          if (document.activeElement === first || !deleteDialogRef.current.contains(document.activeElement)) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [deleteTarget, deleting, handleCancelDelete]);
+
+  const handleOpenMenu = useCallback((e, tollId) => {
+    e.stopPropagation();
+    if (openMenuId === tollId) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const winHeight = typeof window !== "undefined" ? window.innerHeight : 800;
+    const winWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const spaceBelow = winHeight - rect.bottom;
+    const openUpward = spaceBelow < 110 && rect.top > 110;
+
+    setMenuPosition({
+      top: openUpward ? "auto" : `${rect.bottom + 4}px`,
+      bottom: openUpward ? `${winHeight - rect.top + 4}px` : "auto",
+      right: `${Math.max(12, winWidth - rect.right)}px`,
+    });
+    setOpenMenuId(tollId);
+  }, [openMenuId]);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+        setMenuPosition(null);
+      }
+    }
+    function handleDismiss() {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    }
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && !deleteTarget) {
+        setOpenMenuId(null);
+        setMenuPosition(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
+  }, [deleteTarget]);
+
   return (
-    <div className="settings-card">
+    <div className="settings-card" id="toll-gates">
       <div className="card-header">
+        <TollIcon />
         <h3>Toll Gate Rates</h3>
       </div>
 
@@ -274,7 +454,7 @@ export default function TollGateManager() {
               <th>HIGHWAY</th>
               <th>VEHICLE CLASS</th>
               <th className="ta-right">FEE (₱)</th>
-              {isAdmin && <th>ACTIONS</th>}
+              {isAdmin && <th className="text-center" style={{ width: 80 }}>ACTIONS</th>}
             </tr>
           </thead>
 
@@ -295,7 +475,14 @@ export default function TollGateManager() {
               tolls.map((toll) => (
                 <tr key={toll.id}>
                   <td className="toll-name">
-                    {toll.gate_name}
+                    <span className="toll-title">{cleanGateName(toll.gate_name)}</span>
+                    <span className="toll-subtitle">
+                      {toll.pricing_scope === 'flat'
+                        ? 'Fixed fee for this toll system'
+                        : toll.entry_lat != null && toll.exit_lat != null
+                        ? 'Automatic route matching ready'
+                        : 'Entry and exit plaza locations needed for automatic pricing'}
+                    </span>
                   </td>
 
                   <td>
@@ -315,39 +502,111 @@ export default function TollGateManager() {
                   </td>
 
                   {isAdmin && (
-                    <td>
+                    <td className="text-center" style={{ width: 80 }}>
                       <div
-                        style={{
-                          display: "flex",
-                          gap: 6,
-                          flexWrap: "wrap",
-                        }}
+                        className="toll-action-menu-wrapper"
+                        ref={openMenuId === toll.id ? menuRef : null}
                       >
                         <button
                           type="button"
-                          disabled={saving}
-                          onClick={() => openEditModal(toll)}
-                          style={{
-                            ...buttonStyle,
-                            background: "#eff6ff",
-                            color: "#1d4ed8",
-                          }}
+                          className="toll-action-dots-btn"
+                          aria-label={`Actions for toll gate ${toll.gate_name}`}
+                          aria-expanded={openMenuId === toll.id}
+                          disabled={saving || deleting}
+                          onClick={(e) => handleOpenMenu(e, toll.id)}
                         >
-                          ✎ Edit Price
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+                            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                            <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+                          </svg>
                         </button>
 
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={() => handleDelete(toll)}
-                          style={{
-                            ...buttonStyle,
-                            background: "#fef2f2",
-                            color: "#b91c1c",
-                          }}
-                        >
-                          Delete
-                        </button>
+                        {openMenuId === toll.id && (
+                          <div
+                            className="toll-action-dropdown"
+                            role="menu"
+                            style={
+                              menuPosition
+                                ? {
+                                    position: "fixed",
+                                    top: menuPosition.top,
+                                    bottom: menuPosition.bottom,
+                                    right: menuPosition.right,
+                                    left: "auto",
+                                    zIndex: 9999,
+                                  }
+                                : undefined
+                            }
+                          >
+                            <button
+                              type="button"
+                              className="toll-dropdown-item"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setMenuPosition(null);
+                                openEditModal(toll);
+                              }}
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                              <span>Edit Price</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="toll-dropdown-item danger"
+                              role="menuitem"
+                              onClick={(e) => {
+                                const dotsBtn = e.currentTarget
+                                  .closest(".toll-action-menu-wrapper")
+                                  ?.querySelector(".toll-action-dots-btn");
+                                setOpenMenuId(null);
+                                setMenuPosition(null);
+                                handleDeleteClick(toll, { currentTarget: dotsBtn || e.currentTarget });
+                              }}
+                            >
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                aria-hidden="true"
+                              >
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   )}
@@ -440,6 +699,40 @@ export default function TollGateManager() {
             </div>
 
             <form onSubmit={handleSubmit}>
+              {!editingId && (
+                <div style={{ marginBottom: 16, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                  <label style={{ ...labelStyle, marginBottom: 6 }}>
+                    Verified Expressway Preset
+                    <select
+                      style={inputStyle}
+                      defaultValue=""
+                      onChange={(e) => {
+                        applyPreset(e.target.value);
+                      }}
+                    >
+                      <option value="">— Select a verified preset to auto-fill —</option>
+                      <optgroup label="South Luzon Corridors (SLEX, STAR, CALAX, CAVITEX, Skyway, MCX)">
+                        {VERIFIED_TOLL_PRESETS.filter(p => ['SLEX', 'STAR', 'CALAX', 'CAVITEX', 'MCX'].includes(p.highway) || (p.highway === 'SKYWAY' && p.gate_name.includes('Alabang'))).map(p => (
+                          <option key={p.gate_name} value={p.gate_name}>
+                            {p.gate_name} ({p.highway}) — Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Metro Manila & North Luzon Corridors (NLEX, SCTEX, TPLEX, Skyway)">
+                        {VERIFIED_TOLL_PRESETS.filter(p => ['NLEX', 'NLEX_CONNECTOR', 'NLEX_HARBOR_LINK', 'SCTEX', 'TPLEX'].includes(p.highway) || (p.highway === 'SKYWAY' && !p.gate_name.includes('Alabang'))).map(p => (
+                          <option key={p.gate_name} value={p.gate_name}>
+                            {p.gate_name} ({p.highway}) — Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </select>
+                  </label>
+                  <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>
+                    Auto-fills exact entry & exit plaza coordinates, confirmed Class 2/3 tariffs, and bidirectional route matching.
+                  </p>
+                </div>
+              )}
+
               <label style={labelStyle}>
                 Toll Gate Name
                 <input
@@ -454,7 +747,7 @@ export default function TollGateManager() {
                       event.target.value
                     )
                   }
-                  placeholder="Enter toll gate name"
+                  placeholder="Entry → Exit (e.g. Balagtas → Bocaue)"
                 />
               </label>
 
@@ -473,12 +766,18 @@ export default function TollGateManager() {
                   }
                 >
                   <option value="NLEX">NLEX</option>
+                  <option value="NLEX_CONNECTOR">NLEX Connector</option>
+                  <option value="NLEX_HARBOR_LINK">NLEX Harbor Link</option>
                   <option value="SLEX">SLEX</option>
+                  <option value="SKYWAY">SKYWAY</option>
                   <option value="SCTEX">SCTEX</option>
                   <option value="TPLEX">TPLEX</option>
                   <option value="CALAX">CALAX</option>
                   <option value="CAVITEX">CAVITEX</option>
                   <option value="STAR">STAR</option>
+                  <option value="MCX">MCX</option>
+                  <option value="NAIAX">NAIAX</option>
+                  <option value="C5 SOUTHLINK">C5 SOUTHLINK</option>
                   <option value="OTHER">OTHER</option>
                 </select>
               </label>
@@ -491,10 +790,7 @@ export default function TollGateManager() {
                   value={form.vehicle_class}
                   disabled={Boolean(editingId)}
                   onChange={(event) =>
-                    updateField(
-                      "vehicle_class",
-                      event.target.value
-                    )
+                    handleVehicleClassChange(event.target.value)
                   }
                 >
                   <option value="Class 1">Class 1</option>
@@ -520,6 +816,27 @@ export default function TollGateManager() {
                 />
               </label>
 
+              <fieldset style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: 14, marginBottom: 16 }}>
+                <legend>Automatic route matching</legend>
+                <label style={labelStyle}>Tariff basis
+                  <select style={inputStyle} value={form.pricing_scope} onChange={event => updateField('pricing_scope', event.target.value)}>
+                    <option value="entry_exit">Exact entry and exit</option>
+                    {['NLEX_CONNECTOR', 'NLEX_HARBOR_LINK'].includes(form.highway) && <option value="flat">Fixed toll system fee</option>}
+                  </select>
+                </label>
+                <p style={{ fontSize: 12, lineHeight: 1.6, color: '#64748b' }}>Set the actual toll entry and exit plaza locations. The calculated route must match both before this fee can be added automatically.</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {['entry_lat', 'entry_lng', 'exit_lat', 'exit_lng'].map(key => <label key={key} style={{ ...labelStyle, marginBottom: 6 }}>
+                    {({ entry_lat: 'Entry latitude', entry_lng: 'Entry longitude', exit_lat: 'Exit latitude', exit_lng: 'Exit longitude' })[key]}
+                    <input type="number" step="any" min={key.endsWith('lat') ? -90 : -180} max={key.endsWith('lat') ? 90 : 180}
+                      style={inputStyle} value={form[key]} onChange={event => updateField(key, event.target.value)} placeholder={key.endsWith('lat') ? 'e.g. 14.800000' : 'e.g. 120.950000'} />
+                  </label>)}
+                </div>
+                <label style={{ fontSize: 12, display: 'flex', gap: 8, marginTop: 10 }}>
+                  <input type="checkbox" checked={form.bidirectional} onChange={event => updateField('bidirectional', event.target.checked)} />
+                  This same fee is confirmed for both directions
+                </label>
+              </fieldset>
               {modalError && (
                 <p
                   role="alert"
@@ -567,6 +884,157 @@ export default function TollGateManager() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE CONFIRMATION DIALOG */}
+      {deleteTarget && isAdmin && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(15, 23, 42, 0.65)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleting) {
+              handleCancelDelete();
+            }
+          }}
+        >
+          <div
+            ref={deleteDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="toll-delete-dialog-title"
+            aria-describedby="toll-delete-dialog-desc"
+            tabIndex={-1}
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              padding: 28,
+              borderRadius: 12,
+              background: "#fff",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: "#fee2e2",
+                color: "#dc2626",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 16,
+              }}
+              aria-hidden="true"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 6h18" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </div>
+
+            <h3
+              id="toll-delete-dialog-title"
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#0f172a",
+              }}
+            >
+              Delete toll gate?
+            </h3>
+
+            <p
+              id="toll-delete-dialog-desc"
+              style={{
+                margin: "0 0 20px 0",
+                fontSize: 14,
+                color: "#64748b",
+                lineHeight: 1.5,
+              }}
+            >
+              Are you sure you want to delete{" "}
+              <strong style={{ color: "#0f172a" }}>{deleteTarget.gate_name}</strong>{" "}
+              ({deleteTarget.highway} - {deleteTarget.vehicle_class})? This action cannot be undone.
+            </p>
+
+            {deleteError && (
+              <p
+                role="alert"
+                style={{
+                  color: "#b91c1c",
+                  fontSize: 13,
+                  marginBottom: 16,
+                  background: "#fee2e2",
+                  padding: "8px 12px",
+                  borderRadius: 6,
+                  textAlign: "left",
+                }}
+              >
+                {deleteError}
+              </p>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 12,
+                marginTop: 20,
+              }}
+            >
+              <button
+                ref={deleteCancelBtnRef}
+                type="button"
+                disabled={deleting}
+                onClick={handleCancelDelete}
+                style={{
+                  ...buttonStyle,
+                  minWidth: 100,
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleConfirmDelete}
+                style={{
+                  ...buttonStyle,
+                  background: "#dc2626",
+                  borderColor: "#dc2626",
+                  color: "#fff",
+                  fontWeight: 600,
+                  minWidth: 100,
+                }}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}

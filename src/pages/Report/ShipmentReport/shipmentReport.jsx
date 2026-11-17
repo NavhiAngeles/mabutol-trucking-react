@@ -1,7 +1,7 @@
 import ReportSchedule from '../../../components/ReportSchedule';
 import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from 'react-router-dom';
 import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
@@ -53,18 +53,38 @@ function StatusDiamond({ report }) {
   </svg>;
 }
 function TrendChart({ trend }) {
-  const x = i => 55 + i * 490 / Math.max(1, trend.length - 1);
-  const y = rate => 290 - rate * 2.5;
-  return <svg className="sr-trend" viewBox="0 0 584 358" role="img" aria-label="On-time rate of timed completed shipments by creation date">
-    {[0,25,50,75,100].map(t => <g key={t}><line x1="45" x2="560" y1={y(t)} y2={y(t)} stroke="#E5E7EB" /><text x="40" y={y(t)} textAnchor="end" className="sr-axis">{t}%</text></g>)}
-    {trend.map((b,i) => <g key={b.date}>{b.rate != null && <><circle cx={x(i)} cy={y(b.rate)} r="5" fill="#0A2A4D"><title>{b.date}: {b.rate}% ({b.count} shipments)</title></circle>{i > 0 && trend[i-1].rate != null && <line x1={x(i-1)} y1={y(trend[i-1].rate)} x2={x(i)} y2={y(b.rate)} stroke="#35597F" strokeWidth="3" />}</>}<text x={x(i)} y="325" textAnchor="middle" className="sr-axis">{b.date.slice(5)}</text></g>)}
-  </svg>;
+  const x = i => 48 + (i * 902) / Math.max(1, trend.length - 1);
+  const y = rate => 165 - (rate / 100) * 135;
+  return (
+    <svg className="sr-trend" viewBox="0 0 970 220" role="img" aria-label="On-time rate of timed completed shipments by creation date">
+      {[0, 25, 50, 75, 100].map(t => (
+        <g key={t}>
+          <line x1="44" x2="954" y1={y(t)} y2={y(t)} stroke="#E2E8F0" strokeDasharray="3 3" />
+          <text x="38" y={y(t) + 3.5} textAnchor="end" className="sr-axis">{t}%</text>
+        </g>
+      ))}
+      {trend.map((b, i) => (
+        <g key={b.date}>
+          {b.rate != null && (
+            <>
+              {i > 0 && trend[i - 1].rate != null && (
+                <line x1={x(i - 1)} y1={y(trend[i - 1].rate)} x2={x(i)} y2={y(b.rate)} stroke="#0F2A52" strokeWidth="2.5" />
+              )}
+              <circle cx={x(i)} cy={y(b.rate)} r="4.5" fill="#0F2A52" stroke="#FFFFFF" strokeWidth="1.5">
+                <title>{b.date}: {b.rate}% ({b.count} shipments)</title>
+              </circle>
+            </>
+          )}
+          <text x={x(i)} y="194" textAnchor="middle" className="sr-axis">{b.date.slice(5)}</text>
+        </g>
+      ))}
+    </svg>
+  );
 }
 const formatTime = value => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
 
 /* ---------- Page ---------- */
 export default function ShipmentReport() {
-  const live = useLiveData(getShipmentReportRecords, SHIPMENT_REPORT_TABLES);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [customRange, setCustomRange] = useState(null);
@@ -73,17 +93,30 @@ export default function ShipmentReport() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [page, setPage] = useState(1);
   const customPickerRef = useRef(null);
+  const exportMenuRef = useRef(null);
+
+  const range = useReportRange(activeRange, customRange);
+  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const loadData = memoCallback(() => getShipmentReportRecords(range), [range.start, range.end]);
+  const live = useLiveData(loadData, SHIPMENT_REPORT_TABLES);
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (customPickerRef.current && !customPickerRef.current.contains(e.target)) {
         setShowCustomPicker(false);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
     }
     function handleEscape(e) {
-      if (e.key === "Escape") setShowCustomPicker(false);
+      if (e.key === "Escape") {
+        setShowCustomPicker(false);
+        setShowExportMenu(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
@@ -107,7 +140,6 @@ export default function ShipmentReport() {
     setPage(1);
   };
 
-  const range = useReportRange(activeRange, customRange);
   const report = buildShipmentReport(live.data?.shipments || [], live.data?.deliveries || [], range, search, status);
   const hasData = !!live.data;
   const b = report.breakdown;
@@ -141,7 +173,55 @@ export default function ShipmentReport() {
             <p>Comprehensive analysis of delivery performance and volume.</p>
           </div>
           <div className="sr-actions">
-            <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button><button className="sr-btn sr-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Shipments', range, report, { search, status })}>Export CSV</button><ReportSchedule type="Shipments" />
+            <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button>
+            <div className="report-export-split" ref={exportMenuRef}>
+              <button
+                type="button"
+                className="sr-btn sr-btn-primary report-export-main"
+                disabled={!live.data || !!live.error}
+                onClick={() => downloadReport('Shipments', range, report, { search, status }, 'csv')}
+              >
+                Export CSV
+              </button>
+              <button
+                type="button"
+                className="sr-btn sr-btn-primary report-export-toggle"
+                disabled={!live.data || !!live.error}
+                aria-label="Export format options"
+                aria-haspopup="true"
+                aria-expanded={showExportMenu}
+                onClick={() => setShowExportMenu(prev => !prev)}
+              >
+                ▾
+              </button>
+              {showExportMenu && (
+                <div className="report-export-menu" role="menu">
+                  <button
+                    type="button"
+                    className="report-export-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      downloadReport('Shipments', range, report, { search, status }, 'csv');
+                    }}
+                  >
+                    Export CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="report-export-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      downloadReport('Shipments', range, report, { search, status }, 'pdf');
+                    }}
+                  >
+                    Export PDF
+                  </button>
+                </div>
+              )}
+            </div>
+            <ReportSchedule type="Shipments" />
           </div>
         </div>
 
@@ -225,7 +305,8 @@ export default function ShipmentReport() {
 
               </div>
             </div>
-            <TrendChart trend={report.trend} />{!report.timed && <p>No timed completed shipments for this selection.</p>}
+            <TrendChart trend={report.trend} />
+            {!report.timed && <p className="sr-trend-empty">No timed completed shipments for this selection.</p>}
           </div>
         </div>
 
@@ -234,7 +315,13 @@ export default function ShipmentReport() {
         <div className="sr-card sr-ledger">
           <div className="sr-ledger-head">
             <h3>Shipment Ledger</h3>
-<div className="sr-ledger-tools"><label htmlFor="sr-status">Status </label><select id="sr-status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}><option value="all">All statuses</option>{Object.keys(statusColors).map(key => <option key={key} value={key}>{key}</option>)}</select></div>
+            <div className="sr-ledger-tools">
+              <label htmlFor="sr-status">Status </label>
+              <select id="sr-status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+                <option value="all">All statuses</option>
+                {Object.keys(statusColors).map(key => <option key={key} value={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="sr-table-wrap">
@@ -257,12 +344,24 @@ export default function ShipmentReport() {
                     <tr key={r.id}>
                       <td className="id"><Link to={'/shipment?tab=all&record=' + encodeURIComponent(r.id)}>{r.tracking_number || r.id}</Link></td>
                       <td>{r.customerName}</td>
-                      <td className="route">{r.route}</td>
-                      <td><span className={`sr-status ${r.group}`}><i />{r.status}</span></td>
+                      <td className="route" title={r.route}>
+                        <div className="sr-route-cell">
+                          {r.route && r.route.includes(' → ') ? (
+                            <>
+                              <span className="route-origin">{r.route.split(' → ')[0]}</span>
+                              <span className="route-arrow"> → </span>
+                              <span className="route-dest">{r.route.split(' → ').slice(1).join(' → ')}</span>
+                            </>
+                          ) : (
+                            r.route
+                          )}
+                        </div>
+                      </td>
+                      <td><span className={`sr-status ${r.group}`}><i />{r.status ? r.status.replace(/_/g, ' ') : ''}</span></td>
                       <td>{formatTime(r.estimated_arrival)}</td>
                       <td className={r.status === "delayed" ? "late" : ""}>{formatTime(r.actual_delivery_at)}</td>
                       <td className={`r var ${variantClass(r.variance)}`}>{r.variance}</td>
-                      <td>{r.driverName}</td>
+                      <td className={r.driverName === 'Unassigned' ? 'driver-unassigned' : ''}>{r.driverName}</td>
                     </tr>
                   ))
                 )}

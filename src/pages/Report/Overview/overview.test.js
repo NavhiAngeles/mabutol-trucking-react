@@ -28,3 +28,10 @@ test('Overview custom dates validate, apply and export exactly the selected coho
 test('Overview custom popover closes on Escape',async()=>{
  const ui=await screen();ui.click('Custom Range');assert.equal(find(ui.render(),n=>n.type==='form').length,1);ui.events.keydown({key:'Escape'});assert.equal(find(ui.render(),n=>n.type==='form').length,0);
 });
+test('Overview exports PDF when selected from export options menu', async () => {
+ const ui = await screen();
+ ui.click('▾');
+ ui.click('Export PDF');
+ assert.equal(ui.exported()[0], 'Overview');
+ assert.equal(ui.exported()[4], 'pdf');
+});

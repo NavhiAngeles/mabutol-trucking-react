@@ -1,7 +1,7 @@
 import ReportSchedule from '../../../components/ReportSchedule';
 import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
-import { useState, useRef, useEffect, Fragment } from "react";
+import { useState, useRef, useEffect, useCallback, Fragment } from "react";
 import { Link } from 'react-router-dom';
 import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
@@ -106,7 +106,6 @@ const buildAxis = (max) => {
    PAGE
 ========================= */
 export default function DriverReport() {
-  const live = useLiveData(getDriverReportRecords, DRIVER_REPORT_TABLES);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [rangeError, setRangeError] = useState('');
@@ -115,19 +114,32 @@ export default function DriverReport() {
   const [customEnd, setCustomEnd] = useState("");
   const [appliedCustom, setAppliedCustom] = useState(null);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [page, setPage] = useState(1);
   const customPickerRef = useRef(null);
+  const exportMenuRef = useRef(null);
 
-  // Close the custom range popover on outside click or Escape
+  const range = useReportRange(activeRange, appliedCustom);
+  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const loadData = memoCallback(() => getDriverReportRecords(range), [range.start, range.end]);
+  const live = useLiveData(loadData, DRIVER_REPORT_TABLES);
+
+  // Close the custom range popover and export menu on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (customPickerRef.current && !customPickerRef.current.contains(e.target)) {
         setShowCustomPicker(false);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
     }
     function handleKey(e) {
-      if (e.key === "Escape") setShowCustomPicker(false);
+      if (e.key === "Escape") {
+        setShowCustomPicker(false);
+        setShowExportMenu(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKey);
@@ -151,7 +163,6 @@ export default function DriverReport() {
     setShowCustomPicker(false);
   };
 
-  const range = useReportRange(activeRange, appliedCustom);
   const report = buildDriverReport(live.data || { drivers: [], shipments: [], deliveries: [], incidents: [] }, range, search, status);
   const hasData = !!live.data;
   const dateLabel = range.start + ' – ' + range.end;
@@ -186,7 +197,18 @@ export default function DriverReport() {
             </div>
 
             <div className="dr-actions">
-<button className="dr-btn dr-btn-secondary" onClick={live.refresh}>Refresh</button><button className="dr-btn dr-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Drivers', range, report, { search, status })}>Export CSV</button><ReportSchedule type="Drivers" />
+              <button className="dr-btn dr-btn-secondary" onClick={live.refresh}>Refresh</button>
+              <div className="report-export-split" ref={exportMenuRef}>
+                <button type="button" className="dr-btn dr-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Drivers', range, report, { search, status }, 'csv')}>Export CSV</button>
+                <button type="button" className="dr-btn dr-btn-primary report-export-toggle" disabled={!live.data || !!live.error} aria-label="Export format options" aria-haspopup="true" aria-expanded={showExportMenu} onClick={() => setShowExportMenu(prev => !prev)}>▾</button>
+                {showExportMenu && (
+                  <div className="report-export-menu" role="menu">
+                    <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Drivers', range, report, { search, status }, 'csv'); }}>Export CSV</button>
+                    <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Drivers', range, report, { search, status }, 'pdf'); }}>Export PDF</button>
+                  </div>
+                )}
+              </div>
+              <ReportSchedule type="Drivers" />
             </div>
           </div>
 

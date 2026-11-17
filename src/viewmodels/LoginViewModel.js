@@ -43,7 +43,7 @@ export function useLoginViewModel() {
       setErrors((prev) => ({ ...prev, password: err.message }));
     }
   }
-  
+
   function handlePasswordChange(value) {
     setPassword(value);
 
@@ -60,5 +60,5 @@ export function useLoginViewModel() {
     }
   }
 
-  return { email, setEmail, password, setPassword, errors, status, handleSubmit, handlePasswordChange, handleEmailChange };
+  return { email, setEmail, password, setPassword, errors, status, handleSubmit, handlePasswordChange, handleEmailChange, navigate };
 }

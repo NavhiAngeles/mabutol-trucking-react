@@ -41,3 +41,4 @@ test('actual Fleet selector combines category/search/readiness, keeps counts sta
   assert.equal(select('all', '', false, null, true).categoryCountsUnavailable, true);
   assert.equal(select('drop', '', false, null, false, trucks.slice(0, 2)).activeCategory, 'all');
 });
+ 

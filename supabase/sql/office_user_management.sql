@@ -1,6 +1,6 @@
 -- Office provisioning trusts server-managed app metadata, never editable privileged roles.
 create or replace function public.handle_new_user() returns trigger
-language plpgsql security definer set search_path=public as $$
+language plpgsql security definer set search_path='' as $$
 declare assigned_role public.user_role;
 begin
   assigned_role := case
@@ -14,7 +14,7 @@ begin
 end $$;
 
 create or replace function public.protect_user_privileges() returns trigger
-language plpgsql security definer set search_path=public as $$
+language plpgsql security definer set search_path='' as $$
 begin
   if auth.uid() is null then
     if tg_op='DELETE' then return old; end if;

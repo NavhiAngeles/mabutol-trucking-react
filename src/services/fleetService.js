@@ -1,20 +1,23 @@
 // fleetService.js
 // Data-access layer for the Fleet module. No React here — just Supabase calls.
 // Adjust the import path below to wherever your Supabase client actually lives.
-import { supabase } from "./supabaseClient";
+import { supabase } from "./supabaseClient.js";
 import { complianceState, latestDocuments } from "./dashboardAnalytics.js";
-import { getComplianceConfiguration } from './complianceThresholdService';
-import { thresholdState } from './complianceThresholds.js';
+import { getComplianceConfiguration } from './complianceThresholdService.js';
+import { thresholdState, normalizeManilaDate, MANILA_TIMEZONE } from './complianceThresholds.js';
+import { sanitizeTruck } from './officialVehicleModels.js';
+
+export { normalizeManilaDate, MANILA_TIMEZONE };
 
 async function allRows(table, columns, configure = q => q) {
- const rows = [];
- for (let offset = 0; ; offset += 500) {
-  const { data, error } = await configure(supabase.from(table).select(columns)).order("id").range(offset, offset + 499);
-  if (error) throw error;
-  if (!Array.isArray(data)) throw new Error("Invalid fleet response.");
-  rows.push(...data);
-  if (data.length < 500) return [...new Map(rows.map(row => [row.id, row])).values()];
- }
+    const rows = [];
+    for (let offset = 0; ; offset += 500) {
+        const { data, error } = await configure(supabase.from(table).select(columns)).order("id").range(offset, offset + 499);
+        if (error) throw error;
+        if (!Array.isArray(data)) throw new Error("Invalid fleet response.");
+        rows.push(...data);
+        if (data.length < 500) return [...new Map(rows.map(row => [row.id, row])).values()];
+    }
 }
 
 /* ============================================================
@@ -71,10 +74,13 @@ const TRUCK_SELECT = `
 /** Fetch all trucks with vehicle type + assigned driver + cargo categories joined in. */
 export async function getTrucks() {
     const data = await allRows("trucks", TRUCK_SELECT, q => q.order("created_at", { ascending: false }));
-    return (data || []).map((t) => ({
-        ...t,
-        cargoCategories: t.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
-    }));
+    return (data || []).map((t, index) => {
+        const clean = typeof sanitizeTruck === 'function' ? sanitizeTruck(t, index) : t;
+        return {
+            ...clean,
+            cargoCategories: clean.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
+        };
+    });
 }
 
 /** Fetch a single truck by id, joined the same way as getTrucks(). */
@@ -86,9 +92,10 @@ export async function getTruckById(truckId) {
         .single();
 
     if (error) throw error;
+    const clean = typeof sanitizeTruck === 'function' ? sanitizeTruck(data) : data;
     return {
-        ...data,
-        cargoCategories: data.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
+        ...clean,
+        cargoCategories: clean.truck_cargo_categories?.map((tc) => tc.cargo_categories).filter(Boolean) ?? [],
     };
 }
 
@@ -98,6 +105,26 @@ export async function getTruckById(truckId) {
  * `cargoCategoryIds` is an optional array of cargo_categories UUIDs.
  */
 export async function createTruck(payload, cargoCategoryIds = []) {
+    // 1. Primary path: transactional RPC execution via fleet_save
+    const { data: id, error: rpcError } = await supabase.rpc("fleet_save", {
+        p_kind: "truck",
+        p_id: null,
+        p_data: payload,
+        p_categories: cargoCategoryIds && cargoCategoryIds.length > 0 ? cargoCategoryIds : null,
+        p_documents: [],
+        p_expected: null,
+    });
+
+    if (!rpcError && id) {
+        return getTruckById(id);
+    }
+
+    // Rethrow any business or permission error from fleet_save
+    if (rpcError && rpcError.code !== "PGRST202" && rpcError.code !== "42883") {
+        throw new Error(rpcError.message || "Failed to create truck.");
+    }
+
+    // 2. Direct write fallback with strict compensation on failure
     const { data, error } = await supabase
         .from("trucks")
         .insert(payload)
@@ -114,7 +141,11 @@ export async function createTruck(payload, cargoCategoryIds = []) {
         const { error: catErr } = await supabase
             .from("truck_cargo_categories")
             .insert(rows);
-        if (catErr) console.error("Failed to link cargo categories:", catErr);
+        if (catErr) {
+            // Compensate: roll back the newly inserted truck
+            await supabase.from("trucks").delete().eq("id", data.id);
+            throw new Error(`Failed to link cargo categories: ${catErr.message || "Operation failed"}`);
+        }
     }
 
     return data;
@@ -195,7 +226,7 @@ export async function getDriverById(driverId) {
  * Uses the service_role key server-side so the calling admin's session is unaffected.
  * Returns the new user's UUID for linking to drivers.user_id.
  */
-export async function createDriverAuthUser({ email, password, fullName }) {
+export async function createDriverAuthUser({ email, password, fullName, phone }) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error("You must be logged in to create driver accounts.");
 
@@ -208,7 +239,7 @@ export async function createDriverAuthUser({ email, password, fullName }) {
                 Authorization: `Bearer ${session.access_token}`,
                 apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
             },
-            body: JSON.stringify({ email, password, fullName }),
+            body: JSON.stringify({ email, password, fullName, phone }),
         }
     );
 
@@ -225,15 +256,58 @@ export async function createDriverAuthUser({ email, password, fullName }) {
  * Optional `userId` links the driver to their Supabase auth/public user.
  */
 export async function createDriver(payload, assignVehicleId, complianceDocs = [], userId = null) {
-    const driverPayload = userId ? { ...payload, user_id: userId } : payload;
+    const driverPayload = {
+        ...payload,
+        ...(userId ? { user_id: userId } : {}),
+        ...(assignVehicleId ? { assigned_truck_id: assignVehicleId } : {}),
+    };
 
+    // Staged storage files tracking for rollback
+    const stagedUploads = (complianceDocs || [])
+        .map((d) => d.file_path)
+        .filter((p) => p && typeof p === "string" && !/^(https?:|data:)/i.test(p));
+
+    const cleanupStaged = async () => {
+        if (stagedUploads.length > 0) {
+            try {
+                await supabase.storage.from("compliance-documents").remove(stagedUploads);
+            } catch {
+                /* best-effort cleanup */
+            }
+        }
+    };
+
+    // 1. Primary path: transactional RPC execution via fleet_save
+    const { data: id, error: rpcError } = await supabase.rpc("fleet_save", {
+        p_kind: "driver",
+        p_id: null,
+        p_data: driverPayload,
+        p_categories: null,
+        p_documents: complianceDocs || [],
+        p_expected: null,
+    });
+
+    if (!rpcError && id) {
+        return getDriverById(id);
+    }
+
+    if (rpcError && rpcError.code !== "PGRST202" && rpcError.code !== "42883") {
+        await cleanupStaged();
+        throw new Error(rpcError.message || "Failed to create driver.");
+    }
+
+    // 2. Direct write fallback with strict compensation on failure
+    const rawPayload = userId ? { ...payload, user_id: userId } : payload;
     const { data: driver, error } = await supabase
         .from("drivers")
-        .insert(driverPayload)
+        .insert(rawPayload)
         .select(DRIVER_SELECT)
         .single();
 
-    if (error) throw error;
+    if (error) {
+        await cleanupStaged();
+        throw error;
+    }
 
     if (assignVehicleId) {
         const { error: assignErr } = await supabase
@@ -241,12 +315,16 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
             .update({ assigned_driver_id: driver.id })
             .eq("id", assignVehicleId);
 
-        if (assignErr) console.error("Failed to assign vehicle:", assignErr);
+        if (assignErr) {
+            await supabase.from("drivers").delete().eq("id", driver.id);
+            await cleanupStaged();
+            throw new Error(`Failed to assign vehicle: ${assignErr.message || "Operation failed"}`);
+        }
     }
 
     if (complianceDocs && complianceDocs.length > 0) {
         const docRows = complianceDocs
-            .filter((d) => d.document_number || d.expiry_date)
+            .filter((d) => d.document_number || d.expiry_date || d.file_path)
             .map((d) => ({
                 driver_id: driver.id,
                 doc_type: d.doc_type,
@@ -254,6 +332,7 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
                 expiry_date: d.expiry_date || null,
                 issued_date: d.issued_date || null,
                 review_status: d.review_status || "valid",
+                file_path: d.file_path || null,
             }));
 
         if (docRows.length > 0) {
@@ -261,7 +340,17 @@ export async function createDriver(payload, assignVehicleId, complianceDocs = []
                 .from("compliance_documents")
                 .insert(docRows);
 
-            if (docErr) console.error("Failed to insert driver compliance documents:", docErr);
+            if (docErr) {
+                if (assignVehicleId) {
+                    await supabase
+                        .from("trucks")
+                        .update({ assigned_driver_id: null })
+                        .eq("id", assignVehicleId);
+                }
+                await supabase.from("drivers").delete().eq("id", driver.id);
+                await cleanupStaged();
+                throw new Error(`Failed to insert driver compliance documents: ${docErr.message || "Operation failed"}`);
+            }
         }
     }
 
@@ -303,10 +392,11 @@ const MAINTENANCE_SELECT = `
 `;
 
 /** Fetch maintenance records, most recently scheduled first. */
-export async function getMaintenanceRecords() {
+export async function getMaintenanceRecords(options = {}) {
+    const now = typeof options === 'number' || options instanceof Date ? options : (options?.now ?? Date.now());
     const [data, configuration] = await Promise.all([allRows("maintenance_records", MAINTENANCE_SELECT), getComplianceConfiguration()]);
-    data.sort((a,b) => b.scheduled_date.localeCompare(a.scheduled_date));
-    return data.map(row => ({ ...row, warningState: row.status === 'scheduled' && configuration.thresholds?.maintenance ? thresholdState(row.scheduled_date, 'maintenance', configuration) : null }));
+    data.sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date));
+    return data.map(row => ({ ...row, warningState: row.status === 'scheduled' && configuration.thresholds?.maintenance ? thresholdState(row.scheduled_date, 'maintenance', configuration, now) : null }));
 }
 
 /** Fetch maintenance records for a single truck (e.g. a vehicle detail view). */
@@ -428,21 +518,23 @@ export async function getComplianceDocumentsForDriver(driverId) {
  * (or `null` if that document hasn't been uploaded yet) plus an
  * overall status.
  */
-export async function getTruckComplianceRows() {
-    const [trucks, docs, configuration] = await Promise.all([
-      allRows("trucks", "id, plate_number, model, model_year"),
-      allRows("compliance_documents", "*", q => q.not("truck_id", "is", null).in("doc_type", TRUCK_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
-      getComplianceConfiguration(),
+export async function getTruckComplianceRows(options = {}) {
+    const now = typeof options === 'number' || options instanceof Date ? options : (options?.now ?? Date.now());
+    const [rawTrucks, docs, configuration] = await Promise.all([
+        allRows("trucks", "id, plate_number, model, model_year, capacity_kg, vehicle_type_id, vehicle_types ( id, name )"),
+        allRows("compliance_documents", "*", q => q.not("truck_id", "is", null).in("doc_type", TRUCK_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
+        getComplianceConfiguration(),
     ]);
 
+    const trucks = (rawTrucks || []).map((truck, index) => typeof sanitizeTruck === 'function' ? sanitizeTruck(truck, index) : truck);
     const latest = latestDocuments(docs);
 
     return trucks.map((truck) => {
         const docsForTruck = TRUCK_COMPLIANCE_DOC_TYPES.map(({ docType, label }) => {
             const matches = latest.filter(d => d.truck_id === truck.id && d.doc_type === docType);
             const severity = { rejected: 0, expired: 1, critical: 2, missing: 3, pending_review: 4, expiring_soon: 5, valid: 6 };
-            const doc = matches.sort((a, b) => severity[getComplianceDocBadge(a, { configuration }).state] - severity[getComplianceDocBadge(b, { configuration }).state])[0];
-            return { docType, label, doc, badge: getComplianceDocBadge(doc, { configuration }) };
+            const doc = matches.sort((a, b) => severity[getComplianceDocBadge(a, { now, configuration }).state] - severity[getComplianceDocBadge(b, { now, configuration }).state])[0];
+            return { docType, label, doc, badge: getComplianceDocBadge(doc, { now, configuration }) };
         });
 
         const overall =
@@ -456,11 +548,12 @@ export async function getTruckComplianceRows() {
  * Builds the rows for the Drivers > Compliance table, same shape as
  * getTruckComplianceRows() but for license/medical/NBI.
  */
-export async function getDriverComplianceRows() {
+export async function getDriverComplianceRows(options = {}) {
+    const now = typeof options === 'number' || options instanceof Date ? options : (options?.now ?? Date.now());
     const [drivers, docs, configuration] = await Promise.all([
-      allRows("drivers", "id, full_name"),
-      allRows("compliance_documents", "*", q => q.not("driver_id", "is", null).in("doc_type", DRIVER_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
-      getComplianceConfiguration(),
+        allRows("drivers", "id, full_name"),
+        allRows("compliance_documents", "*", q => q.not("driver_id", "is", null).in("doc_type", DRIVER_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
+        getComplianceConfiguration(),
     ]);
 
     const latestByDriverAndType = new Map();
@@ -475,7 +568,7 @@ export async function getDriverComplianceRows() {
     return drivers.map((driver) => {
         const docsForDriver = DRIVER_COMPLIANCE_DOC_TYPES.map(({ docType, label }) => {
             const doc = latestByDriverAndType.get(`${driver.id}:${docType}`);
-            return { docType, label, doc, badge: getComplianceDocBadge(doc, { configuration }) };
+            return { docType, label, doc, badge: getComplianceDocBadge(doc, { now, configuration }) };
         });
 
         const overall =
@@ -513,4 +606,49 @@ export async function updateComplianceDocument(docId, payload) {
 
     if (error) throw error;
     return data;
+}
+
+/**
+ * Delete a truck by ID.
+ * Uses atomic fleet_delete RPC to safely verify no active deliveries exist
+ * and remove all cascading child relations (cargo categories, maintenance, compliance, route plans).
+ */
+export async function deleteTruck(truckId) {
+    if (!truckId) throw new Error("A valid truck ID is required.");
+    const { error } = await supabase.rpc("fleet_delete", {
+        p_kind: "truck",
+        p_id: truckId,
+    });
+    if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+            const { error: delErr } = await supabase.from("trucks").delete().eq("id", truckId);
+            if (delErr) throw delErr;
+            return { success: true, id: truckId };
+        }
+        throw new Error(error.message || "Failed to delete truck.");
+    }
+    return { success: true, id: truckId };
+}
+
+/**
+ * Delete a driver by ID.
+ * Uses atomic fleet_delete RPC to safely verify no active deliveries exist,
+ * unassign any assigned truck, and remove compliance documents before deleting the driver.
+ */
+export async function deleteDriver(driverId) {
+    if (!driverId) throw new Error("A valid driver ID is required.");
+    const { error } = await supabase.rpc("fleet_delete", {
+        p_kind: "driver",
+        p_id: driverId,
+    });
+    if (error) {
+        if (error.code === "PGRST202" || error.code === "42883") {
+            await supabase.from("trucks").update({ assigned_driver_id: null }).eq("assigned_driver_id", driverId);
+            const { error: delErr } = await supabase.from("drivers").delete().eq("id", driverId);
+            if (delErr) throw delErr;
+            return { success: true, id: driverId };
+        }
+        throw new Error(error.message || "Failed to delete driver.");
+    }
+    return { success: true, id: driverId };
 }

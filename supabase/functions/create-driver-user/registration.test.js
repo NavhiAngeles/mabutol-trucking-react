@@ -42,3 +42,123 @@ test('cleanup failure explicitly prevents claiming success or encouraging anothe
   const { response, body } = await invoke({ rpcError: { message: 'Failed' }, cleanupError: { message: 'Cleanup failed' } });
   assert.equal(response.status, 500); assert.match(body.error, /Do not retry/);
 });
+
+test('driver account registration with contact number normalizes and binds confirmed phone for login', async () => {
+  let handler;
+  const calls = { createdPayload: null, upsertedRow: null, rpcData: null };
+  const caller = {
+    auth: { getUser: async () => ({ data: { user: { id: 'office' } } }) },
+    rpc: async (name, args) => {
+      calls.rpcData = args.p_data;
+      return { data: 'driver-nav-id', error: null };
+    },
+  };
+  const admin = {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin', is_active: true } }) }) }),
+      upsert: async row => {
+        calls.upsertedRow = row;
+        return { error: null };
+      },
+    }),
+    auth: {
+      admin: {
+        createUser: async payload => {
+          calls.createdPayload = payload;
+          return { data: { user: { id: 'nav-user-id' } } };
+        },
+        deleteUser: async () => ({ error: null }),
+      },
+    },
+  };
+  const scope = {
+    Response, Request,
+    Deno: { serve: fn => { handler = fn; }, env: { get: name => name } },
+    createClient: (url, key, options) => (options ? caller : admin),
+  };
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, ''), scope);
+
+  const response = await handler(
+    new Request('https://example.test', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer fixture', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'nav.angeles@tanawlogistics.com',
+        password: 'secure-password',
+        fullName: 'Nav Angeles',
+        registration: {
+          payload: { contact_number: '09675132862', full_name: 'Nav Angeles' },
+          documents: [],
+        },
+      }),
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(calls.createdPayload.phone, '+639675132862');
+  assert.equal(calls.createdPayload.phone_confirm, true);
+  assert.equal(calls.createdPayload.user_metadata.phone, '+639675132862');
+  assert.equal(calls.upsertedRow.phone, '+639675132862');
+  assert.equal(calls.rpcData.contact_number, '+639675132862');
+});
+
+test('existing driver user with same email updates phone login credentials', async () => {
+  let handler;
+  let updatedPayload = null;
+  const caller = {
+    auth: { getUser: async () => ({ data: { user: { id: 'office' } } }) },
+    rpc: async () => ({ data: 'driver-id', error: null }),
+  };
+  const admin = {
+    from: () => ({
+      select: () => ({
+        eq: (col, val) => ({
+          single: async () => ({
+            data: val === 'office'
+              ? { role: 'admin', is_active: true }
+              : { id: 'existing-nav', role: 'driver', is_active: true },
+          }),
+        }),
+      }),
+      update: () => ({ eq: async () => ({ error: null }) }),
+    }),
+    auth: {
+      admin: {
+        createUser: async () => ({
+          data: null,
+          error: { message: 'A user with this email address has already been registered', status: 422 },
+        }),
+        updateUserById: async (id, payload) => {
+          assert.equal(id, 'existing-nav');
+          updatedPayload = payload;
+          return { error: null };
+        },
+      },
+    },
+  };
+  const scope = {
+    Response, Request,
+    Deno: { serve: fn => { handler = fn; }, env: { get: name => name } },
+    createClient: (url, key, options) => (options ? caller : admin),
+  };
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, ''), scope);
+
+  const response = await handler(
+    new Request('https://example.test', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer fixture', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'nav.angeles@tanawlogistics.com',
+        password: 'new-password',
+        phone: '09675132862',
+      }),
+    })
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(updatedPayload.phone, '+639675132862');
+  assert.equal(updatedPayload.phone_confirm, true);
+  assert.equal(updatedPayload.password, 'new-password');
+});

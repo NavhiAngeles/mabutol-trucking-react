@@ -2,6 +2,15 @@ import { manilaDate } from './dashboardAnalytics.js';
 
 const DAY = 86400000;
 const instant = date => Date.parse(date + 'T00:00:00+08:00');
+
+export function philippineCohortBounds(range) {
+  if (!range || typeof range.start !== 'string' || typeof range.end !== 'string') return null;
+  const start = range.start.trim();
+  const end = range.end.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return null;
+  return { start, end, lowerIso: `${start}T00:00:00+08:00`, upperIso: `${end}T23:59:59.999+08:00` };
+}
+
 export function reportRange(key, start, end, now = Date.now()) {
   const today = manilaDate(now);
   let from = today;

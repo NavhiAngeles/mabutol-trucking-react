@@ -52,7 +52,10 @@ BEGIN
   BEGIN
     INSERT INTO public.deliveries(shipment_id,truck_id,driver_id) VALUES(second_booking,other_truck,driver);
     RAISE EXCEPTION 'Driver uniqueness guard failed';
-  EXCEPTION WHEN unique_violation THEN NULL;
+  EXCEPTION
+    WHEN unique_violation THEN NULL;
+    WHEN OTHERS THEN
+      IF SQLERRM NOT LIKE '%DRIVER_UNAVAILABLE%' THEN RAISE; END IF;
   END;
   BEGIN
     INSERT INTO public.deliveries(shipment_id,truck_id,driver_id) VALUES(second_booking,truck,other_driver);

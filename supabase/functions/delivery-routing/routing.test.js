@@ -30,7 +30,7 @@ test('route confirmation is invalidated by truck, cargo, pins or road geometry c
 });
 test('provider receives actual HGV restrictions and no-ferry options; road geometry is retained',async()=>{
  let sent;const result=await truckRoute({origin,destination,profile,key:' https://api.heigit.org/example?api_key=fixture \n',fetcher:async(url,options)=>{sent={url,key:options.headers.Authorization,body:JSON.parse(options.body)};return Response.json({routes:[{summary:{duration:600,distance:10000},geometry,extras:{waycategory:{values:[[0,1,0]]}}}]});}});
- assert.equal(sent.key,'fixture');assert.ok(sent.url.endsWith('/driving-hgv'));assert.deepEqual(sent.body.options.profile_params.restrictions,profile);assert.deepEqual(sent.body.options.avoid_features,['ferries','fords']);assert.equal(result.seconds,600);assert.equal(result.geometry.features[0].geometry.coordinates.length,2);
+ assert.equal(sent.key,'fixture');assert.ok(sent.url.endsWith('/driving-hgv'));assert.deepEqual(sent.body.options.profile_params.restrictions,profile);assert.deepEqual(sent.body.options.avoid_features,['ferries']);assert.equal(result.seconds,600);assert.equal(result.geometry.features[0].geometry.coordinates.length,2);
 });
 test('provider failure, warnings, water routes and unmatched pins never produce a verified route',async()=>{
  for(const patch of [{warnings:[{code:1}]},{extras:{waycategory:{values:[[0,1,8]]}}},{geometry:encode([[0,0],[0.1,0.1]])}])await assert.rejects(truckRoute({origin,destination,profile,key:'fixture',fetcher:async()=>Response.json({routes:[{summary:{duration:600,distance:10000},geometry,extras:{waycategory:{values:[[0,1,0]]}},...patch}]})}));

@@ -1,5 +1,6 @@
 import { dispatchReadyIds } from './operationalStats.js';
 import { thresholdState } from './complianceThresholds.js';
+import { isTrackingStale } from './trackingFreshness.js';
 
 export const manilaDate = value => {
   const date = new Date(value);
@@ -76,7 +77,7 @@ export function latestTracking(rows, deliveries, now = Date.now()) {
   for (const row of rows) {
     const lat = Number(row.latitude), lng = Number(row.longitude), time = Date.parse(row.recorded_at);
     if (!active.has(row.delivery_id) || row.latitude == null || row.longitude == null || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || !Number.isFinite(time) || time > now) continue;
-    if (!latest.has(row.truck_id) || time > Date.parse(latest.get(row.truck_id).recorded_at)) latest.set(row.truck_id, { ...row, latitude: lat, longitude: lng, stale: now - time > 5 * 60000 });
+    if (!latest.has(row.truck_id) || time > Date.parse(latest.get(row.truck_id).recorded_at)) latest.set(row.truck_id, { ...row, latitude: lat, longitude: lng, stale: isTrackingStale(row.recorded_at, now) });
   }
   return [...latest.values()];
 }

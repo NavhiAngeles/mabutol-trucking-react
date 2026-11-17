@@ -425,6 +425,12 @@ entrypoint = "./functions/create-driver-user/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/create-driver-user/*.html" ]
 
+[functions.create-customer-user]
+enabled = true
+verify_jwt = false
+import_map = "./functions/create-customer-user/deno.json"
+entrypoint = "./functions/create-customer-user/index.ts"
+
 [functions.calculate-route]
 enabled = true
 verify_jwt = true

@@ -34,7 +34,7 @@ test('view selector changes the rendered panel and selected state; schedule acti
   assert.equal(find(tree, n => n.props.role === 'region')[0].props['aria-label'], 'Maintenance calendar view');
   button(tree, 'List view').props.onClick(); assert.equal(find(ui.render(), n => n.type === 'table').length, 1);
 });
-
+ 
 test('calendar month controls filter scheduled records and Today restores them; clicking service opens editor', async () => {
   const ui = await screen(); button(ui.render(), 'Calendar view').props.onClick(); let tree = ui.render();
   assert.ok(JSON.stringify(tree).includes('TEST-01'));
@@ -55,4 +55,94 @@ test('calendar does not report empty success while loading or failed, and retry 
   assert.ok(JSON.stringify(tree).includes('Maintenance records are unavailable.')); assert.ok(!JSON.stringify(tree).includes('No service scheduled this month.'));
   button(tree, 'Retry maintenance').props.onClick(); assert.equal(ui.refreshes(), 1);
   ui.fleet.maintenanceRecords = [ui.record]; tree = ui.render(); assert.ok(JSON.stringify(tree).includes('Showing previously loaded records.'));
+});
+
+test('maintenance list table matches system design headers, section titles, and action button semantics', async () => {
+  const ui = await screen();
+  const tree = ui.render();
+
+  // Section titles & subtitle
+  const sectionTitles = find(tree, n => n.props?.className === 'section-titles')[0];
+  assert.ok(sectionTitles, 'section-titles container must exist');
+  const h3 = find(sectionTitles, n => n.type === 'h3')[0];
+  assert.equal(h3.children[0], 'Maintenance Schedule');
+  const subtitle = find(sectionTitles, n => n.props?.className === 'section-subtitle')[0];
+  assert.equal(subtitle.children[0], 'SCHEDULE AND UPDATE VEHICLE SERVICE RECORDS.');
+
+  // Uppercase table headers
+  const ths = find(tree, n => n.type === 'th').map(th => th.children[0]);
+  assert.deepEqual(ths, ['VEHICLE', 'SERVICE', 'SCHEDULED', 'COMPLETED', 'WORKSHOP / COST', 'STATUS', 'ACTIONS']);
+
+  // Edit action button
+  const editBtn = find(tree, n => n.type === 'button' && n.props?.className?.includes('fleet-btn-edit'))[0];
+  assert.ok(editBtn, 'fleet-btn-edit button must be rendered for records');
+  assert.equal(editBtn.props.title, 'Edit maintenance record for TEST-01');
+
+  // Status badge pill
+  const statusPill = find(tree, n => n.props?.className?.includes('status-pill'))[0];
+  assert.ok(statusPill, 'status badge pill must be present');
+});
+
+test('empty maintenance list renders centered and padded message matching fleet design', async () => {
+  const ui = await screen();
+  ui.fleet.maintenanceRecords = [];
+  const tree = ui.render();
+  const emptyCell = find(tree, n => n.type === 'td' && n.props?.colSpan === '7')[0];
+  assert.ok(emptyCell, 'empty state cell spanning 7 columns must exist');
+  assert.equal(emptyCell.props.style.textAlign, 'center');
+  assert.equal(emptyCell.children[0], 'No maintenance records.');
+});
+
+test('maintenance search filters records and renders query empty notice when none match', async () => {
+  const ui = await screen();
+  ui.fleet.maintenanceRecords = [
+    { id: 's1', kind: 'oil change', scheduled_date: '2026-11-10', status: 'scheduled', trucks: { plate_number: 'TRUCK-101' }, vendor: 'Quick Lube' },
+    { id: 's2', kind: 'tire rotation', scheduled_date: '2026-11-12', status: 'scheduled', trucks: { plate_number: 'TRUCK-202' }, vendor: 'Goodyear' },
+  ];
+  let tree = ui.render();
+  const searchInput = find(tree, n => n.type === 'input' && n.props?.className?.includes('inner-search'))[0];
+  assert.ok(searchInput, 'search input must exist in list view');
+
+  // Filter for TRUCK-101
+  searchInput.props.onChange({ target: { value: 'TRUCK-101' } });
+  tree = ui.render();
+  assert.ok(JSON.stringify(tree).includes('TRUCK-101'));
+  assert.ok(!JSON.stringify(tree).includes('TRUCK-202'));
+
+  // Filter for nonexistent query
+  searchInput.props.onChange({ target: { value: 'NONEXISTENT' } });
+  tree = ui.render();
+  const emptyCell = find(tree, n => n.type === 'td' && n.props?.colSpan === '7')[0];
+  assert.equal(emptyCell.children[0], 'No maintenance records match your search.');
+});
+
+test('maintenance pagination breaks records into pages of 10 and updates pagination controls', async () => {
+  const ui = await screen();
+  ui.fleet.maintenanceRecords = Array.from({ length: 15 }, (_, i) => ({
+    id: `srv-${i + 1}`,
+    kind: 'maintenance',
+    scheduled_date: '2026-11-15',
+    status: 'scheduled',
+    trucks: { plate_number: `PLT-${String(i + 1).padStart(3, '0')}` },
+  }));
+  let tree = ui.render();
+
+  // Initial page 1
+  const summary = find(tree, n => n.props?.className === 'pagination-summary')[0];
+  assert.equal(summary.children[0], 'Showing 1–10 of 15 records');
+  const indicator = find(tree, n => n.props?.className === 'pagination-page-indicator')[0];
+  assert.equal(indicator.children[0], 'Page 1 of 2');
+
+  const nextBtn = find(tree, n => n.type === 'button' && n.props?.className?.includes('page-nav-next'))[0];
+  assert.equal(nextBtn.props.disabled, false);
+  const prevBtn = find(tree, n => n.type === 'button' && n.props?.className?.includes('page-nav-prev'))[0];
+  assert.equal(prevBtn.props.disabled, true);
+
+  // Navigate to page 2
+  nextBtn.props.onClick();
+  tree = ui.render();
+  const page2Summary = find(tree, n => n.props?.className === 'pagination-summary')[0];
+  assert.equal(page2Summary.children[0], 'Showing 11–15 of 15 records');
+  const page2Indicator = find(tree, n => n.props?.className === 'pagination-page-indicator')[0];
+  assert.equal(page2Indicator.children[0], 'Page 2 of 2');
 });

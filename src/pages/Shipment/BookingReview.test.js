@@ -20,14 +20,14 @@ async function mount({ load = async () => request, save = async () => ({ id: 's'
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
     useEffect(effect) { if (!mounted) effects.push(effect); },
-    fetchBookingRequest: load, reviewBookingRequest: save, OfficeQuoteForm:'OfficeQuoteForm',
+    fetchBookingRequest: load, reviewBookingRequest: save, OfficeQuoteForm:'OfficeQuoteForm', VehicleSilhouette: (props) => ({ type: 'VehicleSilhouette', props }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
   const render = () => { index = 0; refIndex = 0; return context.render({ shipment: { dbId: 's', id: 'BOOK-1', customer: 'Customer' }, onClose: () => closes++, onReviewed: result => reviewed.push(result) }); };
   render(); effects.forEach(effect => effect()); mounted = true; await tick();
   return { render, reviewed, closes: () => closes, states };
 }
-const button = (tree, label) => find(tree, node => node.type === 'button' && node.children.flat(Infinity).includes(label))[0];
+const button = (tree, label) => find(tree, node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === label))[0];
 
 test('review shows quote, explicit zero override and details; rejection needs reason', async () => {
   const calls = [];
@@ -83,7 +83,7 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; }, useEffect() {},
-    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', CreateShipmentDrawer: 'CreateShipmentDrawer',
+    MainLayout: 'MainLayout', OfficeTools: 'OfficeTools', ReturnLoadPlanner: 'ReturnLoadPlanner', DeliveryConversationInbox: 'DeliveryConversationInbox', BookingReview: 'BookingReview', ShipmentDetails: 'ShipmentDetails', ShipmentEditDialog: 'ShipmentEditDialog', ShipmentCancellationDialog: 'ShipmentCancellationDialog', CreateShipmentDrawer: 'CreateShipmentDrawer',
     useShipmentViewModel: () => ({
       visibleShipments: [{}], pagedShipments: [{ dbId: 's', id: 'BOOK-1', rawStatus, status: rawStatus, finalAmount: 2500, driverNotes }],
       page: 1, pageCount: 1, pageSize: 10, tabs: [], stats: {}, currentTab, activeConfig: { label: 'All', title: 'Pending Booking Requests' },
@@ -92,9 +92,14 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Shipment;', context);
   const render = () => { index = 0; refIndex = 0; return context.render(); };
+  const directReviewBtn = button(render(), 'Review');
+  assert.equal(directReviewBtn, undefined, 'redundant direct Review button is removed');
+
   const openMenu = () => find(render(), node => node.props.className === 'action-btn')[0].props.onClick();
   openMenu();
-  button(render(), 'Review booking request').props.onClick({ currentTarget: { closest: () => null } });
+  const reviewBtn = button(render(), 'Review booking request');
+  assert.ok(reviewBtn, 'renders Review booking request in 3-dots action menu for pending booking request');
+  reviewBtn.props.onClick({ currentTarget: { closest: () => null } });
   const review = find(render(), node => node.type === 'BookingReview')[0];
   assert.equal(review.props.shipment.dbId, 's');
   review.props.onReviewed({ status: 'booked', delivery_id: null });
@@ -104,11 +109,19 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   find(render(), node => node.type === 'BookingReview')[0].props.onReviewed({ status: 'cancelled' });
   assert.equal(refreshes, 2); assert.ok(JSON.stringify(render()).includes('rejected and cancelled'));
   rawStatus = 'booked'; openMenu(); assert.equal(button(render(), 'Review booking request'), undefined);
-  for (const label of ['Edit (unavailable)', 'Cancel (unavailable)']) {
-    const unavailable = find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === label))[0];
-    assert.equal(unavailable.props.disabled, true); assert.equal(unavailable.props.onClick, undefined);
-    assert.equal(find(render(), node => node.props.id === unavailable.props['aria-describedby']).length, 1);
-  }
+  button(render(), 'Edit shipment').props.onClick();
+  const editor = find(render(), node => node.type === 'ShipmentEditDialog')[0];
+  assert.equal(editor.props.shipment.dbId, 's'); editor.props.onClose();
+  assert.equal(find(render(), node => node.type === 'ShipmentEditDialog').length, 0);
+  openMenu();
+  button(render(), 'Cancel shipment').props.onClick({ currentTarget: { closest: () => null } });
+  const cancellation = find(render(), node => node.type === 'ShipmentCancellationDialog')[0];
+  assert.equal(cancellation.props.shipment.dbId, 's');
+  cancellation.props.onCancelled({ id: 's', status: 'cancelled', financial_review_required: true });
+  assert.equal(refreshes, 3);
+  assert.equal(find(render(), node => node.type === 'ShipmentCancellationDialog').length, 0);
+  assert.ok(JSON.stringify(render()).includes('Existing payments require separate financial review'));
+  openMenu();
   find(render(), node => node.type === 'button' && node.children.flat(Infinity).some(child => typeof child === 'string' && child.trim() === 'View Details'))[0]
     .props.onClick({ currentTarget: { closest: () => null } });
   const shipmentDetails = find(render(), node => node.type === 'ShipmentDetails')[0];
@@ -123,4 +136,71 @@ test('Shipment pending menu opens review and confirmed decisions refresh the lis
   }
   driverNotes = '';
   assert.ok(JSON.stringify(render()).includes('None recorded'));
+});
+
+test('BookingReview displays vehicle silhouette with category mapping and fallback', async () => {
+  const ui = await mount({
+    load: async () => ({
+      ...request,
+      vehicle: { name: 'Closed Van' },
+    }),
+  });
+  const tree = ui.render();
+  const vehicleCell = find(tree, node => node.props?.className === 'booking-review-vehicle-cell')[0];
+  assert.ok(vehicleCell, 'renders booking-review-vehicle-cell');
+  assert.ok(JSON.stringify(vehicleCell).includes('Closed Van'));
+  assert.equal(find(vehicleCell, node => node.props?.category === 'Closed Van').length, 1);
+});
+
+test('BookingReview contains keyboard Tab focus and restores launcher focus on close', async () => {
+  let focusedElement = null;
+  const launcher = { isConnected: true, focus() { focusedElement = launcher; } };
+  const doc = { activeElement: launcher };
+  const btnClose = { focus() { focusedElement = btnClose; } };
+  const btnApprove = { focus() { focusedElement = btnApprove; } };
+  const controls = [btnClose, btnApprove];
+  const dialogElem = {
+    isConnected: true,
+    contains(el) { return controls.includes(el); },
+    focus() { focusedElement = dialogElem; },
+    querySelectorAll() { return controls; }
+  };
+
+  const { code: compCode } = await transformWithOxc(fs.readFileSync(new URL('./BookingReview.jsx', import.meta.url), 'utf8'), 'BookingReview.jsx', { jsx: { runtime: 'classic' } });
+  let effectCleanup = null;
+  const context = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    document: doc,
+    useState: initial => [initial, () => {}],
+    useRef: () => ({ current: dialogElem }),
+    useEffect: effect => { effectCleanup = effect(); },
+    fetchBookingRequest: async () => request, reviewBookingRequest: async () => ({ id: 's' }), OfficeQuoteForm: 'OfficeQuoteForm',
+    VehicleSilhouette: () => null,
+  });
+  vm.runInContext(compCode.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
+  const vdom = context.render({ shipment: { dbId: 's', id: 'B-1' }, onClose: () => {}, onReviewed: () => {} });
+  assert.equal(focusedElement, dialogElem);
+
+  const dialogNode = find(vdom, node => node.props.role === 'dialog')[0];
+  let prevented = false;
+  const ev = (key, shiftKey = false) => ({
+    key, shiftKey, preventDefault() { prevented = true; }
+  });
+
+  // Tab from last control wraps to first
+  doc.activeElement = btnApprove;
+  dialogNode.props.onKeyDown(ev('Tab', false));
+  assert.ok(prevented);
+  assert.equal(focusedElement, btnClose);
+
+  // Shift+Tab from first control wraps to last
+  doc.activeElement = btnClose;
+  prevented = false;
+  dialogNode.props.onKeyDown(ev('Tab', true));
+  assert.ok(prevented);
+  assert.equal(focusedElement, btnApprove);
+
+  // Cleanup restores launcher focus
+  effectCleanup?.();
+  assert.equal(focusedElement, launcher);
 });

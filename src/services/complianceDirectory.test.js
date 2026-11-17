@@ -23,3 +23,47 @@ test('search handles name, ID, overall and document status; empty/missing record
   assert.equal(filterCompliance(rows, '').length, 2);
   assert.deepEqual(complianceCounts([]), { compliant: 0, expiring: 0, expired: 0, review: 0, incomplete: 0 });
 });
+
+test('vehicle compliance directory processes truck rows, badges, timestamps, and filters by plate/model', () => {
+  const truckRow = (id, plate, model, states) => ({
+    truck: { id, plate_number: plate, model, model_year: 2022 },
+    docs: states.map((state, i) => ({
+      docType: ['lto_registration', 'franchise_permit', 'emission_test'][i],
+      label: ['OR/CR Registration', 'LTFRB Permit', 'Emission Test'][i],
+      badge: { state, label: state === 'valid' ? 'Valid' : state },
+      doc: state === 'missing' ? null : { created_at: '2026-11-01', updated_at: '2026-11-05' },
+    })),
+  });
+
+  const rows = complianceDirectory([
+    truckRow('t1', 'ABC-1234', 'Isuzu Elf', ['valid', 'valid', 'valid']),
+    truckRow('t2', 'XYZ-9876', 'Hino 300', ['expired', 'critical', 'valid']),
+    truckRow('t3', 'NCR-5555', 'Fuso Canter', ['missing', 'valid', 'valid']),
+  ]);
+
+  assert.equal(rows[0].state, 'valid');
+  assert.equal(rows[0].status, 'Compliant');
+  assert.equal(rows[0].updated, '2026-11-05');
+  assert.equal(rows[1].state, 'expired');
+  assert.equal(rows[1].status, 'Expired');
+  assert.equal(rows[2].state, 'missing');
+
+  const counts = complianceCounts(rows);
+  assert.equal(counts.compliant, 1);
+  assert.equal(counts.expiring, 1);
+  assert.equal(counts.expired, 1);
+  assert.equal(counts.incomplete, 1);
+
+  // Filters by plate number
+  assert.equal(filterCompliance(rows, 'ABC-1234')[0].truck.id, 't1');
+  assert.equal(filterCompliance(rows, 'xyz')[0].truck.id, 't2');
+
+  // Filters by truck model
+  assert.equal(filterCompliance(rows, 'Hino')[0].truck.id, 't2');
+  assert.equal(filterCompliance(rows, 'Canter')[0].truck.id, 't3');
+
+  // Filters by document label / status
+  assert.equal(filterCompliance(rows, 'Compliant').length, 1);
+  assert.equal(filterCompliance(rows, 'expired').length, 1);
+  assert.equal(filterCompliance(rows, 'nonexistent').length, 0);
+});

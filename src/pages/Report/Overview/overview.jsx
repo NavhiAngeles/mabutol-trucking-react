@@ -1,7 +1,7 @@
 import ReportSchedule from '../../../components/ReportSchedule';
 import { useReportRange } from '../../../hooks/useReportRange';
 import { downloadReport } from '../../../services/reportExport.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
 import ReportTopbar from '../../../components/ReportTopbar';
@@ -27,22 +27,40 @@ function Chart({ buckets, revenue = false }) {
 }
 
 export default function Overview() {
-  const live = useLiveData(getReportOverview, REPORT_TABLES);
   const [activeRange, setActiveRange] = useState('thisMonth');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [custom, setCustom] = useState(null);
   const [showCustom, setShowCustom] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [rangeError, setRangeError] = useState('');
   const customRef = useRef(null);
+  const exportMenuRef = useRef(null);
+
+  const range = useReportRange(activeRange, custom);
+  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const loadData = memoCallback(() => getReportOverview(range), [range.start, range.end]);
+  const live = useLiveData(loadData, REPORT_TABLES);
+
   useEffect(() => {
-    const outside = event => { if (!customRef.current?.contains(event.target)) setShowCustom(false); };
-    const escape = event => { if (event.key === 'Escape') setShowCustom(false); };
+    const outside = event => {
+      if (!customRef.current?.contains(event.target)) setShowCustom(false);
+      if (!exportMenuRef.current?.contains(event.target)) setShowExportMenu(false);
+    };
+    const escape = event => {
+      if (event.key === 'Escape') {
+        setShowCustom(false);
+        setShowExportMenu(false);
+      }
+    };
     document.addEventListener('mousedown', outside);
     document.addEventListener('keydown', escape);
-    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); };
+    return () => {
+      document.removeEventListener('mousedown', outside);
+      document.removeEventListener('keydown', escape);
+    };
   }, []);
-  const range = useReportRange(activeRange, custom);
+
   const report = live.data && summarizeOverview(live.data, range);
   const percent = report?.complianceTotal ? Math.round(report.compliance.verified / report.complianceTotal * 100) : null;
   const stats = report ? [
@@ -58,7 +76,7 @@ export default function Overview() {
   return <MainLayout><div className="reports-page">
     <ReportTopbar />
     <section className="ov-content">
-      <div className="report-controls"><div className="ov-header"><div><h1>Reports — Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><button className="ov-btn ov-btn-primary" disabled={!live.data || !!live.error} onClick={() => downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {})}>Export CSV</button><ReportSchedule type="Overview" /></div></div>
+      <div className="report-controls"><div className="ov-header"><div><h1>Reports — Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><div className="report-export-split" ref={exportMenuRef}><button type="button" className="ov-btn ov-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {}, 'csv')}>Export CSV</button><button type="button" className="ov-btn ov-btn-primary report-export-toggle" disabled={!live.data || !!live.error} aria-label="Export format options" aria-haspopup="true" aria-expanded={showExportMenu} onClick={() => setShowExportMenu(prev => !prev)}>▾</button>{showExportMenu && <div className="report-export-menu" role="menu"><button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {}, 'csv'); }}>Export CSV</button><button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {}, 'pdf'); }}>Export PDF</button></div>}</div><ReportSchedule type="Overview" /></div></div>
       <div className="ov-filters"><div className="ov-tabs">{ranges.map(([key, label]) => <button key={key} className={`ov-tab ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustom(false); }}>{label}</button>)}<div className="ov-custom-wrap" ref={customRef}><button className={`ov-tab ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustom} onClick={() => setShowCustom(!showCustom)}>Custom Range</button>{showCustom && <form className="ov-popover" onSubmit={event => { event.preventDefault(); applyRange(); }}><div className="ov-field"><label htmlFor="ov-start">Start date</label><input id="ov-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div><div className="ov-field"><label htmlFor="ov-end">End date</label><input id="ov-end" type="date" min={customStart} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>{rangeError && <p role="alert">{rangeError}</p>}<button className="ov-apply" type="submit">Apply</button></form>}</div></div><span className="ov-date-pill">{range.start} – {range.end} · Philippine time</span></div>
 </div>
       <p className="report-scope-note">Period metrics use shipments created in the selected dates (Philippine time) and their current status. Fleet and compliance show the current snapshot.</p>

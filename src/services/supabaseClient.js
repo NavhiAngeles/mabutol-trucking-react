@@ -9,4 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  // SMS recovery never consumes email/OAuth URL credentials into office auth.
+  auth: { detectSessionInUrl: typeof window === 'undefined' || !['/forgot-password', '/reset-password'].includes(window.location.pathname) },
+});

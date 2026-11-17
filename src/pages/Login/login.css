@@ -8,9 +8,43 @@
   min-height: 100vh;
   position: relative;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
 }
 
-/* Scoped Main Content Layer */
+/* Scoped Main Content Layer with Modern Card Settle Entrance */
+.login-page.navigating-home {
+  pointer-events: none;
+}
+
+.login-page.navigating-home .container {
+  opacity: 0.3;
+  transform: translateY(8px) scale(0.988);
+  filter: blur(2.5px);
+  transition: opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-page .modern-top-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 10000;
+  background: transparent;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.login-page .modern-top-loader-bar {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #2563EB, #38BDF8, #60A5FA);
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.6), 0 0 4px #38BDF8;
+  animation: modernLoaderSweep 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .login-page .container {
   position: relative;
   width: 100%;
@@ -20,12 +54,38 @@
   flex-direction: column;
   align-items: center;
   z-index: 2;
+  animation: modernCardSettle 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modernCardSettle {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
 /* Logo & Headings */
 .login-page .branding {
   text-align: center;
   margin-bottom: 24px;
+  animation: modernElementFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modernElementFade {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .login-page .logo {
@@ -57,6 +117,11 @@
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.03);
   border: 1px solid #f1f5f9;
+  animation: modernElementFade 0.34s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.login-page .login-footer-links {
+  animation: modernElementFade 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Force Block Layout to center text items correctly */

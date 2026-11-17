@@ -66,7 +66,94 @@ test('load failures expose retry, never an empty-success result; refresh recover
 test('PHT input yields a candidate and review opens real shipment details without assignment', async () => {
   const ui = await mount(async () => data()); await open(ui); const tree = enterPlan(ui);
   assert.match(JSON.stringify(tree), /straight-line comparisons/); assert.match(JSON.stringify(tree), /1 potential return loads/);
-  button(tree, 'Review return shipment').props.onClick(); assert.equal(ui.inspected[0].dbId, 'back'); ui.destroy();
+  button(tree, 'Review return shipment').props.onClick();
+  assert.equal(ui.inspected[0].dbId, 'back');
+  assert.equal(ui.inspected[0].draftSuggestion.driverId, 'driver');
+  assert.equal(ui.inspected[0].draftSuggestion.truckId, 't');
+  ui.destroy();
+});
+test('clicking a recommended backhaul candidate opens ShipmentDetails with returning driver and truck pre-selected as draft suggestion without auto-submitting or bypassing checks', async () => {
+  // 1. ReturnLoadPlanner produces draft suggestion
+  const ui = await mount(async () => data()); await open(ui); const tree = enterPlan(ui);
+  button(tree, 'Review return shipment').props.onClick();
+  const inspectPayload = ui.inspected[0];
+  assert.equal(inspectPayload.dbId, 'back');
+  assert.deepEqual(JSON.parse(JSON.stringify(inspectPayload.draftSuggestion)), {
+    driverId: 'driver',
+    truckId: 't',
+    truckPlate: 'TEST',
+    outboundDeliveryId: 'd',
+    outboundTracking: 'OUT',
+    reason: 'Backhaul return load recommendation for returning truck TEST (outbound: OUT)',
+  });
+  ui.destroy();
+
+  // 2. Mount AssignmentManager with the inspectPayload draft suggestion
+  const { code: amCode } = await transformWithOxc(fs.readFileSync(new URL('./AssignmentManager.jsx', import.meta.url), 'utf8'), 'AssignmentManager.jsx', { jsx: { runtime: 'classic' } });
+  const states = [], effects = []; let index = 0, effectIndex = 0, pending = [], saved = null, changes = 0;
+  const options = {
+    current: null,
+    shipment: { id: 'back', weight_kg: 1000, requested_vehicle_type_id: 'v' },
+    blockedReason: null,
+    drivers: [
+      { id: 'driver', full_name: 'Returning Driver', status: 'available', eligible: true },
+      { id: 'd2', full_name: 'Other Driver', status: 'available', eligible: true },
+    ],
+    trucks: [
+      { id: 't', plate_number: 'TEST', capacity_kg: 2000, vehicle_type_id: 'v', status: 'available', eligible: true },
+      { id: 't2', plate_number: 'OTHER', capacity_kg: 3000, vehicle_type_id: 'v', status: 'available', eligible: true },
+    ],
+  };
+  const amContext = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    useState(initial) { const i = index++; if (!(i in states)) states[i] = typeof initial === 'function' ? initial() : initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
+    useMemo: fn => fn(),
+    useEffect(effect, deps) { const i = effectIndex++; const old = effects[i]; if (!old || deps.some((value, j) => value !== old.deps[j])) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; }); },
+    fetchAssignmentOptions: async () => options,
+    saveManualAssignment: async args => { saved = args; return { delivery_id: 'new' }; },
+  });
+  vm.runInContext(amCode.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.Panel=AssignmentManager;', amContext);
+  const amRender = () => { index = effectIndex = 0; pending = []; const t = amContext.Panel({ shipmentId: 'back', onChanged: async () => { changes++; }, draftSuggestion: inspectPayload.draftSuggestion }); pending.forEach(run => run()); return t; };
+
+  amRender();
+  await tick();
+  const amTree = amRender();
+
+  // Pre-selected returning driver and truck
+  const selects = find(amTree, n => n.type === 'select');
+  assert.equal(selects[0].props.value, 'driver', 'Returning driver should be pre-selected');
+  assert.equal(selects[1].props.value, 't', 'Returning truck should be pre-selected');
+
+  // Verify suggestion banner is rendered
+  assert.match(JSON.stringify(amTree), /Return load suggestion/);
+  assert.match(JSON.stringify(amTree), /Suggested return driver/);
+  assert.match(JSON.stringify(amTree), /Suggested return truck/);
+
+  // NOT auto-submitted: saved is null, changes is 0
+  assert.equal(saved, null, 'Should not auto-submit assignment');
+  assert.equal(changes, 0, 'No mutation performed without explicit user submit');
+
+  // Compliance/capacity checks are preserved: if truck has insufficient capacity, it is filtered out
+  const optionsWithHeavyShipment = {
+    ...options,
+    shipment: { id: 'back', weight_kg: 2500, requested_vehicle_type_id: 'v' },
+  };
+  const amContext2 = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    useState(initial) { const i = index++; if (!(i in states2)) states2[i] = typeof initial === 'function' ? initial() : initial; return [states2[i], value => { states2[i] = typeof value === 'function' ? value(states2[i]) : value; }]; },
+    useMemo: fn => fn(),
+    useEffect(effect, deps) { const i = effectIndex++; const old = effects2[i]; if (!old || deps.some((value, j) => value !== old.deps[j])) pending2.push(() => { old?.cleanup?.(); effects2[i] = { deps, cleanup: effect() }; }); },
+    fetchAssignmentOptions: async () => optionsWithHeavyShipment,
+    saveManualAssignment: async args => { saved = args; return { delivery_id: 'new' }; },
+  });
+  const states2 = [], effects2 = []; let pending2 = [];
+  vm.runInContext(amCode.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.Panel=AssignmentManager;', amContext2);
+  const amRender2 = () => { index = effectIndex = 0; pending2 = []; const t = amContext2.Panel({ shipmentId: 'back', onChanged: async () => {}, draftSuggestion: inspectPayload.draftSuggestion }); pending2.forEach(run => run()); return t; };
+  amRender2(); await tick();
+  const amTree2 = amRender2();
+  const truckSelect2 = find(amTree2, n => n.type === 'select')[1];
+  const truckOptions2 = truckSelect2.children.flat().map(o => o.props?.value).filter(Boolean);
+  assert.ok(!truckOptions2.includes('t'), 'Truck t should not be selectable when capacity is insufficient');
 });
 test('expired results disappear; refresh rechecks a newly assigned candidate', async () => {
   const rows = data(), ui = await mount(async () => structuredClone(rows)); await open(ui); enterPlan(ui);

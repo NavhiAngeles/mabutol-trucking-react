@@ -10,22 +10,27 @@ function find(node, predicate) {
   return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
-const record = { id: 's', tracking_number: 'SHIP-1', status: 'cancelled', customer: { name: 'Test Customer' },
+const record = {
+  id: 's', tracking_number: 'SHIP-1', status: 'cancelled', customer: { name: 'Test Customer' },
   driver_notes: 'Call first.\nUse rear gate.', quoted_amount: 2500, override_amount: 0, final_amount: null,
-  cancelled_reason: 'Customer requested', scheduled_departure: 'invalid', deliveries: [] };
+  cancelled_reason: 'Customer requested', scheduled_departure: 'invalid', deliveries: []
+};
 async function mount(load) {
   const { code } = await transformWithOxc(fs.readFileSync(new URL('./ShipmentDetails.jsx', import.meta.url), 'utf8'), 'ShipmentDetails.jsx', { jsx: { runtime: 'classic' } });
   const states = [], refs = [], effects = []; let index = 0, refIndex = 0, effectIndex = 0, pending = [], closes = 0, focused = 0;
   const context = vm.createContext({
-    React: { createElement: (type, props, ...children) => {
-      if (props?.ref) props.ref.current = { focus() { focused++; } };
-      return { type, props: props || {}, children };
-    } }, document: { activeElement: null },
+    React: {
+      createElement: (type, props, ...children) => {
+        if (props?.ref) props.ref.current = { focus() { focused++; } };
+        return { type, props: props || {}, children };
+      }
+    }, document: { activeElement: null },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
-    useEffect(effect, deps) { const i = effectIndex++; const old = effects[i];
+    useEffect(effect, deps) {
+      const i = effectIndex++; const old = effects[i];
       if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
-    }, fetchShipmentDetails: load, DeliveryOperations:'DeliveryOperations',
+    }, fetchShipmentDetails: load, AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
   const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, onClose: () => closes++ }); pending.forEach(run => run()); return tree; };
@@ -40,7 +45,46 @@ test('details shows saved fields, zero override, unknown charge, notes and cance
   const text = JSON.stringify(tree); assert.ok(text.includes('₱0.00')); assert.ok(text.includes('Customer requested'));
   assert.equal(find(tree, n => n.props.className === 'shipment-details-notes')[0].children[0], record.driver_notes);
   assert.ok(text.includes('No delivery assignment recorded.')); assert.ok(text.includes('Unavailable')); assert.ok(ui.focused() > 0);
-  find(tree, n => n.props.role === 'dialog')[0].props.onKeyDown({ key: 'Escape', preventDefault() {} }); assert.equal(ui.closes(), 1);
+  assert.equal(find(tree, n => n.type === 'AssignmentManager').length, 1);
+  assert.equal(find(tree, n => n.type === 'PaymentLedger').length, 1);
+  find(tree, n => n.props.role === 'dialog')[0].props.onKeyDown({ key: 'Escape', preventDefault() { } }); assert.equal(ui.closes(), 1);
+});
+
+test('details displays confirmed route duration, toll expressway routing, gate breakdown, and driver allowance', async () => {
+  const tollRecord = {
+    ...record,
+    status: 'booked',
+    distance_km: 42.5,
+    route_duration_minutes: 55,
+    driver_allowance: 750,
+    toll_fees: 211,
+    route_geometry: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[120.96, 14.6], [121.1, 14.8]] } }],
+      booking_pricing: {
+        version: 1,
+        toll_preference: 'expressway',
+        toll_amount: 211,
+        toll_class: 'Class 2',
+        toll_rates: [
+          { id: 'rate-1', highway: 'NLEX', gate_name: 'Balintawak', vehicle_class: 'Class 2', fee: 211 }
+        ]
+      }
+    }
+  };
+
+  const ui = await mount(async () => tollRecord);
+  ui.render();
+  await tick();
+  const tree = ui.render();
+  const text = JSON.stringify(tree);
+
+  assert.ok(text.includes('Estimated travel time'), 'Shows estimated travel time label');
+  assert.ok(text.includes('55') && text.includes('mins'), 'Shows estimated travel time duration');
+  assert.ok(text.includes('Toll expressway'), 'Shows Toll expressway preference');
+  assert.ok(text.includes('NLEX') && text.includes('Balintawak') && text.includes('Class 2'), 'Shows toll gate breakdown');
+  assert.ok(text.includes('Driver trip allowance'), 'Shows driver trip allowance label');
+  assert.ok(text.includes('₱750.00'), 'Shows driver allowance amount');
 });
 
 test('read failure exposes retry and hides details; retry loads assignments and refresh clears old data', async () => {
@@ -57,14 +101,59 @@ test('closing details ignores an in-flight response', async () => {
   ui.render(); ui.cleanup(); finish(record); await tick(); assert.equal(ui.states[0], null);
 });
 
+test('DELIVERY-01: successful read clears error, preserve reload retains last good snapshot and labels error on failure', async () => {
+  let shouldFail = false;
+  const ui = await mount(async () => {
+    if (shouldFail) throw new Error('Post-action refresh failed');
+    return record;
+  });
+
+  ui.render();
+  await tick();
+  let tree = ui.render();
+  assert.ok(JSON.stringify(tree).includes('Customer requested'));
+  assert.ok(!JSON.stringify(tree).includes('Post-action refresh failed'));
+
+  const initialDelOps = find(tree, n => n.type === 'DeliveryOperations')[0];
+  assert.equal(initialDelOps.props.shipmentRefreshVersion, 1);
+
+  // Preserve reload failure retains details and labels error
+  shouldFail = true;
+  const reloadSuccess = await initialDelOps.props.onChanged({ preserve: true });
+  assert.equal(reloadSuccess, false);
+  await tick();
+  tree = ui.render();
+
+  assert.ok(JSON.stringify(tree).includes('Post-action refresh failed'));
+  assert.ok(JSON.stringify(tree).includes('Showing the last successfully loaded shipment details.'));
+  assert.ok(JSON.stringify(tree).includes('Customer requested'), 'Retains existing details snapshot');
+
+  // Successful reload clears error and increments refreshVersion
+  shouldFail = false;
+  const retrySuccess = await initialDelOps.props.onChanged({ preserve: true });
+  assert.equal(retrySuccess, true);
+  await tick();
+  tree = ui.render();
+
+  assert.ok(!JSON.stringify(tree).includes('Post-action refresh failed'));
+  const updatedDelOps = find(tree, n => n.type === 'DeliveryOperations')[0];
+  assert.equal(updatedDelOps.props.shipmentRefreshVersion, 2);
+});
+
 test('details service scopes shipment and deliveries to selected ID and propagates both read failures', async () => {
   let shipment = { data: record }, deliveries = { data: [{ id: 'd' }] };
   const calls = [];
-  const context = vm.createContext({ supabase: { from(table) {
-    return { select(columns) { calls.push({ table, columns }); return this; },
-      eq(column, id) { assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id'); assert.equal(id, 's'); return table === 'shipments' ? this : Promise.resolve(deliveries); },
-      async single() { return shipment; } };
-  } } });
+  const context = vm.createContext({
+    supabase: {
+      from(table) {
+        return {
+          select(columns) { calls.push({ table, columns }); return this; },
+          eq(column, id) { assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id'); assert.equal(id, 's'); return table === 'shipments' ? this : Promise.resolve(deliveries); },
+          async single() { return shipment; }
+        };
+      }
+    }
+  });
   const source = fs.readFileSync(new URL('../../services/shipmentService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
   vm.runInContext(source + '\nthis.load = fetchShipmentDetails;', context);
   const result = await context.load('s'); assert.equal(result.driver_notes, record.driver_notes); assert.equal(result.deliveries.length, 1);
@@ -72,4 +161,63 @@ test('details service scopes shipment and deliveries to selected ID and propagat
   shipment = { error: Error('Shipment denied') }; await assert.rejects(context.load('s'), /Shipment denied/);
   shipment = { data: record }; deliveries = { error: Error('Delivery denied') }; await assert.rejects(context.load('s'), /Delivery denied/);
   shipment = { data: null }; deliveries = { data: [] }; await assert.rejects(context.load('s'), /not found/);
+});
+
+test('details service falls back gracefully when additive route/allowance columns do not exist in live schema', async () => {
+  let attempts = 0;
+  const calls = [];
+  const context = vm.createContext({
+    supabase: {
+      from(table) {
+        return {
+          select(columns) {
+            calls.push({ table, columns });
+            return this;
+          },
+          eq(column, id) {
+            assert.equal(column, table === 'shipments' ? 'id' : 'shipment_id');
+            assert.equal(id, 's');
+            return table === 'shipments' ? this : Promise.resolve({ data: [{ id: 'd' }] });
+          },
+          async single() {
+            attempts += 1;
+            if (attempts === 1) {
+              return { error: { code: '42703', message: 'column shipments.driver_allowance does not exist' } };
+            }
+            return { data: record };
+          },
+        };
+      }
+    }
+  });
+  const source = fs.readFileSync(new URL('../../services/shipmentService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.load = fetchShipmentDetails;', context);
+  const result = await context.load('s');
+  assert.equal(attempts, 2);
+  assert.equal(result.id, record.id);
+  assert.ok(!calls[calls.length - 1].columns.includes('driver_allowance'));
+});
+
+test('details forwards draftSuggestion to AssignmentManager when provided on inspected shipment', async () => {
+  const { code } = await transformWithOxc(fs.readFileSync(new URL('./ShipmentDetails.jsx', import.meta.url), 'utf8'), 'ShipmentDetails.jsx', { jsx: { runtime: 'classic' } });
+  const states = [], refs = [], effects = []; let index = 0, refIndex = 0, effectIndex = 0, pending = [];
+  const draft = { driverId: 'd-ret', truckId: 't-ret' };
+  const context = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    document: { activeElement: null },
+    useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
+    useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
+    useEffect(effect, deps) {
+      const i = effectIndex++; const old = effects[i];
+      if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
+    },
+    fetchShipmentDetails: async () => record,
+    AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
+  });
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
+  const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1', draftSuggestion: draft }, onClose: () => { } }); pending.forEach(run => run()); return tree; };
+  render(); await tick(); const tree = render();
+  const am = find(tree, n => n.type === 'AssignmentManager')[0];
+  assert.equal(am.props.draftSuggestion.driverId, 'd-ret');
+  assert.equal(am.props.draftSuggestion.truckId, 't-ret');
 });

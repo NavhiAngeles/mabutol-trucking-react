@@ -6,6 +6,7 @@ import {
 
 export function useDashboardViewModel() {
   const [stats, setStats] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const refreshRef = useRef(() => {});
 
   const [loading, setLoading] = useState(true);
@@ -19,14 +20,12 @@ export function useDashboardViewModel() {
     if (running) { again = true; return; }
     running = true;
     try {
-      setError(null);
-
       const data = await getDashboardStats();
 
-      if (!disposed) { setStats(data); setError(null); }
+      if (!disposed) { setStats(data); setError(null); setLastUpdated(Date.now()); }
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
-      if (!disposed) { setError(error.message); setStats(null); }
+      if (!disposed) { setError(error.message || 'Refresh failed.'); }
     } finally {
       running = false;
       if (!disposed) setLoading(false);
@@ -59,6 +58,7 @@ export function useDashboardViewModel() {
 
   return {
     stats,
+    lastUpdated,
     loading,
     error,
     refresh,

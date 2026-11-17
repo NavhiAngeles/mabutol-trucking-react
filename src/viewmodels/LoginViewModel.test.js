@@ -39,7 +39,7 @@ test('login page disables fields and submit during loading and success and expos
   for (const status of ['idle', 'loading', 'error', 'success']) {
     const context = vm.createContext({
       React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
-      useState: value => [value, () => {}], LoginSuccessToast: () => null,
+      useState: value => [value, () => {}], LoginSuccessToast: () => null, Link: 'a',
       useLoginViewModel: () => ({ status, errors: {}, email: '', password: '' }),
     });
     vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = Login;', context);
