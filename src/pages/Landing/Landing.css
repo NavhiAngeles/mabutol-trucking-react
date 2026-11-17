@@ -4,7 +4,7 @@
    #F8FAFC Canvas, #E2E8F0 Borders, and crisp typography.
    ========================================================= */
 
-.landing-page :is(#hero, #preview, #features, #metrics, #workflow) {
+.landing-page :is(#hero, #preview, #features, #metrics, #workflow, #mobile-app) {
   scroll-margin-top: 80px;
 }
 
@@ -1097,6 +1097,130 @@
   line-height: 1.5;
   color: #475569;
   margin: 0;
+}
+
+/* ---------- Mobile App Download QR Section ---------- */
+.landing-page .landing-mobile-app {
+  padding: 0 24px 64px;
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.landing-page .mobile-app-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 40px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.landing-page .mobile-app-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #E8EEF8;
+  color: #0F2A52;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+
+.landing-page .mobile-app-info h2 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: #0F172A;
+  margin: 0 0 12px;
+}
+
+.landing-page .mobile-app-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0 0 20px;
+  max-width: 58ch;
+}
+
+.landing-page .mobile-app-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.landing-page .mobile-app-checklist li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0F172A;
+}
+
+.landing-page .mobile-app-checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1D4ED8;
+}
+
+.landing-page .mobile-app-qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-page .mobile-app-qr-frame {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(15, 42, 82, 0.06);
+}
+
+.landing-page .mobile-app-qr-image {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+}
+
+.landing-page .mobile-app-qr-caption {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+  .landing-page .landing-mobile-app {
+    padding: 0 16px 48px;
+  }
+
+  .landing-page .mobile-app-card {
+    grid-template-columns: 1fr;
+    padding: 28px 20px;
+    gap: 28px;
+  }
+
+  .landing-page .mobile-app-info h2 {
+    font-size: 22px;
+  }
+
+  .landing-page .mobile-app-qr-image {
+    width: 184px;
+    height: 184px;
+  }
 }
 
 /* ---------- Call to Action Banner ---------- */

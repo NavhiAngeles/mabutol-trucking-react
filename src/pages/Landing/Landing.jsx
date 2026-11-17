@@ -107,6 +107,7 @@ export default function Landing() {
             <a href="#preview" onClick={scrollToSection("preview")}>Operations</a>
             <a href="#metrics" onClick={scrollToSection("metrics")}>Overview</a>
             <a href="#workflow" onClick={scrollToSection("workflow")}>Workflow</a>
+            <a href="#mobile-app" onClick={scrollToSection("mobile-app")}>Mobile App</a>
             <div className="landing-nav-auth-mobile">
               <Link
                 to={isAuthenticated ? "/dashboard" : "/login"}
@@ -435,6 +436,43 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ---------- Mobile App Download QR Section ---------- */}
+      <section className="landing-mobile-app" id="mobile-app" aria-labelledby="mobile-app-heading">
+        <div className="mobile-app-card">
+          <div className="mobile-app-info">
+            <div className="mobile-app-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="6" y="2" width="12" height="20" rx="2" ry="2" />
+                <line x1="12" y1="18" x2="12.01" y2="18" />
+              </svg>
+            </div>
+            <h2 id="mobile-app-heading">Download the TANAW Mobile App</h2>
+            <p className="mobile-app-desc">
+              Scan the QR code with your phone camera to download the Mabutol Trucking mobile application for drivers and customers.
+            </p>
+            <ul className="mobile-app-checklist">
+              <li>Drivers: Receive trip assignments, update milestones, and upload POD photos</li>
+              <li>Customers: Track active shipments and view booking updates</li>
+              <li>Sign in using your registered Mabutol Trucking account credentials</li>
+            </ul>
+          </div>
+
+          <div className="mobile-app-qr-panel">
+            <div className="mobile-app-qr-frame">
+              <img
+                src="/mobile-app-qr.jpg"
+                alt="QR code to download the Mabutol Trucking mobile application"
+                className="mobile-app-qr-image"
+                width="200"
+                height="200"
+                loading="lazy"
+              />
+            </div>
+            <span className="mobile-app-qr-caption">Scan with camera to download</span>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- Call to Action Banner ---------- */}
       <section className="landing-cta-section">
         <div className="landing-cta-card">
@@ -486,6 +524,7 @@ export default function Landing() {
             <a href="#features" onClick={scrollToSection("features")}>Features</a>
             <a href="#preview" onClick={scrollToSection("preview")}>Operations</a>
             <a href="#workflow" onClick={scrollToSection("workflow")}>Workflow</a>
+            <a href="#mobile-app" onClick={scrollToSection("mobile-app")}>Mobile App</a>
           </div>
 
           <div className="footer-col-links">
