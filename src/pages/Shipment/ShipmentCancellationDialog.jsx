@@ -70,21 +70,21 @@ export default function ShipmentCancellationDialog({ shipment, onClose, onCancel
           {record.paymentCount > 0 ? ` ${record.paymentCount} payment record(s) require separate financial review.` : ' No payment records are currently recorded.'}</p>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
           <label htmlFor="shipment-cancel-reason" style={{ margin: 0, fontWeight: 600 }}>Cancellation reason</label>
-          <span style={{ fontSize: '12px', color: reason.trim().length < 5 ? '#dc2626' : '#16a34a', fontWeight: 500 }}>
+          <span style={{ fontSize: '12px', color: reason.trim().length < 5 ? '#b91c1c' : '#15803d', fontWeight: 500 }}>
             {reason.trim().length < 5 ? `${reason.trim().length}/5 characters (minimum 5)` : `${reason.trim().length}/1000 characters`}
           </span>
         </div>
         <textarea id="shipment-cancel-reason" maxLength={1000} placeholder="Provide a reason for cancelling this shipment..." value={reason} disabled={saving || needsReload} onChange={event => setReason(event.target.value)} />
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', marginTop: '10px' }}>
-          <input type="checkbox" checked={acknowledged} disabled={saving || needsReload} onChange={event => setAcknowledged(event.target.checked)} style={{ marginTop: '3px' }} />
+        <label htmlFor="shipment-cancel-ack" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', marginTop: '10px' }}>
+          <input id="shipment-cancel-ack" type="checkbox" checked={acknowledged} disabled={saving || needsReload} onChange={event => setAcknowledged(event.target.checked)} style={{ marginTop: '3px' }} />
           <span>I understand that recorded charges and payments are preserved and any refund requires separate financial review.</span>
         </label>
         {!canConfirm && (
-          <p className="cancellation-hint" style={{ fontSize: '12px', color: '#dc2626', margin: '8px 0 0 0', fontWeight: 500 }}>
+          <p className="cancellation-hint" style={{ fontSize: '12px', color: '#b91c1c', margin: '8px 0 0 0', fontWeight: 500 }}>
             {reason.trim().length < 5
-              ? `⚠️ Enter at least ${5 - reason.trim().length} more character${5 - reason.trim().length > 1 ? 's' : ''} for the reason to proceed.`
+              ? `Enter at least ${5 - reason.trim().length} more character${5 - reason.trim().length > 1 ? 's' : ''} for the reason to proceed.`
               : !acknowledged
-                ? '⚠️ Please check the financial acknowledgement box above to enable cancellation.'
+                ? 'Please check the financial acknowledgement box above to enable cancellation.'
                 : ''}
           </p>
         )}

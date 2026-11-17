@@ -9,28 +9,38 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 
 ========================================================================== */
 
-.main {
-  background-color: #F8FAFC !important;
-  margin-left: 260px;
-  min-height: 100vh;
+.fleet-topbar .topbar-right,
+.dashboard:has(.fleet-page) .topbar-right {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
 }
 
-.content {
-  padding: 32px 40px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  pointer-events: auto;
-  position: relative;
+.fleet-page {
+  min-width: 0;
 }
 
-.scrollable-panel {
+.fleet-page .sr-only,
+.compliance-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fleet-page .scrollable-panel {
   pointer-events: auto;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-.header-actions-row {
+.fleet-page .header-actions-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -40,23 +50,26 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   pointer-events: auto;
 }
 
-.header-titles h2 {
-  font-size: 24px;
+.fleet-page .header-titles h1,
+.fleet-page .header-titles h2 {
+  font-size: var(--text-page-title, clamp(1.375rem, 1.8vw, 1.625rem));
   font-weight: 700;
-  color: #0B192E;
+  color: var(--text-primary, #0F172A);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
   margin: 0 0 6px 0;
 }
 
-.header-titles .subtitle {
-  font-size: 11px;
+.fleet-page .header-titles .subtitle {
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  color: #8A94A6;
+  letter-spacing: 0.04em;
+  color: #64748B;
   margin: 0;
   text-transform: uppercase;
 }
 
-.action-buttons-group {
+.fleet-page .action-buttons-group {
   display: flex;
   gap: 12px;
   pointer-events: auto;
@@ -64,13 +77,14 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   z-index: 10;
 }
 
-.btn-primary,
-.btn-secondary {
-  display: flex;
+.fleet-page .btn-primary,
+.fleet-page .btn-secondary {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 40px;
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-md, 8px);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -80,27 +94,28 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   z-index: 11;
 }
 
-.btn-primary {
-  background-color: #042544;
+.fleet-page .btn-primary {
+  background-color: var(--color-brand-navy, #0F2A52);
   color: #FFFFFF;
-  border: none;
+  border: 1px solid var(--color-brand-navy, #0F2A52);
 }
 
-.btn-primary:hover {
-  background-color: #083761;
+.fleet-page .btn-primary:hover {
+  background-color: var(--color-brand-navy-hover, #0B1F3D);
 }
 
-.btn-secondary {
-  background-color: #EBF2FA;
-  color: #1A4F8B;
-  border: 1px solid #D3E2F2;
+.fleet-page .btn-secondary {
+  background-color: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #CBD5E1;
 }
 
-.btn-secondary:hover {
-  background-color: #DDE9F7;
+.fleet-page .btn-secondary:hover {
+  background-color: #F1F5F9;
+  border-color: #94A3B8;
 }
 
-.btn-fleet-refresh {
+.fleet-page .btn-fleet-refresh {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -121,7 +136,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   pointer-events: auto;
 }
 
-.btn-fleet-refresh:hover:not(:disabled) {
+.fleet-page .btn-fleet-refresh:hover:not(:disabled) {
   background: #F8FAFC;
   border-color: #94A3B8;
   color: #0F172A;
@@ -129,36 +144,36 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   transform: translateY(-1px);
 }
 
-.btn-fleet-refresh:hover:not(:disabled) .refresh-icon {
+.fleet-page .btn-fleet-refresh:hover:not(:disabled) .refresh-icon {
   color: #2563EB;
   transform: rotate(30deg);
 }
 
-.btn-fleet-refresh:active:not(:disabled) {
+.fleet-page .btn-fleet-refresh:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.btn-fleet-refresh:focus-visible {
+.fleet-page .btn-fleet-refresh:focus-visible {
   outline: 2px solid #2563EB;
   outline-offset: 2px;
 }
 
-.btn-fleet-refresh:disabled {
+.fleet-page .btn-fleet-refresh:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   background: #F1F5F9;
   border-color: #E2E8F0;
-  color: #94A3B8;
+  color: #64748B;
 }
 
-.btn-fleet-refresh .refresh-icon {
+.fleet-page .btn-fleet-refresh .refresh-icon {
   color: #64748B;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s ease;
   flex-shrink: 0;
 }
 
-.btn-fleet-refresh .refresh-icon.spinning {
+.fleet-page .btn-fleet-refresh .refresh-icon.spinning {
   animation: fleetRefreshSpin 0.8s linear infinite;
   color: #2563EB;
 }
@@ -174,22 +189,22 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 }
 
 /* small variant for calendar action buttons */
-.btn-primary.small,
-.btn-secondary.small {
+.fleet-page .btn-primary.small,
+.fleet-page .btn-secondary.small {
   padding: 8px 10px;
   font-size: 12px;
   border-radius: 6px;
 }
 
 /* Metric Cards Matrix */
-.stats-grid {
+.fleet-page .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 32px;
 }
 
-.metric-card {
+.fleet-page .metric-card {
   background: #FFFFFF;
   border-radius: 8px;
   padding: 20px;
@@ -198,30 +213,30 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   position: relative;
 }
 
-.metric-card.border-slate {
+.fleet-page .metric-card.border-slate {
   border-bottom: 3px solid #64748B;
 }
 
-.metric-card.border-green {
+.fleet-page .metric-card.border-green {
   border-bottom: 3px solid #10B981;
 }
 
-.metric-card.border-red {
+.fleet-page .metric-card.border-red {
   border-bottom: 3px solid #EF4444;
 }
 
-.metric-card.border-blue-accent {
+.fleet-page .metric-card.border-blue-accent {
   border-bottom: 3px solid #3B82F6;
 }
 
-.metric-header {
+.fleet-page .metric-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
 
-.metric-header h4 {
+.fleet-page .metric-header h4 {
   font-size: 11px;
   font-weight: 700;
   color: #64748B;
@@ -229,31 +244,31 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   margin: 0;
 }
 
-.metric-card h2 {
+.fleet-page .metric-card h2 {
   font-size: 28px;
   font-weight: 700;
   color: #0F172A;
   margin: 0 0 6px 0;
 }
 
-.growth-indicator {
+.fleet-page .growth-indicator {
   font-size: 12px;
   margin: 0;
   color: #64748B;
 }
 
-.growth-indicator.positive strong {
-  color: #10B981;
+.fleet-page .growth-indicator.positive strong {
+  color: #15803D;
 }
 
-.growth-indicator.positive .arrow {
-  color: #10B981;
+.fleet-page .growth-indicator.positive .arrow {
+  color: #15803D;
   margin-right: 2px;
   font-size: 11px;
 }
 
 /* Mid Section Tabs Styling */
-.section-tab-container {
+.fleet-page .section-tab-container {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -262,23 +277,23 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   margin-bottom: 20px;
 }
 
-.section-titles h3 {
+.fleet-page .section-titles h3 {
   font-size: 20px;
   font-weight: 700;
   color: #0F172A;
   margin: 0 0 4px 0;
 }
 
-.section-subtitle {
+.fleet-page .section-subtitle {
   font-size: 11px;
   font-weight: 600;
-  color: #94A3B8;
+  color: #64748B;
   letter-spacing: 0.3px;
   margin: 0;
   text-transform: uppercase;
 }
 
-.tab-pill-box {
+.fleet-page .tab-pill-box {
   display: flex;
   background-color: #F1F5F9;
   padding: 4px;
@@ -286,7 +301,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   border: 1px solid #E2E8F0;
 }
 
-.tab-pill {
+.fleet-page .tab-pill {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -301,7 +316,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   transition: all 0.1s ease;
 }
 
-.tab-pill.active {
+.fleet-page .tab-pill.active {
   background-color: #FFFFFF;
   color: #0F172A;
   font-weight: 600;
@@ -309,7 +324,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 }
 
 /* Custom Advanced Filters row */
-.table-filter-bar {
+.fleet-page .table-filter-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -317,13 +332,13 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   margin-bottom: 16px;
 }
 
-.filter-search-wrapper {
+.fleet-page .filter-search-wrapper {
   position: relative;
   flex: 1;
   max-width: 540px;
 }
 
-.inner-search {
+.fleet-page .inner-search {
   width: 100%;
   padding: 10px 14px;
   background-color: #FFFFFF;
@@ -333,7 +348,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
 }
 
 /* Premium Structured Tables Styling */
-.premium-table {
+.fleet-page .premium-table {
   width: 100%;
   border-collapse: collapse;
   background-color: #FFFFFF;
@@ -343,7 +358,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   margin-bottom: 12px;
 }
 
-.premium-table th {
+.fleet-page .premium-table th {
   background-color: #F8FAFC;
   color: #475569;
   font-size: 11px;
@@ -354,24 +369,24 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   letter-spacing: 0.5px;
 }
 
-.premium-table td {
+.fleet-page .premium-table td {
   padding: 16px 20px;
   border-bottom: 1px solid #E2E8F0;
   color: #334155;
   font-size: 13px;
 }
 
-.premium-table span.subtext {
+.fleet-page .premium-table span.subtext {
   font-size: 11px;
   color: #64748B;
 }
 
-.text-success {
+.fleet-page .text-success {
   color: #166534 !important;
 }
 
 /* Status Badges & Pills */
-.status-pill {
+.fleet-page .status-pill {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
@@ -380,32 +395,32 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   font-weight: 600;
 }
 
-.status-transit {
+.fleet-page .status-transit {
   background-color: #EFF6FF;
   color: #1D4ED8;
 }
 
-.status-active {
+.fleet-page .status-active {
   background-color: #ECFDF5;
   color: #047857;
 }
 
-.status-warning {
+.fleet-page .status-warning {
   background-color: #FFFBEB;
   color: #B45309;
 }
 
-.status-danger {
+.fleet-page .status-danger {
   background-color: #FEE2E2;
-  color: #DC2626;
+  color: #B91C1C;
 }
 
-.status-inactive {
+.fleet-page .status-inactive {
   background-color: #F1F5F9;
   color: #64748B;
 }
 
-.doc-pill {
+.fleet-page .doc-pill {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
@@ -413,17 +428,17 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   font-weight: 500;
 }
 
-.doc-success {
+.fleet-page .doc-success {
   background-color: #DCFCE7;
   color: #166534;
 }
 
-.doc-warning {
+.fleet-page .doc-warning {
   background-color: #FEF3C7;
   color: #92400E;
 }
 
-.badge {
+.fleet-page .badge {
   background-color: #F1F5F9;
   color: #475569;
   padding: 2px 6px;
@@ -432,17 +447,17 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   margin-right: 4px;
 }
 
-.action-dot-btn {
+.fleet-page .action-dot-btn {
   background: none;
   border: none;
   font-size: 16px;
   cursor: pointer;
-  color: #94A3B8;
+  color: #64748B;
 }
 
 
 /* Vehicle compliance view */
-.compliance-filter-panel {
+.fleet-page .compliance-filter-panel {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) 138px 172px 52px;
   gap: 10px;
@@ -454,20 +469,20 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   margin-bottom: 18px;
 }
 
-.compliance-search-wrapper {
+.fleet-page .compliance-search-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.compliance-search-icon {
+.fleet-page .compliance-search-icon {
   position: absolute;
   left: 18px;
   color: #4B5563;
   pointer-events: none;
 }
 
-.compliance-search-input {
+.fleet-page .compliance-search-input {
   width: 100%;
   height: 54px;
   padding: 0 18px 0 60px;
@@ -479,8 +494,8 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
-.compliance-filter-btn,
-.compliance-icon-btn {
+.fleet-page .compliance-filter-btn,
+.fleet-page .compliance-icon-btn {
   height: 52px;
   background-color: #FFFFFF;
   border: 1px solid #BFC7D5;
@@ -496,23 +511,23 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
-.compliance-date-btn {
+.fleet-page .compliance-date-btn {
   justify-content: space-between;
   padding: 0 18px;
 }
 
-.compliance-icon-btn {
+.fleet-page .compliance-icon-btn {
   width: 52px;
   color: #0F172A;
 }
 
-.compliance-table {
+.fleet-page .compliance-table {
   border: none;
   border-radius: 0;
   background-color: #F7F8FD;
 }
 
-.compliance-table th {
+.fleet-page .compliance-table th {
   background-color: #EEF2FC;
   color: #404653;
   font-size: 13px;
@@ -522,7 +537,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   padding: 20px 26px;
 }
 
-.compliance-table td {
+.fleet-page .compliance-table td {
   background-color: #F7F8FD;
   border-bottom: 1px solid #D7E1F5;
   color: #111827;
@@ -531,31 +546,31 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   vertical-align: middle;
 }
 
-.compliance-row-accent td:first-child {
+.fleet-page .compliance-row-accent td:first-child {
   border-left: 4px solid #F59E0B;
 }
 
-.compliance-vehicle-cell {
+.fleet-page .compliance-vehicle-cell {
   display: flex;
   align-items: center;
   gap: 14px;
   min-width: 190px;
 }
 
-.compliance-vehicle-cell strong {
+.fleet-page .compliance-vehicle-cell strong {
   display: block;
   color: #111827;
   font-size: 16px;
   line-height: 1.25;
 }
 
-.compliance-vehicle-cell .subtext {
+.fleet-page .compliance-vehicle-cell .subtext {
   display: block;
   color: #4B5563;
   font-size: 13px;
 }
 
-.vehicle-icon-tile {
+.fleet-page .vehicle-icon-tile {
   width: 50px;
   height: 50px;
   display: inline-flex;
@@ -565,7 +580,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   color: #3F4754;
 }
 
-.compliance-mark {
+.fleet-page .compliance-mark {
   width: 30px;
   height: 22px;
   display: inline-flex;
@@ -577,28 +592,28 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   line-height: 1;
 }
 
-.compliance-valid {
+.fleet-page .compliance-valid {
   background-color: #CFF7E2;
   color: #008A61;
 }
 
-.compliance-warning {
+.fleet-page .compliance-warning {
   background-color: #FEF0BF;
   color: #B45309;
 }
 
-.compliance-missing {
+.fleet-page .compliance-missing {
   background-color: #FFD7D2;
-  color: #DC2626;
+  color: #B91C1C;
 }
 
-.compliance-review {
+.fleet-page .compliance-review {
   background-color: #DCEBFF;
   color: #0B3B70;
   font-size: 15px;
 }
 
-.overall-status {
+.fleet-page .overall-status {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -611,45 +626,45 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   line-height: 1.2;
 }
 
-.overall-action {
+.fleet-page .overall-action {
   background-color: #FFF1C5;
   color: #A34500;
 }
 
-.overall-noncompliant {
+.fleet-page .overall-noncompliant {
   background-color: #FFDAD4;
   color: #A80000;
 }
 
-.overall-compliant {
+.fleet-page .overall-compliant {
   background-color: #CFF7E2;
   color: #047857;
 }
 
-.overall-review {
+.fleet-page .overall-review {
   background-color: #E6EEFB;
   color: #0B3B70;
 }
 
-.maintenance-date {
+.fleet-page .maintenance-date {
   display: block;
   color: #111827;
   font-size: 16px;
   margin-bottom: 3px;
 }
 
-.maintenance-note {
+.fleet-page .maintenance-note {
   display: block;
   color: #4B5563;
   font-size: 12px;
 }
 
-.overdue-note {
-  color: #DC2626;
+.fleet-page .overdue-note {
+  color: #B91C1C;
   font-weight: 700;
 }
 
-.overdue-note::before {
+.fleet-page .overdue-note::before {
   content: "!";
   display: inline-flex;
   align-items: center;
@@ -662,7 +677,7 @@ FLEET VIEW PREMIUM STYLING SPECIFICATIONS (Matches Figma layouts)
   font-size: 9px;
 }
 
-.compliance-actions-btn {
+.fleet-page .compliance-actions-btn {
   color: #394150;
   font-size: 28px;
   line-height: 1;
@@ -674,21 +689,21 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
 
 ========================================================================== */
 
-.calendar-mock-container {
+.fleet-page .calendar-mock-container {
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
   padding: 24px;
 }
 
-.calendar-header-mock {
+.fleet-page .calendar-header-mock {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.calendar-header-mock h4 {
+.fleet-page .calendar-header-mock h4 {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
@@ -696,19 +711,19 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
 }
 
 /* container for nav + action buttons */
-.calendar-actions {
+.fleet-page .calendar-actions {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
 /* existing nav */
-.calendar-nav-mock {
+.fleet-page .calendar-nav-mock {
   display: flex;
   gap: 8px;
 }
 
-.calendar-nav-mock button {
+.fleet-page .calendar-nav-mock button {
   background-color: #FFFFFF;
   border: 1px solid #CBD5E1;
   padding: 6px 12px;
@@ -720,27 +735,27 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
 }
 
 /* NEW: action buttons group beside calendar */
-.calendar-action-buttons {
+.fleet-page .calendar-action-buttons {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
 /* small spacing for the three action buttons */
-.calendar-action-buttons .btn-primary.small {
+.fleet-page .calendar-action-buttons .btn-primary.small {
   background-color: #042544;
   color: #fff;
   border: none;
 }
 
-.calendar-action-buttons .btn-secondary.small {
+.fleet-page .calendar-action-buttons .btn-secondary.small {
   background-color: #EBF2FA;
   color: #1A4F8B;
   border: 1px solid #D3E2F2;
 }
 
 /* calendar grid */
-.calendar-grid-mock {
+.fleet-page .calendar-grid-mock {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border: 1px solid #E2E8F0;
@@ -748,7 +763,7 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
   overflow: hidden;
 }
 
-.calendar-day-header {
+.fleet-page .calendar-day-header {
   background-color: #F8FAFC;
   padding: 10px;
   text-align: center;
@@ -758,7 +773,7 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
   border-bottom: 1px solid #E2E8F0;
 }
 
-.calendar-day {
+.fleet-page .calendar-day {
   min-height: 85px;
   padding: 8px;
   border-right: 1px solid #E2E8F0;
@@ -772,16 +787,16 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
   justify-content: space-between;
 }
 
-.calendar-grid-mock :nth-child(7n) {
+.fleet-page .calendar-grid-mock :nth-child(7n) {
   border-right: none;
 }
 
-.calendar-day.text-muted {
-  color: #94A3B8;
+.fleet-page .calendar-day.text-muted {
+  color: #64748B;
   background-color: #F8FAFC;
 }
 
-.day-event-tag {
+.fleet-page .day-event-tag {
   font-size: 10px;
   font-weight: 600;
   padding: 4px 6px;
@@ -792,31 +807,31 @@ RESTORED HIGH FIDELITY FUNCTIONAL CALENDAR SPECIFICATIONS
   white-space: nowrap;
 }
 
-.calendar-day.event-urgent {
+.fleet-page .calendar-day.event-urgent {
   background-color: #FFF7ED;
 }
 
-.calendar-day.event-urgent .day-event-tag {
+.fleet-page .calendar-day.event-urgent .day-event-tag {
   background-color: #FFEDD5;
   color: #C2410C;
   border-left: 3px solid #EA580C;
 }
 
-.calendar-day.event-routine {
+.fleet-page .calendar-day.event-routine {
   background-color: #F0FDF4;
 }
 
-.calendar-day.event-routine .day-event-tag {
+.fleet-page .calendar-day.event-routine .day-event-tag {
   background-color: #DCFCE7;
   color: #15803D;
   border-left: 3px solid #16A34A;
 }
 
-.calendar-day.event-danger {
+.fleet-page .calendar-day.event-danger {
   background-color: #fdf0f0;
 }
 
-.calendar-day.event-danger .day-event-tag {
+.fleet-page .calendar-day.event-danger .day-event-tag {
   background-color: #fcdcdc;
   color: #ac1a1a;
   border-left: 3px solid #DC2626;
@@ -829,7 +844,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 
 ========================================================================== */
 
-.modal-backdrop {
+:is(.fleet-page, .compliance-page) .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -843,7 +858,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   z-index: 9999;
 }
 
-.modal-window {
+.fleet-page .modal-window {
   background-color: #FFFFFF;
   border-radius: 12px;
   width: 100%;
@@ -855,7 +870,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   overflow: hidden;
 }
 
-.modal-header {
+.fleet-page .modal-header {
   padding: 24px 32px;
   border-bottom: 1px solid #E2E8F0;
   display: flex;
@@ -863,28 +878,28 @@ MODAL STRUCTURAL CONFIGURATIONS
   align-items: center;
 }
 
-.modal-header h3 {
+.fleet-page .modal-header h3 {
   font-size: 18px;
   font-weight: 700;
   color: #0F172A;
   margin: 0 0 4px 0;
 }
 
-.modal-subtitle {
+.fleet-page .modal-subtitle {
   font-size: 12px;
   color: #64748B;
   margin: 0;
 }
 
-.close-modal-btn {
+.fleet-page .close-modal-btn {
   background: none;
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #94A3B8;
+  color: #64748B;
 }
 
-.modal-steps-indicator {
+.fleet-page .modal-steps-indicator {
   display: flex;
   align-items: center;
   padding: 16px 32px;
@@ -892,19 +907,19 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-bottom: 1px solid #E2E8F0;
 }
 
-.step-badge {
+.fleet-page .step-badge {
   font-size: 12px;
   font-weight: 600;
-  color: #94A3B8;
+  color: #64748B;
   white-space: nowrap;
 }
 
-.step-badge.active {
+.fleet-page .step-badge.active {
   color: #042544;
   font-weight: 700;
 }
 
-.step-line {
+.fleet-page .step-line {
   flex: 1;
   height: 2px;
   background-color: #E2E8F0;
@@ -913,50 +928,50 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Modal Inputs Body Structure */
-.modal-body {
+.fleet-page .modal-body {
   padding: 32px;
   overflow-y: auto;
   flex: 1;
 }
 
-.form-grid {
+.fleet-page .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-.form-group {
+.fleet-page .form-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.form-group.full-width {
+.fleet-page .form-group.full-width {
   grid-column: span 2;
 }
 
-.form-group label {
+.fleet-page .form-group label {
   font-size: 11px;
   font-weight: 700;
   color: #475569;
 }
 
-.form-group input,
-.form-group select {
+.fleet-page .form-group input,
+.fleet-page .form-group select {
   padding: 10px 14px;
   border: 1px solid #CBD5E1;
   border-radius: 6px;
   font-size: 13px;
 }
 
-.auto-fill-hint {
-  color: #10B981;
+.fleet-page .auto-fill-hint {
+  color: #15803D;
   font-weight: 600;
   float: right;
   font-size: 10px;
 }
 
-.form-divider-title {
+.fleet-page .form-divider-title {
   grid-column: span 2;
   font-size: 14px;
   font-weight: 700;
@@ -966,7 +981,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   padding-bottom: 6px;
 }
 
-.form-section-box {
+.fleet-page .form-section-box {
   grid-column: span 2;
   background-color: #F8FAFC;
   border: 1px solid #E2E8F0;
@@ -978,14 +993,14 @@ MODAL STRUCTURAL CONFIGURATIONS
   gap: 16px;
 }
 
-.form-section-box h4 {
+.fleet-page .form-section-box h4 {
   grid-column: span 2;
   margin: 0;
   color: #0F172A;
   font-size: 13px;
 }
 
-.notice-text {
+.fleet-page .notice-text {
   grid-column: span 2;
   font-size: 11px;
   color: #64748B;
@@ -993,7 +1008,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Document Upload Area Rules */
-.info-banner {
+.fleet-page .info-banner {
   background-color: #EFF6FF;
   border: 1px solid #BFDBFE;
   color: #1E40AF;
@@ -1003,14 +1018,14 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-bottom: 20px;
 }
 
-.avatar-upload-zone {
+.fleet-page .avatar-upload-zone {
   display: flex;
   align-items: center;
   gap: 16px;
   margin-bottom: 24px;
 }
 
-.avatar-placeholder-box {
+.fleet-page .avatar-placeholder-box {
   width: 56px;
   height: 56px;
   border: 2px dashed #CBD5E1;
@@ -1019,50 +1034,50 @@ MODAL STRUCTURAL CONFIGURATIONS
   justify-content: center;
   align-items: center;
   font-size: 20px;
-  color: #94A3B8;
+  color: #64748B;
 }
 
-.upload-cards-grid {
+.fleet-page .upload-cards-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
 }
 
-.upload-card {
+.fleet-page .upload-card {
   border: 1px solid #E2E8F0;
   border-radius: 8px;
   padding: 16px;
   background-color: #FFFFFF;
 }
 
-.upload-card.required {
+.fleet-page .upload-card.required {
   border-left: 4px solid #EF4444;
 }
 
-.upload-card.optional {
+.fleet-page .upload-card.optional {
   border-left: 4px solid #94A3B8;
 }
 
-.upload-card h4 {
+.fleet-page .upload-card h4 {
   margin: 0 0 8px 0;
   font-size: 11px;
   font-weight: 700;
   color: #334155;
 }
 
-.req-label {
-  color: #EF4444;
+.fleet-page .req-label {
+  color: #B91C1C;
   float: right;
   font-size: 10px;
 }
 
-.opt-label {
+.fleet-page .opt-label {
   color: #64748B;
   float: right;
   font-size: 10px;
 }
 
-.uploaded-file-row {
+.fleet-page .uploaded-file-row {
   display: flex;
   justify-content: space-between;
   background-color: #F1F5F9;
@@ -1072,12 +1087,12 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-top: 8px;
 }
 
-.auto-fill-msg {
+.fleet-page .auto-fill-msg {
   color: #059669;
   font-weight: 600;
 }
 
-.dropzone-box {
+.fleet-page .dropzone-box {
   border: 2px dashed #E2E8F0;
   padding: 20px;
   text-align: center;
@@ -1089,12 +1104,12 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Success Modal View Styling */
-.success-modal-view {
+.fleet-page .success-modal-view {
   text-align: center;
   padding: 24px 0;
 }
 
-.success-icon-circle {
+.fleet-page .success-icon-circle {
   width: 56px;
   height: 56px;
   background-color: #DCFCE7;
@@ -1107,7 +1122,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-bottom: 16px;
 }
 
-.system-id-badge {
+.fleet-page .system-id-badge {
   background-color: #E0F2FE;
   color: #0369A1;
   padding: 4px 12px;
@@ -1116,7 +1131,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-weight: 700;
 }
 
-.status-box {
+.fleet-page .status-box {
   background-color: #F8FAFC;
   padding: 16px;
   border-radius: 8px;
@@ -1125,7 +1140,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Modal Footer Layout */
-.modal-footer {
+.fleet-page .modal-footer {
   padding: 20px 32px;
   border-top: 1px solid #E2E8F0;
   display: flex;
@@ -1134,7 +1149,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   background-color: #F8FAFC;
 }
 
-.btn-link {
+.fleet-page .btn-link {
   background: none;
   border: none;
   color: #64748B;
@@ -1143,45 +1158,26 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-size: 13px;
 }
 
-.footer-right-buttons {
+.fleet-page .footer-right-buttons {
   display: flex;
   gap: 12px;
 }
 
-.success-actions-layout {
+.fleet-page .success-actions-layout {
   display: flex;
   width: 100%;
   gap: 12px;
   justify-content: center;
 }
 
-/* Global Topbar Overrides */
-.topbar {
-  background-color: #FFFFFF !important;
-  padding: 12px 40px !important;
-  display: flex;
-  justify-content: flex-end !important;
-  align-items: center;
-  border-bottom: 1px solid #E2E8F0;
-  position: relative;
-  z-index: 5;
-  pointer-events: auto;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-left: auto;
-}
-
-.search-container {
+/* Fleet Topbar Helpers */
+.fleet-page .search-container {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.search-container input {
+.fleet-page .search-container input {
   background-color: #F1F5F9 !important;
   border: none;
   padding: 8px 12px 8px 36px;
@@ -1189,13 +1185,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-size: 13px;
 }
 
-.search-icon {
+.fleet-page .search-icon {
   position: absolute;
   left: 12px;
   pointer-events: none;
 }
 
-.icon-btn {
+.fleet-page .icon-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -1206,51 +1202,32 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-radius: 4px;
 }
 
-.icon-btn:hover {
+.fleet-page .icon-btn:hover {
   background-color: #F1F5F9;
-}
-
-.avatar {
-  border-radius: 50%;
-  overflow: hidden;
-  transition: box-shadow 0.2s, opacity 0.2s;
-}
-
-.avatar:hover {
-  opacity: 0.85;
-  box-shadow: 0 0 0 2px #3B82F6;
-}
-
-.avatar img {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
 }
 
 /* small responsive tweaks */
 @media (max-width: 980px) {
-  .stats-grid {
+  .fleet-page .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .form-grid {
+  .fleet-page .form-grid {
     grid-template-columns: 1fr;
   }
 
-  .metric-card h2 {
+  .fleet-page .metric-card h2 {
     font-size: 22px;
   }
 
-  .calendar-action-buttons {
+  .fleet-page .calendar-action-buttons {
     flex-direction: column;
     gap: 6px;
   }
 }
 
 /* Cargo Compatibility Form Integration */
-.cargo-title-label {
+.fleet-page .cargo-title-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -1260,7 +1237,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   text-transform: uppercase;
 }
 
-.cargo-options-grid {
+.fleet-page .cargo-options-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -1268,7 +1245,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-top: 6px;
 }
 
-.cargo-option-btn {
+.fleet-page .cargo-option-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1285,19 +1262,19 @@ MODAL STRUCTURAL CONFIGURATIONS
   user-select: none;
 }
 
-.cargo-option-btn:hover {
+.fleet-page .cargo-option-btn:hover {
   background-color: #F8FAFC;
   border-color: #94A3B8;
 }
 
-.cargo-option-btn.selected {
+.fleet-page .cargo-option-btn.selected {
   background-color: #EFF6FF;
   border: 1px solid #042544;
   color: #042544;
   font-weight: 600;
 }
 
-.checkmark-icon {
+.fleet-page .checkmark-icon {
   width: 12px;
   height: 12px;
   margin-right: 6px;
@@ -1305,7 +1282,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Document Upload UI Styles */
-.file-upload-dropzone {
+.fleet-page .file-upload-dropzone {
   position: relative;
   border: 1px dashed #CBD5E1;
   border-radius: 6px;
@@ -1320,12 +1297,12 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: all 0.2s ease-in-out;
 }
 
-.file-upload-dropzone:hover {
+.fleet-page .file-upload-dropzone:hover {
   border-color: #0F172A;
   background-color: #F8FAFC;
 }
 
-.upload-icon-container {
+.fleet-page .upload-icon-container {
   background-color: #F1F5F9;
   border-radius: 50%;
   width: 40px;
@@ -1336,24 +1313,24 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-bottom: 12px;
 }
 
-.upload-text-content .upload-main-text {
+.fleet-page .upload-text-content .upload-main-text {
   font-size: 13px;
   color: #475569;
   margin: 0 0 4px 0;
 }
 
-.upload-text-content .upload-main-text span {
+.fleet-page .upload-text-content .upload-main-text span {
   color: #0F172A;
   font-weight: 600;
 }
 
-.upload-text-content .upload-sub-text {
+.fleet-page .upload-text-content .upload-sub-text {
   font-size: 11px;
-  color: #94A3B8;
+  color: #64748B;
   margin: 0;
 }
 
-.hidden-file-input {
+.fleet-page .hidden-file-input {
   position: absolute;
   top: 0;
   left: 0;
@@ -1364,7 +1341,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Custom Assign Driver Form UI Styling */
-.field-label-bold {
+.fleet-page .field-label-bold {
   font-weight: 600;
   font-size: 13px;
   color: #0F172A;
@@ -1372,13 +1349,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   display: block;
 }
 
-.optional-text {
-  color: #94A3B8;
+.fleet-page .optional-text {
+  color: #64748B;
   font-weight: 400;
   font-size: 12px;
 }
 
-.form-select-custom {
+.fleet-page .form-select-custom {
   width: 100%;
   padding: 12px 14px;
   font-size: 14px;
@@ -1386,7 +1363,6 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-radius: 6px;
   background-color: #FFFFFF;
   color: #0F172A;
-  outline: none;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -1396,12 +1372,17 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: border-color 0.15s ease-in-out;
 }
 
-.form-select-custom:focus {
+.fleet-page .form-select-custom:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+.fleet-page .form-select-custom:focus {
   border-color: #042544;
   box-shadow: 0 0 0 2px rgba(4, 37, 68, 0.1);
 }
 
-.vehicle-success-modal {
+.fleet-page .vehicle-success-modal {
   width: 450px;
   background: #fff;
   border-radius: 12px;
@@ -1417,7 +1398,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-bottom: 5px solid #22c55e;
 }
 
-.success-icon {
+.fleet-page .success-icon {
   width: 74px;
   height: 74px;
 
@@ -1427,7 +1408,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 
   background: #ecfdf5;
 
-  color: #16a34a;
+  color: #15803D;
 
   font-size: 42px;
   font-weight: 700;
@@ -1437,7 +1418,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   justify-content: center;
 }
 
-.vehicle-success-modal h2 {
+.fleet-page .vehicle-success-modal h2 {
   margin: 0;
 
   color: #022343;
@@ -1446,7 +1427,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-weight: 700;
 }
 
-.vehicle-id {
+.fleet-page .vehicle-id {
   margin-top: 14px;
 
   display: inline-block;
@@ -1462,7 +1443,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   color: #334155;
 }
 
-.success-status-box {
+.fleet-page .success-status-box {
   margin-top: 24px;
 
   background: #f8fafc;
@@ -1476,16 +1457,16 @@ MODAL STRUCTURAL CONFIGURATIONS
   text-align: left;
 }
 
-.success-status-box strong {
-  color: #16a34a;
+.fleet-page .success-status-box strong {
+  color: #15803D;
 }
 
-.success-full-btn {
+.fleet-page .success-full-btn {
   width: 100%;
   margin-top: 14px;
 }
 
-.success-close {
+.fleet-page .success-close {
   margin-top: 18px;
 
   border: none;
@@ -1495,24 +1476,24 @@ MODAL STRUCTURAL CONFIGURATIONS
 
   font-size: 22px;
 
-  color: #94a3b8;
+  color: #64748B;
 }
 
 /* Fleet Table Action Buttons */
-.fleet-actions-cell {
+.fleet-page .fleet-actions-cell {
   white-space: nowrap;
   width: 1%;
   text-align: right;
   vertical-align: middle;
 }
 
-.fleet-action-buttons {
+.fleet-page .fleet-action-buttons {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.fleet-btn-action {
+.fleet-page .fleet-btn-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1524,66 +1505,65 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: all 0.15s ease-in-out;
   text-decoration: none;
   line-height: 1.25;
-  outline: none;
 }
 
-.fleet-btn-action svg {
+.fleet-page .fleet-btn-action svg {
   flex-shrink: 0;
 }
 
-.fleet-btn-action.fleet-btn-edit {
+.fleet-page .fleet-btn-action.fleet-btn-edit {
   background-color: #F8FAFC;
   color: #0F2D4A;
   border: 1px solid #CBD5E1;
 }
 
-.fleet-btn-action.fleet-btn-edit:hover {
+.fleet-page .fleet-btn-action.fleet-btn-edit:hover {
   background-color: #E2E8F0;
   color: #042544;
   border-color: #94A3B8;
 }
 
-.fleet-btn-action.fleet-btn-docs {
+.fleet-page .fleet-btn-action.fleet-btn-docs {
   background-color: #EFF6FF;
   color: #1D4ED8;
   border: 1px solid #BFDBFE;
 }
 
-.fleet-btn-action.fleet-btn-docs:hover {
+.fleet-page .fleet-btn-action.fleet-btn-docs:hover {
   background-color: #DBEAFE;
   color: #1E40AF;
   border-color: #93C5FD;
 }
 
-.fleet-btn-action.fleet-btn-delete {
+.fleet-page .fleet-btn-action.fleet-btn-delete {
   background-color: #FEF2F2;
-  color: #DC2626;
+  color: #B91C1C;
   border: 1px solid #FECACA;
 }
 
-.fleet-btn-action.fleet-btn-delete:hover {
+.fleet-page .fleet-btn-action.fleet-btn-delete:hover {
   background-color: #FEE2E2;
   color: #B91C1C;
   border-color: #FCA5A5;
 }
 
-.fleet-btn-action.fleet-btn-delete:disabled {
+.fleet-page .fleet-btn-action.fleet-btn-delete:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.fleet-btn-action:focus-visible {
+.fleet-page .fleet-btn-action:focus-visible {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
 /* Fleet Action 3-dots Menu & Dropdown */
-.action-menu-wrapper {
+.fleet-page .action-menu-wrapper {
   position: relative;
   display: inline-block;
   text-align: left;
 }
 
-.action-dots-btn {
+.fleet-page .action-dots-btn {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -1596,21 +1576,20 @@ MODAL STRUCTURAL CONFIGURATIONS
   width: 32px;
   height: 32px;
   transition: all 0.15s ease-in-out;
-  outline: none;
 }
 
-.action-dots-btn:hover,
-.action-dots-btn[aria-expanded="true"] {
+.fleet-page .action-dots-btn:hover,
+.fleet-page .action-dots-btn[aria-expanded="true"] {
   color: #0F172A;
   background-color: #F1F5F9;
   border-color: #CBD5E1;
 }
 
-.action-dots-btn:focus-visible {
+.fleet-page .action-dots-btn:focus-visible {
   box-shadow: 0 0 0 2px #2563EB;
 }
 
-.action-dropdown {
+.fleet-page .action-dropdown {
   position: fixed;
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
@@ -1634,7 +1613,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   }
 }
 
-.dropdown-item {
+.fleet-page .dropdown-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1654,26 +1633,26 @@ MODAL STRUCTURAL CONFIGURATIONS
   white-space: nowrap;
 }
 
-.dropdown-item:hover {
+.fleet-page .dropdown-item:hover {
   background: #F8FAFC;
   color: #0F172A;
 }
 
-.dropdown-item.danger {
-  color: #DC2626;
+.fleet-page .dropdown-item.danger {
+  color: #B91C1C;
 }
 
-.dropdown-item.danger:hover {
+.fleet-page .dropdown-item.danger:hover {
   background: #FEF2F2;
   color: #B91C1C;
 }
 
-.dropdown-item svg {
+.fleet-page .dropdown-item svg {
   flex-shrink: 0;
 }
 
 /* Dashboard/Fleet integration: modern dialog & form layout */
-.fleet-dialog {
+:is(.fleet-page, .compliance-page) .fleet-dialog {
   border: 1px solid #E2E8F0;
   border-radius: 16px;
   padding: 0;
@@ -1687,12 +1666,12 @@ MODAL STRUCTURAL CONFIGURATIONS
   box-sizing: border-box;
 }
 
-.fleet-dialog::backdrop {
+:is(.fleet-page, .compliance-page) .fleet-dialog::backdrop {
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(3px);
 }
 
-.fleet-dialog-header {
+:is(.fleet-page, .compliance-page) .fleet-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1701,13 +1680,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   background: #FFFFFF;
 }
 
-.fleet-dialog-header-info {
+:is(.fleet-page, .compliance-page) .fleet-dialog-header-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.fleet-dialog-header-icon {
+:is(.fleet-page, .compliance-page) .fleet-dialog-header-icon {
   width: 40px;
   height: 40px;
   border-radius: 10px;
@@ -1719,7 +1698,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   flex-shrink: 0;
 }
 
-.fleet-dialog-title {
+:is(.fleet-page, .compliance-page) .fleet-dialog-title {
   margin: 0;
   font-size: 17px;
   font-weight: 700;
@@ -1727,13 +1706,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   line-height: 1.25;
 }
 
-.fleet-dialog-subtitle {
+:is(.fleet-page, .compliance-page) .fleet-dialog-subtitle {
   margin: 2px 0 0 0;
   font-size: 12px;
   color: #64748B;
 }
 
-.fleet-dialog-close-btn {
+:is(.fleet-page, .compliance-page) .fleet-dialog-close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1742,61 +1721,61 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #94A3B8;
+  color: #64748B;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.fleet-dialog-close-btn:hover {
+:is(.fleet-page, .compliance-page) .fleet-dialog-close-btn:hover {
   background: #F1F5F9;
   color: #334155;
 }
 
-.fleet-dialog-body {
+:is(.fleet-page, .compliance-page) .fleet-dialog-body {
   padding: 24px;
   max-height: calc(90vh - 145px);
   overflow-y: auto;
 }
 
-.fleet-dialog fieldset {
+:is(.fleet-page, .compliance-page) .fleet-dialog fieldset {
   border: 0;
   padding: 0;
   margin: 0;
   min-width: 0;
 }
 
-.fleet-dialog .form-grid {
+:is(.fleet-page, .compliance-page) .fleet-dialog .form-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
 @media (max-width: 640px) {
-  .fleet-dialog .form-grid {
+  .fleet-page .fleet-dialog .form-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.fleet-dialog .form-group {
+:is(.fleet-page, .compliance-page) .fleet-dialog .form-group {
   display: flex;
   flex-direction: column;
 }
 
-.fleet-dialog .form-group.col-span-full {
+:is(.fleet-page, .compliance-page) .fleet-dialog .form-group.col-span-full {
   grid-column: 1 / -1;
 }
 
-.fleet-dialog .form-group.col-span-2 {
+:is(.fleet-page, .compliance-page) .fleet-dialog .form-group.col-span-2 {
   grid-column: span 2;
 }
 
 @media (max-width: 640px) {
-  .fleet-dialog .form-group.col-span-2 {
+  .fleet-page .fleet-dialog .form-group.col-span-2 {
     grid-column: 1 / -1;
   }
 }
 
-.fleet-dialog label {
+:is(.fleet-page, .compliance-page) .fleet-dialog label {
   display: block;
   margin-bottom: 6px;
   font-size: 11px;
@@ -1806,28 +1785,33 @@ MODAL STRUCTURAL CONFIGURATIONS
   color: #475569;
 }
 
-.fleet-dialog input,
-.fleet-dialog select {
+:is(.fleet-page, .compliance-page) .fleet-dialog input,
+:is(.fleet-page, .compliance-page) .fleet-dialog select {
   width: 100%;
   box-sizing: border-box;
   padding: 9px 12px;
   border: 1px solid #CBD5E1;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 13px;
   color: #0F172A;
   background: #FFFFFF;
   transition: border-color 0.15s, box-shadow 0.15s;
-  outline: none;
 }
 
-.fleet-dialog input:focus,
-.fleet-dialog select:focus {
+:is(.fleet-page, .compliance-page) .fleet-dialog input:focus-visible,
+:is(.fleet-page, .compliance-page) .fleet-dialog select:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+:is(.fleet-page, .compliance-page) .fleet-dialog input:focus,
+:is(.fleet-page, .compliance-page) .fleet-dialog select:focus {
   border-color: #2563EB;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.modal-window .fleet-dialog-error,
-.fleet-dialog .error-message.fleet-dialog-error {
+.fleet-page .modal-window .fleet-dialog-error,
+:is(.fleet-page, .compliance-page) .fleet-dialog .error-message.fleet-dialog-error {
   background: #FEF2F2;
   border: 1px solid #FCA5A5;
   color: #991B1B;
@@ -1841,13 +1825,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   line-height: 1.4;
 }
 
-.modal-window .fleet-dialog-error svg,
-.fleet-dialog .error-message.fleet-dialog-error svg {
+.fleet-page .modal-window .fleet-dialog-error svg,
+:is(.fleet-page, .compliance-page) .fleet-dialog .error-message.fleet-dialog-error svg {
   flex-shrink: 0;
   stroke: #EF4444;
 }
 
-.fleet-cargo-section {
+.fleet-page .fleet-cargo-section {
   margin-top: 20px;
   padding: 16px;
   background: #F8FAFC;
@@ -1855,14 +1839,14 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-radius: 10px;
 }
 
-.fleet-cargo-section-header {
+.fleet-page .fleet-cargo-section-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 12px;
 }
 
-.fleet-cargo-section-title {
+.fleet-page .fleet-cargo-section-title {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1870,18 +1854,18 @@ MODAL STRUCTURAL CONFIGURATIONS
   color: #475569;
 }
 
-.fleet-cargo-section-desc {
+.fleet-page .fleet-cargo-section-desc {
   font-size: 12px;
-  color: #94A3B8;
+  color: #64748B;
 }
 
-.fleet-cargo-tags {
+.fleet-page .fleet-cargo-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.fleet-check {
+.fleet-page .fleet-check {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1896,26 +1880,26 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: all 0.15s ease;
 }
 
-.fleet-check:hover {
+.fleet-page .fleet-check:hover {
   border-color: #94A3B8;
   background: #F8FAFC;
 }
 
-.fleet-check.is-checked {
+.fleet-page .fleet-check.is-checked {
   background: #EFF6FF;
   border-color: #93C5FD;
   color: #1D4ED8;
   font-weight: 600;
 }
 
-.fleet-empty-cargo {
+:is(.fleet-page, .compliance-page) .fleet-empty-cargo {
   font-size: 12px;
   color: #64748B;
   margin: 0;
   font-style: italic;
 }
 
-.fleet-dialog .modal-footer {
+:is(.fleet-page, .compliance-page) .fleet-dialog .modal-footer {
   padding: 16px 24px;
   border-top: 1px solid #E2E8F0;
   display: flex;
@@ -1927,7 +1911,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Compliance Document List View */
-.fleet-documents {
+:is(.fleet-page, .compliance-page) .fleet-documents {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1936,7 +1920,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   gap: 10px;
 }
 
-.fleet-doc-item {
+:is(.fleet-page, .compliance-page) .fleet-doc-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1948,44 +1932,44 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: all 0.15s ease;
 }
 
-.fleet-doc-item:hover {
+:is(.fleet-page, .compliance-page) .fleet-doc-item:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
 }
 
-.fleet-doc-item-details {
+:is(.fleet-page, .compliance-page) .fleet-doc-item-details {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.fleet-doc-item-title-row {
+:is(.fleet-page, .compliance-page) .fleet-doc-item-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.fleet-doc-type-label {
+:is(.fleet-page, .compliance-page) .fleet-doc-type-label {
   font-size: 14px;
   font-weight: 700;
   color: #0F172A;
   text-transform: capitalize;
 }
 
-.fleet-doc-number-label {
+:is(.fleet-page, .compliance-page) .fleet-doc-number-label {
   font-size: 13px;
   font-weight: 600;
   color: #475569;
 }
 
-.fleet-doc-sep {
-  color: #94A3B8;
+:is(.fleet-page, .compliance-page) .fleet-doc-sep {
+  color: #64748B;
   font-size: 13px;
 }
 
-.fleet-doc-badge {
+:is(.fleet-page, .compliance-page) .fleet-doc-badge {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
@@ -1995,7 +1979,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   line-height: 1.3;
 }
 
-.fleet-doc-item-subtitle {
+:is(.fleet-page, .compliance-page) .fleet-doc-item-subtitle {
   font-size: 12px;
   color: #64748B;
   overflow: hidden;
@@ -2003,21 +1987,21 @@ MODAL STRUCTURAL CONFIGURATIONS
   white-space: nowrap;
 }
 
-.fleet-doc-item-actions {
+:is(.fleet-page, .compliance-page) .fleet-doc-item-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.fleet-doc-action-btn {
+:is(.fleet-page, .compliance-page) .fleet-doc-action-btn {
   padding: 6px 14px;
   font-size: 12px;
   font-weight: 600;
   border-radius: 6px;
 }
 
-.fleet-compliance-bottom-bar {
+.fleet-page .fleet-compliance-bottom-bar {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid #F1F5F9;
@@ -2025,7 +2009,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   justify-content: flex-end;
 }
 
-.fleet-add-doc-btn {
+.fleet-page .fleet-add-doc-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2037,12 +2021,12 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Compliance Add/Edit Document Form */
-.fleet-doc-form {
+:is(.fleet-page, .compliance-page) .fleet-doc-form {
   display: flex;
   flex-direction: column;
 }
 
-.fleet-doc-form-top {
+:is(.fleet-page, .compliance-page) .fleet-doc-form-top {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2051,7 +2035,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-bottom: 1px solid #F1F5F9;
 }
 
-.fleet-doc-back-btn {
+:is(.fleet-page, .compliance-page) .fleet-doc-back-btn {
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
@@ -2068,30 +2052,30 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: all 0.15s ease;
 }
 
-.fleet-doc-back-btn:hover {
+:is(.fleet-page, .compliance-page) .fleet-doc-back-btn:hover {
   background: #EFF6FF;
   color: #1D4ED8;
 }
 
-.fleet-doc-form-header {
+:is(.fleet-page, .compliance-page) .fleet-doc-form-header {
   margin-top: 2px;
 }
 
-.fleet-doc-form-title {
+:is(.fleet-page, .compliance-page) .fleet-doc-form-title {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
   color: #0F172A;
 }
 
-.fleet-doc-form-subtitle {
+:is(.fleet-page, .compliance-page) .fleet-doc-form-subtitle {
   margin: 2px 0 0 0;
   font-size: 12px;
   color: #64748B;
 }
 
 /* Custom File Upload Box */
-.fleet-file-dropzone {
+.fleet-page .fleet-file-dropzone {
   position: relative;
   border: 1.5px dashed #CBD5E1;
   border-radius: 10px;
@@ -2102,18 +2086,18 @@ MODAL STRUCTURAL CONFIGURATIONS
   overflow: hidden;
 }
 
-.fleet-file-dropzone:hover {
+.fleet-page .fleet-file-dropzone:hover {
   border-color: #2563EB;
   background: #EFF6FF;
 }
 
-.fleet-file-dropzone.has-file {
+.fleet-page .fleet-file-dropzone.has-file {
   border-color: #16A34A;
   background: #F0FDF4;
   border-style: solid;
 }
 
-.fleet-file-native-input {
+.fleet-page .fleet-file-native-input {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2123,7 +2107,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   z-index: 2;
 }
 
-.fleet-file-dropzone-content {
+.fleet-page .fleet-file-dropzone-content {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2131,7 +2115,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   pointer-events: none;
 }
 
-.fleet-file-icon {
+.fleet-page .fleet-file-icon {
   width: 42px;
   height: 42px;
   border-radius: 8px;
@@ -2143,26 +2127,26 @@ MODAL STRUCTURAL CONFIGURATIONS
   flex-shrink: 0;
 }
 
-.fleet-file-details {
+.fleet-page .fleet-file-details {
   display: flex;
   flex-direction: column;
   gap: 3px;
   text-align: left;
 }
 
-.fleet-file-name {
+.fleet-page .fleet-file-name {
   font-size: 13px;
   font-weight: 600;
   color: #0F172A;
   word-break: break-all;
 }
 
-.fleet-file-hint {
+.fleet-page .fleet-file-hint {
   font-size: 12px;
   color: #64748B;
 }
 
-.fleet-doc-form-footer {
+:is(.fleet-page, .compliance-page) .fleet-doc-form-footer {
   margin: 24px -24px -24px -24px;
   padding: 16px 24px;
   border-top: 1px solid #E2E8F0;
@@ -2174,7 +2158,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   border-bottom-right-radius: 16px;
 }
 
-.fleet-calendar {
+.fleet-page .fleet-calendar {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
@@ -2183,13 +2167,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   overflow: auto;
 }
 
-.fleet-calendar-grid {
+.fleet-page .fleet-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(100px, 1fr));
   min-width: 700px;
 }
 
-.fleet-calendar-grid strong {
+.fleet-page .fleet-calendar-grid strong {
   text-align: center;
   padding: 10px 4px;
   font-size: 11px;
@@ -2201,13 +2185,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   border: 1px solid #E2E8F0;
 }
 
-.fleet-calendar-day {
+.fleet-page .fleet-calendar-day {
   min-height: 95px;
   padding: 8px;
   border: 1px solid #e2e8f0;
 }
 
-.fleet-calendar-day time {
+.fleet-page .fleet-calendar-day time {
   display: block;
   font-size: 12px;
   font-weight: 600;
@@ -2215,7 +2199,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-bottom: 4px;
 }
 
-.fleet-calendar-day button {
+.fleet-page .fleet-calendar-day button {
   display: block;
   text-align: left;
   font-size: 12px;
@@ -2224,15 +2208,15 @@ MODAL STRUCTURAL CONFIGURATIONS
   width: 100%;
 }
 
-.premium-table td>.btn-link {
+.fleet-page .premium-table td>.btn-link {
   margin-right: 10px;
 }
 
-.premium-table .driver-contact {
+.fleet-page .premium-table .driver-contact {
   margin-inline-end: 10px;
 }
 
-.fleet-calendar-day button {
+.fleet-page .fleet-calendar-day button {
   padding: 5px 7px;
   color: #1e40af;
   background: #eff6ff;
@@ -2241,82 +2225,82 @@ MODAL STRUCTURAL CONFIGURATIONS
   cursor: pointer;
 }
 
-.fleet-dialog {
+:is(.fleet-page, .compliance-page) .fleet-dialog {
   margin: auto;
   box-sizing: border-box;
 }
 
-.fleet-table-scroll {
+.fleet-page .fleet-table-scroll {
   width: 100%;
   overflow-x: auto;
 }
 
-.fleet-table-scroll .premium-table {
+.fleet-page .fleet-table-scroll .premium-table {
   min-width: 760px;
 }
 
-.doc-pill.doc-critical {
+.fleet-page .doc-pill.doc-critical {
   background-color: #FEE2E2;
   color: #991B1B;
 }
 
-#fleet-maintenance .maintenance-toolbar {
+.fleet-page #fleet-maintenance .maintenance-toolbar {
   margin-top: 40px;
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
 }
 
-#fleet-maintenance .maintenance-actions {
+.fleet-page #fleet-maintenance .maintenance-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
 }
 
-#fleet-maintenance .maintenance-view-switch {
+.fleet-page #fleet-maintenance .maintenance-view-switch {
   gap: 4px;
 }
 
-#fleet-maintenance .maintenance-view-switch .tab-pill {
+.fleet-page #fleet-maintenance .maintenance-view-switch .tab-pill {
   min-height: 36px;
   white-space: nowrap;
 }
 
-#fleet-maintenance .maintenance-view-switch .tab-pill[aria-pressed="true"] {
+.fleet-page #fleet-maintenance .maintenance-view-switch .tab-pill[aria-pressed="true"] {
   background: #fff;
   color: #0f172a;
   font-weight: 600;
   box-shadow: 0 1px 3px #0f172a26;
 }
 
-#fleet-maintenance .maintenance-actions>.btn-primary {
+.fleet-page #fleet-maintenance .maintenance-actions>.btn-primary {
   min-height: 44px;
   margin: 0;
   white-space: nowrap;
 }
 
-#fleet-maintenance .maintenance-actions button:focus-visible {
+.fleet-page #fleet-maintenance .maintenance-actions button:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 3px;
 }
 
 @media (max-width: 700px) {
-  #fleet-maintenance .maintenance-actions {
+  .fleet-page #fleet-maintenance .maintenance-actions {
     width: 100%;
   }
 
-  #fleet-maintenance .maintenance-view-switch {
+  .fleet-page #fleet-maintenance .maintenance-view-switch {
     flex: 1;
   }
 
-  #fleet-maintenance .maintenance-view-switch .tab-pill {
+  .fleet-page #fleet-maintenance .maintenance-view-switch .tab-pill {
     flex: 1;
     justify-content: center;
   }
 }
 
-.fleet-vehicle-categories {
+.fleet-page .fleet-vehicle-categories {
   display: flex;
   gap: 24px;
   overflow-x: auto;
@@ -2325,7 +2309,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   padding: 0 4px;
 }
 
-.fleet-vehicle-category {
+.fleet-page .fleet-vehicle-category {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -2341,13 +2325,13 @@ MODAL STRUCTURAL CONFIGURATIONS
   white-space: nowrap;
 }
 
-.fleet-vehicle-category.active {
+.fleet-page .fleet-vehicle-category.active {
   color: #0f172a;
   border-bottom-color: #0f172a;
   font-weight: 600;
 }
 
-.fleet-category-count {
+.fleet-page .fleet-category-count {
   display: inline-grid;
   place-items: center;
   min-width: 24px;
@@ -2359,14 +2343,14 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-size: 11px;
 }
 
-.fleet-vehicle-category:focus-visible {
+.fleet-page .fleet-vehicle-category:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: -3px;
   border-radius: 4px;
 }
 
 /* Fleet Discard Confirmation Dialog */
-.fleet-discard-dialog {
+.fleet-page .fleet-discard-dialog {
   position: fixed;
   inset: 0;
   margin: auto;
@@ -2384,23 +2368,23 @@ MODAL STRUCTURAL CONFIGURATIONS
   z-index: 10000;
 }
 
-.fleet-discard-dialog::backdrop {
+.fleet-page .fleet-discard-dialog::backdrop {
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(2px);
 }
 
-.fleet-discard-icon {
+.fleet-page .fleet-discard-icon {
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
   margin-bottom: 18px;
   border-radius: 12px;
-  color: #dc2626;
+  color: #B91C1C;
   background: #fef2f2;
 }
 
-.fleet-discard-dialog h2 {
+.fleet-page .fleet-discard-dialog h2 {
   margin: 0 0 10px;
   font-size: 20px;
   line-height: 1.3;
@@ -2408,21 +2392,21 @@ MODAL STRUCTURAL CONFIGURATIONS
   color: #0f172a;
 }
 
-.fleet-discard-dialog p {
+.fleet-page .fleet-discard-dialog p {
   margin: 0;
   color: #64748b;
   font-size: 14px;
   line-height: 1.6;
 }
 
-.fleet-discard-actions {
+.fleet-page .fleet-discard-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 26px;
 }
 
-.fleet-discard-actions button {
+.fleet-page .fleet-discard-actions button {
   flex: 1 1 140px;
   min-height: 44px;
   padding: 10px 16px;
@@ -2435,33 +2419,33 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: all 0.15s ease-in-out;
 }
 
-.fleet-discard-actions .fleet-discard-keep {
+.fleet-page .fleet-discard-actions .fleet-discard-keep {
   border-color: #cbd5e1;
   color: #334155;
   background: #ffffff;
 }
 
-.fleet-discard-actions .fleet-discard-keep:hover {
+.fleet-page .fleet-discard-actions .fleet-discard-keep:hover {
   background: #f8fafc;
   border-color: #94a3b8;
 }
 
-.fleet-discard-actions .fleet-discard-confirm {
+.fleet-page .fleet-discard-actions .fleet-discard-confirm {
   color: #ffffff;
   background: #dc2626;
 }
 
-.fleet-discard-actions .fleet-discard-confirm:hover {
+.fleet-page .fleet-discard-actions .fleet-discard-confirm:hover {
   background: #b91c1c;
 }
 
-.fleet-discard-actions button:focus-visible {
+.fleet-page .fleet-discard-actions button:focus-visible {
   outline: 3px solid #2563eb;
   outline-offset: 2px;
 }
 
 /* Table Pagination Footer */
-.table-pagination-footer {
+.fleet-page .table-pagination-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2475,19 +2459,19 @@ MODAL STRUCTURAL CONFIGURATIONS
   margin-bottom: 24px;
 }
 
-.pagination-summary {
+.fleet-page .pagination-summary {
   font-size: 13px;
   color: #64748B;
   font-weight: 500;
 }
 
-.pagination-controls-group {
+.fleet-page .pagination-controls-group {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.page-nav-btn {
+.fleet-page .page-nav-btn {
   background: #FFFFFF;
   border: 1px solid #CBD5E1;
   border-radius: 6px;
@@ -2501,22 +2485,22 @@ MODAL STRUCTURAL CONFIGURATIONS
   line-height: 1.3;
 }
 
-.page-nav-btn:hover:not(:disabled) {
+.fleet-page .page-nav-btn:hover:not(:disabled) {
   background: #F8FAFC;
   border-color: #94A3B8;
   color: #0F172A;
 }
 
-.page-nav-btn:disabled {
+.fleet-page .page-nav-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background: #F1F5F9;
   border-color: #E2E8F0;
-  color: #94A3B8;
+  color: #64748B;
   box-shadow: none;
 }
 
-.pagination-page-indicator {
+.fleet-page .pagination-page-indicator {
   font-size: 12.5px;
   font-weight: 600;
   color: #475569;
@@ -2525,7 +2509,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 @media (max-width: 640px) {
-  .table-pagination-footer {
+  .fleet-page .table-pagination-footer {
     flex-direction: column;
     gap: 12px;
     align-items: center;
@@ -2533,7 +2517,7 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 /* Fleet Feedback Banner */
-.fleet-feedback-banner {
+.fleet-page .fleet-feedback-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2562,19 +2546,19 @@ MODAL STRUCTURAL CONFIGURATIONS
   }
 }
 
-.fleet-feedback-content {
+.fleet-page .fleet-feedback-content {
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
 }
 
-.fleet-feedback-icon {
+.fleet-page .fleet-feedback-icon {
   flex-shrink: 0;
-  color: #16A34A;
+  color: #15803D;
 }
 
-.fleet-feedback-close {
+.fleet-page .fleet-feedback-close {
   background: transparent;
   border: none;
   font-size: 14px;
@@ -2588,7 +2572,7 @@ MODAL STRUCTURAL CONFIGURATIONS
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 
-.fleet-feedback-close:hover {
+.fleet-page .fleet-feedback-close:hover {
   opacity: 1;
   background: rgba(0, 0, 0, 0.06);
 }
@@ -2597,14 +2581,8 @@ MODAL STRUCTURAL CONFIGURATIONS
    FLEET MOBILE RESPONSIVENESS
    ========================================================================== */
 
-@media (max-width: 1024px) {
-  .content {
-    padding: 20px 16px;
-  }
-}
-
 @media (max-width: 768px) {
-  .header-actions-row {
+  .fleet-page .header-actions-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
@@ -2612,20 +2590,48 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 @media (max-width: 640px) {
-  .content {
-    padding: 16px 12px;
-  }
-
-  .fleet-tabs {
+  .fleet-page .fleet-tabs {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .fleet-page .btn-primary,
+.fleet-page .btn-secondary,
+.fleet-page .btn-fleet-refresh,
+.fleet-page .tab-pill,
+.fleet-page .fleet-btn-action,
+.fleet-page .action-dots-btn,
+.fleet-page .dropdown-item,
+.fleet-page .page-nav-btn,
+.fleet-page .inner-search {
+    min-height: 44px;
+  }
+
+  .fleet-page .action-dots-btn {
+    min-width: 44px;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
+  .fleet-page .stats-grid {
     grid-template-columns: 1fr !important;
     gap: 10px;
   }
 }
 
+
+/* DESIGN.md token alignment & mobile touch targets */
+.fleet-page :is(a, button, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #1D4ED8);
+  outline-offset: var(--focus-ring-offset, 2px);
+}
+
+.fleet-page .status-pill {
+  border-radius: var(--radius-xs, 4px);
+}
+
+:is(.fleet-page, .compliance-page) .fleet-dialog,
+.compliance-page .fleet-dialog,
+.fleet-page .modal-window {
+  border-radius: var(--radius-lg, 12px);
+}

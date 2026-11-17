@@ -91,8 +91,8 @@
 .login-page .logo {
   width: 52px;
   height: 52px;
-  background: #022343;
-  border-radius: 8px;
+  background: #0F2A52;
+  border-radius: 6px;
   margin: 0 auto 12px;
   display: flex;
   align-items: center;
@@ -104,7 +104,7 @@
 .login-page .branding h1 {
   font-size: 24px;
   font-weight: 700;
-  color: #022343;
+  color: #0F2A52;
   letter-spacing: 0.5px;
   margin: 0;
 }
@@ -189,7 +189,7 @@
   width: 100%;
   padding-left: 50px;
   padding-right: 44px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid transparent;
   background: #dce4f7;
   color: #1e293b;
@@ -221,23 +221,22 @@
 }
 
 .login-page .toggle-password:hover {
-  color: #022343;
+  color: #0F2A52;
 }
 
 .login-page .toggle-password:focus-visible {
-  outline: 2px solid #022343;
+  outline: 2px solid #0F2A52;
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 .login-page input::placeholder {
-  color: #8a99ad;
+  color: #64748B;
 }
 
 .login-page input:focus {
-  outline: none;
-  background: #ffffff;
-  border-color: #022343;
+background: #ffffff;
+  border-color: #0F2A52;
   box-shadow: 0 0 0 3px rgba(2, 35, 67, 0.12);
 }
 
@@ -245,10 +244,10 @@
 .login-page .btn-primary {
   width: 100%;
   padding: 14px;
-  background: #022343;
+  background: #0F2A52;
   color: #ffffff;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -278,12 +277,12 @@
   }
 }
 
-.input-wrapper {
+.login-page .input-wrapper {
   position: relative;
   width: 100%;
 }
 
-.input-icon {
+.login-page .input-icon {
   position: absolute;
   left: 16px;
   top: 50%;
@@ -292,20 +291,20 @@
   pointer-events: none;
 }
 
-.input-wrapper input {
+.login-page .input-wrapper input {
   width: 100%;
   height: 56px;
 
   padding-top: 0;
   padding-bottom: 0;
   padding-right: 44px;
-  padding-left: 30px !important;
+  padding-left: 44px;
 
   box-sizing: border-box;
 
   background: #dce4f7;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 /* TANAW Toast */
@@ -337,7 +336,7 @@
   animation: toastSlide .35s ease;
 }
 
-.toast-check {
+.tanaw-toast .toast-check {
   width: 48px;
   height: 48px;
 
@@ -357,14 +356,14 @@
   font-weight: 700;
 }
 
-.toast-content h4 {
+.tanaw-toast .toast-content h4 {
   margin: 0;
   color: #111827;
   font-size: 15px;
   font-weight: 700;
 }
 
-.toast-content p {
+.tanaw-toast .toast-content p {
   margin: 4px 0 0;
   color: #6b7280;
   font-size: 13px;
@@ -390,14 +389,14 @@
   margin: 6px 0 0 2px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #dc2626;
+  color: #B91C1C;
   letter-spacing: 0.2px;
   animation: errorFadeIn 0.2s ease;
 }
 
 .login-page .field-error svg {
   flex-shrink: 0;
-  color: #dc2626;
+  color: #B91C1C;
 }
 
 /* Red border on input when sibling error is present */
@@ -415,5 +414,16 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+.login-page :is(input, button, a):focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .login-page .toggle-password,
+  .login-page .btn-primary {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

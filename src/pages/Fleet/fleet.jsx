@@ -200,7 +200,7 @@ export default function Fleet() {
 
   // Helpers
   const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
+    if (!dateStr) return "N/A";
     try {
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
@@ -482,12 +482,12 @@ export default function Fleet() {
   return (
     <MainLayout>
       {/* Dynamic Topbar Header Context */}
-      <header className="topbar">
+      <header className="topbar fleet-topbar">
         <div className="topbar-right"><OfficeTools /></div>
       </header>
 
       {/* Primary Scrolling Content Frame */}
-      <section className="content scrollable-panel">
+      <section className="content scrollable-panel fleet-page">
         {actionFeedback && (
           <div className="fleet-feedback-banner is-success" role="status" aria-live="polite">
             <div className="fleet-feedback-content">
@@ -513,7 +513,7 @@ export default function Fleet() {
         {/* HEADER ACTIONS BLOCK */}
         <div className="header-actions-row">
           <div className="header-titles">
-            <h2>Fleet Management Overview</h2>
+            <h1>Fleet Management Overview</h1>
             <p className="subtitle">MANAGE YOUR FLEET, DRIVERS, COMPLIANCE DOCUMENTS, AND MAINTENANCE SCHEDULES.</p>
           </div>
           <div className="action-buttons-group">
@@ -560,17 +560,17 @@ export default function Fleet() {
           <div className="metric-card border-slate">
             <div className="metric-header">
               <h4>TOTAL VEHICLES</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.total ?? "—"}</h2>
+            <h2>{kpisLoading ? "N/A" : kpis.total ?? "N/A"}</h2>
             <p className="growth-indicator positive"><span className="arrow">↗</span> <strong>Total Fleet</strong></p>
           </div>
           <div className="metric-card border-green">
             <div className="metric-header">
               <h4>AVAILABLE</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.available ?? "—"}</h2>
+            <h2>{kpisLoading ? "N/A" : kpis.available ?? "N/A"}</h2>
             <p className="growth-indicator target">
               {kpis.total > 0 ? `${Math.round((kpis.available / kpis.total) * 100)}% of total fleet` : "0% of total fleet"}
             </p>
@@ -578,17 +578,17 @@ export default function Fleet() {
           <div className="metric-card border-red">
             <div className="metric-header">
               <h4>IN MAINTENANCE</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.maintenance ?? "—"}</h2>
+            <h2>{kpisLoading ? "N/A" : kpis.maintenance ?? "N/A"}</h2>
             <p className="growth-indicator ">Currently under maintenance</p>
           </div>
           <div className="metric-card border-blue-accent">
             <div className="metric-header">
               <h4>IN USE / RESERVED</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
             </div>
-            <h2>{kpisLoading ? "—" : kpis.onTrip ?? "—"}</h2>
+            <h2>{kpisLoading ? "N/A" : kpis.onTrip ?? "N/A"}</h2>
             <p className="growth-indicator transit">Assigned or on shipment</p>
           </div>
         </div>
@@ -625,6 +625,7 @@ export default function Fleet() {
           <>
             <div className="table-filter-bar">
               <div className="filter-search-wrapper">
+                <label htmlFor="fleetSearch" className="sr-only">Search vehicles</label>
                 <input
                   type="text"
                   id="fleetSearch"
@@ -647,7 +648,7 @@ export default function Fleet() {
                   setVehicleCategory(category.id);
                   setVehiclePage(1);
                 }}>
-                {category.label}<span className="fleet-category-count">{categoryCountsUnavailable ? '—' : category.count}</span>
+                {category.label}<span className="fleet-category-count">{categoryCountsUnavailable ? 'N/A' : category.count}</span>
               </button>)}
             </nav>
             <div className="fleet-table-scroll" id="fleet-vehicle-details"><table className="premium-table">
@@ -681,7 +682,7 @@ export default function Fleet() {
                         <strong>{truck.plate_number}</strong>
                         {truck.fleet_code && <span className="subtext" style={{ marginLeft: "6px" }}>({truck.fleet_code})</span>}
                         <br />
-                        <span className="subtext">{[truck.model_year, truck.model].filter(Boolean).join(" ") || "—"}</span>
+                        <span className="subtext">{[truck.model_year, truck.model].filter(Boolean).join(" ") || "N/A"}</span>
                       </td>
                       <td>
                         {truck.vehicle_types?.name ?? "General Freight"}
@@ -695,10 +696,10 @@ export default function Fleet() {
                             </span>
                           ))
                         ) : (
-                          <span style={{ color: "#94A3B8" }}>—</span>
+                          <span style={{ color: "#64748B" }}>N/A</span>
                         )}
                       </td>
-                      <td>{truck.drivers?.full_name ?? <span style={{ color: "#94A3B8" }}>Unassigned</span>}</td>
+                      <td>{truck.drivers?.full_name ?? <span style={{ color: "#64748B" }}>Unassigned</span>}</td>
                       <td>
                         {(truck.displayStatus || truck.status) === "on_trip" ? (
                           <span className="status-pill status-transit">● IN TRANSIT</span>
@@ -833,10 +834,13 @@ export default function Fleet() {
           <>
             <div className="table-filter-bar">
               <div className="filter-search-wrapper">
+                <label htmlFor="fleetVehicleComplianceSearch" className="sr-only">Search vehicle compliance</label>
                 <input
+                  id="fleetVehicleComplianceSearch"
                   type="text"
                   className="inner-search"
                   placeholder="Search compliance by plate..."
+                  aria-label="Search vehicle compliance"
                   value={vehicleComplianceSearch}
                   onChange={(e) => {
                     setVehicleComplianceSearch(e.target.value);
@@ -880,7 +884,7 @@ export default function Fleet() {
                         <td>
                           <strong>{row.truck.plate_number}</strong>
                           <br />
-                          <span className="subtext">{[row.truck.model_year, row.truck.model].filter(Boolean).join(" ") || "—"}</span>
+                          <span className="subtext">{[row.truck.model_year, row.truck.model].filter(Boolean).join(" ") || "N/A"}</span>
                         </td>
                         <td>
                           <span className={getDocBadgeClass(orCrDoc?.badge?.state)}>
@@ -986,7 +990,7 @@ export default function Fleet() {
           </div>
         </div>
 
-        <div className="table-filter-bar"><input className="inner-search" placeholder="Search drivers by name, phone or license…" aria-label="Search drivers" value={driverSearch} onChange={event => { setDriverSearch(event.target.value); setDriverPage(1); setDriverCompliancePage(1); }} /></div>
+        <div className="table-filter-bar"><label htmlFor="fleetDriverSearch" className="sr-only">Search drivers</label><input id="fleetDriverSearch" className="inner-search" placeholder="Search drivers by name, phone or license…" aria-label="Search drivers" value={driverSearch} onChange={event => { setDriverSearch(event.target.value); setDriverPage(1); setDriverCompliancePage(1); }} /></div>
         {driverTab === "details" ? (
           <>
             <div className="fleet-table-scroll"><table className="premium-table">
@@ -1028,7 +1032,7 @@ export default function Fleet() {
                         <span className="subtext driver-contact">{driver.contact_number || "No contact"}</span>
                       </td>
                       <td>
-                        {driver.license_number || "—"}
+                        {driver.license_number || "N/A"}
                         {driver.date_hired && (
                           <>
                             <br />
@@ -1040,7 +1044,7 @@ export default function Fleet() {
                         {assignedTrucks.map(truck => <div key={truck.id}>{truck.model || "Truck"} ({truck.plate_number})</div>)}
                         {driver.vehicleAssignmentUnavailable && <span className="subtext">Assigned vehicle unavailable</span>}
                         {assignedTrucks.length === 0 && !driver.vehicleAssignmentUnavailable && (
-                          <span style={{ color: "#94A3B8" }}>Unassigned</span>
+                          <span style={{ color: "#64748B" }}>Unassigned</span>
                         )}
                       </td>
                       <td>{driver.location ? <><span>{driver.location.latitude.toFixed(4)}, {driver.location.longitude.toFixed(4)}</span><span className="subtext">{driver.location.stale ? "Last known GPS · " : "GPS · "}{new Date(driver.location.recorded_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</span></> : "No GPS report"}</td>
@@ -1297,7 +1301,6 @@ export default function Fleet() {
         )}
 
         <MaintenancePanel fleet={fleet} />
-      </section>
 
       {editing && <FleetEditor key={editing.record.id} {...editing} fleet={fleet} onClose={() => setEditing(null)} onSaved={fleet.refresh} />}
       {complianceTarget && <ComplianceDialog key={complianceTarget.entity.id} {...complianceTarget} onClose={() => setComplianceTarget(null)} onSaved={fleet.refresh} />}
@@ -1355,20 +1358,20 @@ export default function Fleet() {
           {driverStep === 1 && (
             <div className="form-grid">
               <div className="form-group">
-                <label>FULL NAME *</label>
-                <input type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
+                <label htmlFor="driver-form-full-name">FULL NAME *</label>
+                <input id="driver-form-full-name" type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
               </div>
               <div className="form-group">
-                <label>CONTACT NUMBER *</label>
-                <input type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
+                <label htmlFor="driver-form-contact-number">CONTACT NUMBER *</label>
+                <input id="driver-form-contact-number" type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
               </div>
               <div className="form-group">
-                <label>DATE HIRED</label>
-                <input type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
+                <label htmlFor="driver-form-date-hired">DATE HIRED</label>
+                <input id="driver-form-date-hired" type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
               </div>
               <div className="form-group">
-                <label>ASSIGN VEHICLE</label>
-                <select value={driverForm.assignVehicle} onChange={(e) => handleDriverInputChange(e, 'assignVehicle')}>
+                <label htmlFor="driver-form-assign-vehicle">ASSIGN VEHICLE</label>
+                <select id="driver-form-assign-vehicle" value={driverForm.assignVehicle} onChange={(e) => handleDriverInputChange(e, 'assignVehicle')}>
                   <option value="">Select vehicle...</option>
                   {assignableTrucks.map((truck) => (
                     <option key={truck.id} value={truck.id}>
@@ -1378,33 +1381,33 @@ export default function Fleet() {
                 </select>
               </div>
               <div className="form-group full-width">
-                <label>EMERGENCY CONTACT NUMBER</label>
-                <input type="text" placeholder="09XX XXX XXXX" value={driverForm.emergencyContact} onChange={(e) => handleDriverInputChange(e, 'emergencyContact')} />
+                <label htmlFor="driver-form-emergency-contact">EMERGENCY CONTACT NUMBER</label>
+                <input id="driver-form-emergency-contact" type="text" placeholder="09XX XXX XXXX" value={driverForm.emergencyContact} onChange={(e) => handleDriverInputChange(e, 'emergencyContact')} />
               </div>
 
               <div className="form-divider-title">License Information</div>
               <div className="form-group">
-                <label>LICENSE NUMBER *</label>
-                <input type="text" placeholder="e.g. N01-23-45678" value={driverForm.licenseNumber} onChange={(e) => handleDriverInputChange(e, 'licenseNumber')} />
+                <label htmlFor="driver-form-license-number">LICENSE NUMBER *</label>
+                <input id="driver-form-license-number" type="text" placeholder="e.g. N01-23-45678" value={driverForm.licenseNumber} onChange={(e) => handleDriverInputChange(e, 'licenseNumber')} />
               </div>
               <div className="form-group">
-                <label>LICENSE EXPIRY</label>
-                <input type="date" value={driverForm.licenseExpiry} onChange={(e) => handleDriverInputChange(e, 'licenseExpiry')} />
+                <label htmlFor="driver-form-license-expiry">LICENSE EXPIRY</label>
+                <input id="driver-form-license-expiry" type="date" value={driverForm.licenseExpiry} onChange={(e) => handleDriverInputChange(e, 'licenseExpiry')} />
               </div>
 
               <div className="form-section-box">
                 <h4>Driver Mobile Application Account</h4>
                 <div className="form-group full-width">
-                  <label>EMAIL ADDRESS</label>
-                  <input type="email" placeholder="driver@tanawlogistics.com" value={driverForm.email} onChange={(e) => handleDriverInputChange(e, 'email')} />
+                  <label htmlFor="driver-form-email">EMAIL ADDRESS</label>
+                  <input id="driver-form-email" type="email" placeholder="driver@tanawlogistics.com" value={driverForm.email} onChange={(e) => handleDriverInputChange(e, 'email')} />
                 </div>
                 <div className="form-group">
-                  <label>TEMPORARY PASSWORD</label>
-                  <input type="password" placeholder="........" value={driverForm.password} onChange={(e) => handleDriverInputChange(e, 'password')} />
+                  <label htmlFor="driver-form-password">TEMPORARY PASSWORD</label>
+                  <input id="driver-form-password" type="password" placeholder="........" value={driverForm.password} onChange={(e) => handleDriverInputChange(e, 'password')} />
                 </div>
                 <div className="form-group">
-                  <label>CONFIRM PASSWORD</label>
-                  <input type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
+                  <label htmlFor="driver-form-confirm-password">CONFIRM PASSWORD</label>
+                  <input id="driver-form-confirm-password" type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
                 </div>
                 <p className="notice-text">Email and password create a mobile login. The driver can sign in on Tanaw Mobile using either their contact number or email.</p>
               </div>
@@ -1413,7 +1416,7 @@ export default function Fleet() {
 
           {driverStep === 2 && (
             <div className="documents-upload-container">
-              <p className="info-banner">⚡ Manual compliance entry: Enter driver license, medical clearance, and NBI verification records below.</p>
+              <p className="info-banner">Manual compliance entry: Enter driver license, medical clearance, and NBI verification records below.</p>
 
               <div className="upload-cards-grid">
                 {/* Card 1: Driver's License */}
@@ -1421,8 +1424,9 @@ export default function Fleet() {
                   <h4>PROFESSIONAL DRIVER'S LICENSE <span className="req-label">REQUIRED</span></h4>
                   <div className="form-grid" style={{ marginTop: "12px" }}>
                     <div className="form-group">
-                      <label>LICENSE NUMBER *</label>
+                      <label htmlFor="driver-step2-license-number">LICENSE NUMBER *</label>
                       <input
+                        id="driver-step2-license-number"
                         type="text"
                         placeholder="e.g. N01-23-45678"
                         value={driverForm.licenseNumber}
@@ -1430,8 +1434,9 @@ export default function Fleet() {
                       />
                     </div>
                     <div className="form-group">
-                      <label>EXPIRY DATE *</label>
+                      <label htmlFor="driver-step2-license-expiry">EXPIRY DATE *</label>
                       <input
+                        id="driver-step2-license-expiry"
                         type="date"
                         value={driverForm.licenseExpiry}
                         onChange={(e) => handleDriverInputChange(e, "licenseExpiry")}
@@ -1440,7 +1445,7 @@ export default function Fleet() {
                   </div>
                   <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
                     <div className="upload-icon-container">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
@@ -1450,7 +1455,7 @@ export default function Fleet() {
                       <p className="upload-main-text">
                         <span>Choose a file</span>
                       </p>
-                      <p className="upload-sub-text">{driverForm.licenseFile ? driverForm.licenseFile.name + " — ready to upload" : "Driver's License Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                      <p className="upload-sub-text">{driverForm.licenseFile ? driverForm.licenseFile.name + ": ready to upload" : "Driver's License Copy (PDF, PNG, JPG up to 10MB)"}</p>
                     </div>
                     <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Driver's license file" onChange={e => handleDriverFile(e, "licenseFile")} />
                   </div>
@@ -1461,8 +1466,9 @@ export default function Fleet() {
                   <h4>MEDICAL CLEARANCE CERTIFICATE <span className="req-label">RECOMMENDED</span></h4>
                   <div className="form-grid" style={{ marginTop: "12px" }}>
                     <div className="form-group">
-                      <label>CERTIFICATE NUMBER / CLINIC</label>
+                      <label htmlFor="driver-step2-medical-number">CERTIFICATE NUMBER / CLINIC</label>
                       <input
+                        id="driver-step2-medical-number"
                         type="text"
                         placeholder="e.g. MED-2026-8891"
                         value={driverForm.medicalDocNumber || ""}
@@ -1470,8 +1476,9 @@ export default function Fleet() {
                       />
                     </div>
                     <div className="form-group">
-                      <label>VALID UNTIL / EXPIRY DATE</label>
+                      <label htmlFor="driver-step2-medical-expiry">VALID UNTIL / EXPIRY DATE</label>
                       <input
+                        id="driver-step2-medical-expiry"
                         type="date"
                         value={driverForm.medicalExpiry || ""}
                         onChange={(e) => handleDriverInputChange(e, "medicalExpiry")}
@@ -1480,7 +1487,7 @@ export default function Fleet() {
                   </div>
                   <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
                     <div className="upload-icon-container">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
@@ -1490,7 +1497,7 @@ export default function Fleet() {
                       <p className="upload-main-text">
                         <span>Choose a file</span>
                       </p>
-                      <p className="upload-sub-text">{driverForm.medicalFile ? driverForm.medicalFile.name + " — ready to upload" : "Medical Certificate Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                      <p className="upload-sub-text">{driverForm.medicalFile ? driverForm.medicalFile.name + ": ready to upload" : "Medical Certificate Copy (PDF, PNG, JPG up to 10MB)"}</p>
                     </div>
                     <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Medical certificate file" onChange={e => handleDriverFile(e, "medicalFile")} />
                   </div>
@@ -1501,8 +1508,9 @@ export default function Fleet() {
                   <h4>NATIONAL BUREAU OF INVESTIGATION (NBI) CLEARANCE <span className="opt-label">OPTIONAL</span></h4>
                   <div className="form-grid" style={{ marginTop: "12px" }}>
                     <div className="form-group">
-                      <label>NBI CLEARANCE NUMBER</label>
+                      <label htmlFor="driver-step2-nbi-number">NBI CLEARANCE NUMBER</label>
                       <input
+                        id="driver-step2-nbi-number"
                         type="text"
                         placeholder="e.g. NBI-2026-4492"
                         value={driverForm.nbiDocNumber || ""}
@@ -1510,8 +1518,9 @@ export default function Fleet() {
                       />
                     </div>
                     <div className="form-group">
-                      <label>EXPIRY DATE</label>
+                      <label htmlFor="driver-step2-nbi-expiry">EXPIRY DATE</label>
                       <input
+                        id="driver-step2-nbi-expiry"
                         type="date"
                         value={driverForm.nbiExpiry || ""}
                         onChange={(e) => handleDriverInputChange(e, "nbiExpiry")}
@@ -1520,7 +1529,7 @@ export default function Fleet() {
                   </div>
                   <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
                     <div className="upload-icon-container">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="17 8 12 3 7 8" />
                         <line x1="12" y1="3" x2="12" y2="15" />
@@ -1530,7 +1539,7 @@ export default function Fleet() {
                       <p className="upload-main-text">
                         <span>Choose a file</span>
                       </p>
-                      <p className="upload-sub-text">{driverForm.nbiFile ? driverForm.nbiFile.name + " — ready to upload" : "NBI Clearance Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                      <p className="upload-sub-text">{driverForm.nbiFile ? driverForm.nbiFile.name + ": ready to upload" : "NBI Clearance Copy (PDF, PNG, JPG up to 10MB)"}</p>
                     </div>
                     <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="NBI clearance file" onChange={e => handleDriverFile(e, "nbiFile")} />
                   </div>
@@ -1545,7 +1554,7 @@ export default function Fleet() {
               <h2>Driver Registered Successfully</h2>
               <span className="system-id-badge">SYSTEM GEN ID: {registeredDriverId}</span>
               <div className="status-box">
-                <p>Status: <span className="text-success">REGISTERED — COMPLIANCE REVIEW PENDING</span></p>
+                <p>Status: <span className="text-success">REGISTERED: COMPLIANCE REVIEW PENDING</span></p>
                 <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Driver can sign in using their contact number or email. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
               </div>
             </div>
@@ -1577,7 +1586,7 @@ export default function Fleet() {
                   className="btn-primary"
                   onClick={handleDriverNextStep}
                 >
-                  NEXT STEP →
+                  NEXT STEP
                 </button>
               </div>
             </>
@@ -1592,7 +1601,7 @@ export default function Fleet() {
                   setDriverStep(1);
                 }}
               >
-                ← BACK
+                BACK
               </button>
 
               <div className="footer-right-buttons">
@@ -1609,7 +1618,7 @@ export default function Fleet() {
                   disabled={isSubmittingDriver}
                   onClick={handleDriverSubmit}
                 >
-                  {isSubmittingDriver ? "Registering..." : "Complete Registration ✓"}
+                  {isSubmittingDriver ? "Registering..." : "Complete Registration"}
                 </button>
               </div>
             </>
@@ -1673,32 +1682,32 @@ export default function Fleet() {
           {vehicleStep === 1 && (
             <div className="form-grid">
               <div className="form-group">
-                <label>PLATE NUMBER *</label>
-                <input type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
+                <label htmlFor="vehicle-form-plate-number">PLATE NUMBER *</label>
+                <input id="vehicle-form-plate-number" type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
               </div>
               <div className="form-group">
-                <label>MODEL YEAR</label>
-                <input type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
+                <label htmlFor="vehicle-form-model-year">MODEL YEAR</label>
+                <input id="vehicle-form-model-year" type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
               </div>
               <div className="form-group">
-                <label>MODEL *</label>
-                <input type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
+                <label htmlFor="vehicle-form-model">MODEL *</label>
+                <input id="vehicle-form-model" type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
               </div>
               <div className="form-group">
-                <label>VEHICLE TYPE *</label>
-                <select value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
+                <label htmlFor="vehicle-form-type">VEHICLE TYPE *</label>
+                <select id="vehicle-form-type" value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
                   <option value="">Select type...</option>
                   {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label>MAX CARGO WEIGHT (KG) *</label>
-                <input type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
+                <label htmlFor="vehicle-form-capacity">MAX CARGO WEIGHT (KG) *</label>
+                <input id="vehicle-form-capacity" type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
               </div>
 
               {/* ================= CARGO COMPATIBILITY DYNAMICALLY FROM DB ================= */}
               <div className="form-group full-width">
-                <label className="cargo-title-label">CARGO COMPATIBILITY</label>
+                <span className="cargo-title-label">CARGO COMPATIBILITY</span>
                 <div className="cargo-options-grid">
                   {cargoCategories.length === 0 && <p>No cargo categories configured.</p>}
                   {cargoCategories.map(c => ({ id: c.id, label: c.name })).map((option) => {
@@ -1720,6 +1729,7 @@ export default function Fleet() {
                             strokeWidth="3"
                             strokeLinecap="round"
                             strokeLinejoin="round"
+                            aria-hidden="true"
                           >
                             <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
@@ -1738,8 +1748,9 @@ export default function Fleet() {
               {/* Form Grid for Document Text Fields */}
               <div className="form-grid" style={{ marginBottom: "24px" }}>
                 <div className="form-group">
-                  <label>OR NUMBER <span className="required">*</span></label>
+                  <label htmlFor="vehicle-form-or-number">OR NUMBER <span className="required">*</span></label>
                   <input
+                    id="vehicle-form-or-number"
                     type="text"
                     placeholder="Enter Official Receipt Number"
                     value={vehicleForm.orNumber || ""}
@@ -1747,8 +1758,9 @@ export default function Fleet() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>CR NUMBER <span className="required">*</span></label>
+                  <label htmlFor="vehicle-form-cr-number">CR NUMBER <span className="required">*</span></label>
                   <input
+                    id="vehicle-form-cr-number"
                     type="text"
                     placeholder="Enter Certificate of Registration Number"
                     value={vehicleForm.crNumber || ""}
@@ -1758,16 +1770,16 @@ export default function Fleet() {
               </div>
 
               {/* Section Title for File Uploads */}
-              <label className="cargo-title-label" style={{ marginBottom: "12px" }}>
+              <span className="cargo-title-label" style={{ display: "block", marginBottom: "12px" }}>
                 Upload Official Compliance Digital Files
-              </label>
+              </span>
 
               {/* File Upload Grid Area */}
               <div className="form-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
                 {/* Upload Box 1: OR File */}
                 <div className="file-upload-dropzone">
                   <div className="upload-icon-container">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
@@ -1777,7 +1789,7 @@ export default function Fleet() {
                     <p className="upload-main-text">
                       <span>Choose a file</span>
                     </p>
-                    <p className="upload-sub-text">{vehicleForm.orFile ? vehicleForm.orFile.name + " — ready to upload" : "Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                    <p className="upload-sub-text">{vehicleForm.orFile ? vehicleForm.orFile.name + ": ready to upload" : "Official Receipt (OR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
                   </div>
                   <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Official receipt file" onChange={e => handleFile(e, "orFile")} />
                 </div>
@@ -1785,7 +1797,7 @@ export default function Fleet() {
                 {/* Upload Box 2: CR File */}
                 <div className="file-upload-dropzone">
                   <div className="upload-icon-container">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
@@ -1795,7 +1807,7 @@ export default function Fleet() {
                     <p className="upload-main-text">
                       <span>Choose a file</span>
                     </p>
-                    <p className="upload-sub-text">{vehicleForm.crFile ? vehicleForm.crFile.name + " — ready to upload" : "Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                    <p className="upload-sub-text">{vehicleForm.crFile ? vehicleForm.crFile.name + ": ready to upload" : "Certificate of Registration (CR) Copy (PDF, PNG, JPG up to 10MB)"}</p>
                   </div>
                   <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Registration file" onChange={e => handleFile(e, "crFile")} />
                 </div>
@@ -1820,7 +1832,7 @@ export default function Fleet() {
                   className="btn-primary"
                   onClick={handleVehicleNextStep}
                 >
-                  NEXT STEP →
+                  NEXT STEP
                 </button>
               </div>
             </>
@@ -1836,7 +1848,7 @@ export default function Fleet() {
                   setVehicleStep(1);
                 }}
               >
-                ← BACK
+                BACK
               </button>
 
               <div className="footer-right-buttons">
@@ -1853,7 +1865,7 @@ export default function Fleet() {
                   disabled={isSubmittingTruck}
                   onClick={handleVehicleSubmit}
                 >
-                  {isSubmittingTruck ? "Registering..." : "Complete Registration ✓"}
+                  {isSubmittingTruck ? "Registering..." : "Complete Registration"}
                 </button>
               </div>
             </>
@@ -1955,6 +1967,7 @@ export default function Fleet() {
           onConfirm={handleConfirmDelete}
         />
       )}
+      </section>
     </MainLayout>
   );
 }

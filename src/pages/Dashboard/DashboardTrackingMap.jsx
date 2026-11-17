@@ -129,7 +129,7 @@ export default function DashboardTrackingMap() {
 
         markerEl.innerHTML = `
           <div class="truck-marker-bubble">
-            <svg class="truck-marker-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="truck-marker-svg" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 3h13v13H1z"></path>
               <path d="M14 8h4l3 3v5h-7V8z"></path>
               <circle cx="5.5" cy="18.5" r="1.5"></circle>
@@ -232,7 +232,7 @@ export default function DashboardTrackingMap() {
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#0f172a",
+          "line-color": "#0F172A",
           "line-width": 7,
           "line-opacity": 0.65,
         },
@@ -247,7 +247,7 @@ export default function DashboardTrackingMap() {
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#2563eb",
+          "line-color": "#1D4ED8",
           "line-width": 4.5,
           "line-opacity": 0.95,
         },
@@ -344,7 +344,9 @@ export default function DashboardTrackingMap() {
   return (
     <div className="dashboard-tracking-map">
       <div className="dashboard-tracking-toolbar">
+        <label htmlFor="dashboard-map-style" className="sr-only">Map style</label>
         <select
+          id="dashboard-map-style"
           value={mapStyle}
           onChange={changeStyle}
           aria-label="Map style"
@@ -359,11 +361,11 @@ export default function DashboardTrackingMap() {
           </button>
         )}
 
-        <button type="button" onClick={zoomIn} title="Zoom in">
+        <button type="button" onClick={zoomIn} title="Zoom in" aria-label="Zoom in">
           +
         </button>
 
-        <button type="button" onClick={zoomOut} title="Zoom out">
+        <button type="button" onClick={zoomOut} title="Zoom out" aria-label="Zoom out">
           −
         </button>
 
@@ -378,7 +380,7 @@ export default function DashboardTrackingMap() {
         <div className="dashboard-route-card" role="region" aria-label="Assigned truck route details">
           <div className="dashboard-route-card-header">
             <div className="dashboard-route-card-title">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M1 3h13v13H1z" />
                 <path d="M14 8h4l3 3v5h-7V8z" />
                 <circle cx="5.5" cy="18.5" r="1.5" />
@@ -475,7 +477,7 @@ export default function DashboardTrackingMap() {
           : tracking.data?.length
           ? `${tracking.data.length} active vehicle(s); click a truck logo to view its assigned route.`
           : 'No GPS positions for active deliveries.'}
-        {tracking.error && <button onClick={tracking.refresh}>Retry GPS</button>}
+        {tracking.error && <button type="button" onClick={tracking.refresh}>Retry GPS</button>}
       </div>
     </div>
   );

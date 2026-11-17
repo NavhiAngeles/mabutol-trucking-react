@@ -701,27 +701,28 @@ export default function TollGateManager() {
             <form onSubmit={handleSubmit}>
               {!editingId && (
                 <div style={{ marginBottom: 16, background: '#f8fafc', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                  <label style={{ ...labelStyle, marginBottom: 6 }}>
+                  <label htmlFor="toll-preset-select" style={{ ...labelStyle, marginBottom: 6 }}>
                     Verified Expressway Preset
                     <select
+                      id="toll-preset-select"
                       style={inputStyle}
                       defaultValue=""
                       onChange={(e) => {
                         applyPreset(e.target.value);
                       }}
                     >
-                      <option value="">— Select a verified preset to auto-fill —</option>
+                      <option value="">Select a verified preset to auto-fill</option>
                       <optgroup label="South Luzon Corridors (SLEX, STAR, CALAX, CAVITEX, Skyway, MCX)">
                         {VERIFIED_TOLL_PRESETS.filter(p => ['SLEX', 'STAR', 'CALAX', 'CAVITEX', 'MCX'].includes(p.highway) || (p.highway === 'SKYWAY' && p.gate_name.includes('Alabang'))).map(p => (
                           <option key={p.gate_name} value={p.gate_name}>
-                            {p.gate_name} ({p.highway}) — Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
+                            {p.gate_name} ({p.highway}) : Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
                           </option>
                         ))}
                       </optgroup>
                       <optgroup label="Metro Manila & North Luzon Corridors (NLEX, SCTEX, TPLEX, Skyway)">
                         {VERIFIED_TOLL_PRESETS.filter(p => ['NLEX', 'NLEX_CONNECTOR', 'NLEX_HARBOR_LINK', 'SCTEX', 'TPLEX'].includes(p.highway) || (p.highway === 'SKYWAY' && !p.gate_name.includes('Alabang'))).map(p => (
                           <option key={p.gate_name} value={p.gate_name}>
-                            {p.gate_name} ({p.highway}) — Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
+                            {p.gate_name} ({p.highway}) : Class 2: ₱{p.class2_fee} / Class 3: ₱{p.class3_fee}
                           </option>
                         ))}
                       </optgroup>
@@ -733,9 +734,10 @@ export default function TollGateManager() {
                 </div>
               )}
 
-              <label style={labelStyle}>
+              <label htmlFor="toll-gate-name-input" style={labelStyle}>
                 Toll Gate Name
                 <input
+                  id="toll-gate-name-input"
                   required
                   autoFocus={!editingId}
                   style={inputStyle}
@@ -751,9 +753,10 @@ export default function TollGateManager() {
                 />
               </label>
 
-              <label style={labelStyle}>
+              <label htmlFor="toll-highway-select" style={labelStyle}>
                 Highway
                 <select
+                  id="toll-highway-select"
                   required
                   style={inputStyle}
                   value={form.highway}
@@ -782,9 +785,10 @@ export default function TollGateManager() {
                 </select>
               </label>
 
-              <label style={labelStyle}>
+              <label htmlFor="toll-vehicle-class-select" style={labelStyle}>
                 Vehicle Class
                 <select
+                  id="toll-vehicle-class-select"
                   required
                   style={inputStyle}
                   value={form.vehicle_class}
@@ -799,9 +803,10 @@ export default function TollGateManager() {
                 </select>
               </label>
 
-              <label style={labelStyle}>
+              <label htmlFor="toll-fee-input" style={labelStyle}>
                 Toll Fee (₱)
                 <input
+                  id="toll-fee-input"
                   required
                   autoFocus={Boolean(editingId)}
                   type="number"
@@ -818,22 +823,22 @@ export default function TollGateManager() {
 
               <fieldset style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: 14, marginBottom: 16 }}>
                 <legend>Automatic route matching</legend>
-                <label style={labelStyle}>Tariff basis
-                  <select style={inputStyle} value={form.pricing_scope} onChange={event => updateField('pricing_scope', event.target.value)}>
+                <label htmlFor="toll-pricing-scope-select" style={labelStyle}>Tariff basis
+                  <select id="toll-pricing-scope-select" style={inputStyle} value={form.pricing_scope} onChange={event => updateField('pricing_scope', event.target.value)}>
                     <option value="entry_exit">Exact entry and exit</option>
                     {['NLEX_CONNECTOR', 'NLEX_HARBOR_LINK'].includes(form.highway) && <option value="flat">Fixed toll system fee</option>}
                   </select>
                 </label>
                 <p style={{ fontSize: 12, lineHeight: 1.6, color: '#64748b' }}>Set the actual toll entry and exit plaza locations. The calculated route must match both before this fee can be added automatically.</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {['entry_lat', 'entry_lng', 'exit_lat', 'exit_lng'].map(key => <label key={key} style={{ ...labelStyle, marginBottom: 6 }}>
+                  {['entry_lat', 'entry_lng', 'exit_lat', 'exit_lng'].map(key => <label key={key} htmlFor={`toll-${key}-input`} style={{ ...labelStyle, marginBottom: 6 }}>
                     {({ entry_lat: 'Entry latitude', entry_lng: 'Entry longitude', exit_lat: 'Exit latitude', exit_lng: 'Exit longitude' })[key]}
-                    <input type="number" step="any" min={key.endsWith('lat') ? -90 : -180} max={key.endsWith('lat') ? 90 : 180}
+                    <input id={`toll-${key}-input`} type="number" step="any" min={key.endsWith('lat') ? -90 : -180} max={key.endsWith('lat') ? 90 : 180}
                       style={inputStyle} value={form[key]} onChange={event => updateField(key, event.target.value)} placeholder={key.endsWith('lat') ? 'e.g. 14.800000' : 'e.g. 120.950000'} />
                   </label>)}
                 </div>
-                <label style={{ fontSize: 12, display: 'flex', gap: 8, marginTop: 10 }}>
-                  <input type="checkbox" checked={form.bidirectional} onChange={event => updateField('bidirectional', event.target.checked)} />
+                <label htmlFor="toll-bidirectional-checkbox" style={{ fontSize: 12, display: 'flex', gap: 8, marginTop: 10 }}>
+                  <input id="toll-bidirectional-checkbox" type="checkbox" checked={form.bidirectional} onChange={event => updateField('bidirectional', event.target.checked)} />
                   This same fee is confirmed for both directions
                 </label>
               </fieldset>
@@ -871,8 +876,8 @@ export default function TollGateManager() {
                   disabled={saving}
                   style={{
                     ...buttonStyle,
-                    background: "#0b2a4a",
-                    borderColor: "#0b2a4a",
+                    background: "#0F2A52",
+                    borderColor: "#0F2A52",
                     color: "#fff",
                   }}
                 >
@@ -930,7 +935,7 @@ export default function TollGateManager() {
                 height: 48,
                 borderRadius: "50%",
                 background: "#fee2e2",
-                color: "#dc2626",
+                color: "#B91C1C",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1025,8 +1030,8 @@ export default function TollGateManager() {
                 onClick={handleConfirmDelete}
                 style={{
                   ...buttonStyle,
-                  background: "#dc2626",
-                  borderColor: "#dc2626",
+                  background: "#B91C1C",
+                  borderColor: "#B91C1C",
                   color: "#fff",
                   fontWeight: 600,
                   minWidth: 100,

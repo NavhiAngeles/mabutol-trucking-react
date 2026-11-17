@@ -81,7 +81,7 @@ function TrendChart({ trend }) {
     </svg>
   );
 }
-const formatTime = value => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '—';
+const formatTime = value => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'N/A';
 
 /* ---------- Page ---------- */
 export default function ShipmentReport() {
@@ -149,9 +149,9 @@ export default function ShipmentReport() {
   const currentPage = Math.min(page, pageCount);
   const visibleRows = report.rows.slice((currentPage - 1) * 10, currentPage * 10);
   const stats = [
-    { label: 'Total Shipments', icon: 'truck', accent: 'navy', value: hasData ? total : '—' },
-    { label: 'On-Time Rate', icon: 'clock', accent: 'slate', value: hasData && report.rate != null ? report.rate + '%' : '—' },
-    { label: 'Cancelled Shipments', icon: 'cancel', accent: 'red', value: hasData ? b.cancelled : '—' },
+    { label: 'Total Shipments', icon: 'truck', accent: 'navy', value: hasData ? total : 'N/A' },
+    { label: 'On-Time Rate', icon: 'clock', accent: 'slate', value: hasData && report.rate != null ? report.rate + '%' : 'N/A' },
+    { label: 'Cancelled Shipments', icon: 'cancel', accent: 'red', value: hasData ? b.cancelled : 'N/A' },
   ];
   const variantClass = v => v.startsWith('-') ? 'good' : v.startsWith('+') ? 'bad' : 'muted';
 
@@ -159,9 +159,9 @@ export default function ShipmentReport() {
     <MainLayout><div className="reports-page">
       {/* Topbar */}
       <ReportTopbar>
-        <label className="sr-search">
+        <label className="sr-search" htmlFor="sr-search-input">
           <Icon name="search" size={18} />
-          <input type="search" placeholder="Search shipments, customers, routes, drivers" aria-label="Search shipments" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+          <input id="sr-search-input" type="search" placeholder="Search shipments, customers, routes, drivers" aria-label="Search shipments" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </label>
         </ReportTopbar>
 
@@ -169,7 +169,7 @@ export default function ShipmentReport() {
         {/* Header */}
         <div className="report-controls"><div className="sr-header">
           <div>
-            <h1>Reports — Shipments</h1>
+            <h1>Reports: Shipments</h1>
             <p>Comprehensive analysis of delivery performance and volume.</p>
           </div>
           <div className="sr-actions">
@@ -263,7 +263,7 @@ export default function ShipmentReport() {
         </div>
 
 </div>
-<p className="report-scope-note">Shipments created in the selected dates (Philippine time), using current status. Search and status filters apply to totals, charts and ledger. On-time rates use {hasData ? report.timed : '—'} completed shipments with both arrival timestamps.</p>
+<p className="report-scope-note">Shipments created in the selected dates (Philippine time), using current status. Search and status filters apply to totals, charts and ledger. On-time rates use {hasData ? report.timed : 'N/A'} completed shipments with both arrival timestamps.</p>
         {live.loading && <p role="status">Loading shipment report…</p>}
         {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
         {/* Stats */}
@@ -371,7 +371,7 @@ export default function ShipmentReport() {
 
           <div className="sr-ledger-foot">
             <span>
-              Showing {hasData && total ? (currentPage - 1) * 10 + 1 : 0} to {hasData ? Math.min(currentPage * 10, total) : 0} of {hasData ? total : '—'} entries
+              Showing {hasData && total ? (currentPage - 1) * 10 + 1 : 0} to {hasData ? Math.min(currentPage * 10, total) : 0} of {hasData ? total : 'N/A'} entries
             </span>
             <div className="sr-pager">
 <button disabled={!hasData || currentPage === 1} onClick={() => setPage(currentPage - 1)}>Prev</button>

@@ -277,8 +277,9 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
                     {fleet.cargoCategories.map((c) => {
                       const isChecked = categories.includes(c.id);
                       return (
-                        <label className={`fleet-check ${isChecked ? 'is-checked' : ''}`} key={c.id}>
+                        <label htmlFor={`fleet-cargo-check-${c.id}`} className={`fleet-check ${isChecked ? 'is-checked' : ''}`} key={c.id}>
                           <input
+                            id={`fleet-cargo-check-${c.id}`}
                             type="checkbox"
                             checked={isChecked}
                             onChange={(e) =>
@@ -512,7 +513,7 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
           </div>
           <div>
             <h3 id="compliance-dialog-title" className="fleet-dialog-title">
-              {entity.plate_number || entity.full_name} — Compliance
+              {entity.plate_number || entity.full_name}: Compliance
             </h3>
             <p className="fleet-dialog-subtitle">Manage, upload and review compliance documents</p>
           </div>
@@ -524,7 +525,7 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
           aria-label="Close"
           title="Close"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -545,7 +546,7 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
         {fileUrl && (
           <p style={{ margin: '0 0 16px 0', fontSize: '13px' }}>
             <a href={fileUrl} target="_blank" rel="noreferrer" style={{ color: '#1D4ED8', fontWeight: 600 }}>
-              📄 Open private document (link expires in 60 seconds)
+              Open private document (link expires in 60 seconds)
             </a>
           </p>
         )}
@@ -565,7 +566,7 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
                       <div className="fleet-doc-item-title-row">
                         <strong className="fleet-doc-type-label">{doc.doc_type.replaceAll('_', ' ')}</strong>
                         {doc.document_number && <span className="fleet-doc-number-label">({doc.document_number})</span>}
-                        <span className="fleet-doc-sep">—</span>
+                        <span className="fleet-doc-sep">·</span>
                         <span className={`fleet-doc-badge ${badge.badgeClass || 'compliance-valid'}`}>
                           {badge.label}
                         </span>

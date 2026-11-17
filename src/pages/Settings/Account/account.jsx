@@ -70,10 +70,10 @@ function AccountDetails() {
     } catch (cause) { if (mounted.current) setActionError(cause.message); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
   }
-  if (!profile) return <section className="content account-settings"><div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
+  if (!profile) return <section className="content account-settings"><div className="page-header"><div><h1>Settings: Account</h1><p>Manage your personal details and account security.</p></div></div>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
   const initials = (profile.full_name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
   return <section className="content account-settings">
-    <div className="page-header"><div><h2>Settings — Account</h2><p>Manage your personal details and account security.</p></div></div>
+    <div className="page-header"><div><h1>Settings: Account</h1><p>Manage your personal details and account security.</p></div></div>
     {error && <p role="alert" className="pw-error">{error} <button onClick={() => setReload(value => value + 1)}>Retry</button></p>}
     {success && <p role="status" className="pw-success">{success}</p>}
     <div className="settings-grid">
@@ -83,10 +83,10 @@ function AccountDetails() {
           <div className="profile-layout">
             <div className="avatar-box">{profile.photo ? <img src={profile.photo} alt="Your profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} /> : initials}</div>
             <div className="profile-info">
-              <div className="info-group"><label>FULL NAME</label><span>{profile.full_name || 'Not set'}</span></div>
-              <div className="info-group"><label>EMAIL ADDRESS</label><span>{profile.email}</span><p className="field-hint">Contact support to change your email.</p></div>
-              <div className="info-group"><label>ROLE</label><span className="role-badge">{profile.role}</span></div>
-              <div className="info-group"><label>CONTACT NUMBER</label><span>{profile.phone || 'Not set'}</span></div>
+              <div className="info-group"><span className="info-label">FULL NAME</span><span>{profile.full_name || 'Not set'}</span></div>
+              <div className="info-group"><span className="info-label">EMAIL ADDRESS</span><span>{profile.email}</span><p className="field-hint">Contact support to change your email.</p></div>
+              <div className="info-group"><span className="info-label">ROLE</span><span className="role-badge">{profile.role}</span></div>
+              <div className="info-group"><span className="info-label">CONTACT NUMBER</span><span>{profile.phone || 'Not set'}</span></div>
             </div>
           </div><div className="card-bottom-accent" />
         </div>
@@ -110,17 +110,17 @@ function AccountDetails() {
       <div className="ep-modal-header"><h3 className="ep-modal-title">{modal === 'profile' ? 'Edit Profile Information' : modal === 'password' ? 'Change Password' : 'Log Out Other Sessions?'}</h3><button type="button" className="ep-close-btn" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
       <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className="ep-modal-body">
         {modal === 'profile' && <>
-          <div className="ep-photo-row">{(preview || profile.photo) && <img className="ep-photo-preview" style={{ width: 64, height: 64, objectFit: 'cover' }} src={preview || profile.photo} alt="Profile preview" />}<label className="ep-label">PHOTO (JPG OR PNG, MAX 2MB)<input type="file" accept="image/jpeg,image/png" onChange={event => {
+          <div className="ep-photo-row">{(preview || profile.photo) && <img className="ep-photo-preview" style={{ width: 64, height: 64, objectFit: 'cover' }} src={preview || profile.photo} alt="Profile preview" />}<label className="ep-label" htmlFor="ep-photo-input">PHOTO (JPG OR PNG, MAX 2MB)<input id="ep-photo-input" type="file" accept="image/jpeg,image/png" onChange={event => {
             const selected = event.target.files[0];
             if (selected && (!['image/jpeg', 'image/png'].includes(selected.type) || selected.size <= 0 || selected.size > 2097152)) { setActionError('Choose a JPG or PNG photo under 2MB.'); event.target.value = ''; return; }
             setFile(selected || null); setPreview(selected ? URL.createObjectURL(selected) : null); setActionError('');
           }} /></label></div>
-          <label className="ep-field-group"><span className="ep-label">FULL NAME</span><input className="ep-input" required maxLength={200} value={form.fullName} onChange={event => setForm({ ...form, fullName: event.target.value })} /></label>
-          <label className="ep-field-group"><span className="ep-label">EMAIL ADDRESS</span><input className="ep-input ep-input--muted" value={profile.email || ''} readOnly /></label>
-          <label className="ep-field-group"><span className="ep-label">CONTACT NUMBER</span><input className="ep-input" type="tel" maxLength={40} value={form.contact} onChange={event => setForm({ ...form, contact: event.target.value })} /></label>
-          <label className="ep-field-group"><span className="ep-label">ROLE</span><input className="ep-input ep-input--role" value={profile.role} readOnly /></label>
+          <label className="ep-field-group" htmlFor="ep-fullname-input"><span className="ep-label">FULL NAME</span><input id="ep-fullname-input" className="ep-input" required maxLength={200} value={form.fullName} onChange={event => setForm({ ...form, fullName: event.target.value })} /></label>
+          <label className="ep-field-group" htmlFor="ep-email-input"><span className="ep-label">EMAIL ADDRESS</span><input id="ep-email-input" className="ep-input ep-input--muted" value={profile.email || ''} readOnly /></label>
+          <label className="ep-field-group" htmlFor="ep-contact-input"><span className="ep-label">CONTACT NUMBER</span><input id="ep-contact-input" className="ep-input" type="tel" maxLength={40} value={form.contact} onChange={event => setForm({ ...form, contact: event.target.value })} /></label>
+          <label className="ep-field-group" htmlFor="ep-role-input"><span className="ep-label">ROLE</span><input id="ep-role-input" className="ep-input ep-input--role" value={profile.role} readOnly /></label>
         </>}
-        {modal === 'password' && <>{[['current', 'CURRENT PASSWORD'], ['next', 'NEW PASSWORD'], ['confirm', 'CONFIRM NEW PASSWORD']].map(([key, label]) => <label key={key} className="ep-field-group"><span className="ep-label">{label}</span><input type="password" className="ep-input" required minLength={key === 'current' ? undefined : 8} autoComplete={key === 'current' ? 'current-password' : 'new-password'} value={passwords[key]} onChange={event => setPasswords({ ...passwords, [key]: event.target.value })} /></label>)}<p className="field-hint">Use at least 8 characters. Your current password is verified before the update.</p></>}
+        {modal === 'password' && <>{[['current', 'CURRENT PASSWORD'], ['next', 'NEW PASSWORD'], ['confirm', 'CONFIRM NEW PASSWORD']].map(([key, label]) => <label key={key} className="ep-field-group" htmlFor={`ep-pw-${key}`}><span className="ep-label">{label}</span><input id={`ep-pw-${key}`} type="password" className="ep-input" required minLength={key === 'current' ? undefined : 8} autoComplete={key === 'current' ? 'current-password' : 'new-password'} value={passwords[key]} onChange={event => setPasswords({ ...passwords, [key]: event.target.value })} /></label>)}<p className="field-hint">Use at least 8 characters. Your current password is verified before the update.</p></>}
         {modal === 'sessions' && <p>This signs out all devices and browsers except this session. Other devices may retain access until their current access tokens expire.</p>}
         {actionError && <p className="pw-error" role="alert">{actionError}</p>}
       </div><div className="ep-modal-footer"><button type="button" className="ep-cancel-btn" onClick={close}>Cancel</button><button type="submit" className="ep-save-btn">{busy ? 'Saving…' : modal === 'profile' ? 'Save Changes' : modal === 'password' ? 'Update Password' : 'Log Out Other Sessions'}</button></div></fieldset>

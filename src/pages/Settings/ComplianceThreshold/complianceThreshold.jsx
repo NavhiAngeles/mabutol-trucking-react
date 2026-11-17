@@ -48,7 +48,7 @@ function ThresholdForm({ role }) {
     finally { operation.current = false; if (mounted.current) setBusy(false); }
   }
   return <section className="content compliance-threshold-settings">
-    <div className="page-header"><div><h2>Settings — Compliance Thresholds</h2><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div></div>
+    <div className="page-header"><div><h1>Settings: Compliance Thresholds</h1><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div></div>
     {loadError ? <div className="threshold-error-banner" role="alert"><p>{loadError}</p><button type="button" className="secondary-btn" onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status" className="threshold-loading">Loading compliance thresholds…</p> : <form onSubmit={submit} className="settings-card">
       <div className="threshold-notice-box">
         <p className="intro-text">First Alert marks an approaching expiry or service date. Critical Alert marks the final warning window, including the due date. Past dates remain expired or overdue. All dates use Philippine time.</p>

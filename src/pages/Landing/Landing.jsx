@@ -113,7 +113,7 @@ export default function Landing() {
                 className="landing-btn-primary"
                 onClick={handleSignInClick()}
               >
-                {isAuthenticated ? "Go to Dashboard →" : "Sign In →"}
+                {isAuthenticated ? "Go to Dashboard" : "Sign In"}
               </Link>
             </div>
           </nav>
@@ -124,7 +124,7 @@ export default function Landing() {
               className="landing-btn-primary desktop-only"
               onClick={handleSignInClick()}
             >
-              {isAuthenticated ? "Go to Dashboard →" : "Sign In →"}
+              {isAuthenticated ? "Go to Dashboard" : "Sign In"}
             </Link>
             <button
               type="button"
@@ -142,11 +142,6 @@ export default function Landing() {
       {/* ---------- Hero Section ---------- */}
       <section className="landing-hero" id="hero">
         <div className="landing-hero-inner">
-          <div className="landing-hero-badge">
-            <span className="badge-pulse" />
-            <span>CENTRAL LUZON FREIGHT & DISPATCH OPERATIONS</span>
-          </div>
-
           <h1 className="landing-hero-title">
             Smart Fleet Dispatch &amp; Real-Time Delivery Tracking
           </h1>
@@ -161,14 +156,14 @@ export default function Landing() {
               className="landing-btn-cta"
               onClick={handleSignInClick()}
             >
-              {isAuthenticated ? "Open Operations Dashboard →" : "Sign In to Operations →"}
+              {isAuthenticated ? "Open Operations Dashboard" : "Sign In to Operations"}
             </Link>
             <a
               href="#features"
               className="landing-btn-outline"
               onClick={scrollToSection("features")}
             >
-              Explore Capabilities ↓
+              Explore Capabilities
             </a>
           </div>
 
@@ -187,17 +182,8 @@ export default function Landing() {
         <div className="landing-preview-section" id="preview">
           <div className="landing-preview-window">
             <div className="preview-window-bar">
-              <div className="preview-dots">
-                <span className="dot red" />
-                <span className="dot yellow" />
-                <span className="dot green" />
-              </div>
               <div className="preview-url-pill">
-                <span className="lock-icon">🔒</span>
                 <span>tanaw.mabutol.ph/dashboard</span>
-              </div>
-              <div className="preview-live-tag">
-                <span className="live-dot" /> LIVE OPERATIONS
               </div>
             </div>
 
@@ -205,14 +191,15 @@ export default function Landing() {
               {/* Mini Topbar */}
               <div className="preview-topbar">
                 <div className="preview-search">
-                  <span>🔍</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m20 20-3.5-3.5" />
+                  </svg>
                   <span className="preview-search-text">Search shipments, customers, routes, drivers…</span>
                 </div>
                 <div className="preview-topbar-tools">
-                  <span className="preview-badge-pht">PHT 01:23 PM</span>
-                  <span className="preview-icon-btn">🔔</span>
-                  <span className="preview-icon-btn">💬</span>
-                  <span className="preview-avatar">IV</span>
+                  <span className="preview-badge-pht">PHT (UTC+8)</span>
+                  <span className="preview-avatar">MT</span>
                 </div>
               </div>
 
@@ -220,23 +207,23 @@ export default function Landing() {
               <div className="preview-stats-grid">
                 <div className="preview-stat-card border-green">
                   <span className="stat-label">Active Shipments</span>
-                  <strong className="stat-num text-green">1</strong>
-                  <span className="stat-note">All Active Shipments</span>
+                  <strong className="stat-num text-green">Live</strong>
+                  <span className="stat-note">Real-time route status</span>
                 </div>
                 <div className="preview-stat-card border-red">
                   <span className="stat-label">Delayed Shipments</span>
-                  <strong className="stat-num text-slate">0</strong>
-                  <span className="stat-note">All routes on schedule</span>
+                  <strong className="stat-num text-slate">Monitored</strong>
+                  <span className="stat-note">ETA variance tracking</span>
                 </div>
                 <div className="preview-stat-card border-blue">
                   <span className="stat-label">Available Trucks</span>
-                  <strong className="stat-num text-blue">22</strong>
-                  <span className="stat-note">Ready for dispatch</span>
+                  <strong className="stat-num text-blue">Verified</strong>
+                  <span className="stat-note">Capacity &amp; compliance ready</span>
                 </div>
                 <div className="preview-stat-card border-amber">
                   <span className="stat-label">Pending Dispatch</span>
-                  <strong className="stat-num text-amber">1</strong>
-                  <span className="stat-note">1 review pending</span>
+                  <strong className="stat-num text-amber">Queue</strong>
+                  <span className="stat-note">Office dispatch review</span>
                 </div>
               </div>
 
@@ -245,20 +232,17 @@ export default function Landing() {
                 <div className="preview-map-card">
                   <div className="preview-card-header">
                     <h4>Live Tracking: Central Luzon</h4>
-                    <span className="map-chip">GPS Active</span>
+                    <span className="map-chip">GPS Telemetry</span>
                   </div>
                   <div className="preview-map-canvas">
                     <div className="map-road-line" />
                     <div className="map-truck-pin pin-active">
-                      <span className="truck-emoji">🚚</span>
-                      <span className="pin-tooltip">DEMO-VAN-02 · Cabanatuan → Balagtas</span>
+                      <span className="pin-tooltip">Active Route · Cabanatuan to Balagtas</span>
                     </div>
                     <div className="map-depot-pin pin-depot">
-                      <span>📍</span>
                       <span className="depot-tooltip">Cabanatuan Depot</span>
                     </div>
                     <div className="map-dest-pin pin-dest">
-                      <span>🏁</span>
                       <span className="dest-tooltip">Balagtas Dropoff</span>
                     </div>
                   </div>
@@ -269,17 +253,15 @@ export default function Landing() {
                     <h4>Operations Action Center</h4>
                   </div>
                   <div className="preview-alert-item alert-compliance">
-                    <div className="alert-icon">🛡️</div>
                     <div className="alert-content">
                       <strong>Fleet Compliance Standing</strong>
-                      <p>23 vehicles inspected · All driver credentials verified.</p>
+                      <p>Vehicle inspection &amp; driver credentials verified.</p>
                     </div>
                   </div>
                   <div className="preview-alert-item alert-booking">
-                    <div className="alert-icon">📦</div>
                     <div className="alert-content">
                       <strong>Customer Booking Request</strong>
-                      <p>Biscuits freight · Awaiting office assignment review.</p>
+                      <p>Freight quotation awaiting office assignment review.</p>
                     </div>
                   </div>
                 </div>
@@ -303,7 +285,7 @@ export default function Landing() {
           {/* Feature 1 */}
           <div className="landing-feature-card">
             <div className="feature-icon-wrapper icon-navy">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polygon points="3 11 22 2 13 21 11 13 3 11" />
               </svg>
             </div>
@@ -321,7 +303,7 @@ export default function Landing() {
           {/* Feature 2 */}
           <div className="landing-feature-card">
             <div className="feature-icon-wrapper icon-blue">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="1" y="3" width="15" height="13" />
                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
                 <circle cx="5.5" cy="18.5" r="2.5" />
@@ -342,7 +324,7 @@ export default function Landing() {
           {/* Feature 3 */}
           <div className="landing-feature-card">
             <div className="feature-icon-wrapper icon-green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
@@ -360,7 +342,7 @@ export default function Landing() {
           {/* Feature 4 */}
           <div className="landing-feature-card">
             <div className="feature-icon-wrapper icon-amber">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="18" y1="20" x2="18" y2="10" />
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />
@@ -383,27 +365,27 @@ export default function Landing() {
       <section className="landing-metrics" id="metrics">
         <div className="landing-metrics-inner">
           <div className="metric-col">
-            <strong className="metric-number">23</strong>
-            <span className="metric-label">FLEET VEHICLES</span>
+            <strong className="metric-number">Multi-Class</strong>
+            <span className="metric-label">FLEET REGISTRY</span>
             <p className="metric-sub">Heavy, medium &amp; light cargo trucks</p>
           </div>
           <div className="metric-divider" />
           <div className="metric-col">
-            <strong className="metric-number">99.2%</strong>
-            <span className="metric-label">ON-TIME RATE</span>
-            <p className="metric-sub">Across timed completed shipments</p>
+            <strong className="metric-number">Timed ETA</strong>
+            <span className="metric-label">ARRIVAL TRACKING</span>
+            <p className="metric-sub">Across completed deliveries</p>
           </div>
           <div className="metric-divider" />
           <div className="metric-col">
-            <strong className="metric-number">100%</strong>
+            <strong className="metric-number">PHT</strong>
             <span className="metric-label">PHILIPPINE TIMEZONE</span>
-            <p className="metric-sub">Synchronized Asia/Manila (PHT) dates</p>
+            <p className="metric-sub">Synchronized Asia/Manila (UTC+8) dates</p>
           </div>
           <div className="metric-divider" />
           <div className="metric-col">
-            <strong className="metric-number">&lt; 3s</strong>
-            <span className="metric-label">REALTIME DISPATCH</span>
-            <p className="metric-sub">Instant driver alert &amp; chat updates</p>
+            <strong className="metric-number">Live Sync</strong>
+            <span className="metric-label">DISPATCH UPDATES</span>
+            <p className="metric-sub">Direct driver alert &amp; chat stream</p>
           </div>
         </div>
       </section>
@@ -472,7 +454,7 @@ export default function Landing() {
               className="landing-btn-cta cta-light"
               onClick={handleSignInClick()}
             >
-              {isAuthenticated ? "Enter Operations Dashboard →" : "Sign In to Operations →"}
+              {isAuthenticated ? "Enter Operations Dashboard" : "Sign In to Operations"}
             </Link>
           </div>
         </div>
@@ -504,19 +486,17 @@ export default function Landing() {
             <a href="#features" onClick={scrollToSection("features")}>Features</a>
             <a href="#preview" onClick={scrollToSection("preview")}>Operations</a>
             <a href="#workflow" onClick={scrollToSection("workflow")}>Workflow</a>
+          </div>
+
+          <div className="footer-col-links">
+            <span className="footer-links-title">Access</span>
             <Link
               to={isAuthenticated ? "/dashboard" : "/login"}
               onClick={handleSignInClick()}
             >
-              {isAuthenticated ? "Dashboard" : "Office Login"}
+              {isAuthenticated ? "Dashboard" : "Office Sign In"}
             </Link>
-          </div>
-
-          <div className="footer-col-links">
-            <span className="footer-links-title">Operations</span>
-            <Link to="/login" onClick={handleSignInClick("/login")}>Dispatcher Portal</Link>
-            <Link to="/forgot-password">Account Recovery</Link>
-            <a href="#metrics" onClick={scrollToSection("metrics")}>Fleet Metrics</a>
+            <Link to="/forgot-password">Password Recovery</Link>
           </div>
 
           <div className="footer-col-notice">

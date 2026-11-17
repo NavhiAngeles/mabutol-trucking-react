@@ -4,7 +4,7 @@
    into (or be overridden by) other pages / the layout CSS.
 ========================================================= */
 
-.pricing-page {
+.settings-page .pricing-page {
   --navy: #0b2a4a;
   --ink: #111827;
   --text: #1f2937;
@@ -20,15 +20,16 @@
   -webkit-font-smoothing: antialiased;
 }
 
-.pricing-page *,
-.pricing-page *::before,
-.pricing-page *::after {
+.settings-page .pricing-page *,
+.settings-page .pricing-page *::before,
+.settings-page .pricing-page *::after {
   box-sizing: border-box;
 }
 
-.pricing-page h2,
-.pricing-page h3,
-.pricing-page p {
+.settings-page .pricing-page h1,
+.settings-page .pricing-page h2,
+.settings-page .pricing-page h3,
+.settings-page .pricing-page p {
   margin: 0;
 }
 
@@ -36,17 +37,7 @@
    TOPBAR
 ========================= */
 
-.pricing-page .topbar {
-  height: 78px;
-  padding: 0 28px 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-}
-
-.pricing-page .search-box {
+.settings-page .pricing-page .search-box {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -59,33 +50,32 @@
   color: #64748b;
 }
 
-.pricing-page .search-box input {
+.settings-page .pricing-page .search-box input {
   flex: 1;
   min-width: 0;
   height: 100%;
   border: 0;
-  outline: 0;
-  background: transparent;
+background: transparent;
   font: inherit;
   font-size: 16px;
   color: var(--ink);
 }
 
-.pricing-page .search-box input::placeholder {
+.settings-page .pricing-page .search-box input::placeholder {
   color: #64748b;
 }
 
-.pricing-page .search-box:focus-within {
+.settings-page .pricing-page .search-box:focus-within {
   box-shadow: 0 0 0 2px rgba(11, 42, 74, 0.35);
 }
 
-.pricing-page .topbar-right {
+.settings-page .pricing-page .topbar-right {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.pricing-page .icon-btn {
+.settings-page .pricing-page .icon-btn {
   display: grid;
   place-items: center;
   width: 32px;
@@ -97,13 +87,13 @@
   cursor: pointer;
 }
 
-.pricing-page .topbar-divider {
+.settings-page .pricing-page .topbar-divider {
   width: 1px;
   height: 24px;
   background: #d1d5db;
 }
 
-.pricing-page .avatar {
+.settings-page .pricing-page .avatar {
   width: 32px;
   height: 32px;
   border-radius: 4px;
@@ -111,7 +101,7 @@
   background: #111827;
 }
 
-.pricing-page .avatar-img {
+.settings-page .pricing-page .avatar-img {
   display: block;
   width: 100%;
   height: 100%;
@@ -122,7 +112,7 @@
    CONTENT
 ========================= */
 
-.pricing-page .content {
+.settings-page .pricing-page .content {
   padding: 26px 56px 48px 32px;
 }
 
@@ -130,7 +120,7 @@
    NOTICE
 ========================= */
 
-.pricing-page .notice-box {
+.settings-page .pricing-page .notice-box {
   padding: 12px 16px 12px 16px;
   background: #fdddc8;
   border-left: 4px solid var(--orange);
@@ -139,7 +129,7 @@
   margin-bottom: 32px;
 }
 
-.pricing-page .notice-title {
+.settings-page .pricing-page .notice-title {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -148,11 +138,11 @@
   line-height: 20px;
 }
 
-.pricing-page .notice-title strong {
+.settings-page .pricing-page .notice-title strong {
   font-weight: 500;
 }
 
-.pricing-page .notice-box p {
+.settings-page .pricing-page .notice-box p {
   margin-top: 2px;
   font-size: 12px;
   line-height: 16px;
@@ -163,11 +153,11 @@
    HEADER
 ========================= */
 
-.pricing-page .page-header {
+.settings-page .pricing-page .page-header {
   margin-bottom: 28px;
 }
 
-.pricing-page .page-header h2 {
+.settings-page .pricing-page .page-header :is(h1, h2) {
   font-size: 32px;
   line-height: 40px;
   font-weight: 700;
@@ -175,7 +165,7 @@
   color: var(--navy);
 }
 
-.pricing-page .page-header p {
+.settings-page .pricing-page .page-header p {
   margin-top: 8px;
   font-size: 15px;
   line-height: 22px;
@@ -186,15 +176,15 @@
    GRID
 ========================= */
 
-.pricing-page .pricing-grid {
+.settings-page .pricing-page .pricing-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
 
-.pricing-page .left-column,
-.pricing-page .right-column {
+.settings-page .pricing-page .left-column,
+.settings-page .pricing-page .right-column {
   display: flex;
   flex-direction: column;
   gap: 32px;
@@ -204,18 +194,18 @@
    CARDS
 ========================= */
 
-.pricing-page .settings-card {
+.settings-page .pricing-page .settings-card {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.pricing-page .settings-card.card-accent {
+.settings-page .pricing-page .settings-card.card-accent {
   border-bottom: 4px solid var(--navy);
 }
 
-.pricing-page .card-header {
+.settings-page .pricing-page .card-header {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -226,14 +216,14 @@
   border-bottom: 1px solid var(--line);
 }
 
-.pricing-page .card-header h3 {
+.settings-page .pricing-page .card-header h3 {
   font-size: 16px;
   line-height: 24px;
   font-weight: 600;
   color: var(--ink);
 }
 
-.pricing-page .card-desc {
+.settings-page .pricing-page .card-desc {
   padding: 8px 24px 10px;
   font-size: 16px;
   line-height: 24px;
@@ -241,12 +231,12 @@
   border-bottom: 1px solid var(--line);
 }
 
-.pricing-page .card-desc-tight {
+.settings-page .pricing-page .card-desc-tight {
   padding-bottom: 8px;
   border-bottom: 0;
 }
 
-.pricing-page .card-footnote {
+.settings-page .pricing-page .card-footnote {
   padding: 14px 24px;
   font-size: 11px;
   line-height: 14px;
@@ -258,7 +248,7 @@
    FORMS (Fixed Trip Fees)
 ========================= */
 
-.pricing-page .form-grid {
+.settings-page .pricing-page .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 32px 32px;
@@ -266,16 +256,16 @@
   padding: 24px 24px 28px;
 }
 
-.pricing-page .input-group {
+.settings-page .pricing-page .input-group {
   display: flex;
   flex-direction: column;
 }
 
-.pricing-page .input-group:nth-child(2) {
+.settings-page .pricing-page .input-group:nth-child(2) {
   padding-top: 0;
 }
 
-.pricing-page .input-group label {
+.settings-page .pricing-page .input-group label {
   margin-bottom: 8px;
   font-size: 16px;
   line-height: 24px;
@@ -284,14 +274,14 @@
   color: #334155;
 }
 
-.pricing-page .input-group small {
+.settings-page .pricing-page .input-group small {
   margin-top: 8px;
   font-size: 11px;
   line-height: 14px;
   color: var(--muted);
 }
 
-.pricing-page .money-input {
+.settings-page .pricing-page .money-input {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -303,14 +293,13 @@
   color: #475569;
 }
 
-.pricing-page .money-input input {
+.settings-page .pricing-page .money-input input {
   flex: 1;
   min-width: 0;
   height: 100%;
   padding: 0;
   border: 0;
-  outline: 0;
-  background: transparent;
+background: transparent;
   font: inherit;
   font-size: 16px;
   color: var(--ink);
@@ -320,9 +309,9 @@
    INPUT FOCUS (shared)
 ========================= */
 
-.pricing-page .money-input:focus-within,
-.pricing-page .peso-cell input:focus,
-.pricing-page .rate-input:focus {
+.settings-page .pricing-page .money-input:focus-within,
+.settings-page .pricing-page .peso-cell input:focus,
+.settings-page .pricing-page .rate-input:focus {
   outline: 2px solid rgba(11, 42, 74, 0.45);
   outline-offset: 1px;
 }
@@ -331,13 +320,13 @@
    TABLES
 ========================= */
 
-.pricing-page .pricing-table {
+.settings-page .pricing-page .pricing-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.pricing-page .pricing-table th {
+.settings-page .pricing-page .pricing-table th {
   padding: 12px 24px;
   background: var(--thead);
   font-size: 16px;
@@ -349,7 +338,7 @@
   color: #3b4558;
 }
 
-.pricing-page .pricing-table td {
+.settings-page .pricing-page .pricing-table td {
   padding: 12px 24px;
   border-bottom: 1px solid var(--line);
   font-size: 16px;
@@ -359,41 +348,41 @@
   color: var(--ink);
 }
 
-.pricing-page .pricing-table tbody tr:last-child td {
+.settings-page .pricing-page .pricing-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.pricing-page .pricing-table .ta-right {
+.settings-page .pricing-page .pricing-table .ta-right {
   text-align: right;
 }
 
-.pricing-page .muted-cell {
+.settings-page .pricing-page .muted-cell {
   color: #374151;
 }
 
 /* ---- Surcharges ---- */
 
-.pricing-page .surcharge-table col,
-.pricing-page .surcharge-table th:nth-child(1) { width: 38%; }
-.pricing-page .surcharge-table th:nth-child(2) { width: 36%; }
-.pricing-page .surcharge-table th:nth-child(3) { width: 26%; }
+.settings-page .pricing-page .surcharge-table col,
+.settings-page .pricing-page .surcharge-table th:nth-child(1) { width: 38%; }
+.settings-page .pricing-page .surcharge-table th:nth-child(2) { width: 36%; }
+.settings-page .pricing-page .surcharge-table th:nth-child(3) { width: 26%; }
 
-.pricing-page .surcharge-table th,
-.pricing-page .surcharge-table td {
+.settings-page .pricing-page .surcharge-table th,
+.settings-page .pricing-page .surcharge-table td {
   padding-left: 24px;
   padding-right: 24px;
 }
 
-.pricing-page .surcharge-table td {
+.settings-page .pricing-page .surcharge-table td {
   height: 80px;
 }
 
-.pricing-page .surcharge-table th:nth-child(1),
-.pricing-page .surcharge-table td:nth-child(1) {
+.settings-page .pricing-page .surcharge-table th:nth-child(1),
+.settings-page .pricing-page .surcharge-table td:nth-child(1) {
   padding-right: 0;
 }
 
-.pricing-page .tag {
+.settings-page .pricing-page .tag {
   display: inline-block;
   padding: 4px 8px;
   background: var(--thead);
@@ -404,22 +393,22 @@
   color: var(--navy);
 }
 
-.pricing-page .tag-wrap {
+.settings-page .pricing-page .tag-wrap {
   max-width: 112px;
 }
 
-.pricing-page .tag-strong {
+.settings-page .pricing-page .tag-strong {
   background: #cfe0fb;
 }
 
-.pricing-page .peso-cell {
+.settings-page .pricing-page .peso-cell {
   display: flex;
   align-items: center;
   gap: 14px;
   color: #475569;
 }
 
-.pricing-page .peso-cell input {
+.settings-page .pricing-page .peso-cell input {
   width: 96px;
   height: 36px;
   padding: 0 12px;
@@ -432,46 +421,46 @@
   color: var(--ink);
 }
 
-.pricing-page .applied-as {
+.settings-page .pricing-page .applied-as {
   color: #374151;
   line-height: 22px;
 }
 
-.pricing-page .applied-as {
+.settings-page .pricing-page .applied-as {
   white-space: normal;
 }
 
 /* ---- Vehicles ---- */
 
-.pricing-page .vehicle-table th:nth-child(1) { width: 40%; }
-.pricing-page .vehicle-table th:nth-child(2) { width: 32%; }
-.pricing-page .vehicle-table th:nth-child(3) { width: 28%; }
+.settings-page .pricing-page .vehicle-table th:nth-child(1) { width: 40%; }
+.settings-page .pricing-page .vehicle-table th:nth-child(2) { width: 32%; }
+.settings-page .pricing-page .vehicle-table th:nth-child(3) { width: 28%; }
 
-.pricing-page .vehicle-table th,
-.pricing-page .vehicle-table td {
+.settings-page .pricing-page .vehicle-table th,
+.settings-page .pricing-page .vehicle-table td {
   padding-left: 16px;
   padding-right: 16px;
 }
 
-.pricing-page .vehicle-table td {
+.settings-page .pricing-page .vehicle-table td {
   height: 77px;
 }
 
-.pricing-page .vehicle-name {
+.settings-page .pricing-page .vehicle-name {
   display: flex;
   align-items: center;
   gap: 12px;
   font-weight: 500;
 }
 
-.pricing-page .vehicle-icon {
+.settings-page .pricing-page .vehicle-icon {
   flex: 0 0 24px;
   display: grid;
   place-items: center;
   color: #4b5563;
 }
 
-.pricing-page .rate-input {
+.settings-page .pricing-page .rate-input {
   width: 96px;
   height: 38px;
   padding: 0 12px;
@@ -492,19 +481,19 @@
 ========================= */
 
 @media (max-width: 900px) {
-  .pricing-page .pricing-grid {
+  .settings-page .pricing-page .pricing-grid {
     grid-template-columns: 1fr;
   }
 
-  .pricing-page .content {
+  .settings-page .pricing-page .content {
     padding: 20px 16px 40px;
   }
 
-  .pricing-page .form-grid {
+  .settings-page .pricing-page .form-grid {
     grid-template-columns: 1fr;
   }
 
-  .pricing-page .search-box {
+  .settings-page .pricing-page .search-box {
     width: 100%;
     margin-right: 16px;
   }
@@ -515,14 +504,14 @@
 ========================================== */
 
 /* Horizontal scrolling container */
-.pricing-page .toll-table-wrapper {
+.settings-page .pricing-page .toll-table-wrapper {
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
 }
 
 /* Table width */
-.pricing-page .toll-table {
+.settings-page .pricing-page .toll-table {
   width: 860px;
   min-width: 860px;
   table-layout: fixed;
@@ -530,15 +519,15 @@
 }
 
 /* Balanced column widths */
-.pricing-page .toll-table th:nth-child(1) { width: 300px; }
-.pricing-page .toll-table th:nth-child(2) { width: 120px; }
-.pricing-page .toll-table th:nth-child(3) { width: 130px; }
-.pricing-page .toll-table th:nth-child(4) { width: 120px; }
-.pricing-page .toll-table th:nth-child(5) { width: 190px; }
+.settings-page .pricing-page .toll-table th:nth-child(1) { width: 300px; }
+.settings-page .pricing-page .toll-table th:nth-child(2) { width: 120px; }
+.settings-page .pricing-page .toll-table th:nth-child(3) { width: 130px; }
+.settings-page .pricing-page .toll-table th:nth-child(4) { width: 120px; }
+.settings-page .pricing-page .toll-table th:nth-child(5) { width: 190px; }
 
 /* Normal scrolling for all columns */
-.pricing-page .toll-table th,
-.pricing-page .toll-table td {
+.settings-page .pricing-page .toll-table th,
+.settings-page .pricing-page .toll-table td {
   position: static !important;
   right: auto !important;
   left: auto !important;
@@ -547,7 +536,7 @@
 }
 
 /* Table headers - matching the other pricing tables */
-.pricing-page .toll-table th {
+.settings-page .pricing-page .toll-table th {
   padding: 12px 20px;
   background: var(--thead);
   font-size: 15px;
@@ -559,12 +548,12 @@
   white-space: nowrap;
 }
 
-.pricing-page .toll-table th.ta-right {
+.settings-page .pricing-page .toll-table th.ta-right {
   text-align: right;
 }
 
 /* Table cells - consistent text size and line-height */
-.pricing-page .toll-table td {
+.settings-page .pricing-page .toll-table td {
   padding: 14px 20px;
   border-bottom: 1px solid var(--line);
   font-size: 15px;
@@ -572,16 +561,16 @@
   color: var(--ink);
 }
 
-.pricing-page .toll-table tbody tr:hover {
+.settings-page .pricing-page .toll-table tbody tr:hover {
   background: #f8fafc;
 }
 
 /* Toll gate name & subtitle - consistent weight & clear hierarchy */
-.pricing-page .toll-table .toll-name {
+.settings-page .pricing-page .toll-table .toll-name {
   white-space: normal;
 }
 
-.pricing-page .toll-title {
+.settings-page .pricing-page .toll-title {
   display: block;
   font-size: 15px;
   line-height: 21px;
@@ -589,7 +578,7 @@
   color: var(--ink);
 }
 
-.pricing-page .toll-subtitle {
+.settings-page .pricing-page .toll-subtitle {
   display: block;
   font-size: 13px;
   line-height: 18px;
@@ -599,7 +588,7 @@
 }
 
 /* Fee column - medium weight matching other prices */
-.pricing-page .toll-table .toll-fee {
+.settings-page .pricing-page .toll-table .toll-fee {
   text-align: right;
   font-size: 15px;
   line-height: 22px;
@@ -610,7 +599,7 @@
 }
 
 /* Highway badge - clean pill tags with readable 12px text */
-.pricing-page .hwy {
+.settings-page .pricing-page .hwy {
   display: inline-block;
   padding: 3px 8px;
   border-radius: 4px;
@@ -623,55 +612,55 @@
   color: #334155;
 }
 
-.pricing-page .hwy-nlex,
-.pricing-page .hwy-nlex_harbor_link,
-.pricing-page .hwy-nlex_connector {
+.settings-page .pricing-page .hwy-nlex,
+.settings-page .pricing-page .hwy-nlex_harbor_link,
+.settings-page .pricing-page .hwy-nlex_connector {
   background: #dbe4ff;
   color: #1e3a8a;
 }
 
-.pricing-page .hwy-sctex {
+.settings-page .pricing-page .hwy-sctex {
   background: #ffe4d0;
   color: #c2410c;
 }
 
-.pricing-page .hwy-tplex {
+.settings-page .pricing-page .hwy-tplex {
   background: #d1fae5;
   color: #166534;
 }
 
-.pricing-page .hwy-slex {
+.settings-page .pricing-page .hwy-slex {
   background: #e0e7ff;
   color: #3730a3;
 }
 
-.pricing-page .hwy-star {
+.settings-page .pricing-page .hwy-star {
   background: #fef3c7;
   color: #92400e;
 }
 
-.pricing-page .hwy-calax {
+.settings-page .pricing-page .hwy-calax {
   background: #e0f2fe;
   color: #0369a1;
 }
 
-.pricing-page .hwy-cavitex {
+.settings-page .pricing-page .hwy-cavitex {
   background: #ccfbf1;
   color: #0f766e;
 }
 
-.pricing-page .hwy-skyway {
+.settings-page .pricing-page .hwy-skyway {
   background: #f3e8ff;
   color: #6b21a8;
 }
 
-.pricing-page .hwy-mcx {
+.settings-page .pricing-page .hwy-mcx {
   background: #fae8ff;
   color: #86198f;
 }
 
 /* Actions column & buttons */
-.pricing-page .toll-actions {
+.settings-page .pricing-page .toll-actions {
   display: flex !important;
   flex-direction: row !important;
   align-items: center;
@@ -680,8 +669,8 @@
   gap: 8px !important;
 }
 
-.pricing-page .toll-btn-edit,
-.pricing-page .toll-btn-delete {
+.settings-page .pricing-page .toll-btn-edit,
+.settings-page .pricing-page .toll-btn-delete {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -696,36 +685,36 @@
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.pricing-page .toll-btn-edit {
+.settings-page .pricing-page .toll-btn-edit {
   background: #eff6ff !important;
   color: #1d4ed8 !important;
   border: 1px solid #bfdbfe !important;
 }
 
-.pricing-page .toll-btn-edit:hover:not(:disabled) {
+.settings-page .pricing-page .toll-btn-edit:hover:not(:disabled) {
   background: #dbeafe !important;
   border-color: #93c5fd !important;
 }
 
-.pricing-page .toll-btn-delete {
+.settings-page .pricing-page .toll-btn-delete {
   background: #fef2f2 !important;
   color: #b91c1c !important;
   border: 1px solid #fecaca !important;
 }
 
-.pricing-page .toll-btn-delete:hover:not(:disabled) {
+.settings-page .pricing-page .toll-btn-delete:hover:not(:disabled) {
   background: #fee2e2 !important;
   border-color: #fca5a5 !important;
 }
 
 /* 3-dots Action Menu & Dropdown */
-.pricing-page .toll-action-menu-wrapper {
+.settings-page .pricing-page .toll-action-menu-wrapper {
   position: relative;
   display: inline-block;
   text-align: left;
 }
 
-.pricing-page .toll-action-dots-btn {
+.settings-page .pricing-page .toll-action-dots-btn {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -738,26 +727,25 @@
   width: 32px;
   height: 32px;
   transition: all 0.15s ease-in-out;
-  outline: none;
 }
 
-.pricing-page .toll-action-dots-btn:hover:not(:disabled),
-.pricing-page .toll-action-dots-btn[aria-expanded="true"] {
+.settings-page .pricing-page .toll-action-dots-btn:hover:not(:disabled),
+.settings-page .pricing-page .toll-action-dots-btn[aria-expanded="true"] {
   color: #0f172a;
   background-color: #f1f5f9;
   border-color: #cbd5e1;
 }
 
-.pricing-page .toll-action-dots-btn:disabled {
+.settings-page .pricing-page .toll-action-dots-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.pricing-page .toll-action-dots-btn:focus-visible {
+.settings-page .pricing-page .toll-action-dots-btn:focus-visible {
   box-shadow: 0 0 0 2px #2563eb;
 }
 
-.pricing-page .toll-action-dropdown {
+.settings-page .pricing-page .toll-action-dropdown {
   position: fixed;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -781,7 +769,7 @@
   }
 }
 
-.pricing-page .toll-dropdown-item {
+.settings-page .pricing-page .toll-dropdown-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -801,26 +789,26 @@
   white-space: nowrap;
 }
 
-.pricing-page .toll-dropdown-item:hover {
+.settings-page .pricing-page .toll-dropdown-item:hover {
   background: #f8fafc;
   color: #0f172a;
 }
 
-.pricing-page .toll-dropdown-item.danger {
-  color: #dc2626;
+.settings-page .pricing-page .toll-dropdown-item.danger {
+  color: #B91C1C;
 }
 
-.pricing-page .toll-dropdown-item.danger:hover {
+.settings-page .pricing-page .toll-dropdown-item.danger:hover {
   background: #fef2f2;
   color: #b91c1c;
 }
 
-.pricing-page .toll-dropdown-item svg {
+.settings-page .pricing-page .toll-dropdown-item svg {
   flex-shrink: 0;
 }
 
 /* Footer note & button */
-.pricing-page .toll-footer {
+.settings-page .pricing-page .toll-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -829,13 +817,13 @@
   border-top: 1px solid var(--line);
 }
 
-.pricing-page .toll-footer p {
+.settings-page .pricing-page .toll-footer p {
   font-size: 13px;
   line-height: 18px;
   color: var(--muted);
 }
 
-.pricing-page .add-toll-btn {
+.settings-page .pricing-page .add-toll-btn {
   flex: 0 0 auto;
   padding: 8px 16px;
   background: #fff;
@@ -850,30 +838,45 @@
   transition: background 0.15s ease;
 }
 
-.pricing-page .add-toll-btn:hover:not(:disabled) {
+.settings-page .pricing-page .add-toll-btn:hover:not(:disabled) {
   background: var(--band);
 }
 
-.pricing-page .add-toll-btn:focus-visible {
+.settings-page .pricing-page .add-toll-btn:focus-visible {
   outline: 2px solid rgba(11, 42, 74, 0.45);
   outline-offset: 2px;
 }
 
 /* Scrollbar */
-.pricing-page .toll-table-wrapper::-webkit-scrollbar {
+.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar {
   height: 8px;
 }
 
-.pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb {
+.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
 
-.pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb:hover {
+.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-.pricing-page .toll-table-wrapper::-webkit-scrollbar-track {
+.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-track {
   background: #f8fafc;
   border-radius: 10px;
+}
+.settings-page .pricing-page .pricing-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.settings-page :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
+  .settings-page .um-pagination button {
+    min-height: 44px;
+  }
 }

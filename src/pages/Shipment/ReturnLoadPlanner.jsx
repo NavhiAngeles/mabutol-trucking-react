@@ -64,26 +64,26 @@ function Planner({ onInspect }) {
           <span>Data checked {time(data.loadedAt)}. Refresh after changes to bookings or assignments.</span>
         </div>
         <div className="return-load-filters-card">
-          <label className="return-load-field">
+          <label className="return-load-field" htmlFor="return-load-outbound">
             <span className="field-label"><i className="las la-truck" /> Outbound delivery</span>
-            <select value={delivery} onChange={event => { setDelivery(event.target.value); setReady(''); }}>
+            <select id="return-load-outbound" value={delivery} onChange={event => { setDelivery(event.target.value); setReady(''); }}>
               <option value="">Select an outbound delivery</option>
               {outboundOptions(data).map(row => <option key={row.delivery.id} value={row.delivery.id}>{row.shipment.tracking_number} · {row.shipment.dropoff_address} · {row.delivery.status}</option>)}
             </select>
           </label>
           {!outboundOptions(data).length && <p className="no-outbound-note">No outbound deliveries available for planning.</p>}
           <div className="return-load-inputs-grid">
-            <label className="return-load-field">
+            <label className="return-load-field" htmlFor="return-load-ready">
               <span className="field-label"><i className="las la-calendar-check" /> Unloaded and ready for return pickup (Philippine time)</span>
-              <input type="datetime-local" value={ready} onChange={event => setReady(event.target.value)} />
+              <input id="return-load-ready" type="datetime-local" value={ready} onChange={event => setReady(event.target.value)} />
             </label>
-            <label className="return-load-field">
+            <label className="return-load-field" htmlFor="return-load-radius">
               <span className="field-label"><i className="las la-map-marker-alt" /> Maximum distance to return pickup (km)</span>
-              <input type="number" min="1" max="500" value={radius} onChange={event => setRadius(event.target.value)} />
+              <input id="return-load-radius" type="number" min="1" max="500" value={radius} onChange={event => setRadius(event.target.value)} />
             </label>
-            <label className="return-load-field">
+            <label className="return-load-field" htmlFor="return-load-hours">
               <span className="field-label"><i className="las la-hourglass-half" /> Maximum wait after ready time (hours)</span>
-              <input type="number" min="1" max="168" value={hours} onChange={event => setHours(event.target.value)} />
+              <input id="return-load-hours" type="number" min="1" max="168" value={hours} onChange={event => setHours(event.target.value)} />
             </label>
           </div>
         </div>

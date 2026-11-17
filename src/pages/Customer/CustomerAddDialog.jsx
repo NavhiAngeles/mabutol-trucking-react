@@ -1,6 +1,77 @@
 import { useEffect, useRef, useState } from "react";
 import { createCustomer } from "../../services/customerService";
 
+const iconProps = {
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+};
+
+const CloseIcon = () => (
+  <svg {...iconProps}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const AlertCircleIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const SmartphoneIcon = () => (
+  <svg {...iconProps} width={18} height={18}>
+    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+
+const CheckCircleIcon = () => (
+  <svg {...iconProps}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const PlusCircleIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="16" />
+    <line x1="8" y1="12" x2="16" y2="12" />
+  </svg>
+);
+
+const EyeIcon = () => (
+  <svg {...iconProps}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg {...iconProps}>
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
+const InfoIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
 const initialValues = {
   name: "",
   email: "",
@@ -138,7 +209,7 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
             disabled={saving}
             onClick={handleCancelAttempt}
           >
-            ✕
+            <CloseIcon />
           </button>
         </div>
 
@@ -149,7 +220,7 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
 
           {error && (
             <div className="customer-add-error" role="alert">
-              <i className="las la-exclamation-circle" aria-hidden="true" />
+              <AlertCircleIcon />
               <span>{error}</span>
             </div>
           )}
@@ -277,10 +348,10 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
             <div className="customer-cred-header">
               <div className="customer-cred-header-info">
                 <div className="customer-cred-icon-badge" aria-hidden="true">
-                  <i className="las la-mobile-alt" />
+                  <SmartphoneIcon />
                 </div>
                 <div>
-                  <h4 className="customer-cred-title">Customer Mobile Application Account</h4>
+                  <h3 className="customer-cred-title">Customer Mobile Application Account</h3>
                   <p className="customer-cred-subtitle">
                     Create credentials so this customer can sign in to Tanaw Mobile to book and track shipments.
                   </p>
@@ -289,10 +360,11 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
               <button
                 type="button"
                 className={`customer-cred-toggle-btn ${createMobileAccount ? "is-active" : ""}`}
+                aria-pressed={createMobileAccount}
                 disabled={saving}
                 onClick={() => setCreateMobileAccount(!createMobileAccount)}
               >
-                <i className={`las ${createMobileAccount ? "la-check-circle" : "la-plus-circle"}`} />
+                {createMobileAccount ? <CheckCircleIcon /> : <PlusCircleIcon />}
                 <span>{createMobileAccount ? "Mobile Access Active" : "+ Enable Mobile Access"}</span>
               </button>
             </div>
@@ -317,11 +389,11 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
                       <button
                         type="button"
                         className="customer-pwd-toggle"
+                        disabled={saving}
                         aria-label={showPassword ? "Hide password" : "Show password"}
-                        tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        <i className={`las ${showPassword ? "la-eye-slash" : "la-eye"}`} />
+                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
                     </div>
                   </div>
@@ -343,18 +415,18 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
                       <button
                         type="button"
                         className="customer-pwd-toggle"
+                        disabled={saving}
                         aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                        tabIndex={-1}
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       >
-                        <i className={`las ${showConfirmPassword ? "la-eye-slash" : "la-eye"}`} />
+                        {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
                     </div>
                   </div>
                 </div>
 
                 <div className="customer-cred-notice">
-                  <i className="las la-info-circle" />
+                  <InfoIcon />
                   <span>
                     The customer can sign in on Tanaw Mobile using either their contact email ({values.email ? `"${values.email}"` : "entered above"}) or contact number ({values.phone ? `"${values.phone}"` : "entered above"}).
                   </span>
@@ -401,6 +473,7 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  aria-hidden="true"
                 >
                   <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
                 </svg>

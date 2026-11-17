@@ -270,10 +270,11 @@ export default function Pricing() {
   );
 
   return (
-    <SettingsLayout search={<label className="settings-search">
+    <SettingsLayout search={<label className="settings-search" htmlFor="pricing-search-input">
             <SearchIcon />
 
             <input
+              id="pricing-search-input"
               type="search"
               aria-label="Search vehicle types"
               placeholder="Search vehicle types..."
@@ -287,7 +288,7 @@ export default function Pricing() {
         <section className="content">
           {/* HEADER */}
           <div className="page-header"><div>
-            <h2>Settings — Pricing &amp; Rates</h2>
+            <h1>Settings: Pricing &amp; Rates</h1>
 
             <p>
               Configure vehicle rates, fixed trip fees,
@@ -424,7 +425,7 @@ export default function Pricing() {
                       special handling.
                     </p>
 
-                    <table className="pricing-table surcharge-table">
+                    <div className="pricing-table-scroll"><table className="pricing-table surcharge-table">
                       <thead>
                         <tr>
                           <th>HANDLING TYPE</th>
@@ -456,9 +457,11 @@ export default function Pricing() {
 
                             <td>
                               <div className="peso-cell">
+                                <label htmlFor={`surcharge-${item.id}`} className="sr-only">{item.label} surcharge</label>
                                 <span>₱</span>
 
                                 <input
+                                  id={`surcharge-${item.id}`}
                                   type="text"
                                   inputMode="decimal"
                                   aria-label={`${item.label} surcharge`}
@@ -479,7 +482,7 @@ export default function Pricing() {
                           </tr>
                         ))}
                       </tbody>
-                    </table>
+                    </table></div>
 
                     <p className="card-footnote">
                       Surcharges are stored in Supabase
@@ -502,7 +505,7 @@ export default function Pricing() {
                       directly from Supabase.
                     </p>
 
-                    <table className="pricing-table vehicle-table">
+                    <div className="pricing-table-scroll"><table className="pricing-table vehicle-table">
                       <thead>
                         <tr>
                           <th>VEHICLE TYPE</th>
@@ -538,11 +541,14 @@ export default function Pricing() {
 
                             <td className="ta-right">
                               {vehicle.pricing ? (
-                                <input
-                                  className="rate-input"
-                                  type="text"
-                                  inputMode="decimal"
-                                  aria-label={`${vehicle.name} rate per km`}
+                                <>
+                                  <label htmlFor={`vehicle-rate-${vehicle.id}`} className="sr-only">{vehicle.name} rate per km</label>
+                                  <input
+                                    id={`vehicle-rate-${vehicle.id}`}
+                                    className="rate-input"
+                                    type="text"
+                                    inputMode="decimal"
+                                    aria-label={`${vehicle.name} rate per km`}
                                   value={
                                     rates[vehicle.id] ?? ""
                                   }
@@ -550,7 +556,8 @@ export default function Pricing() {
                                     vehicle.id
                                   )}
                                   readOnly={!isAdmin}
-                                />
+                                  />
+                                </>
                               ) : (
                                 <span
                                   style={{
@@ -573,7 +580,7 @@ export default function Pricing() {
                           </tr>
                         )}
                       </tbody>
-                    </table>
+                    </table></div>
 
                     <p className="card-footnote">
                       Rates are stored in pricing_rates and
@@ -602,10 +609,10 @@ export default function Pricing() {
                   disabled={saving}
                   style={{
                     padding: "12px 24px",
-                    border: "1px solid #0b2a4a",
+                    border: "1px solid #0F2A52",
                     borderRadius: 6,
                     background: "#fff",
-                    color: "#0b2a4a",
+                    color: "#0F2A52",
                     cursor: saving
                       ? "not-allowed"
                       : "pointer",
@@ -626,7 +633,7 @@ export default function Pricing() {
                       borderRadius: 6,
                       background: saving
                         ? "#64748b"
-                        : "#0b2a4a",
+                        : "#0F2A52",
                       color: "#fff",
                       cursor: saving
                         ? "not-allowed"

@@ -11,6 +11,151 @@ import { downloadCustomerExport } from "../../services/customerExport";
 
 const PAGE_SIZE = 10;
 
+const iconProps = {
+  width: 16,
+  height: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+};
+
+const PlusIcon = (props) => (
+  <svg {...iconProps} {...props}>
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const DownloadIcon = (props) => (
+  <svg {...iconProps} {...props}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+const ChevronDownIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const ChevronLeftIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+);
+
+const ChevronRightIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
+const FileSpreadsheetIcon = (props) => (
+  <svg {...iconProps} width={18} height={18} {...props}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <path d="M8 13h2" />
+    <path d="M8 17h2" />
+    <path d="M14 13h2" />
+    <path d="M14 17h2" />
+  </svg>
+);
+
+const FileTextIcon = (props) => (
+  <svg {...iconProps} width={18} height={18} {...props}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <line x1="10" y1="9" x2="8" y2="9" />
+  </svg>
+);
+
+const SearchIcon = (props) => (
+  <svg {...iconProps} {...props}>
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const SortIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="6" y1="12" x2="18" y2="12" />
+    <line x1="10" y1="18" x2="14" y2="18" />
+  </svg>
+);
+
+const CalendarIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const CheckIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const CheckCircleIcon = (props) => (
+  <svg {...iconProps} width={18} height={18} {...props}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const CloseIcon = (props) => (
+  <svg {...iconProps} {...props}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const PhoneIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  </svg>
+);
+
+const MoreVerticalIcon = (props) => (
+  <svg {...iconProps} {...props}>
+    <circle cx="12" cy="5" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="12" cy="19" r="1" />
+  </svg>
+);
+
+const MailIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+  </svg>
+);
+
+const MapPinIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+
+const BanIcon = (props) => (
+  <svg {...iconProps} width={14} height={14} {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+  </svg>
+);
+
 export default function Customer() {
   const { user, role } = useAuth();
   const canEdit = ["admin", "staff"].includes(role);
@@ -32,6 +177,11 @@ export default function Customer() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const menuRef = useRef(null);
   const exportMenuRef = useRef(null);
+  const cpModalRef = useRef(null);
+  const bhModalRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const hadModalOpenRef = useRef(false);
+  const activeModalKeyRef = useRef(null);
   const { customers: records, bookings, loading, error, refresh } = useCustomerDirectory({ includeBookings: true });
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -64,7 +214,7 @@ export default function Customer() {
     setPage(1);
     if (!value) setDebouncedQuery("");
   };
-  const countLabel = value => loading || error ? "—" : value;
+  const countLabel = value => loading || error ? "--" : value;
   const handleExport = (format = "csv") => {
     setShowExportMenu(false);
     const exportMatches = query && query !== activeSearchQuery
@@ -103,19 +253,73 @@ export default function Customer() {
     };
   }, []);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll and manage focus / Escape when profile or booking history modal is open
   useEffect(() => {
-    document.body.style.overflow = (profileModal || bookingHistoryModal) ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [profileModal, bookingHistoryModal]);
+    if (!profileCustomerId && !historyCustomerId) return;
+    function handleModalEscape(e) {
+      if (e.key !== "Escape") return;
+      if (statusTarget || editing || showAddModal) return;
+      if (historyCustomerId) {
+        setHistoryCustomerId(null);
+      } else if (profileCustomerId) {
+        setProfileCustomerId(null);
+      }
+    }
+    document.addEventListener("keydown", handleModalEscape);
+    return () => document.removeEventListener("keydown", handleModalEscape);
+  }, [profileCustomerId, historyCustomerId, statusTarget, editing, showAddModal]);
+
+  const isProfileOpen = Boolean(profileModal);
+  const isHistoryOpen = Boolean(bookingHistoryModal);
+
+  useEffect(() => {
+    const activeModalKey = isHistoryOpen
+      ? `bh:${historyCustomerId}`
+      : isProfileOpen
+        ? `cp:${profileCustomerId}`
+        : null;
+
+    if (activeModalKey && !hadModalOpenRef.current && !previousFocusRef.current) {
+      previousFocusRef.current = typeof document !== "undefined" ? document.activeElement : null;
+    }
+
+    if (activeModalKey !== activeModalKeyRef.current) {
+      if (isHistoryOpen) {
+        bhModalRef.current?.focus();
+      } else if (isProfileOpen) {
+        cpModalRef.current?.focus();
+      } else if (hadModalOpenRef.current) {
+        previousFocusRef.current?.focus?.();
+        previousFocusRef.current = null;
+      }
+    }
+
+    activeModalKeyRef.current = activeModalKey;
+    hadModalOpenRef.current = Boolean(activeModalKey);
+  }, [isProfileOpen, isHistoryOpen, profileCustomerId, historyCustomerId]);
+
+  useEffect(() => {
+    if (!isProfileOpen && !isHistoryOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prevOverflow; };
+  }, [isProfileOpen, isHistoryOpen]);
 
 
-  const handleViewProfile = (cust) => {
+  const handleViewProfile = (cust, e) => {
+    if (!previousFocusRef.current) {
+      const trigger = e?.currentTarget?.closest?.(".action-menu-wrapper")?.querySelector?.(".action-dots-btn");
+      previousFocusRef.current = trigger || (typeof document !== "undefined" ? document.activeElement : null);
+    }
     setOpenMenuId(null);
     setProfileModal(cust);
   };
 
-  const handleViewBookingHistory = (cust) => {
+  const handleViewBookingHistory = (cust, e) => {
+    if (!previousFocusRef.current) {
+      const trigger = e?.currentTarget?.closest?.(".action-menu-wrapper")?.querySelector?.(".action-dots-btn");
+      previousFocusRef.current = trigger || (typeof document !== "undefined" ? document.activeElement : null);
+    }
     setOpenMenuId(null);
     setBookingHistoryModal(cust);
   };
@@ -126,7 +330,7 @@ export default function Customer() {
   return (
     <MainLayout>
       {/* Topbar */}
-      <header className="topbar">
+      <header className="topbar customer-topbar">
         <div className="topbar-right">
           <OfficeTools />
         </div>
@@ -136,7 +340,7 @@ export default function Customer() {
       <section className="content customer-page">
         <div className="content-header">
           <div>
-            <h2 className="page-title">Customers</h2>
+            <h1 className="page-title">Customers</h1>
             <p className="page-subtitle">View and monitor registered customers.</p>
           </div>
           <div className="customer-header-actions">
@@ -147,7 +351,7 @@ export default function Customer() {
                 onClick={() => setShowAddModal(true)}
                 title="Register a new billing customer"
               >
-                <span aria-hidden="true">➕</span>
+                <PlusIcon />
                 <span>Add Customer</span>
               </button>
             )}
@@ -161,8 +365,9 @@ export default function Customer() {
                 onClick={() => setShowExportMenu((open) => !open)}
                 title="Export customer list to CSV or PDF"
               >
-                <span>📥 Export</span>
-                <span className={`export-chevron ${showExportMenu ? "open" : ""}`} aria-hidden="true">▾</span>
+                <DownloadIcon />
+                <span>Export</span>
+                <ChevronDownIcon className={`export-chevron ${showExportMenu ? "open" : ""}`} />
               </button>
               {showExportMenu && (
                 <div className="customer-export-menu" role="menu" aria-label="Export options">
@@ -172,7 +377,7 @@ export default function Customer() {
                     role="menuitem"
                     onClick={() => handleExport("csv")}
                   >
-                    <span className="export-menu-icon" aria-hidden="true">📊</span>
+                    <span className="export-menu-icon" aria-hidden="true"><FileSpreadsheetIcon /></span>
                     <div className="export-menu-text">
                       <span className="export-menu-title">Export as CSV</span>
                       <span className="export-menu-desc">Spreadsheet data (.csv)</span>
@@ -184,7 +389,7 @@ export default function Customer() {
                     role="menuitem"
                     onClick={() => handleExport("pdf")}
                   >
-                    <span className="export-menu-icon" aria-hidden="true">📄</span>
+                    <span className="export-menu-icon" aria-hidden="true"><FileTextIcon /></span>
                     <div className="export-menu-text">
                       <span className="export-menu-title">Export as PDF</span>
                       <span className="export-menu-desc">Print-ready document (.pdf)</span>
@@ -197,31 +402,33 @@ export default function Customer() {
         </div>
 
         <div className="stats-container">
-          <div className="stat-card total-cust"><h4>TOTAL CUSTOMERS</h4><h2>{countLabel(stats.total)}</h2></div>
-          <div className="stat-card active-cust" title="Active customers with a booking created this month, in Philippine time"><h4>ACTIVE THIS MONTH</h4><h2>{countLabel(stats.activeThisMonth)}</h2></div>
-          <div className="stat-card new-cust"><h4>NEW THIS WEEK</h4><h2>{countLabel(stats.newThisWeek)}</h2></div>
-          <div className="stat-card suspended-cust"><h4>SUSPENDED</h4><h2>{countLabel(stats.suspended)}</h2></div>
+          <div className="stat-card total-cust"><p className="stat-label">TOTAL CUSTOMERS</p><p className="stat-value tabular-nums">{countLabel(stats.total)}</p></div>
+          <div className="stat-card active-cust" title="Active customers with a booking created this month, in Philippine time"><p className="stat-label">ACTIVE THIS MONTH</p><p className="stat-value tabular-nums">{countLabel(stats.activeThisMonth)}</p></div>
+          <div className="stat-card new-cust"><p className="stat-label">NEW THIS WEEK</p><p className="stat-value tabular-nums">{countLabel(stats.newThisWeek)}</p></div>
+          <div className="stat-card suspended-cust"><p className="stat-label">SUSPENDED</p><p className="stat-value tabular-nums">{countLabel(stats.suspended)}</p></div>
         </div>
 
         <div className="filter-action-bar">
           <div className="search-wrapper">
-            <span className="search-icon">🔍</span>
+            <label htmlFor="customerSearch" className="sr-only">Search customers</label>
+            <SearchIcon className="search-icon" />
             <input type="text" id="customerSearch" aria-label="Search customers" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
           </div>
           <div className="filter-buttons">
-            <button className="filter-btn" onClick={() => { setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : "newest"); setPage(1); }} title="Cycle newest, name, and booking count">SORT: {sort.toUpperCase()} <span className="btn-icon">≡</span></button>
-            <button className="filter-btn" aria-pressed={todayOnly} onClick={() => { setTodayOnly(value => !value); setPage(1); }} title="Customers whose latest booking was created today">{todayOnly ? "TODAY ✓" : "TODAY"} <span className="btn-icon">📅</span></button>
-            <select className="filter-btn" aria-label="Customer status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
+            <button type="button" className="filter-btn" onClick={() => { setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : "newest"); setPage(1); }} title="Cycle newest, name, and booking count">SORT: {sort.toUpperCase()} <SortIcon className="btn-icon" /></button>
+            <button type="button" className="filter-btn" aria-pressed={todayOnly} onClick={() => { setTodayOnly(value => !value); setPage(1); }} title="Customers whose latest booking was created today">TODAY {todayOnly ? <CheckIcon className="btn-icon" /> : <CalendarIcon className="btn-icon" />}</button>
+            <label htmlFor="customerStatusFilter" className="sr-only">Customer status</label>
+            <select id="customerStatusFilter" className="filter-btn" aria-label="Customer status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
               <option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="SUSPENDED">Suspended</option><option value="UNKNOWN">Unknown</option>
             </select>
           </div>
         </div>
 
-        {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button className="filter-btn" onClick={refresh}>Retry</button></div>}
+        {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button type="button" className="filter-btn" onClick={refresh}>Retry</button></div>}
         {saveMessage && (
           <div className="customer-feedback-banner is-success" role="status" aria-live="polite">
             <div className="customer-feedback-content">
-              <i className="las la-check-circle customer-feedback-icon" aria-hidden="true" />
+              <CheckCircleIcon className="customer-feedback-icon" />
               <span>{saveMessage}</span>
             </div>
             <button
@@ -230,101 +437,105 @@ export default function Customer() {
               aria-label="Dismiss notification"
               onClick={() => setSaveMessage("")}
             >
-              ✕
+              <CloseIcon />
             </button>
           </div>
         )}
         <div className="customer-table-card" aria-busy={loading}>
-          <table className="customer-table">
-            <thead>
-              <tr>
-                <th>CUSTOMER</th>
-                <th>CONTACT NUMBER</th>
-                <th>TOTAL BOOKINGS</th>
-                <th>LAST BOOKING</th>
-                <th>MEMBER SINCE</th>
-                <th>STATUS</th>
-                <th className="text-center">ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading || error || customers.length === 0 ? (
-                <tr><td colSpan={7} className="customer-table-message">{loading ? "Loading customers..." : error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
-              ) : customers.map((cust) => (
-                <tr key={cust.id}>
-                  <td>
-                    <div className="customer-info-cell">
-                      <div className="table-avatar"></div>
-                      <div>
-                        <div className="cust-name">{cust.name}</div>
-                        <div className="cust-email">{cust.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td><span className="phone-cell">📞 {cust.phone}</span></td>
-                  <td>{cust.bookings}</td>
-                  <td>{cust.lastBooking}</td>
-                  <td>{cust.memberSince}</td>
-                  <td>
-                    <span className={`status-badge ${cust.status.toLowerCase()}`}>{cust.status}</span>
-                  </td>
-                  <td className="text-center">
-                    <div className="action-menu-wrapper" ref={openMenuId === cust.id ? menuRef : null}>
-                      <button
-                        className="action-dots-btn"
-                        aria-label={`Actions for ${cust.name}`}
-                        aria-expanded={openMenuId === cust.id}
-                        onClick={() => setOpenMenuId(openMenuId === cust.id ? null : cust.id)}
-                      >
-                        ⋮
-                      </button>
-                      {openMenuId === cust.id && (
-                        <div className="action-dropdown">
-                          {canEdit && <button className="dropdown-item" onClick={() => {
-                            const record = records.find(item => item.id === cust.id);
-                            if (record) { setEditing({ customer: { ...record }, owner: user.id }); setSaveMessage(""); }
-                            setOpenMenuId(null);
-                          }}>Edit Customer</button>}
-                          <button className="dropdown-item" onClick={() => handleViewProfile(cust)}>
-                            View Profile
-                          </button>
-                          <button className="dropdown-item" onClick={() => handleViewBookingHistory(cust)}>
-                            View Booking History
-                          </button>
-                          {canEdit && (
-                            <button
-                              className={`dropdown-item ${cust.is_active ? "danger" : ""}`}
-                              onClick={() => {
-                                const record = records.find(item => item.id === cust.id);
-                                if (record) { setStatusTarget(record); setSaveMessage(""); }
-                                setOpenMenuId(null);
-                              }}
-                            >
-                              {cust.is_active ? "Suspend Account" : "Reactivate Account"}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </td>
+          <div className="customer-table-scroll">
+            <table className="customer-table">
+              <thead>
+                <tr>
+                  <th>CUSTOMER</th>
+                  <th>CONTACT NUMBER</th>
+                  <th>TOTAL BOOKINGS</th>
+                  <th>LAST BOOKING</th>
+                  <th>MEMBER SINCE</th>
+                  <th>STATUS</th>
+                  <th className="text-center">ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading || error || customers.length === 0 ? (
+                  <tr><td colSpan={7} className="customer-table-message">{loading ? "Loading customers..." : error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
+                ) : customers.map((cust) => (
+                  <tr key={cust.id}>
+                    <td>
+                      <div className="customer-info-cell">
+                        <div className="table-avatar" aria-hidden="true"></div>
+                        <div>
+                          <div className="cust-name">{cust.name}</div>
+                          <div className="cust-email">{cust.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span className="phone-cell tabular-nums"><PhoneIcon /> {cust.phone}</span></td>
+                    <td className="tabular-nums">{cust.bookings}</td>
+                    <td className="tabular-nums">{cust.lastBooking}</td>
+                    <td className="tabular-nums">{cust.memberSince}</td>
+                    <td>
+                      <span className={`status-badge ${cust.status.toLowerCase()}`}>{cust.status}</span>
+                    </td>
+                    <td className="text-center">
+                      <div className="action-menu-wrapper" ref={openMenuId === cust.id ? menuRef : null}>
+                        <button
+                          type="button"
+                          className="action-dots-btn"
+                          aria-label={`Actions for ${cust.name}`}
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuId === cust.id}
+                          onClick={() => setOpenMenuId(openMenuId === cust.id ? null : cust.id)}
+                        >
+                          <MoreVerticalIcon />
+                        </button>
+                        {openMenuId === cust.id && (
+                          <div className="action-dropdown" role="menu">
+                            {canEdit && <button type="button" role="menuitem" className="dropdown-item" onClick={() => {
+                              const record = records.find(item => item.id === cust.id);
+                              if (record) { setEditing({ customer: { ...record }, owner: user.id }); setSaveMessage(""); }
+                              setOpenMenuId(null);
+                            }}>Edit Customer</button>}
+                            <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewProfile(cust, e)}>
+                              View Profile
+                            </button>
+                            <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewBookingHistory(cust, e)}>
+                              View Booking History
+                            </button>
+                            {canEdit && (
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className={`dropdown-item ${cust.is_active ? "danger" : ""}`}
+                                onClick={() => {
+                                  const record = records.find(item => item.id === cust.id);
+                                  if (record) { setStatusTarget(record); setSaveMessage(""); }
+                                  setOpenMenuId(null);
+                                }}
+                              >
+                                {cust.is_active ? "Suspend Account" : "Reactivate Account"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <div className="table-pagination">
-            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {loading || error ? "—" : filtered.length} customers</span>
+            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {loading || error ? "--" : filtered.length} customers</span>
             <div className="pagination-controls">
-              <button className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page">‹</button>
+              <button type="button" className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page"><ChevronLeftIcon /></button>
               {[...new Set([1, page - 1, page, page + 1, pageCount])].filter(number => number >= 1 && number <= pageCount).sort((a, b) => a - b).map(number => (
-                <button key={number} className={`page-number ${number === page ? "active" : ""}`} aria-current={number === page ? "page" : undefined} disabled={loading || Boolean(error)} onClick={() => setPage(number)}>{number}</button>
+                <button type="button" key={number} className={`page-number tabular-nums ${number === page ? "active" : ""}`} aria-current={number === page ? "page" : undefined} disabled={loading || Boolean(error)} onClick={() => setPage(number)}>{number}</button>
               ))}
-              <button className="page-arrow" disabled={loading || Boolean(error) || page >= pageCount} onClick={() => setPage(page + 1)} aria-label="Next customer page">›</button>
+              <button type="button" className="page-arrow" disabled={loading || Boolean(error) || page >= pageCount} onClick={() => setPage(page + 1)} aria-label="Next customer page"><ChevronRightIcon /></button>
             </div>
           </div>
         </div>
-      </section>
-
       {/* ===== CUSTOMER PROFILE MODAL ===== */}
       {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} onClose={() => setEditing(null)} onSaved={() => {
         setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
@@ -355,18 +566,25 @@ export default function Customer() {
         />
       )}
       {profileModal && profile && (
-        <div className="cp-backdrop" onClick={() => setProfileModal(null)}>
-          <div className="cp-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="cp-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setProfileModal(null); }}>
+          <div
+            ref={cpModalRef}
+            className="cp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cp-modal-title"
+            tabIndex={-1}
+          >
 
             {/* Modal Header */}
             <div className="cp-modal-header">
               <div className="cp-modal-title-row">
-                <h2 className="cp-modal-title">Customer Profile</h2>
+                <h2 id="cp-modal-title" className="cp-modal-title">Customer Profile</h2>
                 <span className={`cp-status-pill ${profileModal.status.toLowerCase()}`}>
                   {profileModal.status}
                 </span>
               </div>
-              <button className="cp-close-btn" onClick={() => setProfileModal(null)}>✕</button>
+              <button type="button" className="cp-close-btn" aria-label="Close customer profile" onClick={() => setProfileModal(null)}><CloseIcon /></button>
             </div>
 
             {/* Modal Body */}
@@ -383,35 +601,35 @@ export default function Customer() {
                     </div>
                   </div>
                   <h3 className="cp-name">{profileModal.name}</h3>
-                  <p className="cp-cust-id">ID: {profile.id}</p>
+                  <p className="cp-cust-id tabular-nums">ID: {profile.id}</p>
 
                   <div className="cp-details-list">
                     <div className="cp-detail-row">
-                      <span className="cp-detail-icon">✉</span>
+                      <span className="cp-detail-icon" aria-hidden="true"><MailIcon /></span>
                       <div>
                         <div className="cp-detail-label">EMAIL</div>
                         <div className="cp-detail-value">{profileModal.email}</div>
                       </div>
                     </div>
                     <div className="cp-detail-row">
-                      <span className="cp-detail-icon">📞</span>
+                      <span className="cp-detail-icon" aria-hidden="true"><PhoneIcon /></span>
                       <div>
                         <div className="cp-detail-label">CONTACT</div>
-                        <div className="cp-detail-value">{profileModal.phone}</div>
+                        <div className="cp-detail-value tabular-nums">{profileModal.phone}</div>
                       </div>
                     </div>
                     <div className="cp-detail-row">
-                      <span className="cp-detail-icon">📍</span>
+                      <span className="cp-detail-icon" aria-hidden="true"><MapPinIcon /></span>
                       <div>
                         <div className="cp-detail-label">ADDRESS</div>
                         <div className="cp-detail-value">{profile.address}</div>
                       </div>
                     </div>
                     <div className="cp-detail-row">
-                      <span className="cp-detail-icon">📅</span>
+                      <span className="cp-detail-icon" aria-hidden="true"><CalendarIcon /></span>
                       <div>
                         <div className="cp-detail-label">MEMBER SINCE</div>
-                        <div className="cp-detail-value">{profileModal.memberSince}</div>
+                        <div className="cp-detail-value tabular-nums">{profileModal.memberSince}</div>
                       </div>
                     </div>
                   </div>
@@ -419,23 +637,29 @@ export default function Customer() {
 
                 {/* Account Status Card */}
                 <div className="cp-status-card">
-                  <h4 className="cp-section-label">ACCOUNT STATUS</h4>
+                  <h3 className="cp-section-label">ACCOUNT STATUS</h3>
                   <div className="cp-status-row">
                     <span>Current Status</span>
                     <span className={`cp-status-dot ${profileModal.status.toLowerCase()}`}>
-                      ● {profileModal.status === "ACTIVE" ? "Active" : "Suspended"}
+                      <span className="cp-status-indicator" aria-hidden="true" />
+                      <span>{profileModal.status === "ACTIVE" ? "Active" : profileModal.status === "SUSPENDED" ? "Suspended" : "Unknown"}</span>
                     </span>
                   </div>
                   {canEdit ? (
                     <>
                       <button
+                        type="button"
                         className={`cp-suspend-btn ${profileModal.status === "ACTIVE" ? "" : "reactivate"}`}
                         onClick={() => {
                           const record = records.find(item => item.id === profileModal.id);
                           if (record) { setStatusTarget(record); setSaveMessage(""); }
                         }}
                       >
-                        {profileModal.status === "ACTIVE" ? "🚫 Suspend Account" : "✓ Reactivate Account"}
+                        {profileModal.status === "ACTIVE" ? (
+                          <><BanIcon /><span>Suspend Account</span></>
+                        ) : (
+                          <><CheckIcon /><span>Reactivate Account</span></>
+                        )}
                       </button>
                       <p className="cp-suspend-hint">
                         {profileModal.status === "ACTIVE"
@@ -455,35 +679,35 @@ export default function Customer() {
 
                 {/* Booking Summary */}
                 <div className="cp-section-title-row">
-                  <h4 className="cp-section-label">BOOKING SUMMARY</h4>
+                  <h3 className="cp-section-label">BOOKING SUMMARY</h3>
                 </div>
                 <div className="cp-summary-grid">
                   <div className="cp-summary-card">
                     <div className="cp-summary-label">TOTAL</div>
-                    <div className="cp-summary-value">{profile.bookingSummary.total}</div>
+                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.total}</div>
                     <div className="cp-summary-accent neutral"></div>
                   </div>
                   <div className="cp-summary-card">
                     <div className="cp-summary-label">COMPLETED</div>
-                    <div className="cp-summary-value">{profile.bookingSummary.completed}</div>
+                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.completed}</div>
                     <div className="cp-summary-accent green"></div>
                   </div>
                   <div className="cp-summary-card">
                     <div className="cp-summary-label">CANCELLED</div>
-                    <div className="cp-summary-value">{profile.bookingSummary.cancelled}</div>
+                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.cancelled}</div>
                     <div className="cp-summary-accent red"></div>
                   </div>
                   <div className="cp-summary-card">
                     <div className="cp-summary-label">ACTIVE NOW</div>
-                    <div className="cp-summary-value">{profile.bookingSummary.activeNow}</div>
+                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.activeNow}</div>
                     <div className="cp-summary-accent blue"></div>
                   </div>
                 </div>
 
                 {/* Recent Bookings */}
                 <div className="cp-recent-header">
-                  <h4 className="cp-section-label">RECENT BOOKINGS</h4>
-                  <button className="cp-view-all-btn" onClick={() => { setProfileModal(null); setBookingHistoryModal(profileModal); }}>View All Bookings →</button>
+                  <h3 className="cp-section-label">RECENT BOOKINGS</h3>
+                  <button type="button" className="cp-view-all-btn" onClick={() => { setProfileModal(null); setBookingHistoryModal(profileModal); }}>View All Bookings <span aria-hidden="true">→</span></button>
                 </div>
                 <div className="cp-bookings-table-wrap">
                   <table className="cp-bookings-table">
@@ -499,9 +723,9 @@ export default function Customer() {
                       {profile.recentBookings.length === 0 && <tr><td colSpan={4}>No bookings recorded.</td></tr>}
                       {profile.recentBookings.slice(0, 5).map((b) => (
                         <tr key={b.id}>
-                          <td className="cp-shipment-id">{b.id}</td>
+                          <td className="cp-shipment-id tabular-nums">{b.id}</td>
                           <td>{b.route}</td>
-                          <td>{b.date}</td>
+                          <td className="tabular-nums">{b.date}</td>
                           <td>
                             <span className={`cp-booking-status ${b.status.toLowerCase()}`}>
                               {b.status}
@@ -520,8 +744,15 @@ export default function Customer() {
       )}
       {/* ===== BOOKING HISTORY MODAL ===== */}
       {bookingHistoryModal && historyProfile && (
-        <div className="bh-backdrop" onClick={() => setBookingHistoryModal(null)}>
-          <div className="bh-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="bh-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setBookingHistoryModal(null); }}>
+          <div
+            ref={bhModalRef}
+            className="bh-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bh-modal-title"
+            tabIndex={-1}
+          >
 
             {/* Modal Header */}
             <div className="bh-modal-header">
@@ -530,45 +761,45 @@ export default function Customer() {
                   {bookingHistoryModal.name.split(" ").map(n => n[0]).join("").slice(0,2)}
                 </div>
                 <div>
-                  <h2 className="bh-modal-title">{bookingHistoryModal.name}</h2>
+                  <h2 id="bh-modal-title" className="bh-modal-title">{bookingHistoryModal.name}</h2>
                   <p className="bh-modal-meta">
-                    <span className="bh-meta-id">ID: {historyProfile.id}</span>
-                    <span className="bh-meta-dot">·</span>
+                    <span className="bh-meta-id tabular-nums">ID: {historyProfile.id}</span>
+                    <span className="bh-meta-dot" aria-hidden="true">·</span>
                     <span className={`bh-status-pill ${bookingHistoryModal.status.toLowerCase()}`}>{bookingHistoryModal.status}</span>
-                    <span className="bh-meta-dot">·</span>
-                    <span className="bh-meta-count">{historyProfile.bookingSummary.total} total bookings</span>
+                    <span className="bh-meta-dot" aria-hidden="true">·</span>
+                    <span className="bh-meta-count tabular-nums">{historyProfile.bookingSummary.total} total bookings</span>
                   </p>
                 </div>
               </div>
-              <button className="bh-close-btn" onClick={() => setBookingHistoryModal(null)}>✕</button>
+              <button type="button" className="bh-close-btn" aria-label="Close booking history" onClick={() => setBookingHistoryModal(null)}><CloseIcon /></button>
             </div>
 
             {/* Summary Strip */}
             <div className="bh-summary-strip">
               <div className="bh-strip-card">
                 <span className="bh-strip-label">TOTAL</span>
-                <span className="bh-strip-value neutral">{historyProfile.bookingSummary.total}</span>
+                <span className="bh-strip-value neutral tabular-nums">{historyProfile.bookingSummary.total}</span>
               </div>
               <div className="bh-strip-divider" />
               <div className="bh-strip-card">
                 <span className="bh-strip-label">COMPLETED</span>
-                <span className="bh-strip-value green">{historyProfile.bookingSummary.completed}</span>
+                <span className="bh-strip-value green tabular-nums">{historyProfile.bookingSummary.completed}</span>
               </div>
               <div className="bh-strip-divider" />
               <div className="bh-strip-card">
                 <span className="bh-strip-label">CANCELLED</span>
-                <span className="bh-strip-value red">{historyProfile.bookingSummary.cancelled}</span>
+                <span className="bh-strip-value red tabular-nums">{historyProfile.bookingSummary.cancelled}</span>
               </div>
               <div className="bh-strip-divider" />
               <div className="bh-strip-card">
                 <span className="bh-strip-label">ACTIVE NOW</span>
-                <span className="bh-strip-value blue">{historyProfile.bookingSummary.activeNow}</span>
+                <span className="bh-strip-value blue tabular-nums">{historyProfile.bookingSummary.activeNow}</span>
               </div>
             </div>
 
             {/* Timeline Body */}
             <div className="bh-body">
-              <h4 className="bh-section-label">BOOKING HISTORY</h4>
+              <h3 className="bh-section-label">BOOKING HISTORY</h3>
               <div className="bh-timeline">
                 {historyProfile.recentBookings.length === 0 && <p>No bookings recorded.</p>}
                 {historyProfile.recentBookings.map((b, idx) => {
@@ -578,16 +809,16 @@ export default function Customer() {
                   return (
                     <div className="bh-timeline-item" key={b.id}>
                       <div className="bh-timeline-left">
-                        <div className={`bh-dot ${dotClass}`}></div>
+                        <div className={`bh-dot ${dotClass}`} aria-hidden="true"></div>
                         {idx < historyProfile.recentBookings.length - 1 && <div className="bh-line" />}
                       </div>
                       <div className="bh-timeline-card">
                         <div className="bh-card-top">
                           <div className="bh-card-id-route">
-                            <span className="bh-card-id">{b.id}</span>
+                            <span className="bh-card-id tabular-nums">{b.id}</span>
                             <span className="bh-card-route">{b.route}</span>
                           </div>
-                          <span className="bh-card-date">{b.date}</span>
+                          <span className="bh-card-date tabular-nums">{b.date}</span>
                         </div>
                         <div className="bh-card-bottom">
                           <span className="bh-cargo-tag">
@@ -597,7 +828,7 @@ export default function Customer() {
                             {b.status}
                           </span>
                           {b.deliveredAt && (
-                            <span className="bh-delivered-tag">Delivered: {b.deliveredAt}</span>
+                            <span className="bh-delivered-tag tabular-nums">Delivered: {b.deliveredAt}</span>
                           )}
                           {b.late && (
                             <span className="bh-late-tag">{b.late}</span>
@@ -613,6 +844,7 @@ export default function Customer() {
           </div>
         </div>
       )}
+      </section>
     </MainLayout>
   );
 }

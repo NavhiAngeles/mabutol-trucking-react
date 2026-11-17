@@ -103,7 +103,7 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
       {!data.documents.length && <p>No proof documents submitted.</p>}
       {data.documents.map(doc=><button type="button" key={doc.id} disabled={busy} onClick={async()=>{try{setProof({url:await service.proofUrl(shipmentId,doc.id),label:`Attempt ${doc.proof_attempt} · ${doc.kind.replaceAll('_',' ')}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open recorded proof.');}}}>View attempt {doc.proof_attempt}: {doc.kind.replaceAll('_',' ')}</button>)}
       {proof && <figure><figcaption>{proof.label}</figcaption><img className="delivery-proof-image" src={proof.url} alt={proof.label} /><button type="button" onClick={()=>setProof(null)}>Close private proof</button></figure>}
-      <label>Office review / resolution reason<textarea maxLength={1000} value={reason} disabled={busy || refreshRequired} onChange={event=>setReason(event.target.value)} /></label>
+      <label htmlFor={`delivery-ops-reason-${shipmentId}`}>Office review / resolution reason<textarea id={`delivery-ops-reason-${shipmentId}`} maxLength={1000} value={reason} disabled={busy || refreshRequired} onChange={event=>setReason(event.target.value)} /></label>
       <h4>Incident evidence</h4>
       {!data.incident_evidence?.length && <p>No incident photos submitted.</p>}
       {data.incident_evidence?.map(photo=><div key={photo.id}>

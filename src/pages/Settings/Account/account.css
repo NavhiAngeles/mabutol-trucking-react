@@ -2,16 +2,16 @@
 PAGE
 ========================= */
 
-.page-header {
+.settings-page .page-header {
   margin-bottom: 24px;
 }
 
-.page-header h2 {
+.settings-page .page-header :is(h1, h2) {
   font-size: 34px;
   margin-bottom: 8px;
 }
 
-.page-header p {
+.settings-page .page-header p {
   color: #6B7280;
 }
 
@@ -19,7 +19,7 @@ PAGE
 GRID
 ========================= */
 
-.settings-grid {
+.settings-page .settings-grid {
   display: grid;
 
   grid-template-columns: 2fr 1fr;
@@ -27,8 +27,8 @@ GRID
   gap: 24px;
 }
 
-.left-column,
-.right-column {
+.settings-page .left-column,
+.settings-page .right-column {
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -38,7 +38,7 @@ GRID
 CARDS
 ========================= */
 
-.settings-card {
+.settings-page .settings-card {
   background: white;
 
   border: 1px solid #E5E7EB;
@@ -48,16 +48,16 @@ CARDS
   padding: 24px;
 }
 
-.card-header {
+.settings-page .card-header {
   margin-bottom: 24px;
 }
 
-.card-header h3 {
+.settings-page .card-header h3 {
   font-size: 24px;
   margin-bottom: 6px;
 }
 
-.card-header p {
+.settings-page .card-header p {
   color: #6B7280;
 }
 
@@ -65,7 +65,7 @@ CARDS
 PROFILE
 ========================= */
 
-.profile-layout {
+.settings-page .profile-layout {
   display: grid;
 
   grid-template-columns: 120px 1fr 1fr;
@@ -73,7 +73,7 @@ PROFILE
   gap: 28px;
 }
 
-.avatar-box {
+.settings-page .avatar-box {
   position: relative;
 
   width: 120px;
@@ -93,7 +93,7 @@ PROFILE
   color: #0F172A;
 }
 
-.avatar-camera-btn {
+.settings-page .avatar-camera-btn {
   position: absolute;
   bottom: -6px;
   right: -6px;
@@ -116,28 +116,28 @@ PROFILE
   box-shadow: 0 2px 6px rgba(0,0,0,0.10);
   transition: background 0.15s;
 }
-.avatar-camera-btn:hover { background: #F8FAFC; }
+.settings-page .avatar-camera-btn:hover { background: #F8FAFC; }
 
-.field-hint {
+.settings-page .field-hint {
   font-size: 11px;
-  color: #94A3B8;
+  color: #64748B;
   margin: 4px 0 0;
 }
 
-.card-bottom-accent {
+.settings-page .card-bottom-accent {
   height: 3px;
   background: #0F172A;
   margin: 24px -24px -24px -24px;
   border-radius: 0 0 14px 14px;
 }
 
-.profile-info {
+.settings-page .profile-info {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.info-group label {
+.settings-page .info-group :is(label, .info-label) {
   display: block;
 
   font-size: 12px;
@@ -147,7 +147,7 @@ PROFILE
   margin-bottom: 6px;
 }
 
-.info-group span {
+.settings-page .info-group span {
   font-size: 16px;
 }
 
@@ -155,7 +155,7 @@ PROFILE
 ROLE BADGE
 ========================= */
 
-.role-badge {
+.settings-page .role-badge {
   display: inline-flex;
 
   padding: 6px 12px;
@@ -173,7 +173,7 @@ ROLE BADGE
 PASSWORD
 ========================= */
 
-.password-grid {
+.settings-page .password-grid {
   display: grid;
 
   grid-template-columns: 1fr 1fr 1fr;
@@ -183,12 +183,12 @@ PASSWORD
   margin-bottom: 24px;
 }
 
-.password-grid label {
+.settings-page .password-grid label {
   display: block;
   margin-bottom: 8px;
 }
 
-.strength-row {
+.settings-page .strength-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -196,7 +196,7 @@ PASSWORD
   margin: 10px 0;
 }
 
-.strength-bar {
+.settings-page .strength-bar {
   flex: 1;
   height: 10px;
 
@@ -207,28 +207,28 @@ PASSWORD
   overflow: hidden;
 }
 
-.inline-icon-text {
+.settings-page .inline-icon-text {
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.strength-fill {
+.settings-page .strength-fill {
   width: 80%;
   height: 100%;
 
   background: #22C55E;
 }
 
-.green {
-  color: #16A34A;
+.settings-page .green {
+  color: #15803D;
 }
 
 /* =========================
 BUTTONS
 ========================= */
 
-.primary-btn {
+.settings-page .primary-btn {
   padding: 12px 18px;
 
   border: none;
@@ -244,7 +244,7 @@ BUTTONS
   cursor: pointer;
 }
 
-.logout-btn {
+.settings-page .logout-btn {
   margin-top: 4px;
 
   width: 100%;
@@ -255,7 +255,7 @@ BUTTONS
 
   background: white;
 
-  color: #DC2626;
+  color: #B91C1C;
 
   border-radius: 10px;
 
@@ -270,23 +270,23 @@ BUTTONS
   transition: background 0.15s, opacity 0.15s;
 }
 
-.logout-btn:hover:not(:disabled) {
+.settings-page .logout-btn:hover:not(:disabled) {
   background: #FEF2F2;
 }
 
-.logout-btn:disabled {
+.settings-page .logout-btn:disabled {
   opacity: 0.5;
   cursor: default;
   border-color: #E5E7EB;
-  color: #94A3B8;
+  color: #64748B;
 }
 
 /* =========================
 SECURITY
 ========================= */
 
-.security-box,
-.session-box {
+.settings-page .security-box,
+.settings-page .session-box {
   border: 1px solid #E5E7EB;
 
   border-radius: 10px;
@@ -300,7 +300,7 @@ SECURITY
   gap: 6px;
 }
 
-.section-label {
+.settings-page .section-label {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -312,17 +312,17 @@ SECURITY
 
   margin-bottom: 10px;
 }
-.section-label svg { color: #64748B; flex-shrink: 0; }
+.settings-page .section-label svg { color: #64748B; flex-shrink: 0; }
 
-.session-top-row {
+.settings-page .session-top-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.current-badge {
+.settings-page .current-badge {
   background: #DCFCE7;
-  color: #16A34A;
+  color: #15803D;
 
   font-size: 11px;
   font-weight: 700;
@@ -331,68 +331,68 @@ SECURITY
   border-radius: 999px;
 }
 
-.session-location {
+.settings-page .session-location {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #94A3B8;
+  color: #64748B;
 }
 
-.session-row {
+.settings-page .session-row {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
 }
 
-.session-row-main {
+.settings-page .session-row-main {
   display: flex;
   align-items: center;
   gap: 10px;
   color: #64748B;
 }
-.session-icon {
+.settings-page .session-icon {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-  color: #94A3B8;
+  color: #64748B;
 }
-.session-icon svg {
+.settings-page .session-icon svg {
   display: block;
   width: 15px;
   height: 15px;
 }
-.session-row-main div {
+.settings-page .session-row-main div {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.session-row-main strong {
+.settings-page .session-row-main strong {
   color: #0F172A;
   font-size: 14px;
   font-weight: 700;
 }
-.session-row-main span {
+.settings-page .session-row-main span {
   color: #64748B;
   font-size: 13px;
 }
 
-.session-logout-link {
+.settings-page .session-logout-link {
   background: none;
   border: none;
 
-  color: #DC2626;
+  color: #B91C1C;
   font-size: 13px;
   font-weight: 700;
 
   cursor: pointer;
   padding: 4px;
 }
-.session-logout-link:hover { text-decoration: underline; }
+.settings-page .session-logout-link:hover { text-decoration: underline; }
 
-.account-details-box {
+.settings-page .account-details-box {
   margin-top: 20px;
   padding: 16px;
 
@@ -401,7 +401,7 @@ SECURITY
   border-top: 1px solid #E5E7EB;
 }
 
-.ad-row {
+.settings-page .ad-row {
   display: flex;
   justify-content: space-between;
 
@@ -410,13 +410,13 @@ SECURITY
   font-size: 14px;
   color: #475569;
 }
-.ad-row strong { color: #0F172A; }
+.settings-page .ad-row strong { color: #0F172A; }
 
 /* =========================
 DETAILS
 ========================= */
 
-.details-row {
+.settings-page .details-row {
   display: flex;
   justify-content: space-between;
 
@@ -428,7 +428,7 @@ DETAILS
 CHANGE PASSWORD MODAL
 ========================= */
 
-.pw-backdrop {
+.settings-page .pw-backdrop {
   position: fixed; inset: 0;
   background: rgba(15, 23, 42, 0.40);
   backdrop-filter: blur(2px);
@@ -444,7 +444,7 @@ CHANGE PASSWORD MODAL
   to   { opacity: 1; }
 }
 
-.pw-modal {
+.settings-page .pw-modal {
   background: #FFFFFF;
   border-radius: 14px;
   width: 480px;
@@ -462,7 +462,7 @@ CHANGE PASSWORD MODAL
 }
 
 /* Header */
-.pw-modal-header {
+.settings-page .pw-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -470,50 +470,50 @@ CHANGE PASSWORD MODAL
   border-bottom: 1px solid #F1F5F9;
 }
 
-.pw-modal-title {
+.settings-page .pw-modal-title {
   font-size: 20px;
   font-weight: 700;
   color: #0F172A;
   margin: 0;
 }
 
-.pw-close-btn {
+.settings-page .pw-close-btn {
   background: none; border: none;
-  font-size: 16px; color: #94A3B8;
+  font-size: 16px; color: #64748B;
   cursor: pointer; padding: 4px 8px;
   border-radius: 6px; line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
-.pw-close-btn:hover { background: #F1F5F9; color: #334155; }
+.settings-page .pw-close-btn:hover { background: #F1F5F9; color: #334155; }
 
 /* Body */
-.pw-modal-body {
+.settings-page .pw-modal-body {
   padding: 24px 24px 8px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.pw-field-group {
+.settings-page .pw-field-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.pw-label {
+.settings-page .pw-label {
   font-size: 11px;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.06em;
 }
 
-.pw-input-wrap {
+.settings-page .pw-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.pw-input {
+.settings-page .pw-input {
   width: 100%;
   padding: 12px 44px 12px 14px;
   border: 1px solid #E2E8F0;
@@ -524,37 +524,36 @@ CHANGE PASSWORD MODAL
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
-.pw-input:focus {
-  outline: none;
-  border-color: #1E3A8A;
+.settings-page .pw-input:focus {
+border-color: #1E3A8A;
   box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.10);
 }
-.pw-input::placeholder { color: #CBD5E1; }
+.settings-page .pw-input::placeholder { color: #64748B; }
 
-.pw-eye-btn {
+.settings-page .pw-eye-btn {
   position: absolute; right: 12px;
   background: none; border: none;
   cursor: pointer; font-size: 15px;
-  color: #94A3B8; padding: 0; line-height: 1;
+  color: #64748B; padding: 0; line-height: 1;
   transition: color 0.15s;
 }
-.pw-eye-btn:hover { color: #475569; }
+.settings-page .pw-eye-btn:hover { color: #475569; }
 
 /* Strength */
-.pw-strength-wrap {
+.settings-page .pw-strength-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 4px;
 }
 
-.pw-strength-bars {
+.settings-page .pw-strength-bars {
   display: flex;
   gap: 6px;
   flex: 1;
 }
 
-.pw-strength-seg {
+.settings-page .pw-strength-seg {
   height: 5px;
   flex: 1;
   border-radius: 99px;
@@ -562,48 +561,48 @@ CHANGE PASSWORD MODAL
   transition: background 0.2s;
 }
 
-.pw-strength-seg.seg-weak   { background: #EF4444; }
-.pw-strength-seg.seg-fair   { background: #F97316; }
-.pw-strength-seg.seg-good   { background: #EAB308; }
-.pw-strength-seg.seg-strong { background: #10B981; }
+.settings-page .pw-strength-seg.seg-weak { background: #EF4444; }
+.settings-page .pw-strength-seg.seg-fair { background: #F97316; }
+.settings-page .pw-strength-seg.seg-good { background: #EAB308; }
+.settings-page .pw-strength-seg.seg-strong { background: #10B981; }
 
-.pw-strength-label {
+.settings-page .pw-strength-label {
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
   min-width: 44px; text-align: right;
 }
-.pw-strength-label.str-weak   { color: #EF4444; }
-.pw-strength-label.str-fair   { color: #F97316; }
-.pw-strength-label.str-good   { color: #EAB308; }
-.pw-strength-label.str-strong { color: #10B981; }
+.settings-page .pw-strength-label.str-weak { color: #B91C1C; }
+.settings-page .pw-strength-label.str-fair { color: #F97316; }
+.settings-page .pw-strength-label.str-good { color: #EAB308; }
+.settings-page .pw-strength-label.str-strong { color: #15803D; }
 
 /* Match hint */
-.pw-match-hint {
+.settings-page .pw-match-hint {
   font-size: 12px; font-weight: 600; margin: 2px 0 0;
 }
-.pw-match-hint.match    { color: #16A34A; }
-.pw-match-hint.no-match { color: #DC2626; }
+.settings-page .pw-match-hint.match { color: #15803D; }
+.settings-page .pw-match-hint.no-match { color: #B91C1C; }
 
 /* Error / Success messages */
-.pw-error {
-  font-size: 13px; color: #DC2626;
+.settings-page .pw-error {
+  font-size: 13px; color: #B91C1C;
   background: #FEF2F2; border: 1px solid #FECACA;
   border-radius: 8px; padding: 10px 14px; margin: 0;
 }
-.pw-success {
-  font-size: 13px; color: #16A34A;
+.settings-page .pw-success {
+  font-size: 13px; color: #15803D;
   background: #F0FDF4; border: 1px solid #BBF7D0;
   border-radius: 8px; padding: 10px 14px; margin: 0;
 }
 
 /* Footer */
-.pw-modal-footer {
+.settings-page .pw-modal-footer {
   padding: 16px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.pw-update-btn {
+.settings-page .pw-update-btn {
   width: 100%;
   padding: 14px;
   border: none;
@@ -615,11 +614,11 @@ CHANGE PASSWORD MODAL
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-.pw-update-btn:hover:not(:disabled) { background: #1E293B; }
-.pw-update-btn:disabled { opacity: 0.7; cursor: default; }
-.pw-update-btn--success { background: #16A34A; }
+.settings-page .pw-update-btn:hover:not(:disabled) { background: #1E293B; }
+.settings-page .pw-update-btn:disabled { opacity: 0.7; cursor: default; }
+.settings-page .pw-update-btn--success { background: #16A34A; }
 
-.pw-cancel-btn {
+.settings-page .pw-cancel-btn {
   width: 100%;
   padding: 12px;
   border: none;
@@ -631,19 +630,19 @@ CHANGE PASSWORD MODAL
   border-radius: 10px;
   transition: background 0.15s;
 }
-.pw-cancel-btn:hover { background: #F8FAFC; color: #334155; }
+.settings-page .pw-cancel-btn:hover { background: #F8FAFC; color: #334155; }
 
 /* =========================
 EDIT PROFILE BUTTON (card header)
 ========================= */
 
-.ep-card-header {
+.settings-page .ep-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.ep-edit-btn {
+.settings-page .ep-edit-btn {
   padding: 8px 16px;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
@@ -657,12 +656,12 @@ EDIT PROFILE BUTTON (card header)
   align-items: center;
   gap: 6px;
 }
-.ep-edit-btn:hover {
+.settings-page .ep-edit-btn:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
 }
 
-.icon-only-btn {
+.settings-page .icon-only-btn {
   width: 36px;
   height: 36px;
 
@@ -679,7 +678,7 @@ EDIT PROFILE BUTTON (card header)
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
-.icon-only-btn:hover {
+.settings-page .icon-only-btn:hover {
   background: #F8FAFC;
   border-color: #CBD5E1;
 }
@@ -688,7 +687,7 @@ EDIT PROFILE BUTTON (card header)
 EDIT PROFILE MODAL
 ========================= */
 
-.ep-backdrop {
+.settings-page .ep-backdrop {
   position: fixed; inset: 0;
   background: rgba(15, 23, 42, 0.40);
   backdrop-filter: blur(2px);
@@ -699,7 +698,7 @@ EDIT PROFILE MODAL
   animation: pwFadeIn 0.15s ease;
 }
 
-.ep-modal {
+.settings-page .ep-modal {
   background: #FFFFFF;
   border-radius: 14px;
   width: 560px;
@@ -712,7 +711,7 @@ EDIT PROFILE MODAL
 }
 
 /* Header */
-.ep-modal-header {
+.settings-page .ep-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -720,24 +719,24 @@ EDIT PROFILE MODAL
   border-bottom: 1px solid #F1F5F9;
 }
 
-.ep-modal-title {
+.settings-page .ep-modal-title {
   font-size: 20px;
   font-weight: 700;
   color: #0F172A;
   margin: 0;
 }
 
-.ep-close-btn {
+.settings-page .ep-close-btn {
   background: none; border: none;
-  font-size: 16px; color: #94A3B8;
+  font-size: 16px; color: #64748B;
   cursor: pointer; padding: 4px 8px;
   border-radius: 6px; line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
-.ep-close-btn:hover { background: #F1F5F9; color: #334155; }
+.settings-page .ep-close-btn:hover { background: #F1F5F9; color: #334155; }
 
 /* Body */
-.ep-modal-body {
+.settings-page .ep-modal-body {
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -745,13 +744,13 @@ EDIT PROFILE MODAL
 }
 
 /* Photo row */
-.ep-photo-row {
+.settings-page .ep-photo-row {
   display: flex;
   align-items: center;
   gap: 18px;
 }
 
-.ep-photo-box {
+.settings-page .ep-photo-box {
   width: 72px; height: 72px;
   border-radius: 12px;
   background: #1E3A8A;
@@ -761,54 +760,54 @@ EDIT PROFILE MODAL
   flex-shrink: 0;
   transition: opacity 0.15s;
 }
-.ep-photo-box:hover { opacity: 0.85; }
+.settings-page .ep-photo-box:hover { opacity: 0.85; }
 
-.ep-photo-preview {
+.settings-page .ep-photo-preview {
   width: 100%; height: 100%;
   object-fit: cover;
 }
 
-.ep-photo-icon { font-size: 26px; }
+.settings-page .ep-photo-icon { font-size: 26px; }
 
-.ep-photo-meta {
+.settings-page .ep-photo-meta {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.ep-photo-label {
+.settings-page .ep-photo-label {
   font-size: 15px;
   font-weight: 600;
   color: #0F172A;
 }
 
-.ep-photo-hint {
+.settings-page .ep-photo-hint {
   font-size: 12px;
-  color: #94A3B8;
+  color: #64748B;
 }
 
 /* 2-col row */
-.ep-row-2 {
+.settings-page .ep-row-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
 /* Field group */
-.ep-field-group {
+.settings-page .ep-field-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.ep-label {
+.settings-page .ep-label {
   font-size: 11px;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.06em;
 }
 
-.ep-input {
+.settings-page .ep-input {
   padding: 12px 14px;
   border: 1px solid #E2E8F0;
   border-radius: 8px;
@@ -819,19 +818,18 @@ EDIT PROFILE MODAL
   box-sizing: border-box;
   width: 100%;
 }
-.ep-input:focus {
-  outline: none;
-  border-color: #1E3A8A;
+.settings-page .ep-input:focus {
+border-color: #1E3A8A;
   box-shadow: 0 0 0 3px rgba(30,58,138,0.10);
 }
-.ep-input::placeholder { color: #CBD5E1; }
+.settings-page .ep-input::placeholder { color: #64748B; }
 
-.ep-input--muted {
+.settings-page .ep-input--muted {
   background: #F8FAFC;
   color: #475569;
 }
 
-.ep-input--role {
+.settings-page .ep-input--role {
   background: #F1F5F9;
   color: #334155;
   font-weight: 700;
@@ -842,7 +840,7 @@ EDIT PROFILE MODAL
 }
 
 /* Footer */
-.ep-modal-footer {
+.settings-page .ep-modal-footer {
   padding: 16px 24px 22px;
   display: flex;
   justify-content: flex-end;
@@ -850,7 +848,7 @@ EDIT PROFILE MODAL
   border-top: 1px solid #F1F5F9;
 }
 
-.ep-cancel-btn {
+.settings-page .ep-cancel-btn {
   padding: 11px 22px;
   border: none;
   background: none;
@@ -861,9 +859,9 @@ EDIT PROFILE MODAL
   border-radius: 10px;
   transition: background 0.15s;
 }
-.ep-cancel-btn:hover { background: #F8FAFC; color: #334155; }
+.settings-page .ep-cancel-btn:hover { background: #F8FAFC; color: #334155; }
 
-.ep-save-btn {
+.settings-page .ep-save-btn {
   padding: 11px 26px;
   border: none;
   border-radius: 10px;
@@ -874,6 +872,16 @@ EDIT PROFILE MODAL
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-.ep-save-btn:hover:not(:disabled) { background: #1E293B; }
-.ep-save-btn:disabled { opacity: 0.7; cursor: default; }
-.ep-save-btn--success { background: #16A34A; }
+.settings-page .ep-save-btn:hover:not(:disabled) { background: #1E293B; }
+.settings-page .ep-save-btn:disabled { opacity: 0.7; cursor: default; }
+.settings-page .ep-save-btn--success { background: #16A34A; }
+.settings-page :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
+  .settings-page .um-pagination button {
+    min-height: 44px;
+  }
+}

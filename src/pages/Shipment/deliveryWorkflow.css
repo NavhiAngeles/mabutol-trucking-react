@@ -1,12 +1,12 @@
-.delivery-workflow-panel { display: grid; gap: 14px; padding: 20px; margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; color: #0f172a; }
+.delivery-workflow-panel { display: grid; gap: 14px; padding: 20px; margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; color: #0f172a; }
 .delivery-workflow-panel h3,.delivery-workflow-panel h4 { margin: 0; }
 .delivery-workflow-panel p { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
 .delivery-workflow-panel label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; }
-.delivery-workflow-panel input,.delivery-workflow-panel select,.delivery-workflow-panel textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; font: inherit; }
-.delivery-workflow-panel button { min-height: 44px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #0b2a4a; font-weight: 600; cursor: pointer; }
-.delivery-workflow-panel button.btn-primary { background: #0b2a4a; color: white; }
-.delivery-workflow-panel button:disabled { opacity: .5; cursor: not-allowed; }
-.delivery-workflow-panel :is(button,input,select,textarea):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.delivery-workflow-panel input,.delivery-workflow-panel select,.delivery-workflow-panel textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; font: inherit; }
+.delivery-workflow-panel button { min-height: 44px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; color: #0F172A; font-weight: 600; cursor: pointer; }
+.delivery-workflow-panel button.btn-primary { background: #0F2A52; color: white; border-color: #0F2A52; }
+.delivery-workflow-panel button:disabled { opacity: .55; cursor: not-allowed; }
+.delivery-workflow-panel :is(button,input,select,textarea):focus-visible { outline: 2px solid #1D4ED8; outline-offset: 2px; }
 .delivery-workflow-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .quote-locations-group { display: grid; gap: 14px; }
 .quote-location-card { display: grid; gap: 12px; padding: 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
@@ -255,7 +255,7 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
 }
 
 .return-load-meta-bar i {
-  color: #94A3B8;
+  color: #64748B;
   font-size: 14px;
 }
 
@@ -306,7 +306,7 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
 
 .no-outbound-note {
   font-size: 13px;
-  color: #94A3B8;
+  color: #64748B;
   font-style: italic;
   margin: 0;
 }
@@ -455,7 +455,7 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
 }
 
 .route-arrow {
-  color: #94A3B8;
+  color: #64748B;
   font-size: 12px;
   padding-left: 2px;
 }
@@ -501,7 +501,7 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
 
 .match-handling.is-empty {
   font-style: italic;
-  color: #94A3B8 !important;
+  color: #64748B !important;
 }
 
 .btn-review-return {

@@ -1,4 +1,4 @@
-.shipment-discard-dialog {
+.shipment-page .shipment-discard-dialog {
   position: fixed;
   inset: 0;
   margin: auto;
@@ -14,21 +14,21 @@
   font-family: inherit;
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
 }
-.shipment-discard-dialog::backdrop { background: rgba(15, 23, 42, 0.48); }
-.shipment-discard-icon {
+.shipment-page .shipment-discard-dialog::backdrop { background: rgba(15, 23, 42, 0.48); }
+.shipment-page .shipment-discard-icon {
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
   margin-bottom: 18px;
   border-radius: 12px;
-  color: #dc2626;
+  color: #B91C1C;
   background: #fef2f2;
 }
-.shipment-discard-dialog h2 { margin: 0 0 10px; font-size: 21px; line-height: 1.3; font-weight: 700; }
-.shipment-discard-dialog p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.65; }
-.shipment-discard-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
-.shipment-discard-actions button {
+.shipment-page .shipment-discard-dialog h2 { margin: 0 0 10px; font-size: 21px; line-height: 1.3; font-weight: 700; }
+.shipment-page .shipment-discard-dialog p { margin: 0; color: #64748b; font-size: 14px; line-height: 1.65; }
+.shipment-page .shipment-discard-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.shipment-page .shipment-discard-actions button {
   flex: 1 1 150px;
   min-height: 44px;
   padding: 10px 14px;
@@ -39,16 +39,16 @@
   font-weight: 600;
   cursor: pointer;
 }
-.shipment-discard-actions .shipment-discard-keep { border-color: #cbd5e1; color: #334155; background: #fff; }
-.shipment-discard-actions .shipment-discard-keep:hover { background: #f8fafc; }
-.shipment-discard-actions .shipment-discard-confirm { color: #fff; background: #dc2626; }
-.shipment-discard-actions .shipment-discard-confirm:hover { background: #b91c1c; }
-.shipment-discard-actions button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.shipment-page .shipment-discard-actions .shipment-discard-keep { border-color: #cbd5e1; color: #334155; background: #fff; }
+.shipment-page .shipment-discard-actions .shipment-discard-keep:hover { background: #f8fafc; }
+.shipment-page .shipment-discard-actions .shipment-discard-confirm { color: #fff; background: #dc2626; }
+.shipment-page .shipment-discard-actions .shipment-discard-confirm:hover { background: #b91c1c; }
+.shipment-page .shipment-discard-actions button:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
 
 /* Step 1 Cargo % Vehicle */
 
 /* --- SCREEN LAYOUT CORE FRAMEWORK --- */
-.drawer-overlay {
+.shipment-page .drawer-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -65,7 +65,7 @@
   pointer-events: auto; /* Restores normal click capture when rendering */
 }
 
-.drawer-container {
+.shipment-page .drawer-container {
   width: 90vw;
   box-sizing: border-box;
   max-width: 1400px;
@@ -85,7 +85,7 @@
 }
 
 /* LEFT SIDE PANEL Layout rules */
-.drawer-form-panel {
+.shipment-page .drawer-form-panel {
   width: min(420px, 100vw);
   max-width: 100vw;
   box-sizing: border-box;
@@ -96,11 +96,11 @@
   background: #FFFFFF;
 }
 
-.drawer-header {
+.shipment-page .drawer-header {
   padding: 24px 24px 16px 24px;
 }
 
-.back-link-btn {
+.shipment-page .back-link-btn {
   background: none;
   border: none;
   color: #64748B;
@@ -115,32 +115,32 @@
   margin-bottom: 12px;
 }
 
-.drawer-header h2 {
+.shipment-page .drawer-header h2 {
   font-size: 24px;
   font-weight: 700;
   color: #0F172A;
 }
 
 /* Progress Stepper Styles */
-.stepper-wrapper {
+.shipment-page .stepper-wrapper {
   display: flex;
   align-items: center;
   padding: 0 24px 20px 24px;
   border-bottom: 1px solid #F1F5F9;
 }
 
-.step-item {
+.shipment-page .step-item {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.step-num {
+.shipment-page .step-num {
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background: #F1F5F9;
-  color: #94A3B8;
+  color: #64748B;
   font-size: 12px;
   font-weight: 700;
   display: flex;
@@ -149,20 +149,20 @@
   border: 1px solid #E2E8F0;
 }
 
-.step-item.active .step-num {
+.shipment-page .step-item.active .step-num {
   background: #1E3A8A;
   color: #FFFFFF;
   border-color: #1E3A8A;
 }
 
-.step-label {
+.shipment-page .step-label {
   font-size: 13px;
   font-weight: 600;
   color: #1E3A8A;
   white-space: nowrap;
 }
 
-.step-line {
+.shipment-page .step-line {
   flex: 1;
   height: 1px;
   background: #E2E8F0;
@@ -170,7 +170,7 @@
 }
 
 /* Scrollable Form Body Container */
-.drawer-form-body {
+.shipment-page .drawer-form-body {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
@@ -180,32 +180,32 @@
 }
 
 /* Input & Labels Controls */
-.form-group {
+.shipment-page .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.form-grid-2x2 {
+.shipment-page .form-grid-2x2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.input-title {
+.shipment-page .input-title {
   font-size: 11px;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.5px;
 }
 
-.input-search-wrapper {
+.shipment-page .input-search-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-search-wrapper input {
+.shipment-page .input-search-wrapper input {
   width: 100%;
   padding: 11px 14px;
   border-radius: 6px;
@@ -217,25 +217,29 @@
   transition: all 0.2s;
 }
 
-.input-search-wrapper input:focus {
-  outline: none;
-  border-color: #3B82F6;
+.shipment-page .input-search-wrapper input:focus {
+  border-color: #1D4ED8;
   background: #FFFFFF;
 }
 
-.input-search-wrapper .shipment-weight-input {
+.shipment-page .input-search-wrapper input:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+.shipment-page .input-search-wrapper .shipment-weight-input {
   appearance: textfield;
   -moz-appearance: textfield;
   padding-right: 48px;
 }
 
-.shipment-weight-input::-webkit-inner-spin-button,
-.shipment-weight-input::-webkit-outer-spin-button {
+.shipment-page .shipment-weight-input::-webkit-inner-spin-button,
+.shipment-page .shipment-weight-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.address-suggestions {
+.shipment-page .address-suggestions {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -249,7 +253,7 @@
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
-.address-suggestions button {
+.shipment-page .address-suggestions button {
   display: block;
   width: 100%;
   padding: 10px 12px;
@@ -262,43 +266,44 @@
   cursor: pointer;
 }
 
-.address-suggestions button:hover,
-.address-suggestions button[aria-selected="true"] {
+.shipment-page .address-suggestions button:hover,
+.shipment-page .address-suggestions button[aria-selected="true"] {
   background: #EFF6FF;
 }
 
-.address-suggestions p {
+.shipment-page .address-suggestions p {
   margin: 0;
   padding: 10px 12px;
   color: #64748B;
   font-size: 12px;
 }
 
-.location-details { margin-top: 10px; }
-.location-details summary { color: #1E40AF; font-size: 12px; cursor: pointer; }
-.location-details-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-.location-detail-label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: #64748B; }
-.location-detail-label input { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #D8E2EF; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: inherit; font-size: 12px; }
-.location-detail-label input:focus { outline: none; border-color: #3B82F6; background: #FFFFFF; }
+.shipment-page .location-details { margin-top: 10px; }
+.shipment-page .location-details summary { color: #1E40AF; font-size: 12px; cursor: pointer; }
+.shipment-page .location-details-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.shipment-page .location-detail-label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: #64748B; }
+.shipment-page .location-detail-label input { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #D8E2EF; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: inherit; font-size: 12px; }
+.shipment-page .location-detail-label input:focus { border-color: #1D4ED8; background: #FFFFFF; }
+.shipment-page .location-detail-label input:focus-visible { outline: 2px solid #1D4ED8; outline-offset: 2px; }
 
-.input-icon {
+.shipment-page .input-icon {
   position: absolute;
   left: 14px;
   font-size: 16px;
 }
-.input-blue-icon { color: #1E40AF; }
-.input-orange-icon { color: #EA580C; }
+.shipment-page .input-blue-icon { color: #1E40AF; }
+.shipment-page .input-orange-icon { color: #EA580C; }
 
-.address-autocomplete-wrapper input {
+.shipment-page .address-autocomplete-wrapper input {
   padding-right: 38px;
 }
 
-.trailing-search-icon {
+.shipment-page .trailing-search-icon {
   position: absolute;
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94A3B8;
+  color: #64748B;
   font-size: 16px;
   display: flex;
   align-items: center;
@@ -307,14 +312,14 @@
 }
 
 /* Location Selector Pill Layouts */
-.hub-pills-row {
+.shipment-page .hub-pills-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
 }
 
-.hub-pill {
+.shipment-page .hub-pill {
   background: #F1F5F9;
   border: 1px solid transparent;
   color: #475569;
@@ -326,11 +331,11 @@
   transition: all 0.15s;
 }
 
-.hub-pill:hover {
+.shipment-page .hub-pill:hover {
   background: #E2E8F0;
 }
 
-.hub-pill.active {
+.shipment-page .hub-pill.active {
   background: #EFF6FF;
   color: #1E40AF;
   border-color: #BFDBFE;
@@ -338,11 +343,11 @@
 }
 
 /* Custom Dropdown Styling styling overrides */
-.select-dropdown-wrapper {
+.shipment-page .select-dropdown-wrapper {
   position: relative;
 }
 
-.select-dropdown-wrapper select {
+.shipment-page .select-dropdown-wrapper select {
   width: 100%;
   padding: 12px 16px;
   border-radius: 6px;
@@ -354,7 +359,7 @@
   cursor: pointer;
 }
 
-.select-dropdown-wrapper select optgroup {
+.shipment-page .select-dropdown-wrapper select optgroup {
   font-weight: 700;
   font-size: 12px;
   color: #475569;
@@ -363,18 +368,18 @@
   padding: 6px 4px;
 }
 
-.select-dropdown-wrapper select option {
+.shipment-page .select-dropdown-wrapper select option {
   font-weight: 500;
   font-size: 14px;
   color: #1e293b;
   background: #ffffff;
 }
 
-.select-dropdown-wrapper select option:disabled {
-  color: #94a3b8;
+.shipment-page .select-dropdown-wrapper select option:disabled {
+  color: #64748B;
 }
 
-.custom-select-arrow {
+.shipment-page .custom-select-arrow {
   position: absolute;
   right: 16px;
   top: 15px;
@@ -382,7 +387,7 @@
   pointer-events: none;
 }
 
-.field-info-text {
+.shipment-page .field-info-text {
   font-size: 11px;
   color: #64748B;
   display: flex;
@@ -391,27 +396,27 @@
 }
 
 /* Cost and Summary Info Box */
-.route-summary-card {
+.shipment-page .route-summary-card {
   background: #F4F7FC;
   border-radius: 8px;
   padding: 16px;
   border: 1px solid #E2E8F0;
 }
 
-.summary-header {
+.shipment-page .summary-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
 }
 
-.summary-header h3 {
+.shipment-page .summary-header h3 {
   font-size: 13px;
   font-weight: 700;
   color: #0F172A;
 }
 
-.toll-badge {
+.shipment-page .toll-badge {
   background: #FFEDD5;
   color: #C2410C;
   font-size: 10px;
@@ -420,7 +425,7 @@
   border-radius: 4px;
 }
 
-.summary-timeline {
+.shipment-page .summary-timeline {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -429,14 +434,14 @@
   margin: 12px 0 16px 8px;
 }
 
-.timeline-node {
+.shipment-page .timeline-node {
   font-size: 13px;
   font-weight: 600;
   color: #334155;
   position: relative;
 }
 
-.timeline-node::before {
+.shipment-page .timeline-node::before {
   content: '';
   position: absolute;
   left: -17px;
@@ -445,10 +450,10 @@
   height: 8px;
   border-radius: 50%;
 }
-.blue-node::before { background: #1E40AF; }
-.orange-node::before { background: #EA580C; }
+.shipment-page .blue-node::before { background: #1E40AF; }
+.shipment-page .orange-node::before { background: #EA580C; }
 
-.summary-footer-metrics {
+.shipment-page .summary-footer-metrics {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -456,20 +461,20 @@
   padding-top: 12px;
 }
 
-.metric-label {
+.shipment-page .metric-label {
   display: block;
   font-size: 10px;
   font-weight: 600;
   color: #64748B;
 }
 
-.metric-val {
+.shipment-page .metric-val {
   font-size: 14px;
   font-weight: 700;
   color: #0F172A;
 }
 
-.view-map-text-btn {
+.shipment-page .view-map-text-btn {
   background: none;
   border: none;
   color: #1E40AF;
@@ -482,7 +487,7 @@
 }
 
 /* Fixed Bottom actions layout */
-.drawer-footer {
+.shipment-page .drawer-footer {
   padding: 16px 24px;
   border-top: 1px solid #E2E8F0;
   display: flex;
@@ -490,7 +495,7 @@
   background: #FFFFFF;
 }
 
-.btn-cancel {
+.shipment-page .btn-cancel {
   background: transparent;
   border: none;
   color: #64748B;
@@ -499,7 +504,7 @@
   cursor: pointer;
 }
 
-.btn-submit {
+.shipment-page .btn-submit {
   background: #0F172A;
   color: #FFFFFF;
   border: none;
@@ -514,14 +519,14 @@
 }
 
 /* RIGHT PANEL Map Display Layout */
-.drawer-map-panel {
+.shipment-page .drawer-map-panel {
   flex: 1;
   height: 100%;
   background: #E5E7EB;
   position: relative;
 }
 
-.simulated-map-canvas {
+.shipment-page .simulated-map-canvas {
   width: 100%;
   height: 100%;
   background-image: radial-gradient(#CBD5E1 1px, transparent 1px), radial-gradient(#CBD5E1 1px, transparent 1px);
@@ -533,7 +538,7 @@
   justify-content: center;
 }
 
-.map-fallback-overlay {
+.shipment-page .map-fallback-overlay {
   text-align: center;
   background: rgba(255, 255, 255, 0.9);
   padding: 20px 32px;
@@ -542,24 +547,24 @@
   border: 1px solid #E2E8F0;
 }
 
-.map-fallback-overlay p {
+.shipment-page .map-fallback-overlay p {
   font-size: 15px;
   font-weight: 600;
   color: #0F172A;
   margin-bottom: 4px;
 }
 
-.map-fallback-overlay span {
+.shipment-page .map-fallback-overlay span {
   font-size: 12px;
   color: #64748B;
 }
 
-.header-row {
+.shipment-page .header-row {
   position: relative;
   z-index: 10; 
 }
 
-.btn-primary {
+.shipment-page .btn-primary {
   cursor: pointer !important;
   position: relative;
   z-index: 20; 
@@ -568,7 +573,7 @@
 
 /* --- STEP 2 Review & Confirm --- */
 
-.trailing-unit {
+.shipment-page .trailing-unit {
   position: absolute;
   right: 16px;
   font-weight: 600;
@@ -576,13 +581,13 @@
   font-size: 14px;
 }
 
-.handling-badges-row {
+.shipment-page .handling-badges-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.handling-badge-btn {
+.shipment-page .handling-badge-btn {
   background: #F8FAFC;
   border: 1px solid #D8E2EF;
   color: #475569;
@@ -594,17 +599,17 @@
   transition: all 0.15s ease;
 }
 
-.handling-badge-btn:hover {
+.shipment-page .handling-badge-btn:hover {
   background: #F1F5F9;
 }
 
-.handling-badge-btn.active {
+.shipment-page .handling-badge-btn.active {
   background: #0F172A;
   color: #FFFFFF;
   border-color: #0F172A;
 }
 
-.form-textarea {
+.shipment-page .form-textarea {
   width: 100%;
   padding: 12px;
   border-radius: 6px;
@@ -613,34 +618,38 @@
   font-size: 14px;
   font-family: inherit;
   resize: none;
-  outline: none;
 }
 
-.form-textarea:focus {
-  border-color: #3B82F6;
+.shipment-page .form-textarea:focus {
+  border-color: #1D4ED8;
   background: #FFFFFF;
 }
 
-.vehicle-header-row {
+.shipment-page .form-textarea:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+.shipment-page .vehicle-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
 
-.weight-filter-label {
-  font-size: 11px;
-  color: #94A3B8;
+.shipment-page .weight-filter-label {
+  font-size: 12px;
+  color: #64748B;
   font-weight: 500;
 }
 
-.vehicle-selection-grid {
+.shipment-page .vehicle-selection-grid {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.vehicle-card {
+.shipment-page .vehicle-card {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -652,21 +661,21 @@
   transition: all 0.2s ease;
 }
 
-.vehicle-card.searchable {
+.shipment-page .vehicle-card.searchable {
   cursor: pointer;
 }
 
-.vehicle-card.searchable:hover {
+.shipment-page .vehicle-card.searchable:hover {
   border-color: #CBD5E1;
   background: #F8FAFC;
 }
 
-.vehicle-card.active {
+.shipment-page .vehicle-card.active {
   border-color: #1E3A8A;
   background: #EFF6FF;
 }
 
-.vehicle-card-icon {
+.shipment-page .vehicle-card-icon {
   font-size: 24px;
   color: #64748B;
   margin-right: 16px;
@@ -674,52 +683,52 @@
   align-items: center;
 }
 
-.vehicle-card.active .vehicle-card-icon {
+.shipment-page .vehicle-card.active .vehicle-card-icon {
   color: #1E3A8A;
 }
 
-.vehicle-card-details {
+.shipment-page .vehicle-card-details {
   flex: 1;
   min-width: 0;
 }
 
-.vehicle-title-line {
+.shipment-page .vehicle-title-line {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 12px;
 }
 
-.vehicle-fleet-id-tag {
+.shipment-page .vehicle-fleet-id-tag {
   font-size: 12px;
   color: #64748B;
 }
 
-.vehicle-card > .error-alert-text {
+.shipment-page .vehicle-card > .error-alert-text {
   position: static;
   flex-basis: 100%;
   margin-top: 8px;
 }
 
-.vehicle-card-details .error-alert-text {
+.shipment-page .vehicle-card-details .error-alert-text {
   position: static;
   margin-top: 6px;
-  color: #EF4444;
+  color: #B91C1C;
 }
 
-.vehicle-card-details h4 {
+.shipment-page .vehicle-card-details h4 {
   font-size: 14px;
   font-weight: 600;
   color: #0F172A;
 }
 
-.vehicle-card-details p {
+.shipment-page .vehicle-card-details p {
   font-size: 12px;
   color: #64748B;
   margin-top: 2px;
 }
 
-.vehicle-tag {
+.shipment-page .vehicle-tag {
   display: inline-block;
   font-size: 10px;
   font-weight: 700;
@@ -730,40 +739,40 @@
   margin-top: 6px;
 }
 
-.blue-tag {
+.shipment-page .blue-tag {
   background: #DBEAFE;
   color: #1E40AF;
 }
 
-.vehicle-card.disabled {
+.shipment-page .vehicle-card.disabled {
   opacity: 0.6;
   background: #F8FAFC;
 }
 
-.error-alert-text {
+.shipment-page .error-alert-text {
   position: absolute;
   right: 16px;
   bottom: 16px;
   font-size: 11px;
   font-weight: 600;
-  color: #EF4444;
+  color: #B91C1C;
 }
 
-.select-check-icon {
+.shipment-page .select-check-icon {
   position: absolute;
   right: 16px;
   font-size: 20px;
   color: #1E3A8A;
 }
 
-.step-line.active-line {
+.shipment-page .step-line.active-line {
   background: #1E3A8A;
 }
 
 /* --- STEP 3 REVIEW & CONFIRM PANEL OVERHAULS --- */
 
 /* Alert Message Banner Layout */
-.review-alert-banner {
+.shipment-page .review-alert-banner {
   background: #EFF6FF;
   border: 1px solid #BFDBFE;
   border-radius: 6px;
@@ -773,13 +782,13 @@
   gap: 10px;
 }
 
-.alert-banner-icon {
+.shipment-page .alert-banner-icon {
   color: #EA580C;
   font-size: 16px;
   margin-top: 2px;
 }
 
-.review-alert-banner p {
+.shipment-page .review-alert-banner p {
   font-size: 13px;
   color: #1E40AF;
   font-weight: 500;
@@ -787,7 +796,7 @@
 }
 
 /* Typography read headings tracking descriptors */
-.review-section {
+.shipment-page .review-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -795,7 +804,7 @@
   padding-bottom: 16px;
 }
 
-.review-section-split {
+.shipment-page .review-section-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
@@ -803,16 +812,16 @@
   padding-bottom: 16px;
 }
 
-.review-section-title {
+.shipment-page .review-section-title {
   font-size: 11px;
   font-weight: 700;
-  color: #94A3B8;
+  color: #64748B;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 /* Custom horizontal pipeline summary indicator node points */
-.review-timeline-display {
+.shipment-page .review-timeline-display {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -821,13 +830,13 @@
   margin: 6px 0;
 }
 
-.review-node {
+.shipment-page .review-node {
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
-.review-node::before {
+.shipment-page .review-node::before {
   content: '';
   position: absolute;
   left: -19px;
@@ -837,27 +846,27 @@
   border-radius: 50%;
 }
 
-.blue-dot::before { background: #1E40AF; }
-.orange-dot::before { background: #EA580C; }
+.shipment-page .blue-dot::before { background: #1E40AF; }
+.shipment-page .orange-dot::before { background: #EA580C; }
 
-.review-node strong {
+.shipment-page .review-node strong {
   font-size: 14px;
   color: #0F172A;
   font-weight: 600;
 }
 
-.review-node span {
+.shipment-page .review-node span {
   font-size: 11px;
   color: #64748B;
 }
 
-.review-inline-pills {
+.shipment-page .review-inline-pills {
   display: flex;
   gap: 6px;
   margin-top: 4px;
 }
 
-.info-inline-pill {
+.shipment-page .info-inline-pill {
   font-size: 11px;
   font-weight: 600;
   background: #F1F5F9;
@@ -866,12 +875,12 @@
   border-radius: 4px;
 }
 
-.info-inline-pill.highlight-orange {
+.shipment-page .info-inline-pill.highlight-orange {
   background: #FFEDD5;
   color: #C2410C;
 }
 
-.review-data-text {
+.shipment-page .review-data-text {
   font-size: 13px;
   color: #334155;
   font-weight: 500;
@@ -881,9 +890,9 @@
   gap: 4px;
 }
 
-.font-bold { font-weight: 700 !important; color: #0F172A; }
+.shipment-page .font-bold { font-weight: 700 !important; color: #0F172A; }
 
-.blue-status-tag {
+.shipment-page .blue-status-tag {
   font-size: 9px;
   font-weight: 700;
   background: #EFF6FF;
@@ -893,7 +902,7 @@
   border: 1px solid #BFDBFE;
 }
 
-.review-sub-notes {
+.shipment-page .review-sub-notes {
   font-size: 11px;
   color: #64748B;
   font-style: italic;
@@ -901,7 +910,7 @@
 }
 
 /* Entity Resource Profile Rows Cards layouts (Driver / Vehicle assignments) */
-.assigned-entity-card {
+.shipment-page .assigned-entity-card {
   display: flex;
   align-items: center;
   padding: 12px;
@@ -911,7 +920,7 @@
   position: relative;
 }
 
-.entity-icon-box {
+.shipment-page .entity-icon-box {
   width: 32px;
   height: 32px;
   background: #F1F5F9;
@@ -924,7 +933,7 @@
   margin-right: 12px;
 }
 
-.entity-avatar-box {
+.shipment-page .entity-avatar-box {
   width: 32px;
   height: 32px;
   background: #1E293B;
@@ -938,48 +947,48 @@
   margin-right: 12px;
 }
 
-.entity-info-box {
+.shipment-page .entity-info-box {
   flex: 1;
 }
 
-.entity-info-box h4 {
+.shipment-page .entity-info-box h4 {
   font-size: 13px;
   font-weight: 600;
   color: #0F172A;
 }
 
-.entity-info-box p {
+.shipment-page .entity-info-box p {
   font-size: 11px;
   color: #64748B;
   margin-top: 1px;
 }
 
-.green-text { color: #10B981; font-weight: 600; }
+.shipment-page .green-text { color: #15803D; font-weight: 600; }
 
-.live-status-indicator {
+.shipment-page .live-status-indicator {
   font-size: 11px;
   font-weight: 600;
-  color: #10B981;
+  color: #15803D;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.green-dot {
+.shipment-page .green-dot {
   width: 6px;
   height: 6px;
   background: #10B981;
   border-radius: 50%;
 }
 
-.auto-assign-tag {
+.shipment-page .auto-assign-tag {
   font-size: 10px;
-  color: #94A3B8;
+  color: #64748B;
   font-weight: 500;
 }
 
 /* --- FINANCIAL SHEETS EMBEDDED ACCOUNTING CARDS MODULAR --- */
-.financial-statement-card {
+.shipment-page .financial-statement-card {
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -988,17 +997,17 @@
   border: 1px solid transparent;
 }
 
-.cost-charge-blue {
+.shipment-page .cost-charge-blue {
   background: #F8FAFC;
   border-color: #E2E8F0;
 }
 
-.operational-grey {
+.shipment-page .operational-grey {
   background: #F8FAFC;
   border-color: #E2E8F0;
 }
 
-.financial-header-row {
+.shipment-page .financial-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1007,23 +1016,23 @@
   margin-bottom: 2px;
 }
 
-.financial-header-row h3 {
+.shipment-page .financial-header-row h3 {
   font-size: 14px;
   font-weight: 700;
   color: #0F172A;
 }
 
-.financial-badge-tag {
+.shipment-page .financial-badge-tag {
   font-size: 9px;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
 }
 
-.financial-badge-tag.orange-bg { background: #FFEDD5; color: #C2410C; }
-.financial-badge-tag.grey-bg { background: #E2E8F0; color: #475569; }
+.shipment-page .financial-badge-tag.orange-bg { background: #FFEDD5; color: #C2410C; }
+.shipment-page .financial-badge-tag.grey-bg { background: #E2E8F0; color: #475569; }
 
-.financial-data-row {
+.shipment-page .financial-data-row {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
@@ -1031,12 +1040,12 @@
   font-weight: 500;
 }
 
-.financial-data-row strong {
+.shipment-page .financial-data-row strong {
   color: #0F172A;
   font-weight: 600;
 }
 
-.financial-total-row {
+.shipment-page .financial-total-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1045,21 +1054,21 @@
   margin-top: 4px;
 }
 
-.financial-total-row span {
+.shipment-page .financial-total-row span {
   font-size: 12px;
   font-weight: 700;
   color: #0F172A;
   text-transform: uppercase;
 }
 
-.total-price-text {
+.shipment-page .total-price-text {
   font-size: 16px;
   font-weight: 700;
   color: #0F172A;
 }
 
 /* Edit Override Entry Context Row Elements */
-.override-input-group {
+.shipment-page .override-input-group {
   margin-top: 6px;
   border-top: 1px dashed #E2E8F0;
   padding-top: 10px;
@@ -1068,13 +1077,13 @@
   gap: 6px;
 }
 
-.override-label {
+.shipment-page .override-label {
   font-size: 11px;
   font-weight: 600;
   color: #475569;
 }
 
-.override-text-field {
+.shipment-page .override-text-field {
   width: 100%;
   padding: 8px 12px;
   border-radius: 4px;
@@ -1085,29 +1094,29 @@
   color: #0F172A;
 }
 
-.override-hint-text {
+.shipment-page .override-hint-text {
   font-size: 10px;
-  color: #94A3B8;
+  color: #64748B;
   line-height: 1.3;
 }
 
 /* Final Margins Aggregation Element Box */
-.profit-breakdown-card {
+.shipment-page .profit-breakdown-card {
   background: #F1F5F9;
   padding: 14px;
   border-radius: 6px;
   border: 1px solid #E2E8F0;
 }
 
-.margin-top-sm { margin-top: 6px !important; }
+.shipment-page .margin-top-sm { margin-top: 6px !important; }
 
 /* --- STEP 3 EXPANDED BLOCK CONFIRM FOOTERS --- */
-.drawer-footer-wrapper {
+.shipment-page .drawer-footer-wrapper {
   border-top: 1px solid #E2E8F0;
   background: #FFFFFF;
 }
 
-.drawer-review-footer-block {
+.shipment-page .drawer-review-footer-block {
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
@@ -1115,7 +1124,7 @@
   gap: 8px;
 }
 
-.btn-full-confirm {
+.shipment-page .btn-full-confirm {
   width: 100%;
   background: #0F172A;
   color: #FFFFFF;
@@ -1133,20 +1142,20 @@
   transition: background 0.15s ease;
 }
 
-.btn-full-confirm:hover {
+.shipment-page .btn-full-confirm:hover {
   background: #1E293B;
 }
 
-.footer-notice-subtext {
+.shipment-page .footer-notice-subtext {
   font-size: 11px;
-  color: #94A3B8;
+  color: #64748B;
   font-weight: 500;
 }
 
-.btn-discard-action {
+.shipment-page .btn-discard-action {
   background: none;
   border: none;
-  color: #EF4444;
+  color: #B91C1C;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -1154,18 +1163,18 @@
   text-decoration: none;
 }
 
-.btn-discard-action:hover {
+.shipment-page .btn-discard-action:hover {
   text-decoration: underline;
 }
 
-.step-line.active-line {
+.shipment-page .step-line.active-line {
   background: #1E3A8A !important;
 }
 
 /* --- PRECISE ENTERPRISE SUCCESS ALERT MODAL MODULARS --- */
 
 /* High-priority modal background mask overlay layer */
-.alert-modal-backdrop {
+.shipment-page .alert-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -1181,7 +1190,7 @@
 }
 
 /* Centered content card container box with pop animation physics scaling */
-.alert-modal-card {
+.shipment-page .alert-modal-card {
   background: #FFFFFF;
   width: 100%;
   max-width: 440px;
@@ -1201,7 +1210,7 @@
 }
 
 /* Rounded pulse badge icon for success checks */
-.alert-success-icon-ring {
+.shipment-page .alert-success-icon-ring {
   width: 56px;
   height: 56px;
   background: #D1FAE5;
@@ -1217,7 +1226,7 @@
 }
 
 /* Typographic title configurations */
-.alert-modal-card h2 {
+.shipment-page .alert-modal-card h2 {
   font-size: 20px;
   font-weight: 700;
   color: #0F172A;
@@ -1225,7 +1234,7 @@
   margin-bottom: 8px;
 }
 
-.alert-modal-subtitle {
+.shipment-page .alert-modal-subtitle {
   font-size: 13px;
   color: #64748B;
   line-height: 1.5;
@@ -1234,7 +1243,7 @@
 }
 
 /* Data context dashboard item metrics breakdown container box */
-.alert-meta-summary-box {
+.shipment-page .alert-meta-summary-box {
   width: 100%;
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
@@ -1246,25 +1255,25 @@
   gap: 12px;
 }
 
-.meta-row {
+.shipment-page .meta-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 12px;
 }
 
-.meta-lbl {
+.shipment-page .meta-lbl {
   font-weight: 600;
-  color: #94A3B8;
+  color: #64748B;
   letter-spacing: 0.3px;
 }
 
-.meta-val {
+.shipment-page .meta-val {
   color: #334155;
   font-weight: 600;
 }
 
-.meta-val.color-blue {
+.shipment-page .meta-val.color-blue {
   color: #1E40AF;
   background: #EFF6FF;
   padding: 2px 6px;
@@ -1275,7 +1284,7 @@
 }
 
 /* Full-width primary dismissal container action button element class */
-.btn-alert-dismiss {
+.shipment-page .btn-alert-dismiss {
   width: 100%;
   background: #0F172A;
   color: #FFFFFF;
@@ -1289,14 +1298,14 @@
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-.btn-alert-dismiss:hover {
+.shipment-page .btn-alert-dismiss:hover {
   background: #1E293B;
 }
 
 /* --- SCROLL CONTAINER LAYOUT MATRIX STUCTURE --- */
 
 /* Force the left panel to have a fixed height matching the viewport */
-.drawer-form-panel {
+.shipment-page .drawer-form-panel {
   width: min(420px, 100vw);
   max-width: 100vw;
   box-sizing: border-box;
@@ -1309,7 +1318,7 @@
 }
 
 /* Fixed non-scrollable header area */
-.drawer-fixed-header-block {
+.shipment-page .drawer-fixed-header-block {
   padding: 24px 24px 16px 24px;
   border-bottom: 1px solid #F1F5F9;
   background: #FFFFFF;
@@ -1317,14 +1326,14 @@
 }
 
 /* The scrollable body wrapper containing your setup cards */
-.drawer-form-body-scrollable {
+.shipment-page .drawer-form-body-scrollable {
   flex: 1;
   overflow-y: auto; /* Activates natural clean system scrolling track */
   padding: 20px 24px;
 }
 
 /* Custom padding configuration box */
-.step-scroll-content {
+.shipment-page .step-scroll-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -1332,7 +1341,7 @@
 }
 
 /* Fixed non-scrollable bottom action panel wrapper */
-.drawer-footer-wrapper-fixed {
+.shipment-page .drawer-footer-wrapper-fixed {
   flex-shrink: 0;
   border-top: 1px solid #E2E8F0;
   background: #FFFFFF;
@@ -1341,142 +1350,146 @@
 }
 
 /* --- DRIVER PROFILE ALIGNMENTS --- */
-.green-dot-text {
-  color: #10B981;
+.shipment-page .green-dot-text {
+  color: #15803D;
   font-weight: 600;
 }
-.green-check-text {
+.shipment-page .green-check-text {
   color: #059669;
   font-weight: 500;
 }
 
 /* --- FINANCIAL PANELS ADDITIONAL CUSTOM SHAPES --- */
-.profit-panel-white {
+.shipment-page .profit-panel-white {
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
 }
 
-.border-none { border: none !important; }
-.no-margin { margin: 0 !important; padding: 0 !important; }
+.shipment-page .border-none { border: none !important; }
+.shipment-page .no-margin { margin: 0 !important; padding: 0 !important; }
 
-.border-dashed {
+.shipment-page .border-dashed {
   border-top: 1px dashed #CBD5E1 !important;
   padding-top: 12px !important;
 }
 
-.total-price-text-sm {
+.shipment-page .total-price-text-sm {
   font-size: 14px;
   font-weight: 700;
   color: #334155;
 }
 
-.profit-final-label {
+.shipment-page .profit-final-label {
   font-size: 12px;
   font-weight: 800;
   color: #1E3A8A;
 }
 
-.total-profit-highlight {
+.shipment-page .total-profit-highlight {
   font-size: 18px;
   font-weight: 800;
   color: #1E40AF;
 }
 
-.profit-disclaimer-text {
+.shipment-page .profit-disclaimer-text {
   font-size: 11px;
   color: #64748B;
   line-height: 1.4;
   margin-top: 4px;
 }
 
-.shipment-toll-rates { min-width: 0; margin: 14px 0; padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
-.shipment-toll-rates legend { padding: 0 5px; color: #1e3a8a; font-size: 12px; font-weight: 700; }
-.shipment-toll-rates > label { display: block; margin-bottom: 6px; font-size: 12px; color: #334155; }
-.shipment-toll-rates select { width: 100%; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #0f172a; font: inherit; }
-.shipment-toll-rates .shipment-toll-rate { display: flex; align-items: center; gap: 9px; padding: 10px 0; margin: 0; border-bottom: 1px solid #e2e8f0; font-size: 12px; cursor: pointer; }
-.shipment-toll-rate input { flex: 0 0 auto; accent-color: #1e40af; }
-.shipment-toll-rate span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.shipment-toll-rate small { display: block; color: #64748b; margin-top: 3px; }
-.shipment-toll-rate strong { white-space: nowrap; color: #1e3a8a; }
-.shipment-toll-rates button { padding: 6px 10px; margin-top: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e3a8a; font: inherit; font-size: 12px; cursor: pointer; }
-.shipment-toll-rates :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-.shipment-toll-rates { padding: 16px; margin: 8px 0 14px; font-size: 12px; color: #475569; }
-.shipment-toll-rates legend { font-size: 11px; letter-spacing: .02em; }
-.toll-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
-.toll-panel-heading strong { display: block; font-size: 13px; line-height: 1.4; color: #0f172a; }
-.toll-panel-heading p { margin: 3px 0 0; font-size: 11px; line-height: 1.5; color: #64748b; }
-.toll-price-chip { flex-shrink: 0; padding: 4px 8px; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 11px; font-weight: 600; }
-.toll-price-chip.is-pending { background: #fff7ed; color: #9a3412; }
-.shipment-toll-rates > label { font-size: 11px; font-weight: 600; margin-bottom: 7px; }
-.shipment-toll-rates select { font-size: 13px; line-height: 1.4; padding: 10px; }
-.shipment-toll-rates .toll-panel-hint { margin: 7px 0 12px; font-size: 11px; line-height: 1.6; color: #64748b; }
-.toll-panel-message { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; line-height: 1.6; background: #f8fafc; }
-.toll-panel-message.is-warning { border-color: #fde4b8; background: #fffbf2; color: #854d0e; }
-.toll-panel-message strong { display: block; font-size: 12px; line-height: 1.5; font-weight: 600; }
-.toll-panel-message p { margin: 4px 0 0; font-size: 11px; line-height: 1.6; }
-.toll-message-icon { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 7px; background: #fef0cf; color: #92400e; font-size: 15px; font-weight: 700; }
-.toll-panel-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
-.toll-panel-actions a { color: #1e40af; font-size: 11px; line-height: 1.5; font-weight: 600; text-decoration: none; }
-.toll-panel-actions a:hover { text-decoration: underline; }
-.toll-panel-actions button { margin-top: 0; font-size: 11px; padding: 7px 9px; }
-.toll-link-context { font-weight: 400; color: #64748b; }
-.shipment-toll-rates .toll-draft-hint { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #f1f5f9; }
-.financial-data-row strong.toll-pending-text { color: #b45309; font-size: 11px; font-weight: 600; }
-.cost-charge-blue .toll-total-notice { margin: 8px 0 0; color: #92400e; font-size: 11px; line-height: 1.6; }
-.toll-profit-pending h3 { margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #64748b; }
-.toll-profit-pending p { margin: 0; font-size: 11px; line-height: 1.6; color: #64748b; }
-.toll-auto-summary { margin: 0 0 14px; }
-.toll-auto-summary > div { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #edf2f7; }
-.toll-auto-summary dt { color: #64748b; font-size: 11px; }
-.toll-auto-summary dd { margin: 0; color: #1e293b; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
-.toll-auto-summary small { display: block; margin-top: 3px; font-size: 10px; font-weight: 400; color: #64748b; }
-.shipment-review .financial-data-row { align-items: center; gap: 12px; }
-.shipment-review .financial-data-row > span { flex: 1; min-width: 0; line-height: 1.5; }
-.shipment-review .financial-data-row > input { width: 128px; max-width: 48%; flex-shrink: 0; text-align: right; }
-.shipment-review .financial-data-row > strong { flex-shrink: 0; text-align: right; }
-.shipment-review .financial-total-row { gap: 16px; }
-.shipment-review .financial-total-row > span:last-child { flex-shrink: 0; }
+.shipment-page .shipment-toll-rates { min-width: 0; margin: 14px 0; padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
+.shipment-page .shipment-toll-rates legend { padding: 0 5px; color: #1e3a8a; font-size: 12px; font-weight: 700; }
+.shipment-page .shipment-toll-rates > label { display: block; margin-bottom: 6px; font-size: 12px; color: #334155; }
+.shipment-page .shipment-toll-rates select { width: 100%; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #0f172a; font: inherit; }
+.shipment-page .shipment-toll-rates .shipment-toll-rate { display: flex; align-items: center; gap: 9px; padding: 10px 0; margin: 0; border-bottom: 1px solid #e2e8f0; font-size: 12px; cursor: pointer; }
+.shipment-page .shipment-toll-rate input { flex: 0 0 auto; accent-color: #1e40af; }
+.shipment-page .shipment-toll-rate span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.shipment-page .shipment-toll-rate small { display: block; color: #64748b; margin-top: 3px; }
+.shipment-page .shipment-toll-rate strong { white-space: nowrap; color: #1e3a8a; }
+.shipment-page .shipment-toll-rates button { padding: 6px 10px; margin-top: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e3a8a; font: inherit; font-size: 12px; cursor: pointer; }
+.shipment-page .shipment-toll-rates :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.shipment-page .shipment-toll-rates { padding: 16px; margin: 8px 0 14px; font-size: 12px; color: #475569; }
+.shipment-page .shipment-toll-rates legend { font-size: 11px; letter-spacing: .02em; }
+.shipment-page .toll-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.shipment-page .toll-panel-heading strong { display: block; font-size: 13px; line-height: 1.4; color: #0f172a; }
+.shipment-page .toll-panel-heading p { margin: 3px 0 0; font-size: 11px; line-height: 1.5; color: #64748b; }
+.shipment-page .toll-price-chip { flex-shrink: 0; padding: 4px 8px; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 11px; font-weight: 600; }
+.shipment-page .toll-price-chip.is-pending { background: #fff7ed; color: #9a3412; }
+.shipment-page .shipment-toll-rates > label { font-size: 11px; font-weight: 600; margin-bottom: 7px; }
+.shipment-page .shipment-toll-rates select { font-size: 13px; line-height: 1.4; padding: 10px; }
+.shipment-page .shipment-toll-rates .toll-panel-hint { margin: 7px 0 12px; font-size: 11px; line-height: 1.6; color: #64748b; }
+.shipment-page .toll-panel-message { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; line-height: 1.6; background: #f8fafc; }
+.shipment-page .toll-panel-message.is-warning { border-color: #fde4b8; background: #fffbf2; color: #854d0e; }
+.shipment-page .toll-panel-message strong { display: block; font-size: 12px; line-height: 1.5; font-weight: 600; }
+.shipment-page .toll-panel-message p { margin: 4px 0 0; font-size: 11px; line-height: 1.6; }
+.shipment-page .toll-message-icon { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 7px; background: #fef0cf; color: #92400e; font-size: 15px; font-weight: 700; }
+.shipment-page .toll-panel-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.shipment-page .toll-panel-actions a { color: #1e40af; font-size: 11px; line-height: 1.5; font-weight: 600; text-decoration: none; }
+.shipment-page .toll-panel-actions a:hover { text-decoration: underline; }
+.shipment-page .toll-panel-actions button { margin-top: 0; font-size: 11px; padding: 7px 9px; }
+.shipment-page .toll-link-context { font-weight: 400; color: #64748b; }
+.shipment-page .shipment-toll-rates .toll-draft-hint { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+.shipment-page .financial-data-row strong.toll-pending-text { color: #b45309; font-size: 11px; font-weight: 600; }
+.shipment-page .cost-charge-blue .toll-total-notice { margin: 8px 0 0; color: #92400e; font-size: 11px; line-height: 1.6; }
+.shipment-page .toll-profit-pending h3 { margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #64748b; }
+.shipment-page .toll-profit-pending p { margin: 0; font-size: 11px; line-height: 1.6; color: #64748b; }
+.shipment-page .toll-auto-summary { margin: 0 0 14px; }
+.shipment-page .toll-auto-summary > div { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #edf2f7; }
+.shipment-page .toll-auto-summary dt { color: #64748b; font-size: 11px; }
+.shipment-page .toll-auto-summary dd { margin: 0; color: #1e293b; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.shipment-page .toll-auto-summary small { display: block; margin-top: 3px; font-size: 10px; font-weight: 400; color: #64748b; }
+.shipment-page .shipment-review .financial-data-row { align-items: center; gap: 12px; }
+.shipment-page .shipment-review .financial-data-row > span { flex: 1; min-width: 0; line-height: 1.5; }
+.shipment-page .shipment-review .financial-data-row > input { width: 128px; max-width: 48%; flex-shrink: 0; text-align: right; }
+.shipment-page .shipment-review .financial-data-row > strong { flex-shrink: 0; text-align: right; }
+.shipment-page .shipment-review .financial-total-row { gap: 16px; }
+.shipment-page .shipment-review .financial-total-row > span:last-child { flex-shrink: 0; }
 @media (max-width: 600px) {
-  .drawer-container { width: 100vw; max-width: 100vw; }
-  .drawer-container.shipment-review { width: 100vw; }
-  .drawer-form-panel { width: 100%; min-width: 0; }
-  .shipment-review .drawer-form-panel { width: 100%; min-width: 0; }
-  .drawer-map-panel,
-  .shipment-review .drawer-map-panel { display: none; }
+  .shipment-page .drawer-container { width: 100vw; max-width: 100vw; }
+  .shipment-page .drawer-container.shipment-review { width: 100vw; }
+  .shipment-page .drawer-form-panel { width: 100%; min-width: 0; }
+  .shipment-page .shipment-review .drawer-form-panel { width: 100%; min-width: 0; }
+  .shipment-page .drawer-map-panel,
+.shipment-page .shipment-review .drawer-map-panel { display: none; }
 }
 
 @media (max-width: 420px) {
-  .drawer-container {
+  .shipment-page .drawer-container {
     width: min(420px, 100vw);
     max-width: 100vw;
   }
-  .drawer-form-panel {
+  .shipment-page .drawer-form-panel {
     width: min(420px, 100vw);
     min-width: 0;
     max-width: 100vw;
   }
-  .drawer-header,
-  .drawer-fixed-header-block {
+  .shipment-page .drawer-header,
+.shipment-page .drawer-fixed-header-block {
     padding: 16px;
   }
-  .drawer-form-body-scrollable {
+  .shipment-page .drawer-form-body-scrollable {
     padding: 16px;
   }
 }
 
 /* Vehicle Category SVG Silhouettes */
-.vehicle-card-icon .vehicle-silhouette {
+.shipment-page .vehicle-card-icon .vehicle-silhouette {
   width: 54px;
   height: 27px;
   transition: transform 0.2s ease, color 0.2s ease;
 }
 
-.vehicle-card.active .vehicle-card-icon .vehicle-silhouette {
+.shipment-page .vehicle-card.active .vehicle-card-icon .vehicle-silhouette {
   transform: scale(1.06);
 }
 
-.entity-icon-box .vehicle-silhouette {
+.shipment-page .entity-icon-box .vehicle-silhouette {
   width: 48px;
   height: 24px;
   color: #1E3A8A;
+}
+
+.shipment-page .shipment-discard-dialog {
+  border-radius: var(--radius-lg, 12px);
 }

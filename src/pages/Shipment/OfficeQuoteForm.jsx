@@ -44,9 +44,10 @@ export default function OfficeQuoteForm({ request, onQuoted, onRouteCalculated, 
             </div>
           </div>
           <div className="delivery-workflow-grid">
-            <label>
+            <label htmlFor="quote-pickup-lat">
               Pickup latitude
               <input
+                id="quote-pickup-lat"
                 type="number"
                 step="any"
                 value={form.pickup_lat}
@@ -54,9 +55,10 @@ export default function OfficeQuoteForm({ request, onQuoted, onRouteCalculated, 
                 onChange={event => change('pickup_lat', event.target.value)}
               />
             </label>
-            <label>
+            <label htmlFor="quote-pickup-lng">
               Pickup longitude
               <input
+                id="quote-pickup-lng"
                 type="number"
                 step="any"
                 value={form.pickup_lng}
@@ -78,9 +80,10 @@ export default function OfficeQuoteForm({ request, onQuoted, onRouteCalculated, 
             </div>
           </div>
           <div className="delivery-workflow-grid">
-            <label>
+            <label htmlFor="quote-dropoff-lat">
               Destination latitude
               <input
+                id="quote-dropoff-lat"
                 type="number"
                 step="any"
                 value={form.dropoff_lat}
@@ -88,9 +91,10 @@ export default function OfficeQuoteForm({ request, onQuoted, onRouteCalculated, 
                 onChange={event => change('dropoff_lat', event.target.value)}
               />
             </label>
-            <label>
+            <label htmlFor="quote-dropoff-lng">
               Destination longitude
               <input
+                id="quote-dropoff-lng"
                 type="number"
                 step="any"
                 value={form.dropoff_lng}
@@ -102,11 +106,11 @@ export default function OfficeQuoteForm({ request, onQuoted, onRouteCalculated, 
         </div>
       </div>
 
-      <label>Route source<select value={form.source} disabled={busy || disabled} onChange={event => change('source',event.target.value)}><option value="provider">Provider road route</option><option value="manual">Verified manual road route</option></select></label>
+      <label htmlFor="quote-route-source">Route source<select id="quote-route-source" value={form.source} disabled={busy || disabled} onChange={event => change('source',event.target.value)}><option value="provider">Provider road route</option><option value="manual">Verified manual road route</option></select></label>
       <button type="button" disabled={busy || disabled} onClick={() => run(true)}>Calculate provider route</button>
       <div className="delivery-workflow-grid">{[['distance_km','Road distance (km)'],['duration_minutes','Travel duration (minutes)']].map(([key,label]) =>
-        <label key={key}>{label}<input type="number" min="0.1" step="any" value={form[key]} readOnly={form.source==='provider'} disabled={busy || disabled} onChange={event => change(key,event.target.value)} /></label>)}</div>
-      {form.source==='manual' && <label>Manual route verification reason<textarea maxLength={1000} value={form.reason} disabled={busy || disabled} onChange={event => change('reason',event.target.value)} /></label>}
+        <label key={key} htmlFor={`quote-${key}`}>{label}<input id={`quote-${key}`} type="number" min="0.1" step="any" value={form[key]} readOnly={form.source==='provider'} disabled={busy || disabled} onChange={event => change(key,event.target.value)} /></label>)}</div>
+      {form.source==='manual' && <label htmlFor="quote-manual-reason">Manual route verification reason<textarea id="quote-manual-reason" maxLength={1000} value={form.reason} disabled={busy || disabled} onChange={event => change('reason',event.target.value)} /></label>}
       {error && (
         <div className="quote-form-error-banner" role="alert">
           <span className="quote-form-error-icon" aria-hidden="true">⚠️</span>

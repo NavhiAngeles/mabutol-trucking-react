@@ -123,9 +123,9 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
         )}
 
         <div className="assignment-fields-card">
-          <label>
+          <label htmlFor={`assignment-driver-${shipmentId}`}>
             Driver
-            <select value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
+            <select id={`assignment-driver-${shipmentId}`} value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
               <option value="">Choose a driver</option>
               {drivers.map(row => (
                 <option key={row.id} value={row.id}>
@@ -141,9 +141,9 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
             </p>
           )}
 
-          <label>
+          <label htmlFor={`assignment-truck-${shipmentId}`}>
             Truck{shipmentWeight > 0 ? ` (min. ${shipmentWeight.toLocaleString()} kg capacity)` : ''}
-            <select value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
+            <select id={`assignment-truck-${shipmentId}`} value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
               <option value="">Choose a truck</option>
               {trucks.map(row => (
                 <option key={row.id} value={row.id}>
@@ -167,9 +167,10 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
           )}
 
           <div className="assignment-field-group">
-            <label>
+            <label htmlFor={`assignment-reason-${shipmentId}`}>
               Assignment reason
               <textarea
+                id={`assignment-reason-${shipmentId}`}
                 value={reason}
                 maxLength={1000}
                 disabled={busy}

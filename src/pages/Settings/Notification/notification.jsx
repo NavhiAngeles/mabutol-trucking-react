@@ -66,7 +66,7 @@ function NotificationPreferences() {
     } finally { operation.current = false; if (mounted.current) setSaving(null); }
   }
   return <section className="content notification-settings">
-    <div className="page-header"><div><h2>Settings — Notifications</h2><p>Choose which future in-app notifications your account receives. Changes save automatically.</p></div></div>
+    <div className="page-header"><div><h1>Settings: Notifications</h1><p>Choose which future in-app notifications your account receives. Changes save automatically.</p></div></div>
     <p>These preferences do not remove existing notifications or hide operational warnings on the Dashboard and Fleet pages. Enabling a category does not create new alert monitors.</p>
     {notice && <p role="status" className="notification-success">{notice}</p>}
     {saveError && <div role="alert" className="notification-error"><p>{saveError}</p><button disabled={!!saving} onClick={() => save(failed.type, failed.enabled)}>Retry save</button><button disabled={!!saving} onClick={refresh}>Reload preferences</button></div>}

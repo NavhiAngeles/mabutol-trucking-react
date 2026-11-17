@@ -204,7 +204,7 @@ export default function Shipment() {
   return (
     <MainLayout>
       {/* TOPBAR */}
-      <header className="topbar">
+      <header className="topbar shipment-topbar">
         <div className="topbar-right">
           <OfficeTools />
         </div>
@@ -214,7 +214,7 @@ export default function Shipment() {
         {/* HEADER */}
         <div className="header-row">
           <div className="header">
-            <h2>Shipments - {activeConfig.title}</h2>
+            <h1>Shipments: {activeConfig.title}</h1>
             <p>{activeConfig.description}</p>
           </div>
 
@@ -463,7 +463,7 @@ export default function Shipment() {
                   <h4>Resolved This Week</h4>
                   <i className="las la-check-circle stat-icon" />
                 </div>
-                <h2>—</h2>
+                <h2>N/A</h2>
                 <p>Not yet tracked</p>
               </div>
             </>
@@ -474,34 +474,25 @@ export default function Shipment() {
               <h4>This Week's Trips</h4>
               <i className="las la-chart-bar stat-icon" />
             </div>
-            <h2>{stats.weeklyTrips}</h2>
-            <p>{stats.weeklyTrips === "—" ? (isLoading ? "Loading count…" : "Count unavailable") : "Shipments created this week"}</p>
+            <h2>{String(stats.weeklyTrips ?? "").replace(/\u2014/g, "N/A")}</h2>
+            <p>{stats.weeklyTrips === "\u2014" ? (isLoading ? "Loading count…" : "Count unavailable") : "Shipments created this week"}</p>
           </div>
         </div>
 
         {/* SHIPMENT TABS */}
-        <div className="view-tabs">
+        <div className="view-tabs" role="tablist" aria-label="Shipment views">
           {tabs.map((tab) => (
-            <div
+            <button
+              type="button"
               key={tab.key}
               className={`tab ${
                 currentTab === tab.key ? "active" : ""
               }`}
-              role="button"
-              tabIndex={0}
+              role="tab"
+              aria-selected={currentTab === tab.key}
               onClick={() => {
                 setCurrentTab(tab.key);
                 setOpenMenuId(null);
-              }}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" ||
-                  event.key === " "
-                ) {
-                  event.preventDefault();
-                  setCurrentTab(tab.key);
-                  setOpenMenuId(null);
-                }
               }}
             >
               {tab.label}
@@ -516,13 +507,16 @@ export default function Shipment() {
                     {tab.badge}
                   </span>
                 )}
-            </div>
+            </button>
           ))}
         </div>
 
         {/* SEARCH AND REFRESH */}
         <div className="table-controls">
           <div className="search-wrapper">
+            <label htmlFor="shipmentSearch" className="sr-only">
+              Search shipments
+            </label>
             <i className="las la-search table-search-icon" />
 
             <input
@@ -561,6 +555,7 @@ export default function Shipment() {
         {/* SHIPMENT TABLE */}
         {!isLoading && (
           <div className="shipment-table-card">
+            <div className="shipment-table-scroll">
             <table className="shipment-table">
               {currentTab === "completed" ? (
                 <>
@@ -760,6 +755,7 @@ export default function Shipment() {
                 </>
               )}
             </table>
+            </div>
 
             {/* TABLE FOOTER */}
             <div className="table-pagination-footer">
@@ -785,7 +781,6 @@ export default function Shipment() {
             </div>
           </div>
         )}
-      </section>
 
       {/* CREATE SHIPMENT DRAWER */}
       {cancelShipment && <ShipmentCancellationDialog key={cancelShipment.dbId} shipment={cancelShipment}
@@ -815,6 +810,7 @@ export default function Shipment() {
           refresh();
         }}
       />
+      </section>
     </MainLayout>
   );
 }

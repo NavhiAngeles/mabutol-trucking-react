@@ -2,16 +2,16 @@
 HEADER
 ========================= */
 
-.page-header {
+.settings-page .page-header {
   margin-bottom: 24px;
 }
 
-.page-header h2 {
+.settings-page .page-header :is(h1, h2) {
   font-size: 34px;
   margin-bottom: 8px;
 }
 
-.page-header p {
+.settings-page .page-header p {
   color: #6B7280;
 }
 
@@ -19,13 +19,13 @@ HEADER
 GRID
 ========================= */
 
-.notification-grid {
+.settings-page .notification-grid {
   display: grid;
   grid-template-columns: 1fr 2fr;
   gap: 24px;
 }
 
-.wide {
+.settings-page .wide {
   grid-column: span 1;
 }
 
@@ -33,18 +33,18 @@ GRID
 CARDS
 ========================= */
 
-.settings-card {
+.settings-page .settings-card {
   background: white;
   border-radius: 14px;
   border: 1px solid #E5E7EB;
   padding: 24px;
 }
 
-.card-header {
+.settings-page .card-header {
   margin-bottom: 24px;
 }
 
-.card-header h3 {
+.settings-page .card-header h3 {
   font-size: 22px;
 }
 
@@ -52,7 +52,7 @@ CARDS
 TOGGLES (Fixed State Layout Positions)
 ========================= */
 
-.toggle-row {
+.settings-page .toggle-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -60,12 +60,12 @@ TOGGLES (Fixed State Layout Positions)
   border-bottom: 1px solid #F1F5F9;
 }
 
-.toggle-row p {
+.settings-page .toggle-row p {
   color: #6B7280;
   margin-top: 4px;
 }
 
-.toggle {
+.settings-page .toggle {
   width: 54px;
   height: 28px;
   border-radius: 20px;
@@ -75,15 +75,15 @@ TOGGLES (Fixed State Layout Positions)
   transition: background-color 0.2s ease-in-out;
 }
 
-.toggle.active {
+.settings-page .toggle.active {
   background: #0F172A;
 }
 
-.toggle.inactive {
+.settings-page .toggle.inactive {
   background: #CBD5E1;
 }
 
-.toggle-circle {
+.settings-page .toggle-circle {
   width: 22px;
   height: 22px;
   background: white;
@@ -93,11 +93,11 @@ TOGGLES (Fixed State Layout Positions)
   transition: left 0.2s ease-in-out;
 }
 
-.toggle.active .toggle-circle {
+.settings-page .toggle.active .toggle-circle {
   left: 29px;
 }
 
-.toggle.inactive .toggle-circle {
+.settings-page .toggle.inactive .toggle-circle {
   left: 3px;
 }
 
@@ -105,7 +105,7 @@ TOGGLES (Fixed State Layout Positions)
 ALERT ROWS & VISIBLE CHECKBOX INTERACTIONS
 ========================= */
 
-.alert-row {
+.settings-page .alert-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -115,18 +115,18 @@ ALERT ROWS & VISIBLE CHECKBOX INTERACTIONS
   margin-bottom: 16px;
 }
 
-.alert-row p {
+.settings-page .alert-row p {
   color: #64748B;
   margin-top: 4px;
 }
 
-.alert-options {
+.settings-page .alert-options {
   display: flex;
   gap: 16px;
 }
 
 /* The wrapper handles click pointer events explicitly */
-.checkbox-container {
+.settings-page .checkbox-container {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -140,12 +140,12 @@ ALERT ROWS & VISIBLE CHECKBOX INTERACTIONS
 }
 
 /* High visibility click tracking when hovering option items */
-.checkbox-container:hover {
+.settings-page .checkbox-container:hover {
   background-color: #E2E8F0;
 }
 
 /* Forces browsers to display custom dark theme checked mark boxes */
-.checkbox-container input[type="checkbox"] {
+.settings-page .checkbox-container input[type="checkbox"] {
   cursor: pointer;
   width: 18px;
   height: 18px;
@@ -156,13 +156,24 @@ ALERT ROWS & VISIBLE CHECKBOX INTERACTIONS
   pointer-events: auto; /* Guarantees the mouse event registration stays on top */
 }
 /* Scope interaction and responsive rules to notification settings. */
-.notification-settings .toggle { border: 0; padding: 0; flex-shrink: 0; }
-.notification-settings .toggle:disabled { cursor: not-allowed; opacity: .55; }
-.notification-settings .toggle:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
-.notification-settings .toggle-row { gap: 16px; }
-.notification-settings .toggle-row p { max-width: 46ch; }
-.notification-settings .notification-refresh { margin: 16px 0; }
-.notification-settings .notification-success { color: #166534; margin: 16px 0; }
-.notification-settings .notification-error { color: #991b1b; margin: 16px 0; }
-.notification-settings .notification-error button { margin: 8px 12px 8px 0; }
-@media (max-width: 900px) { .notification-settings .notification-grid { grid-template-columns: 1fr; } }
+.settings-page .notification-settings .toggle { border: 0; padding: 0; flex-shrink: 0; }
+.settings-page .notification-settings .toggle:disabled { cursor: not-allowed; opacity: .55; }
+.settings-page .notification-settings .toggle:focus-visible { outline: 3px solid #2563eb; outline-offset: 3px; }
+.settings-page .notification-settings .toggle-row { gap: 16px; }
+.settings-page .notification-settings .toggle-row p { max-width: 46ch; }
+.settings-page .notification-settings .notification-refresh { margin: 16px 0; }
+.settings-page .notification-settings .notification-success { color: #166534; margin: 16px 0; }
+.settings-page .notification-settings .notification-error { color: #991b1b; margin: 16px 0; }
+.settings-page .notification-settings .notification-error button { margin: 8px 12px 8px 0; }
+@media (max-width: 900px) { .settings-page .notification-settings .notification-grid { grid-template-columns: 1fr; } }
+
+.settings-page :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
+  .settings-page .um-pagination button {
+    min-height: 44px;
+  }
+}

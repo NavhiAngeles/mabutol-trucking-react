@@ -434,8 +434,8 @@ export default function TruckTrackingMap({
                 padding: "11px",
                 background:
                   mapReady && !isResolvingAddress
-                    ? "#dc2626"
-                    : "#9ca3af",
+                    ? "#b91c1c"
+                    : "#475569",
                 color: "#ffffff",
                 border: "none",
                 borderRadius: "8px",

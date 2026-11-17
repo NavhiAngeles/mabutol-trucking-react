@@ -172,9 +172,9 @@ export default function DriverReport() {
   const currentPage = Math.min(page, pageCount);
   const visibleRows = report.rows.slice((currentPage - 1) * 10, currentPage * 10);
   const stats = [
-    { label: 'Drivers with Trips', value: hasData ? report.driversWithTrips : '—' },
-    { label: 'On-Time Rate', value: hasData && report.rate != null ? report.rate + '%' : '—' },
-    { label: 'Assigned Trips', value: hasData ? report.totalTrips : '—' },
+    { label: 'Drivers with Trips', value: hasData ? report.driversWithTrips : 'N/A' },
+    { label: 'On-Time Rate', value: hasData && report.rate != null ? report.rate + '%' : 'N/A' },
+    { label: 'Assigned Trips', value: hasData ? report.totalTrips : 'N/A' },
   ];
 
   return (
@@ -182,9 +182,9 @@ export default function DriverReport() {
       <div className="dr-page dr-report-live reports-page">
         {/* Topbar */}
         <ReportTopbar>
-          <label className="dr-search">
+          <label className="dr-search" htmlFor="dr-search-input">
             <SearchIcon size={18} />
-            <input type="search" placeholder="Search driver name or ID" aria-label="Search drivers" value={search} onChange={e => { setSearch(e.target.value); setPage(1); setExpandedId(null); }} />
+            <input id="dr-search-input" type="search" placeholder="Search driver name or ID" aria-label="Search drivers" value={search} onChange={e => { setSearch(e.target.value); setPage(1); setExpandedId(null); }} />
           </label>
         </ReportTopbar>
 
@@ -192,7 +192,7 @@ export default function DriverReport() {
           {/* Header */}
           <div className="report-controls"><div className="dr-header-row">
             <div>
-              <h2>Reports — Drivers</h2>
+              <h1>Reports: Drivers</h1>
               <p>Analyze individual driver performance, reliability, and delivery metrics.</p>
             </div>
 
@@ -275,7 +275,7 @@ export default function DriverReport() {
           </div>
 
 </div>
-<div className="dr-report-note report-scope-note"><p>Trips are non-cancelled delivery assignments for shipments created in the selected dates (Philippine time). On-time rate compares delivered trip arrival with shipment ETA; {hasData ? report.timed : '—'} trips have both timestamps. Kilometres use valid odometer differences on delivered trips.</p><p>Incidents use their reported dates and the driver linked to the delivery, independently of the shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.</p></div>
+<div className="dr-report-note report-scope-note"><p>Trips are non-cancelled delivery assignments for shipments created in the selected dates (Philippine time). On-time rate compares delivered trip arrival with shipment ETA; {hasData ? report.timed : 'N/A'} trips have both timestamps. Kilometres use valid odometer differences on delivered trips.</p><p>Incidents use their reported dates and the driver linked to the delivery, independently of the shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.</p></div>
           {live.loading && <p role="status">Loading driver report…</p>}
           {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
           {/* Stats */}
@@ -459,7 +459,7 @@ export default function DriverReport() {
                             <td className="dr-num">{row.trips}</td>
                             <td>
                               <div className="dr-ontime">
-                                <strong>{row.rate == null ? '—' : row.rate + '%'}</strong>
+                                <strong>{row.rate == null ? 'N/A' : row.rate + '%'}</strong>
                                 <span className="dr-mini-bar">
                                   <span
                                     style={{ width: `${row.rate ?? 0}%` }}
@@ -474,7 +474,7 @@ export default function DriverReport() {
                               {row.incidents.length}
                             </td>
                             <td>
-                              <span className="dr-km" title={`${row.measuredTrips} of ${row.completed} delivered trips have valid odometer readings`}>{row.km == null ? '—' : row.km.toLocaleString() + ' km'}</span>
+                              <span className="dr-km" title={`${row.measuredTrips} of ${row.completed} delivered trips have valid odometer readings`}>{row.km == null ? 'N/A' : row.km.toLocaleString() + ' km'}</span>
                             </td>
                             <td className="dr-cell-status">
                               <span className={`dr-status ${row.status}`}>

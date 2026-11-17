@@ -114,9 +114,10 @@ export default function RevenueReport() {
 
   return <MainLayout><div className="reports-page">
     <ReportTopbar>
-      <label className="rv-search">
+      <label className="rv-search" htmlFor="rv-search-input">
         <SearchIcon size={18} />
         <input
+          id="rv-search-input"
           type="search"
           placeholder="Search routes, customers, or cost records"
           aria-label="Search routes"
@@ -127,7 +128,7 @@ export default function RevenueReport() {
     </ReportTopbar>
     <section className="content revenue-report-live">
       <div className="report-controls"><div className="header-row">
-        <div><h2>Reports — Revenue</h2><p>Review recorded charges, payments, costs, customers, and routes.</p></div>
+        <div><h1>Reports: Revenue</h1><p>Review recorded charges, payments, costs, customers, and routes.</p></div>
         <div className="report-actions">
           <button className="secondary-btn" onClick={live.refresh}>Refresh</button>
           <div className="report-export-split" ref={exportMenuRef}>
@@ -166,7 +167,7 @@ export default function RevenueReport() {
       {hasData && missing > 0 && <p role="status">{missing} record(s) have missing or invalid amounts and are excluded from monetary totals; {report.charges.missing} are completed shipment charges.</p>}
       {hasData && report.undatedPayments > 0 && <p>{report.undatedPayments} verified payment(s) lack a valid payment date and cannot be included in a date range.</p>}
       <div className="stats">
-        {stats.map(([label, summary, explanation, variant]) => <div className={`stat-card${variant ? ` ${variant}` : ''}`} key={label}><h4>{label}</h4><h2>{hasData ? money(summary.amount) : '—'}</h2><p>{explanation}</p><small>{hasData ? summary.count : '—'} records{summary.missing ? ` · ${summary.missing} without valid amounts` : ''}</small></div>)}
+        {stats.map(([label, summary, explanation, variant]) => <div className={`stat-card${variant ? ` ${variant}` : ''}`} key={label}><h4>{label}</h4><h2>{hasData ? money(summary.amount) : 'N/A'}</h2><p>{explanation}</p><small>{hasData ? summary.count : 'N/A'} records{summary.missing ? ` · ${summary.missing} without valid amounts` : ''}</small></div>)}
       </div>
       {hasData && <>
         <div className="analytics-grid">
@@ -174,7 +175,7 @@ export default function RevenueReport() {
             <div className="card-header"><h3>Completed Charges Over Time</h3></div>
             {!report.charges.count && <p className="empty-state-text">No completed shipments were created in this period.</p>}
             <ChargeChart trend={report.trend} />
-            <p className="rv-notes">Average per priced completed shipment: {report.averageCharge == null ? '—' : money(report.averageCharge)}. Missing charge amounts are excluded.</p>
+            <p className="rv-notes">Average per priced completed shipment: {report.averageCharge == null ? 'N/A' : money(report.averageCharge)}. Missing charge amounts are excluded.</p>
           </div>
           <div className="chart-card">
             <div className="card-header"><h3>Recorded Costs</h3><span className="rv-record-count">{costRecords.length} records</span></div>

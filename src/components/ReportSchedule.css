@@ -1,14 +1,21 @@
-.report-schedule-button { padding: 10px 16px; background: #eaf2ff; color: #0a2a4d; border: 1px solid #c9daf5; border-radius: 4px; cursor: pointer; }
-.ov-actions, .sr-actions, .dr-actions, .revenue-report-live .report-actions { flex-wrap: wrap; }
-.report-schedule-backdrop { position: fixed; inset: 0; z-index: 400; background: #0f172a66; display: grid; place-items: center; padding: 16px; }
-.report-schedule-dialog { box-sizing: border-box; width: 760px; max-width: 100%; max-height: 90vh; overflow: auto; padding: 28px; border-radius: 12px; background: white; color: #0f172a; }
-.report-schedule-dialog p { margin: 12px 0; line-height: 1.5; }
-.report-schedule-dialog fieldset { border: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
-.report-schedule-dialog label { display: grid; gap: 6px; }
-.report-schedule-dialog button, .report-schedule-dialog input, .report-schedule-dialog select { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
-.report-schedule-dialog button { cursor: pointer; margin: 5px; }
-.report-schedule-dialog button:disabled { cursor: default; opacity: .5; }
-.report-schedule-dialog [role="alert"] { color: #b91c1c; }
-.report-schedule-dialog h3 { margin-top: 22px; }
-.report-schedule-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-.report-schedule-row small { display: block; margin-top: 6px; }
+.reports-page .report-schedule-button { min-height: 36px; padding: 8px 16px; background: #eaf2ff; color: #0F2A52; border: 1px solid #c9daf5; border-radius: 6px; font-weight: 500; cursor: pointer; }
+.reports-page :is(.ov-actions, .sr-actions, .dr-actions, .revenue-report-live .report-actions) { flex-wrap: wrap; }
+.reports-page .report-schedule-backdrop { position: fixed; inset: 0; z-index: 400; background: #0f172a66; display: grid; place-items: center; padding: 16px; }
+.reports-page .report-schedule-dialog { box-sizing: border-box; width: 760px; max-width: 100%; max-height: 90vh; overflow: auto; padding: 24px; border-radius: 12px; border: 1px solid #E2E8F0; background: white; color: #0f172a; }
+.reports-page .report-schedule-dialog p { margin: 12px 0; line-height: 1.5; }
+.reports-page .report-schedule-dialog fieldset { border: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.reports-page .report-schedule-dialog label { display: grid; gap: 6px; }
+.reports-page .report-schedule-dialog button, .reports-page .report-schedule-dialog input, .reports-page .report-schedule-dialog select { min-height: 38px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
+.reports-page .report-schedule-dialog button { cursor: pointer; margin: 5px; }
+.reports-page .report-schedule-dialog button:disabled { cursor: not-allowed; opacity: 0.55; }
+.reports-page .report-schedule-dialog :is(button, input, select):focus-visible, .reports-page .report-schedule-button:focus-visible { outline: 2px solid #1D4ED8; outline-offset: 2px; }
+.reports-page .report-schedule-dialog [role="alert"] { color: #b91c1c; }
+.reports-page .report-schedule-dialog h3 { margin-top: 22px; }
+.reports-page .report-schedule-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.reports-page .report-schedule-row small { display: block; margin-top: 6px; }
+@media (max-width: 640px) {
+  .reports-page .report-schedule-button,
+  .reports-page .report-schedule-dialog button,
+  .reports-page .report-schedule-dialog input,
+  .reports-page .report-schedule-dialog select { min-height: 44px; }
+}

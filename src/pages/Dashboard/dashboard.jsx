@@ -19,6 +19,7 @@ const iconProps = {
   strokeWidth: 2,
   strokeLinecap: "round",
   strokeLinejoin: "round",
+  "aria-hidden": true,
 };
 
 const Search = (props) => (
@@ -87,8 +88,9 @@ export default function Dashboard() {
   return (
     <MainLayout>
       {/* Topbar */}
-      <header className="topbar">
+      <header className="topbar dashboard-topbar">
         <form className="search-wrap" onSubmit={event => { event.preventDefault(); navigate("/shipment?tab=all&q=" + encodeURIComponent(search.trim())); }}>
+          <label htmlFor="search" className="sr-only">Search shipments</label>
           <Search className="search-icon" />
           <input
             type="text"
@@ -115,11 +117,11 @@ export default function Dashboard() {
           <p className="dashboard-refresh-status dashboard-sync-note">Sections refresh independently; their times may differ.</p>
           <p className="dashboard-refresh-status">{snapshotStatus('Details (analytics, alerts and resources)', details.lastUpdated, details.error)}</p>
           {details.loading && <p role="status">Loading dashboard details…</p>}
-          {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button onClick={details.refresh}>Retry</button></p>}
+          {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button type="button" onClick={details.refresh}>Retry</button></p>}
           {/* Stats */}
           <p className="dashboard-refresh-status">{snapshotStatus('Operational statistics', lastUpdated, error)}</p>
           {loading && <p role="status">Loading operational statistics…</p>}
-          {error && <p role="alert">Could not load statistics: {error} <button onClick={refresh}>Retry</button></p>}
+          {error && <p role="alert">Could not load statistics: {error} <button type="button" onClick={refresh}>Retry</button></p>}
         </section>
         <div className="stats">
           <div className="stat-card green" {...cardProps('/shipment?tab=active')}>
@@ -129,7 +131,7 @@ export default function Dashboard() {
                 <Truck />
               </div>
             </div>
-            <h2>{stats?.activeShipments ?? '—'}</h2>
+            <h2>{stats?.activeShipments ?? '--'}</h2>
             <p className="stat-delta green">
               {comparisonLabel(stats?.activeDelta ?? null)}
             </p>
@@ -142,7 +144,7 @@ export default function Dashboard() {
                 <AlertTriangle />
               </div>
             </div>
-            <h2>{stats?.delayedShipments ?? '—'}</h2>
+            <h2>{stats?.delayedShipments ?? '--'}</h2>
             <p className="stat-delta red">
               {comparisonLabel(stats?.delayedDelta ?? null)}
             </p>
@@ -155,7 +157,7 @@ export default function Dashboard() {
                 <Truck />
               </div>
             </div>
-            <h2>{stats?.availableTrucks ?? '—'}</h2>
+            <h2>{stats?.availableTrucks ?? '--'}</h2>
             <p className="stat-delta orange">Ready for dispatch</p>
           </div>
 
@@ -166,7 +168,7 @@ export default function Dashboard() {
                 <Clock />
               </div>
             </div>
-            <h2>{stats?.pendingDispatch ?? '—'}</h2>
+            <h2>{stats?.pendingDispatch ?? '--'}</h2>
             <p className="stat-delta blue">{stats ? `${stats.awaitingAssignment} awaiting assignment · ${stats.awaitingDispatch} awaiting dispatch` : 'Booked or assigned, not departed'}</p>
           </div>
         </div>
@@ -191,11 +193,11 @@ export default function Dashboard() {
               <div className="analytics-grid">
                 <div className="mini-stat">
                   <span>On-Time Delivery Rate</span>
-                  <strong>{details.data?.onTimeRate == null ? "—" : details.data.onTimeRate + "%"}</strong><small>Completed shipments with both arrival timestamps ({details.data?.timedDeliveries ?? 0})</small>
+                  <strong>{details.data?.onTimeRate == null ? "--" : details.data.onTimeRate + "%"}</strong><small>Completed shipments with both arrival timestamps ({details.data?.timedDeliveries ?? 0})</small>
                 </div>
                 <div className="mini-stat">
                   <span>Completed Today</span>
-                  <strong>{details.data?.completedToday ?? "—"}</strong>
+                  <strong>{details.data?.completedToday ?? "--"}</strong>
                 </div>
               </div>
 
@@ -238,7 +240,7 @@ export default function Dashboard() {
                   <div className={"alert-icon " + alert.color}><ClipboardList /></div>
                   <div><p className={"alert-title " + alert.color}>{alert.title}</p>
                     <p className="alert-body">{alert.body}</p>
-                    <button className={"alert-link " + alert.color} onClick={() => navigate(alert.path)}>{alert.action} →</button>
+                    <button type="button" className={"alert-link " + alert.color} onClick={() => navigate(alert.path)}>{alert.action} →</button>
                   </div>
                 </div>
               ))}
@@ -252,7 +254,7 @@ export default function Dashboard() {
               <div className="resource-row">
                 <div className="resource-row-top">
                   <span>Available</span>
-                  <strong>{resources?.available ?? "—"}</strong>
+                  <strong>{resources?.available ?? "--"}</strong>
                 </div>
                 <div className="bar-track">
                   <div className="bar-fill green" style={{ width: percent(resources?.available) }} />
@@ -262,7 +264,7 @@ export default function Dashboard() {
               <div className="resource-row">
                 <div className="resource-row-top">
                   <span>In Use</span>
-                  <strong>{resources?.inUse ?? "—"}</strong>
+                  <strong>{resources?.inUse ?? "--"}</strong>
                 </div>
                 <div className="bar-track">
                   <div className="bar-fill navy" style={{ width: percent(resources?.inUse) }} />
@@ -272,14 +274,14 @@ export default function Dashboard() {
               <div className="resource-row">
                 <div className="resource-row-top">
                   <span>Maintenance</span>
-                  <strong>{resources?.maintenance ?? "—"}</strong>
+                  <strong>{resources?.maintenance ?? "--"}</strong>
                 </div>
                 <div className="bar-track">
                   <div className="bar-fill orange" style={{ width: percent(resources?.maintenance) }} />
                 </div>
               </div>
 
-              <p>Other / inactive: {resources?.other ?? "—"} · Total fleet: {resources?.total ?? "—"}</p>
+              <p>Other / inactive: {resources?.other ?? "--"} · Total fleet: {resources?.total ?? "--"}</p>
               <div className="snapshot-secondary">
                 <div>
                   <p className="snapshot-secondary-title">Completed Trip Duration</p>
@@ -287,7 +289,7 @@ export default function Dashboard() {
                     <div className="driver-hours-icon">
                       <Clock />
                     </div>
-                    <strong>{details.data?.averageTripHours == null ? "—" : details.data.averageTripHours.toFixed(1) + "h"}</strong>
+                    <strong>{details.data?.averageTripHours == null ? "--" : details.data.averageTripHours.toFixed(1) + "h"}</strong>
                     <span>Average departure to arrival</span>
                   </div>
                 </div>
@@ -297,18 +299,18 @@ export default function Dashboard() {
                   <div className="compliance-list">
                     <div className="compliance-row orange">
                       <span>Expiring</span>
-                      <span className="compliance-badge orange">{compliance?.expiring ?? "—"}</span>
+                      <span className="compliance-badge orange">{compliance?.expiring ?? "--"}</span>
                     </div>
                     <div className="compliance-row red">
                       <span>Expired</span>
-                      <span className="compliance-badge red">{compliance?.expired ?? "—"}</span>
+                      <span className="compliance-badge red">{compliance?.expired ?? "--"}</span>
                     </div>
                     <div className="compliance-row amber">
                       <span>Review</span>
-                      <span className="compliance-badge amber">{compliance?.review ?? "—"}</span>
+                      <span className="compliance-badge amber">{compliance?.review ?? "--"}</span>
                     </div>
                   </div>
-                  <button className="view-all-link" onClick={() => navigate("/fleet?view=compliance")}>View All →</button>
+                  <button type="button" className="view-all-link" onClick={() => navigate("/fleet?view=compliance")}>View All →</button>
                 </div>
               </div>
             </div>

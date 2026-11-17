@@ -7,7 +7,7 @@ import './userManagement.css';
 const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
 
 function formatDetailsSummary(details) {
-  if (!details || typeof details !== 'object') return String(details ?? '—');
+  if (!details || typeof details !== 'object') return String(details ?? 'N/A');
   const targetObj = details.new && typeof details.new === 'object' ? details.new : details;
   const entries = Object.entries(targetObj).filter(([k]) => k !== 'id' && !k.endsWith('_id'));
   if (entries.length === 0) {
@@ -22,7 +22,7 @@ function formatDetailsSummary(details) {
 
 export default function UserManagement() {
   const { user, role } = useAuth();
-  return <SettingsLayout>{role === 'admin' ? <OfficeUsers key={user?.id} /> : <section className="content"><div className="page-header"><div><h2>Settings — User Management</h2><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div></div><p>Only active administrators can manage office accounts.</p></section>}</SettingsLayout>;
+  return <SettingsLayout>{role === 'admin' ? <OfficeUsers key={user?.id} /> : <section className="content"><div className="page-header"><div><h1>Settings: User Management</h1><p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p></div></div><p>Only active administrators can manage office accounts.</p></section>}</SettingsLayout>;
 }
 function OfficeUsers() {
   const [snapshot, setSnapshot] = useState(null);
@@ -203,7 +203,7 @@ function OfficeUsers() {
   return <section className="content office-user-management">
     <div className="page-header">
       <div>
-        <h2>Settings — User Management</h2>
+        <h1>Settings: User Management</h1>
         <p>Manage Admin and Staff accounts. Driver and customer records remain in their existing workflows.</p>
       </div>
       <div className="header-actions">
@@ -238,14 +238,14 @@ function OfficeUsers() {
           <span className="um-directory-count">{snapshot.users.length} accounts</span>
         </div>
         <div className="search-row um-toolbar">
-          <label className="um-search">
+          <label className="um-search" htmlFor="um-search-input">
             <span className="um-label-sr">Search users</span>
-            <input aria-label="Search users" placeholder="Search by name or login email" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
+            <input id="um-search-input" aria-label="Search users" placeholder="Search by name or login email" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
           </label>
           <div className="um-toolbar-controls">
-            <label className="um-status-filter">
+            <label className="um-status-filter" htmlFor="um-status-select">
               <span className="um-label-sr">Account status</span>
-              <select aria-label="Account status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}>
+              <select id="um-status-select" aria-label="Account status" value={status} onChange={event => { setStatus(event.target.value); setPage(0); }}>
                 <option value="all">All statuses</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -380,9 +380,10 @@ function OfficeUsers() {
 
           <div className="modal-body um-audit-body">
             <div className="um-audit-toolbar">
-              <label className="um-search">
+              <label className="um-search" htmlFor="um-audit-search-input">
                 <span>Search logs</span>
                 <input
+                  id="um-audit-search-input"
                   type="search"
                   placeholder="Search actor, action, target, metadata..."
                   aria-label="Search audit logs"
@@ -390,9 +391,10 @@ function OfficeUsers() {
                   onChange={e => { setAuditSearch(e.target.value); setAuditPage(0); }}
                 />
               </label>
-              <label className="um-action-filter">
+              <label className="um-action-filter" htmlFor="um-audit-action-select">
                 <span>Action</span>
                 <select
+                  id="um-audit-action-select"
                   aria-label="Filter by action"
                   value={auditActionFilter}
                   onChange={e => { setAuditActionFilter(e.target.value); setAuditPage(0); }}
@@ -486,7 +488,7 @@ function OfficeUsers() {
                             ) : row.details != null && typeof row.details !== 'object' ? (
                               <code className="um-audit-target">{String(row.details)}</code>
                             ) : (
-                              <span className="um-audit-muted">—</span>
+                              <span className="um-audit-muted">N/A</span>
                             )}
                           </td>
                         </tr>
@@ -523,18 +525,18 @@ function OfficeUsers() {
         {modal === 'roles' && <><p><strong>Admin:</strong> Manages office users and shared settings, with operational access governed by database policies.</p><p><strong>Staff:</strong> Uses operational workflows under existing backend permissions; cannot manage office accounts or admin-only settings.</p><p>No custom per-user permission matrix is implemented.</p></>}
         {modal === 'details' && <dl><dt>Account ID</dt><dd style={{overflowWrap:'anywhere'}}>{target.id}</dd><dt>Name</dt><dd>{target.full_name || 'Not set'}</dd><dt>Email</dt><dd>{target.email}</dd><dt>Contact</dt><dd>{target.phone || 'Not set'}</dd><dt>Role</dt><dd>{target.role}</dd><dt>Created</dt><dd>{dateLabel(target.created_at)}</dd><dt>Updated</dt><dd>{dateLabel(target.updated_at)}</dd></dl>}
         {['create','edit'].includes(modal) && <>
-          <label className="form-field">Full Name<input required maxLength={200} value={form.fullName} onChange={event => setForm({...form,fullName:event.target.value})} /></label>
-          <label className="form-field">Login Email<input type="email" required value={form.email} readOnly={modal === 'edit'} onChange={event => setForm({...form,email:event.target.value})} /></label>
-          <label className="form-field">{modal === 'create' ? 'Recovery Mobile Number' : 'Contact Number'}<input type="tel" autoComplete="tel" required={modal === 'create'} maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.phone} onChange={event => setForm({...form,phone:event.target.value})} /></label>
+          <label className="form-field" htmlFor="um-fullname-input">Full Name<input id="um-fullname-input" required maxLength={200} value={form.fullName} onChange={event => setForm({...form,fullName:event.target.value})} /></label>
+          <label className="form-field" htmlFor="um-email-input">Login Email<input id="um-email-input" type="email" required value={form.email} readOnly={modal === 'edit'} onChange={event => setForm({...form,email:event.target.value})} /></label>
+          <label className="form-field" htmlFor="um-phone-input">{modal === 'create' ? 'Recovery Mobile Number' : 'Contact Number'}<input id="um-phone-input" type="tel" autoComplete="tel" required={modal === 'create'} maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.phone} onChange={event => setForm({...form,phone:event.target.value})} /></label>
           <p>{modal === 'create' ? 'Use this user’s own Philippine mobile number. Whoever receives its SMS codes can reset this account’s password.' : 'Contact edits do not change the authentication recovery number. Use Recovery Phone to enroll or replace it.'}</p>
-          <label className="form-field">Role<select value={form.role} disabled={self} onChange={event => setForm({...form,role:event.target.value})}><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
-          {modal === 'edit' && <label className="form-field">Status<select value={form.active?'active':'inactive'} disabled={self} onChange={event => setForm({...form,active:event.target.value==='active'})}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>}
+          <label className="form-field" htmlFor="um-role-select">Role<select id="um-role-select" value={form.role} disabled={self} onChange={event => setForm({...form,role:event.target.value})}><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
+          {modal === 'edit' && <label className="form-field" htmlFor="um-status-modal-select">Status<select id="um-status-modal-select" value={form.active?'active':'inactive'} disabled={self} onChange={event => setForm({...form,active:event.target.value==='active'})}><option value="active">Active</option><option value="inactive">Inactive</option></select></label>}
           {self && <p>Use Account settings for your password. Your own role and activation status cannot be changed here.</p>}
         </>}
         {modal === 'recovery' && <>
           <p>Register the recovery number for <strong>{target.email}</strong>. Whoever receives its SMS codes can reset this account’s password. Confirm this is the user’s own number before saving.</p>
           {!recoveryLoaded && !error && <p role="status">Loading registered recovery phone…</p>}
-          {recoveryLoaded && <label className="form-field">Recovery Mobile Number<input type="tel" autoComplete="tel" required maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.recoveryPhone || ''} onChange={event => setForm({ ...form, recoveryPhone: event.target.value })} /></label>}
+          {recoveryLoaded && <label className="form-field" htmlFor="um-recovery-phone-input">Recovery Mobile Number<input id="um-recovery-phone-input" type="tel" autoComplete="tel" required maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={form.recoveryPhone || ''} onChange={event => setForm({ ...form, recoveryPhone: event.target.value })} /></label>}
           <p>This changes the Auth recovery number. The profile’s contact number remains separate. No SMS is sent when an administrator registers a number; possession is checked during recovery.</p>
         </>}
         {modal === 'mfa' && <>
@@ -558,8 +560,9 @@ function OfficeUsers() {
                 </ul>
               )}
             </div>
-            <label className="form-field">Confirmation Reason *
+            <label className="form-field" htmlFor="um-mfa-reason-input">Confirmation Reason *
               <textarea
+                id="um-mfa-reason-input"
                 required
                 rows={3}
                 minLength={5}
@@ -575,8 +578,8 @@ function OfficeUsers() {
         {modal === 'activation' && <><p>{target.is_active?'Deactivate':'Activate'} <strong>{target.full_name || target.email}</strong> ({target.email})?</p><p>Deactivation blocks office access after the next permission refresh. Existing Auth access tokens may remain valid until expiry. Operational records are retained.</p></>}
         {['create','password'].includes(modal) && <>
           {target && <p>Change the login password for <strong>{target.email}</strong>. No reset email will be sent.</p>}
-          <label className="form-field">{modal==='create'?'Initial':'New'} Password<input type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={form.password} onChange={event => setForm({...form,password:event.target.value})} /></label>
-          <label className="form-field">Confirm Password<input type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={form.confirm} onChange={event => setForm({...form,confirm:event.target.value})} /></label>
+          <label className="form-field" htmlFor="um-password-input">{modal==='create'?'Initial':'New'} Password<input id="um-password-input" type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={form.password} onChange={event => setForm({...form,password:event.target.value})} /></label>
+          <label className="form-field" htmlFor="um-confirm-input">Confirm Password<input id="um-confirm-input" type="password" autoComplete="new-password" minLength={12} maxLength={128} required value={form.confirm} onChange={event => setForm({...form,confirm:event.target.value})} /></label>
           <p>Use 12–128 characters. Share credentials securely; the user can change them under Account settings.</p>
         </>}
         {error && <p role="alert" className="um-error">{error}</p>}

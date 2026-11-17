@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { LUZON_BOUNDS } from "../../config/mapBound";
 
-export default function AddressAutocomplete({ value, onChange, onSelect, disabled, placeholder, iconClass }) {
+export default function AddressAutocomplete({ value, onChange, onSelect, disabled, placeholder, iconClass, inputId }) {
   const id = useId();
   const [focused, setFocused] = useState(false);
   const [results, setResults] = useState({ query: "", features: [], message: "" });
@@ -50,6 +50,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
     <div className="input-search-wrapper address-autocomplete-wrapper">
       {iconClass && <i className={iconClass} style={{ display: 'none' }} aria-hidden="true" />}
       <input
+        id={inputId || `${id}-input`}
         type="text" role="combobox" aria-label={placeholder} autoComplete="off"
         aria-autocomplete="list" aria-controls={`${id}-list`} aria-expanded={focused && features.length > 0}
         aria-activedescendant={active >= 0 && features[active] ? `${id}-${active}` : undefined}

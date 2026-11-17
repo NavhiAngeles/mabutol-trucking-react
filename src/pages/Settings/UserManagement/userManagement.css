@@ -2,23 +2,23 @@
    HEADER
 ========================= */
 
-.page-header {
+.settings-page .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
 }
 
-.page-header h2 {
+.settings-page .page-header :is(h1, h2) {
   font-size: 34px;
   margin-bottom: 8px;
 }
 
-.page-header p {
+.settings-page .page-header p {
   color: #6b7280;
 }
 
-.header-actions {
+.settings-page .header-actions {
   display: flex;
   gap: 12px;
 }
@@ -27,8 +27,8 @@
    BUTTONS
 ========================= */
 
-.primary-btn,
-.secondary-btn {
+.settings-page .primary-btn,
+.settings-page .secondary-btn {
   padding: 12px 16px;
   border-radius: 10px;
   border: none;
@@ -38,21 +38,21 @@
   transition: background 0.15s, opacity 0.15s;
 }
 
-.primary-btn {
+.settings-page .primary-btn {
   background: #0f172a;
   color: white;
 }
 
-.primary-btn:hover {
+.settings-page .primary-btn:hover {
   background: #1e293b;
 }
 
-.secondary-btn {
+.settings-page .secondary-btn {
   background: #e2e8f0;
   color: #0f172a;
 }
 
-.secondary-btn:hover {
+.settings-page .secondary-btn:hover {
   background: #cbd5e1;
 }
 
@@ -60,14 +60,14 @@
    SEARCH
 ========================= */
 
-.search-row {
+.settings-page .search-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
 }
 
-.search-row input {
+.settings-page .search-row input {
   width: 420px;
   padding: 12px 16px;
   border: 1px solid #cbd5e1;
@@ -75,11 +75,10 @@
   background: #f8fafc;
   font-size: 14px;
   color: #0f172a;
-  outline: none;
-  transition: border-color 0.15s;
+transition: border-color 0.15s;
 }
 
-.search-row input:focus {
+.settings-page .search-row input:focus {
   border-color: #94a3b8;
 }
 
@@ -87,27 +86,27 @@
    TABLE
 ========================= */
 
-.table-card {
+.settings-page .table-card {
   background: white;
   border-radius: 14px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
 }
 
-.user-table {
+.settings-page .user-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.user-table th,
-.user-table td {
+.settings-page .user-table th,
+.settings-page .user-table td {
   padding: 16px;
   border-bottom: 1px solid #f1f5f9;
   text-align: left;
   font-size: 14px;
 }
 
-.user-table th {
+.settings-page .user-table th {
   background: #f8fafc;
   color: #64748b;
   font-size: 12px;
@@ -116,13 +115,13 @@
   letter-spacing: 0.04em;
 }
 
-.user-table tbody tr:last-child td {
+.settings-page .user-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.empty-row {
+.settings-page .empty-row {
   text-align: center;
-  color: #94a3b8;
+  color: #64748B;
   padding: 32px 16px !important;
   font-size: 14px;
 }
@@ -131,13 +130,13 @@
    USER CELL
 ========================= */
 
-.user-cell {
+.settings-page .user-cell {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.user-avatar {
+.settings-page .user-avatar {
   width: 42px;
   height: 42px;
   border-radius: 50%;
@@ -151,7 +150,7 @@
   flex-shrink: 0;
 }
 
-.user-cell p {
+.settings-page .user-cell p {
   color: #64748b;
   font-size: 13px;
   margin-top: 3px;
@@ -161,7 +160,7 @@
    ROLE BADGE
 ========================= */
 
-.role-badge {
+.settings-page .role-badge {
   display: inline-flex;
   padding: 5px 12px;
   border-radius: 8px;
@@ -171,7 +170,7 @@
   font-weight: 600;
 }
 
-.role-badge.role-staff {
+.settings-page .role-badge.role-staff {
   background: #475569;
 }
 
@@ -179,24 +178,24 @@
    STATUS
 ========================= */
 
-.status {
+.settings-page .status {
   padding: 5px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
 }
 
-.status.active {
+.settings-page .status.active {
   background: #dcfce7;
   color: #166534;
 }
 
-.status.inactive {
+.settings-page .status.inactive {
   background: #e5e7eb;
   color: #374151;
 }
 
-.status.pending {
+.settings-page .status.pending {
   background: #fef3c7;
   color: #92400e;
 }
@@ -205,7 +204,7 @@
    MODAL OVERLAY
 ========================= */
 
-.modal-overlay {
+.settings-page .modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
@@ -230,7 +229,7 @@
    MODAL
 ========================= */
 
-.modal {
+.settings-page .modal {
   background: white;
   border-radius: 16px;
   width: 520px;
@@ -253,26 +252,26 @@
   }
 }
 
-.modal-header {
+.settings-page .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
 }
 
-.modal-header h3 {
+.settings-page .modal-header h3 {
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
   margin-bottom: 4px;
 }
 
-.modal-header p {
+.settings-page .modal-header p {
   font-size: 13px;
   color: #64748b;
 }
 
-.modal-close-btn {
+.settings-page .modal-close-btn {
   background: #f1f5f9;
   border: none;
   cursor: pointer;
@@ -288,7 +287,7 @@
   transition: background 0.1s;
 }
 
-.modal-close-btn:hover {
+.settings-page .modal-close-btn:hover {
   background: #e2e8f0;
   color: #0f172a;
 }
@@ -297,7 +296,7 @@
    MODAL BODY
 ========================= */
 
-.modal-body {
+.settings-page .modal-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -307,19 +306,19 @@
    FORM
 ========================= */
 
-.form-row {
+.settings-page .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
-.form-field {
+.settings-page .form-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.form-field label {
+.settings-page .form-field label {
   font-size: 12px;
   font-weight: 600;
   color: #374151;
@@ -327,37 +326,36 @@
   letter-spacing: 0.05em;
 }
 
-.form-field input,
-.form-field select {
+.settings-page .form-field input,
+.settings-page .form-field select {
   padding: 10px 13px;
   border: 1px solid #cbd5e1;
   border-radius: 9px;
   font-size: 13px;
   color: #0f172a;
   background: #f8fafc;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
-.form-field input:focus,
-.form-field select:focus {
+.settings-page .form-field input:focus,
+.settings-page .form-field select:focus {
   border-color: #0f172a;
   background: white;
   box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.07);
 }
 
-.form-field input.input-error,
-.form-field select.input-error {
+.settings-page .form-field input.input-error,
+.settings-page .form-field select.input-error {
   border-color: #ef4444;
 }
 
-.form-field input.input-error:focus {
+.settings-page .form-field input.input-error:focus {
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
-.field-error {
+.settings-page .field-error {
   font-size: 11px;
-  color: #ef4444;
+  color: #B91C1C;
   font-weight: 500;
   margin-top: 2px;
 }
@@ -366,14 +364,14 @@
    PERMISSIONS GRID
 ========================= */
 
-.permissions-grid {
+.settings-page .permissions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 2px;
 }
 
-.perm-checkbox {
+.settings-page .perm-checkbox {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -388,12 +386,12 @@
   user-select: none;
 }
 
-.perm-checkbox:hover {
+.settings-page .perm-checkbox:hover {
   border-color: #94a3b8;
   background: #f8fafc;
 }
 
-.perm-checkbox input[type="checkbox"] {
+.settings-page .perm-checkbox input[type="checkbox"] {
   width: 15px;
   height: 15px;
   accent-color: #0f172a;
@@ -401,7 +399,7 @@
   cursor: pointer;
 }
 
-.perm-checkbox.checked {
+.settings-page .perm-checkbox.checked {
   border-color: #0f172a;
   background: #f1f5f9;
   color: #0f172a;
@@ -411,7 +409,7 @@
    MODAL FOOTER
 ========================= */
 
-.modal-footer {
+.settings-page .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -420,8 +418,8 @@
   border-top: 1px solid #f1f5f9;
 }
 
-.modal-footer .primary-btn,
-.modal-footer .secondary-btn {
+.settings-page .modal-footer .primary-btn,
+.settings-page .modal-footer .secondary-btn {
   padding: 10px 20px;
   font-size: 13px;
 }
@@ -430,7 +428,7 @@
    SUCCESS TOAST
 ========================= */
 
-.success-toast {
+.settings-page .success-toast {
   position: fixed;
   bottom: 28px;
   right: 28px;
@@ -459,7 +457,7 @@
   }
 }
 
-.toast-icon {
+.settings-page .toast-icon {
   background: #22c55e;
   color: white;
   width: 20px;
@@ -477,7 +475,7 @@
    CREDENTIALS SECTION
 ========================= */
 
-.credentials-section {
+.settings-page .credentials-section {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #f8fafc;
@@ -488,57 +486,57 @@
   margin-top: 4px;
 }
 
-.credentials-section-header {
+.settings-page .credentials-section-header {
   margin-bottom: 2px;
 }
 
-.credentials-section-header h4 {
+.settings-page .credentials-section-header h4 {
   font-size: 14px;
   font-weight: 700;
   color: #0f172a;
   margin-bottom: 3px;
 }
 
-.credentials-section-header p {
+.settings-page .credentials-section-header p {
   font-size: 12px;
   color: #64748b;
 }
 
 /* Override form inputs inside credentials to use white bg */
-.credentials-section .form-field input {
+.settings-page .credentials-section .form-field input {
   background: white;
 }
 
-.credentials-section .form-field input:focus {
+.settings-page .credentials-section .form-field input:focus {
   background: white;
 }
 
 /* Required star */
-.required-star {
-  color: #ef4444;
+.settings-page .required-star {
+  color: #B91C1C;
   margin-left: 2px;
 }
 
 /* Password field with toggle button */
-.password-wrapper {
+.settings-page .password-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.password-wrapper input {
+.settings-page .password-wrapper input {
   width: 100%;
   padding-right: 40px;
 }
 
-.password-toggle {
+.settings-page .password-toggle {
   position: absolute;
   right: 10px;
   background: none;
   border: none;
   cursor: pointer;
   font-size: 14px;
-  color: #94a3b8;
+  color: #64748B;
   padding: 0;
   display: flex;
   align-items: center;
@@ -546,12 +544,12 @@
   line-height: 1;
 }
 
-.password-toggle:hover {
+.settings-page .password-toggle:hover {
   color: #475569;
 }
 
 /* Info note */
-.credentials-note {
+.settings-page .credentials-note {
   display: flex;
   align-items: flex-start;
   gap: 7px;
@@ -561,7 +559,7 @@
   margin-top: 2px;
 }
 
-.note-icon {
+.settings-page .note-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -580,24 +578,24 @@
    ROLE PERMISSIONS MODAL
 ========================= */
 
-.rp-modal {
+.settings-page .rp-modal {
   width: 620px;
 }
 
 /* Permissions table wrapper */
-.rp-table-wrapper {
+.settings-page .rp-table-wrapper {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 16px;
 }
 
-.rp-table {
+.settings-page .rp-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.rp-table th {
+.settings-page .rp-table th {
   background: #f8fafc;
   padding: 13px 20px;
   font-size: 11px;
@@ -609,41 +607,41 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.rp-col-module {
+.settings-page .rp-col-module {
   width: 40%;
 }
 
-.rp-col-role {
+.settings-page .rp-col-role {
   width: 30%;
 }
 
-.rp-table tbody tr {
+.settings-page .rp-table tbody tr {
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.12s;
 }
 
-.rp-table tbody tr:last-child {
+.settings-page .rp-table tbody tr:last-child {
   border-bottom: none;
 }
 
-.rp-table tbody tr:hover {
+.settings-page .rp-table tbody tr:hover {
   background: #f8fafc;
 }
 
-.rp-table td {
+.settings-page .rp-table td {
   padding: 16px 20px;
   font-size: 14px;
   color: #0f172a;
   vertical-align: middle;
 }
 
-.rp-module-name {
+.settings-page .rp-module-name {
   font-weight: 500;
   color: #1e293b;
 }
 
 /* Permission badges */
-.perm-badge {
+.settings-page .perm-badge {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -651,7 +649,7 @@
   font-weight: 500;
 }
 
-.perm-badge-icon {
+.settings-page .perm-badge-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -664,40 +662,40 @@
 }
 
 /* Full access — green */
-.perm-full .perm-badge-icon {
+.settings-page .perm-full .perm-badge-icon {
   background: #22c55e;
   color: white;
 }
 
-.perm-full {
-  color: #16a34a;
+.settings-page .perm-full {
+  color: #15803D;
 }
 
 /* View only — gray with eye feel */
-.perm-view .perm-badge-icon {
+.settings-page .perm-view .perm-badge-icon {
   background: transparent;
   color: #64748b;
   font-size: 14px;
   border: none;
 }
 
-.perm-view {
+.settings-page .perm-view {
   color: #475569;
 }
 
 /* No access — red */
-.perm-none .perm-badge-icon {
+.settings-page .perm-none .perm-badge-icon {
   background: transparent;
-  color: #ef4444;
+  color: #B91C1C;
   font-size: 13px;
 }
 
-.perm-none {
-  color: #dc2626;
+.settings-page .perm-none {
+  color: #B91C1C;
 }
 
 /* Legend */
-.rp-legend {
+.settings-page .rp-legend {
   background: #f8fafc;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -707,7 +705,7 @@
   gap: 10px;
 }
 
-.rp-legend-label {
+.settings-page .rp-legend-label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -715,21 +713,21 @@
   color: #64748b;
 }
 
-.rp-legend-items {
+.settings-page .rp-legend-items {
   display: flex;
   align-items: center;
   gap: 28px;
   flex-wrap: wrap;
 }
 
-.rp-legend-item {
+.settings-page .rp-legend-item {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   font-size: 13px;
 }
 
-.rp-icon {
+.settings-page .rp-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -741,28 +739,28 @@
   flex-shrink: 0;
 }
 
-.full-icon {
+.settings-page .full-icon {
   background: #22c55e;
   color: white;
 }
 
-.view-icon {
+.settings-page .view-icon {
   background: transparent;
   color: #64748b;
   font-size: 14px;
 }
 
-.none-icon {
+.settings-page .none-icon {
   background: transparent;
-  color: #ef4444;
+  color: #B91C1C;
   font-size: 13px;
 }
 
-.rp-full-text  { color: #16a34a; font-size: 13px; }
-.rp-view-text  { color: #475569; font-size: 13px; }
-.rp-none-text  { color: #dc2626; font-size: 13px; }
+.settings-page .rp-full-text { color: #15803D; font-size: 13px; }
+.settings-page .rp-view-text { color: #475569; font-size: 13px; }
+.settings-page .rp-none-text { color: #B91C1C; font-size: 13px; }
 
-.rp-legend-desc {
+.settings-page .rp-legend-desc {
   color: #6b7280;
   font-size: 13px;
   font-weight: 400;
@@ -772,22 +770,22 @@
    ACTIONS DROPDOWN
 ========================= */
 
-.actions-cell {
+.settings-page .actions-cell {
   position: relative;
   width: 56px;
   text-align: center;
 }
 
-.action-menu-wrapper {
+.settings-page .action-menu-wrapper {
   position: relative;
   display: inline-block;
 }
 
-.action-menu-wrapper.is-open {
+.settings-page .action-menu-wrapper.is-open {
   z-index: 60;
 }
 
-.action-dots-btn {
+.settings-page .action-dots-btn {
   background: none;
   border: 1px solid transparent;
   cursor: pointer;
@@ -804,22 +802,22 @@
   padding: 0;
 }
 
-.action-dots-btn:hover,
-.action-dots-btn[aria-expanded="true"] {
+.settings-page .action-dots-btn:hover,
+.settings-page .action-dots-btn[aria-expanded="true"] {
   background: #f1f5f9;
   border-color: #cbd5e1;
   color: #0f172a;
 }
 
 /* Invisible full-screen backdrop to detect outside clicks */
-.action-menu-backdrop {
+.settings-page .action-menu-backdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
 }
 
 /* The dropdown card */
-.action-dropdown {
+.settings-page .action-dropdown {
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
@@ -833,7 +831,7 @@
   animation: dropdownIn 0.15s ease;
 }
 
-.action-dropdown.action-dropdown-up {
+.settings-page .action-dropdown.action-dropdown-up {
   top: auto;
   bottom: calc(100% + 6px);
   box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.15), 0 -3px 8px rgba(15, 23, 42, 0.08);
@@ -862,7 +860,7 @@
   }
 }
 
-.action-item {
+.settings-page .action-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -880,12 +878,12 @@
   white-space: nowrap;
 }
 
-.action-item:hover {
+.settings-page .action-item:hover {
   background: #f1f5f9;
   color: #0f172a;
 }
 
-.action-item-icon {
+.settings-page .action-item-icon {
   font-size: 14px;
   width: 18px;
   text-align: center;
@@ -893,51 +891,52 @@
   line-height: 1;
 }
 
-.action-divider {
+.settings-page .action-divider {
   height: 1px;
   background: #f1f5f9;
   margin: 4px 0;
 }
 
-.action-item-danger {
-  color: #dc2626;
+.settings-page .action-item-danger {
+  color: #B91C1C;
 }
 
-.action-item-danger:hover {
+.settings-page .action-item-danger:hover {
   background: #fef2f2;
   color: #b91c1c;
 }
-.office-user-management .um-table-scroll {
+.settings-page .office-user-management .um-table-scroll {
   overflow: visible;
   border: 0;
   border-top: 1px solid #e2e8f0;
   border-radius: 0;
 }
-.office-user-management .table-card {
+.settings-page .office-user-management .table-card {
   overflow: visible;
 }
-.office-user-management .um-row-actions { display: flex; gap: 8px; flex-wrap: wrap; min-width: 200px; }
-.office-user-management .um-fieldset { border: 0; padding: 0; margin: 0; }
-.office-user-management .um-pagination { display: flex; gap: 16px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
-.office-user-management .um-success { color: #166534; margin: 16px 0; }
-.office-user-management .um-error { color: #991b1b; }
-.office-user-management .modal { max-height: 90vh; overflow-y: auto; }
-.office-user-management button:disabled { cursor: not-allowed; opacity: .55; }
-@media (max-width: 900px) { .office-user-management .page-header, .office-user-management .search-row { flex-wrap: wrap; gap: 16px; } }
+.settings-page .office-user-management .um-row-actions { display: flex; gap: 8px; flex-wrap: wrap; min-width: 200px; }
+.settings-page .office-user-management .um-fieldset { border: 0; padding: 0; margin: 0; }
+.settings-page .office-user-management .um-pagination { display: flex; gap: 16px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.settings-page .office-user-management .um-success { color: #166534; margin: 16px 0; }
+.settings-page .office-user-management .um-error { color: #991b1b; }
+.settings-page .office-user-management .modal { max-height: 90vh; overflow-y: auto; }
+.settings-page .office-user-management button:disabled { cursor: not-allowed; opacity: .55; }
+@media (max-width: 900px) { .settings-page .office-user-management .page-header,
+.settings-page .office-user-management .search-row { flex-wrap: wrap; gap: 16px; } }
 /* Current connected directory: scoped so its controls cannot affect other pages. */
-.office-user-management {
+.settings-page .office-user-management {
   max-width: 1400px;
   margin: 0 auto;
 }
 
-.office-user-management .page-header {
+.settings-page .office-user-management .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
 }
 
-.office-user-management .page-header h2 {
+.settings-page .office-user-management .page-header :is(h1, h2) {
   font-size: 26px;
   font-weight: 700;
   color: #0f172a;
@@ -945,19 +944,19 @@
   margin: 0 0 4px;
 }
 
-.office-user-management .page-header p {
+.settings-page .office-user-management .page-header p {
   font-size: 13.5px;
   color: #64748b;
   margin: 0;
 }
 
-.office-user-management .header-actions {
+.settings-page .office-user-management .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.office-user-management .primary-btn {
+.settings-page .office-user-management .primary-btn {
   background: #0f172a;
   border: 1px solid #0f172a;
   color: #ffffff;
@@ -970,12 +969,12 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.office-user-management .primary-btn:hover:not(:disabled) {
+.settings-page .office-user-management .primary-btn:hover:not(:disabled) {
   background: #1e293b;
   border-color: #1e293b;
 }
 
-.office-user-management .secondary-btn {
+.settings-page .office-user-management .secondary-btn {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   color: #334155;
@@ -988,14 +987,14 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.office-user-management .secondary-btn:hover:not(:disabled) {
+.settings-page .office-user-management .secondary-btn:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
 /* Minimalist Banners */
-.office-user-management .um-info-banner {
+.settings-page .office-user-management .um-info-banner {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1009,11 +1008,11 @@
   line-height: 1.5;
 }
 
-.office-user-management .um-info-banner p {
+.settings-page .office-user-management .um-info-banner p {
   margin: 0;
 }
 
-.office-user-management .um-info-icon {
+.settings-page .office-user-management .um-info-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1027,7 +1026,7 @@
   flex-shrink: 0;
 }
 
-.office-user-management .um-success {
+.settings-page .office-user-management .um-success {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1041,17 +1040,17 @@
   font-weight: 500;
 }
 
-.office-user-management .um-notice-content {
+.settings-page .office-user-management .um-notice-content {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.office-user-management .um-notice-content p {
+.settings-page .office-user-management .um-notice-content p {
   margin: 0;
 }
 
-.office-user-management .um-success-icon {
+.settings-page .office-user-management .um-success-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1065,7 +1064,7 @@
   flex-shrink: 0;
 }
 
-.office-user-management .um-notice-close {
+.settings-page .office-user-management .um-notice-close {
   background: transparent;
   border: none;
   color: #15803d;
@@ -1076,11 +1075,11 @@
   transition: opacity 0.15s;
 }
 
-.office-user-management .um-notice-close:hover {
+.settings-page .office-user-management .um-notice-close:hover {
   opacity: 1;
 }
 
-.office-user-management .um-error-banner {
+.settings-page .office-user-management .um-error-banner {
   padding: 10px 16px;
   border: 1px solid #fecaca;
   border-radius: 8px;
@@ -1091,7 +1090,7 @@
 }
 
 /* Master Directory Card */
-.office-user-management .um-directory {
+.settings-page .office-user-management .um-directory {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -1099,7 +1098,7 @@
   overflow: visible;
 }
 
-.office-user-management .um-directory-heading {
+.settings-page .office-user-management .um-directory-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1107,20 +1106,20 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
-.office-user-management .um-directory-heading h3 {
+.settings-page .office-user-management .um-directory-heading h3 {
   margin: 0;
   color: #0f172a;
   font-size: 16px;
   font-weight: 700;
 }
 
-.office-user-management .um-directory-heading p {
+.settings-page .office-user-management .um-directory-heading p {
   margin: 3px 0 0;
   color: #64748b;
   font-size: 12.5px;
 }
 
-.office-user-management .um-directory-count {
+.settings-page .office-user-management .um-directory-count {
   font-size: 12px;
   font-weight: 500;
   background: #f1f5f9;
@@ -1131,7 +1130,7 @@
 }
 
 /* Minimal Toolbar */
-.office-user-management .um-toolbar {
+.settings-page .office-user-management .um-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1142,7 +1141,7 @@
   background: #ffffff;
 }
 
-.office-user-management .um-label-sr {
+.settings-page .office-user-management .um-label-sr {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1154,14 +1153,14 @@
   border-width: 0;
 }
 
-.office-user-management .um-search {
+.settings-page .office-user-management .um-search {
   flex: 1;
   max-width: 420px;
   min-width: 240px;
   margin: 0;
 }
 
-.office-user-management .um-search input {
+.settings-page .office-user-management .um-search input {
   width: 100%;
   height: 38px;
   box-sizing: border-box;
@@ -1178,25 +1177,24 @@
   transition: all 0.15s ease;
 }
 
-.office-user-management .um-search input:focus {
+.settings-page .office-user-management .um-search input:focus {
   border-color: #0f172a;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
 }
 
-.office-user-management .um-toolbar-controls {
+.settings-page .office-user-management .um-toolbar-controls {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-left: auto;
 }
 
-.office-user-management .um-status-filter {
+.settings-page .office-user-management .um-status-filter {
   min-width: 150px;
   margin: 0;
 }
 
-.office-user-management .um-status-filter select {
+.settings-page .office-user-management .um-status-filter select {
   width: 100%;
   height: 38px;
   box-sizing: border-box;
@@ -1216,13 +1214,12 @@
   transition: all 0.15s ease;
 }
 
-.office-user-management .um-status-filter select:focus {
+.settings-page .office-user-management .um-status-filter select:focus {
   border-color: #0f172a;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
+box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
 }
 
-.office-user-management .um-refresh {
+.settings-page .office-user-management .um-refresh {
   height: 38px;
   padding: 0 14px;
   border: 1px solid #cbd5e1;
@@ -1238,19 +1235,19 @@
   user-select: none;
 }
 
-.office-user-management .um-refresh:hover:not(:disabled) {
+.settings-page .office-user-management .um-refresh:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
-.office-user-management .um-refresh-icon {
+.settings-page .office-user-management .um-refresh-icon {
   font-size: 14px;
   line-height: 1;
 }
 
 /* Table Card */
-.office-user-management .table-card {
+.settings-page .office-user-management .table-card {
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -1258,13 +1255,13 @@
   overflow: visible;
 }
 
-.office-user-management .user-table {
+.settings-page .office-user-management .user-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
 
-.office-user-management .user-table th {
+.settings-page .office-user-management .user-table th {
   padding: 12px 24px;
   background: #f8fafc;
   font-size: 11px;
@@ -1277,12 +1274,12 @@
   white-space: nowrap;
 }
 
-.office-user-management .user-table th.th-actions {
+.settings-page .office-user-management .user-table th.th-actions {
   text-align: right;
   padding-right: 32px;
 }
 
-.office-user-management .user-table td {
+.settings-page .office-user-management .user-table td {
   padding: 14px 24px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
@@ -1290,27 +1287,27 @@
   font-size: 13px;
 }
 
-.office-user-management .user-table tbody tr {
+.settings-page .office-user-management .user-table tbody tr {
   transition: background-color 0.12s ease;
 }
 
-.office-user-management .user-table tbody tr:hover {
+.settings-page .office-user-management .user-table tbody tr:hover {
   background: #fafcff;
 }
 
-.office-user-management .user-table tbody tr:last-child td {
+.settings-page .office-user-management .user-table tbody tr:last-child td {
   border-bottom: none;
 }
 
 /* User Identity Cell */
-.office-user-management .user-cell {
+.settings-page .office-user-management .user-cell {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 220px;
 }
 
-.office-user-management .user-avatar {
+.settings-page .office-user-management .user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -1326,31 +1323,31 @@
   letter-spacing: 0.02em;
 }
 
-.office-user-management .user-meta {
+.settings-page .office-user-management .user-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.office-user-management .user-name-line {
+.settings-page .office-user-management .user-name-line {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.office-user-management .user-name-line strong {
+.settings-page .office-user-management .user-name-line strong {
   color: #0f172a;
   font-size: 13.5px;
   font-weight: 600;
 }
 
-.office-user-management .user-email {
+.settings-page .office-user-management .user-email {
   margin: 0;
   color: #64748b;
   font-size: 12.5px;
 }
 
-.office-user-management .um-self-badge {
+.settings-page .office-user-management .um-self-badge {
   color: #475569;
   background: #f1f5f9;
   font-size: 10.5px;
@@ -1360,14 +1357,14 @@
   border: 1px solid #e2e8f0;
 }
 
-.office-user-management .user-created {
+.settings-page .office-user-management .user-created {
   color: #64748b;
   font-size: 12.5px;
   white-space: nowrap;
 }
 
 /* Badges */
-.office-user-management .um-role-badge {
+.settings-page .office-user-management .um-role-badge {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
@@ -1380,13 +1377,13 @@
   white-space: nowrap;
 }
 
-.office-user-management .um-role-admin {
+.settings-page .office-user-management .um-role-admin {
   background: #eff6ff;
   color: #1d4ed8;
   border-color: #dbeafe;
 }
 
-.office-user-management .um-status-badge {
+.settings-page .office-user-management .um-status-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1400,13 +1397,13 @@
   white-space: nowrap;
 }
 
-.office-user-management .um-status-active {
+.settings-page .office-user-management .um-status-active {
   background: #ecfdf5;
   color: #047857;
   border-color: #a7f3d0;
 }
 
-.office-user-management .status-dot {
+.settings-page .office-user-management .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1415,12 +1412,12 @@
 }
 
 /* Actions Menu */
-.office-user-management .actions-cell {
+.settings-page .office-user-management .actions-cell {
   text-align: right;
   padding-right: 28px;
 }
 
-.office-user-management .action-dots-btn {
+.settings-page .office-user-management .action-dots-btn {
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -1436,20 +1433,20 @@
   user-select: none;
 }
 
-.office-user-management .action-dots-btn:hover {
+.settings-page .office-user-management .action-dots-btn:hover {
   background: #f1f5f9;
   border-color: #e2e8f0;
   color: #0f172a;
 }
 
-.office-user-management .action-dots-btn[aria-expanded="true"] {
+.settings-page .office-user-management .action-dots-btn[aria-expanded="true"] {
   background: #eff6ff;
   border-color: #bfdbfe;
   color: #2563eb;
 }
 
 /* Pagination Footer */
-.office-user-management .um-pagination {
+.settings-page .office-user-management .um-pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1461,18 +1458,18 @@
   border-bottom-right-radius: 12px;
 }
 
-.office-user-management .um-pagination-info {
+.settings-page .office-user-management .um-pagination-info {
   font-size: 12.5px;
   color: #64748b;
   font-weight: 500;
 }
 
-.office-user-management .um-pagination-actions {
+.settings-page .office-user-management .um-pagination-actions {
   display: flex;
   gap: 8px;
 }
 
-.office-user-management .um-pagination-actions button {
+.settings-page .office-user-management .um-pagination-actions button {
   min-height: 32px;
   padding: 6px 14px;
   border: 1px solid #cbd5e1;
@@ -1484,49 +1481,49 @@
   transition: all 0.15s ease;
 }
 
-.office-user-management .um-pagination-actions button:hover:not(:disabled) {
+.settings-page .office-user-management .um-pagination-actions button:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
-.office-user-management .um-pagination-actions button:disabled {
+.settings-page .office-user-management .um-pagination-actions button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.office-user-management .user-table .um-empty { text-align: center; padding: 40px 24px; color: #64748b; }
-.office-user-management :is(.um-success,.um-error-banner) { padding: 14px 18px; border: 1px solid #bbf7d0; border-radius: 10px; background: #f0fdf4; margin: 0 0 20px; }
-.office-user-management .um-error-banner { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
-.office-user-management button:disabled { cursor: not-allowed; opacity: .5; }
-.office-user-management :is(button,input,select):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-.office-user-management .modal-overlay { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 20px; background: #0f172a66; }
-.office-user-management .modal { width: min(600px,100%); max-height: 90vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 64px #0f172a33; padding: 0; }
-.office-user-management .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
-.office-user-management .modal-header h3 { font-size: 20px; color: #0f172a; margin: 0; }
-.office-user-management .modal-header button { border: 0; border-radius: 6px; background: #f1f5f9; width: 32px; height: 32px; cursor: pointer; }
-.office-user-management .modal-body { padding: 24px; display: grid; gap: 16px; }
-.office-user-management .modal-body p { margin: 0; color: #64748b; line-height: 1.6; font-size: 13px; }
-.office-user-management .form-field { display: grid; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; color: #334155; }
-.office-user-management .form-field :is(input,select) { width: 100%; box-sizing: border-box; height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; background: #fff; font: 400 14px/20px system-ui, sans-serif; }
-.office-user-management .form-field :is(input:read-only,select:disabled) { background: #f8fafc; color: #64748b; }
-.office-user-management .modal-body dt { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #64748b; }
-.office-user-management .modal-body dd { margin: 0 0 16px; color: #0f172a; overflow-wrap: anywhere; }
-.office-user-management .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; }
-.office-user-management .modal-footer .primary-btn { background: #0f172a; border-color: #0f172a; color: #fff; }
+.settings-page .office-user-management .user-table .um-empty { text-align: center; padding: 40px 24px; color: #64748b; }
+.settings-page .office-user-management :is(.um-success,.um-error-banner) { padding: 14px 18px; border: 1px solid #bbf7d0; border-radius: 10px; background: #f0fdf4; margin: 0 0 20px; }
+.settings-page .office-user-management .um-error-banner { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+.settings-page .office-user-management button:disabled { cursor: not-allowed; opacity: .5; }
+.settings-page .office-user-management :is(button,input,select):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.settings-page .office-user-management .modal-overlay { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 20px; background: #0f172a66; }
+.settings-page .office-user-management .modal { width: min(600px,100%); max-height: 90vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 64px #0f172a33; padding: 0; }
+.settings-page .office-user-management .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
+.settings-page .office-user-management .modal-header h3 { font-size: 20px; color: #0f172a; margin: 0; }
+.settings-page .office-user-management .modal-header button { border: 0; border-radius: 6px; background: #f1f5f9; width: 32px; height: 32px; cursor: pointer; }
+.settings-page .office-user-management .modal-body { padding: 24px; display: grid; gap: 16px; }
+.settings-page .office-user-management .modal-body p { margin: 0; color: #64748b; line-height: 1.6; font-size: 13px; }
+.settings-page .office-user-management .form-field { display: grid; gap: 8px; margin: 0; font-size: 13px; font-weight: 600; color: #334155; }
+.settings-page .office-user-management .form-field :is(input,select) { width: 100%; box-sizing: border-box; height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; background: #fff; font: 400 14px/20px system-ui, sans-serif; }
+.settings-page .office-user-management .form-field :is(input:read-only,select:disabled) { background: #f8fafc; color: #64748b; }
+.settings-page .office-user-management .modal-body dt { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #64748b; }
+.settings-page .office-user-management .modal-body dd { margin: 0 0 16px; color: #0f172a; overflow-wrap: anywhere; }
+.settings-page .office-user-management .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; }
+.settings-page .office-user-management .modal-footer .primary-btn { background: #0f172a; border-color: #0f172a; color: #fff; }
 @media (max-width: 700px) {
- .office-user-management .um-toolbar { align-items: stretch; gap: 14px; }
- .office-user-management .um-search { flex-basis: 100%; max-width: none; }
- .office-user-management .um-status-filter { flex: 1; }
- .office-user-management .um-toolbar .um-refresh { align-self: flex-end; }
- .office-user-management .um-pagination { justify-content: center; }
- .office-user-management .modal-overlay { padding: 12px; }
+ .settings-page .office-user-management .um-toolbar { align-items: stretch; gap: 14px; }
+ .settings-page .office-user-management .um-search { flex-basis: 100%; max-width: none; }
+ .settings-page .office-user-management .um-status-filter { flex: 1; }
+ .settings-page .office-user-management .um-toolbar .um-refresh { align-self: flex-end; }
+ .settings-page .office-user-management .um-pagination { justify-content: center; }
+ .settings-page .office-user-management .modal-overlay { padding: 12px; }
 }
 
 
 /* =========================
    AUDIT & ACTIVITY LOG MODAL
 ========================= */
-.office-user-management .modal.um-audit-modal {
+.settings-page .office-user-management .modal.um-audit-modal {
   width: min(1140px, 96vw);
   height: min(840px, 90vh);
   max-height: 90vh;
@@ -1540,7 +1537,7 @@
   border: 1px solid #e2e8f0;
 }
 
-.office-user-management .um-audit-modal .modal-header {
+.settings-page .office-user-management .um-audit-modal .modal-header {
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid #e2e8f0;
@@ -1550,21 +1547,21 @@
   flex-shrink: 0;
 }
 
-.office-user-management .um-audit-modal .modal-header h3 {
+.settings-page .office-user-management .um-audit-modal .modal-header h3 {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
 }
 
-.office-user-management .um-audit-subtitle {
+.settings-page .office-user-management .um-audit-subtitle {
   margin: 4px 0 0;
   color: #64748b;
   font-size: 13px;
   font-weight: 400;
 }
 
-.office-user-management .um-audit-modal .modal-close-btn {
+.settings-page .office-user-management .um-audit-modal .modal-close-btn {
   background: #f1f5f9;
   border: none;
   cursor: pointer;
@@ -1580,12 +1577,12 @@
   transition: all 0.15s ease;
 }
 
-.office-user-management .um-audit-modal .modal-close-btn:hover {
+.settings-page .office-user-management .um-audit-modal .modal-close-btn:hover {
   background: #e2e8f0;
   color: #0f172a;
 }
 
-.office-user-management .um-audit-body {
+.settings-page .office-user-management .um-audit-body {
   padding: 0;
   overflow: hidden;
   flex: 1;
@@ -1595,7 +1592,7 @@
   min-height: 0;
 }
 
-.office-user-management .um-audit-toolbar {
+.settings-page .office-user-management .um-audit-toolbar {
   display: flex;
   justify-content: flex-start;
   align-items: flex-end;
@@ -1605,7 +1602,7 @@
   flex-shrink: 0;
 }
 
-.office-user-management .um-audit-toolbar label {
+.settings-page .office-user-management .um-audit-toolbar label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1614,25 +1611,25 @@
   color: #475569;
 }
 
-.office-user-management .um-audit-toolbar label span {
+.settings-page .office-user-management .um-audit-toolbar label span {
   font-size: 12px;
   font-weight: 600;
   color: #475569;
   letter-spacing: 0.02em;
 }
 
-.office-user-management .um-audit-toolbar .um-search {
+.settings-page .office-user-management .um-audit-toolbar .um-search {
   flex: 1 1 320px;
   min-width: min(280px, 100%);
   max-width: 480px;
 }
 
-.office-user-management .um-audit-toolbar .um-action-filter {
+.settings-page .office-user-management .um-audit-toolbar .um-action-filter {
   flex: 0 0 160px;
   min-width: 150px;
 }
 
-.office-user-management .um-audit-toolbar :is(input, select) {
+.settings-page .office-user-management .um-audit-toolbar :is(input, select) {
   width: 100%;
   max-width: 100%;
   height: 40px;
@@ -1647,7 +1644,7 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.office-user-management .um-audit-toolbar .um-search input {
+.settings-page .office-user-management .um-audit-toolbar .um-search input {
   padding-left: 36px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath stroke-linecap='round' d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -1655,7 +1652,7 @@
   background-size: 16px 16px;
 }
 
-.office-user-management .um-audit-toolbar .um-action-filter select {
+.settings-page .office-user-management .um-audit-toolbar .um-action-filter select {
   padding-right: 32px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%2364748b' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -1666,13 +1663,12 @@
   cursor: pointer;
 }
 
-.office-user-management .um-audit-toolbar :is(input, select):focus {
+.settings-page .office-user-management .um-audit-toolbar :is(input, select):focus {
   border-color: #0f172a;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
-.office-user-management .um-audit-toolbar .um-refresh {
+.settings-page .office-user-management .um-audit-toolbar .um-refresh {
   margin-left: auto;
   align-self: flex-end;
   min-height: 40px;
@@ -1696,19 +1692,19 @@
   white-space: nowrap;
 }
 
-.office-user-management .um-audit-toolbar .um-refresh:not(:disabled):hover {
+.settings-page .office-user-management .um-audit-toolbar .um-refresh:not(:disabled):hover {
   background-color: #f8fafc;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
-.office-user-management .um-audit-toolbar .um-refresh:disabled {
+.settings-page .office-user-management .um-audit-toolbar .um-refresh:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-.office-user-management .um-audit-table-card {
+.settings-page .office-user-management .um-audit-table-card {
   flex: 1;
   min-height: 0;
   border: 1px solid #e2e8f0;
@@ -1718,7 +1714,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.office-user-management .um-audit-table {
+.settings-page .office-user-management .um-audit-table {
   width: 100%;
   min-width: 960px;
   font-size: 13px;
@@ -1726,7 +1722,7 @@
   border-spacing: 0;
 }
 
-.office-user-management .um-audit-table th {
+.settings-page .office-user-management .um-audit-table th {
   position: sticky;
   top: 0;
   z-index: 10;
@@ -1742,27 +1738,27 @@
   white-space: nowrap;
 }
 
-.office-user-management .um-audit-table th:nth-child(1) { width: 180px; min-width: 180px; }
-.office-user-management .um-audit-table th:nth-child(2) { width: 220px; min-width: 220px; }
-.office-user-management .um-audit-table th:nth-child(3) { width: 110px; min-width: 110px; }
-.office-user-management .um-audit-table th:nth-child(4) { width: 190px; min-width: 190px; }
-.office-user-management .um-audit-table th:nth-child(5) { min-width: 280px; }
+.settings-page .office-user-management .um-audit-table th:nth-child(1) { width: 180px; min-width: 180px; }
+.settings-page .office-user-management .um-audit-table th:nth-child(2) { width: 220px; min-width: 220px; }
+.settings-page .office-user-management .um-audit-table th:nth-child(3) { width: 110px; min-width: 110px; }
+.settings-page .office-user-management .um-audit-table th:nth-child(4) { width: 190px; min-width: 190px; }
+.settings-page .office-user-management .um-audit-table th:nth-child(5) { min-width: 280px; }
 
-.office-user-management .um-audit-table td {
+.settings-page .office-user-management .um-audit-table td {
   padding: 12px 16px;
   vertical-align: middle;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.office-user-management .um-audit-table tbody tr:last-child td {
+.settings-page .office-user-management .um-audit-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.office-user-management .um-audit-table tbody tr:hover {
+.settings-page .office-user-management .um-audit-table tbody tr:hover {
   background: #f8fafc;
 }
 
-.office-user-management .um-audit-time {
+.settings-page .office-user-management .um-audit-time {
   white-space: nowrap;
   color: #334155;
   font-size: 12.5px;
@@ -1770,13 +1766,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-.office-user-management .um-audit-table .user-cell {
+.settings-page .office-user-management .um-audit-table .user-cell {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.office-user-management .um-audit-table .user-avatar {
+.settings-page .office-user-management .um-audit-table .user-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -1791,7 +1787,7 @@
   flex-shrink: 0;
 }
 
-.office-user-management .um-audit-table .user-cell strong {
+.settings-page .office-user-management .um-audit-table .user-cell strong {
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -1799,14 +1795,14 @@
   line-height: 1.3;
 }
 
-.office-user-management .um-audit-table .user-cell p {
+.settings-page .office-user-management .um-audit-table .user-cell p {
   margin: 2px 0 0;
   font-size: 12px;
   color: #64748b;
   line-height: 1.3;
 }
 
-.office-user-management .um-audit-role {
+.settings-page .office-user-management .um-audit-role {
   display: inline-block;
   margin-top: 3px;
   font-size: 10px;
@@ -1820,7 +1816,7 @@
   border: 1px solid #e2e8f0;
 }
 
-.office-user-management .um-audit-badge {
+.settings-page .office-user-management .um-audit-badge {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
@@ -1833,44 +1829,44 @@
   border: 1px solid transparent;
 }
 
-.office-user-management .um-audit-badge.um-audit-create,
-.office-user-management .um-audit-badge.um-audit-insert {
+.settings-page .office-user-management .um-audit-badge.um-audit-create,
+.settings-page .office-user-management .um-audit-badge.um-audit-insert {
   background: #ecfdf5;
   color: #047857;
   border-color: #a7f3d0;
 }
 
-.office-user-management .um-audit-badge.um-audit-update {
+.settings-page .office-user-management .um-audit-badge.um-audit-update {
   background: #eff6ff;
   color: #1d4ed8;
   border-color: #bfdbfe;
 }
 
-.office-user-management .um-audit-badge.um-audit-delete {
+.settings-page .office-user-management .um-audit-badge.um-audit-delete {
   background: #fef2f2;
   color: #b91c1c;
   border-color: #fecaca;
 }
 
-.office-user-management .um-audit-badge.um-audit-suspend,
-.office-user-management .um-audit-badge.um-audit-deactivate {
+.settings-page .office-user-management .um-audit-badge.um-audit-suspend,
+.settings-page .office-user-management .um-audit-badge.um-audit-deactivate {
   background: #fffbeb;
   color: #b45309;
   border-color: #fde68a;
 }
 
-.office-user-management .um-audit-badge.um-audit-login,
-.office-user-management .um-audit-badge.um-audit-auth {
+.settings-page .office-user-management .um-audit-badge.um-audit-login,
+.settings-page .office-user-management .um-audit-badge.um-audit-auth {
   background: #faf5ff;
   color: #7e22ce;
   border-color: #e9d5ff;
 }
 
-.office-user-management .um-audit-target-wrapper {
+.settings-page .office-user-management .um-audit-target-wrapper {
   max-width: 200px;
 }
 
-.office-user-management .um-audit-target {
+.settings-page .office-user-management .um-audit-target {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   padding: 3px 8px;
@@ -1887,25 +1883,25 @@
   vertical-align: middle;
 }
 
-.office-user-management .um-audit-metadata-cell {
+.settings-page .office-user-management .um-audit-metadata-cell {
   max-width: 420px;
   min-width: 280px;
 }
 
-.office-user-management .um-audit-details-wrap {
+.settings-page .office-user-management .um-audit-details-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.office-user-management .um-audit-details-header {
+.settings-page .office-user-management .um-audit-details-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.office-user-management .um-audit-details-summary {
+.settings-page .office-user-management .um-audit-details-summary {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
   color: #334155;
@@ -1921,7 +1917,7 @@
   line-height: 1.4;
 }
 
-.office-user-management .um-audit-toggle-btn {
+.settings-page .office-user-management .um-audit-toggle-btn {
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 6px;
@@ -1937,13 +1933,13 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.office-user-management .um-audit-toggle-btn:hover {
+.settings-page .office-user-management .um-audit-toggle-btn:hover {
   background: #f1f5f9;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
-.office-user-management .um-audit-details {
+.settings-page .office-user-management .um-audit-details {
   margin: 8px 0 0;
   padding: 12px 14px;
   border-radius: 8px;
@@ -1960,26 +1956,26 @@
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.office-user-management .um-audit-muted {
-  color: #94a3b8;
+.settings-page .office-user-management .um-audit-muted {
+  color: #64748B;
   font-size: 14px;
 }
 
-.office-user-management .um-audit-status {
+.settings-page .office-user-management .um-audit-status {
   padding: 48px 24px;
   text-align: center;
   color: #64748b;
   font-size: 14px;
 }
 
-.office-user-management .um-audit-table .um-empty {
+.settings-page .office-user-management .um-audit-table .um-empty {
   text-align: center;
   padding: 48px 24px;
   color: #64748b;
   font-size: 14px;
 }
 
-.office-user-management .modal-footer.um-audit-footer {
+.settings-page .office-user-management .modal-footer.um-audit-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1991,7 +1987,7 @@
   flex-shrink: 0;
 }
 
-.office-user-management .um-audit-footer .um-pagination {
+.settings-page .office-user-management .um-audit-footer .um-pagination {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2000,7 +1996,7 @@
   margin: 0;
 }
 
-.office-user-management .um-audit-footer .um-pagination button {
+.settings-page .office-user-management .um-audit-footer .um-pagination button {
   min-height: 36px;
   padding: 6px 14px;
   border: 1px solid #cbd5e1;
@@ -2013,19 +2009,19 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.office-user-management .um-audit-footer .um-pagination button:not(:disabled):hover {
+.settings-page .office-user-management .um-audit-footer .um-pagination button:not(:disabled):hover {
   background: #f8fafc;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
-.office-user-management .um-audit-footer .um-pagination button:disabled {
+.settings-page .office-user-management .um-audit-footer .um-pagination button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-.office-user-management .um-audit-footer .secondary-btn {
+.settings-page .office-user-management .um-audit-footer .secondary-btn {
   min-height: 36px;
   padding: 8px 22px;
   border: 1px solid #cbd5e1;
@@ -2038,38 +2034,38 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.office-user-management .um-audit-footer .secondary-btn:hover {
+.settings-page .office-user-management .um-audit-footer .secondary-btn:hover {
   background: #e2e8f0;
   border-color: #94a3b8;
   color: #0f172a;
 }
 
 @media (max-width: 768px) {
-  .office-user-management .modal.um-audit-modal {
+  .settings-page .office-user-management .modal.um-audit-modal {
     width: 98vw;
     height: 94vh;
     padding: 16px;
   }
-  .office-user-management .um-audit-toolbar {
+  .settings-page .office-user-management .um-audit-toolbar {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
-  .office-user-management .um-audit-toolbar .um-search {
+  .settings-page .office-user-management .um-audit-toolbar .um-search {
     max-width: 100%;
   }
-  .office-user-management .um-audit-toolbar .um-refresh {
+  .settings-page .office-user-management .um-audit-toolbar .um-refresh {
     margin-left: 0;
     align-self: stretch;
   }
-  .office-user-management .um-audit-footer {
+  .settings-page .office-user-management .um-audit-footer {
     flex-direction: column;
     align-items: stretch;
   }
-  .office-user-management .um-audit-footer .um-pagination {
+  .settings-page .office-user-management .um-audit-footer .um-pagination {
     justify-content: center;
   }
-  .office-user-management .um-audit-footer .secondary-btn {
+  .settings-page .office-user-management .um-audit-footer .secondary-btn {
     width: 100%;
   }
 }
@@ -2078,7 +2074,7 @@
    MFA FACTOR INSPECTION & RESET
 ========================= */
 
-.office-user-management .um-mfa-factors-list {
+.settings-page .office-user-management .um-mfa-factors-list {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -2087,20 +2083,20 @@
   gap: 12px;
 }
 
-.office-user-management .um-mfa-factors-list h4 {
+.settings-page .office-user-management .um-mfa-factors-list h4 {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
   color: #0f172a;
 }
 
-.office-user-management .um-mfa-empty {
+.settings-page .office-user-management .um-mfa-empty {
   margin: 0;
   font-size: 13px;
   color: #64748b;
 }
 
-.office-user-management .um-factors-items {
+.settings-page .office-user-management .um-factors-items {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2108,7 +2104,7 @@
   gap: 8px;
 }
 
-.office-user-management .um-factor-item {
+.settings-page .office-user-management .um-factor-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2118,20 +2114,20 @@
   border-radius: 8px;
 }
 
-.office-user-management .um-factor-info strong {
+.settings-page .office-user-management .um-factor-info strong {
   display: block;
   font-size: 13px;
   color: #0f172a;
 }
 
-.office-user-management .um-factor-meta {
+.settings-page .office-user-management .um-factor-meta {
   display: block;
   font-size: 11px;
   color: #64748b;
   margin-top: 3px;
 }
 
-.office-user-management .um-factor-meta code {
+.settings-page .office-user-management .um-factor-meta code {
   font-size: 11px;
   color: #334155;
   background: #f1f5f9;
@@ -2139,7 +2135,7 @@
   border-radius: 4px;
 }
 
-.office-user-management .um-factor-status {
+.settings-page .office-user-management .um-factor-status {
   text-transform: uppercase;
   font-weight: 700;
   font-size: 10px;
@@ -2150,7 +2146,7 @@
   letter-spacing: 0.05em;
 }
 
-.office-user-management .form-field textarea {
+.settings-page .office-user-management .form-field textarea {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #cbd5e1;
@@ -2162,26 +2158,37 @@
   resize: vertical;
 }
 
-.office-user-management .form-field textarea:focus {
+.settings-page .office-user-management .form-field textarea:focus {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
 
-.office-user-management .um-mfa-notice {
+.settings-page .office-user-management .um-mfa-notice {
   font-size: 12px;
   color: #64748b;
   line-height: 1.5;
   margin: 0;
 }
 
-.office-user-management .modal-footer .um-action-danger-btn {
+.settings-page .office-user-management .modal-footer .um-action-danger-btn {
   background: #dc2626;
   border-color: #dc2626;
   color: #ffffff;
 }
 
-.office-user-management .modal-footer .um-action-danger-btn:not(:disabled):hover {
+.settings-page .office-user-management .modal-footer .um-action-danger-btn:not(:disabled):hover {
   background: #b91c1c;
   border-color: #b91c1c;
 }
 
+
+.settings-page :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
+  .settings-page .um-pagination button {
+    min-height: 44px;
+  }
+}

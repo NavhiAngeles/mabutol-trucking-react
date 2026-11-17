@@ -428,7 +428,7 @@ export default function PaymentLedger({ shipment, onChanged }) {
                       <span className="payment-method-badge">{formatPaymentMethod(p.method)}</span>
                     </td>
                     <td>
-                      <span className="payment-ref-code">{p.reference_number || '—'}</span>
+                      <span className="payment-ref-code">{p.reference_number || 'None'}</span>
                     </td>
                     <td>
                       <span className="payment-amount-val">{formatPaymentCurrency(p.amount)}</span>

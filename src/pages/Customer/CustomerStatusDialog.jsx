@@ -1,6 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { setCustomerActiveStatus } from "../../services/customerService";
 
+const CloseIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 export default function CustomerStatusDialog({ customer, callerRole, onClose, onConfirmed }) {
   const dialogRef = useRef(null);
   const locked = useRef(false);
@@ -76,7 +93,7 @@ export default function CustomerStatusDialog({ customer, callerRole, onClose, on
             disabled={submitting}
             onClick={close}
           >
-            ✕
+            <CloseIcon />
           </button>
         </div>
 
@@ -89,7 +106,7 @@ export default function CustomerStatusDialog({ customer, callerRole, onClose, on
 
           <div className="customer-status-summary">
             <div><strong>Customer:</strong> {customer?.name || "Unnamed customer"}</div>
-            {customer?.customer_code && <div><strong>Customer ID:</strong> {customer.customer_code}</div>}
+            {customer?.customer_code && <div className="tabular-nums"><strong>Customer ID:</strong> {customer.customer_code}</div>}
             <div>
               <strong>Current Status:</strong>{" "}
               <span className={`status-badge ${isActive ? "active" : "suspended"}`}>

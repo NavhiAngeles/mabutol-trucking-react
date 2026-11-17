@@ -239,9 +239,10 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
               </div>
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('cargo_description') ? (
-                  <label className="shipment-edit-field">
+                  <label className="shipment-edit-field" htmlFor="shipment-edit-cargo">
                     <span>Cargo description</span>
                     <input
+                      id="shipment-edit-cargo"
                       className="shipment-edit-input"
                       value={draft.cargo_description}
                       maxLength={500}
@@ -257,9 +258,10 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                 )}
 
                 {record.policy.fields.includes('weight_kg') ? (
-                  <label className="shipment-edit-field">
+                  <label className="shipment-edit-field" htmlFor="shipment-edit-weight">
                     <span>Weight (kg)</span>
                     <input
+                      id="shipment-edit-weight"
                       className="shipment-edit-input"
                       type="number"
                       min="2000"
@@ -276,9 +278,10 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                 )}
 
                 {record.policy.fields.includes('requested_vehicle_type_id') ? (
-                  <label className="shipment-edit-field">
+                  <label className="shipment-edit-field" htmlFor="shipment-edit-vehicle-type">
                     <span>Vehicle type</span>
                     <select
+                      id="shipment-edit-vehicle-type"
                       className="shipment-edit-select"
                       value={draft.requested_vehicle_type_id}
                       onChange={set('requested_vehicle_type_id')}
@@ -315,13 +318,13 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('scheduled_departure') ? (
                   <div className="shipment-edit-schedule-row">
-                    <label className="shipment-edit-field">
+                    <label className="shipment-edit-field" htmlFor="shipment-edit-date">
                       <span>Departure date</span>
-                      <input className="shipment-edit-input" type="date" value={draft.date} onChange={set('date')} />
+                      <input id="shipment-edit-date" className="shipment-edit-input" type="date" value={draft.date} onChange={set('date')} />
                     </label>
-                    <label className="shipment-edit-field">
+                    <label className="shipment-edit-field" htmlFor="shipment-edit-time">
                       <span>Departure time (PST)</span>
-                      <input className="shipment-edit-input" type="time" value={draft.time} onChange={set('time')} />
+                      <input id="shipment-edit-time" className="shipment-edit-input" type="time" value={draft.time} onChange={set('time')} />
                     </label>
                   </div>
                 ) : (
@@ -360,9 +363,10 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
               </div>
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('special_handling') ? (
-                  <label className="shipment-edit-field shipment-field-full">
+                  <label className="shipment-edit-field shipment-field-full" htmlFor="shipment-edit-handling">
                     <span>Special handling</span>
                     <textarea
+                      id="shipment-edit-handling"
                       className="shipment-edit-textarea"
                       value={draft.special_handling}
                       maxLength={1000}
@@ -378,9 +382,10 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                 )}
 
                 {record.policy.fields.includes('driver_notes') ? (
-                  <label className="shipment-edit-field shipment-field-full">
+                  <label className="shipment-edit-field shipment-field-full" htmlFor="shipment-edit-driver-notes">
                     <span>Driver instructions</span>
                     <textarea
+                      id="shipment-edit-driver-notes"
                       className="shipment-edit-textarea"
                       value={draft.driver_notes}
                       maxLength={1000}

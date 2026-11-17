@@ -2,16 +2,16 @@
 HEADER
 ========================= */
 
-.page-header {
+.settings-page .page-header {
   margin-bottom: 24px;
 }
 
-.page-header h2 {
+.settings-page .page-header :is(h1, h2) {
   font-size: 34px;
   margin-bottom: 8px;
 }
 
-.page-header p {
+.settings-page .page-header p {
   color: #6B7280;
 }
 
@@ -19,7 +19,7 @@ HEADER
 CARDS
 ========================= */
 
-.settings-card {
+.settings-page .settings-card {
   background: white;
 
   border-radius: 14px;
@@ -31,11 +31,11 @@ CARDS
   margin-bottom: 24px;
 }
 
-.card-header {
+.settings-page .card-header {
   margin-bottom: 24px;
 }
 
-.card-header h3 {
+.settings-page .card-header h3 {
   font-size: 24px;
 }
 
@@ -43,7 +43,7 @@ CARDS
 SECURITY ROW
 ========================= */
 
-.security-row {
+.settings-page .security-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -53,7 +53,7 @@ SECURITY ROW
   border-bottom: 1px solid #F1F5F9;
 }
 
-.security-row p {
+.settings-page .security-row p {
   color: #64748B;
   margin-top: 6px;
 }
@@ -62,7 +62,7 @@ SECURITY ROW
 BUTTONS
 ========================= */
 
-.primary-btn {
+.settings-page .primary-btn {
   padding: 12px 16px;
 
   border: none;
@@ -78,13 +78,13 @@ BUTTONS
   font-weight: 600;
 }
 
-.danger-btn,
-.revoke-btn {
+.settings-page .danger-btn,
+.settings-page .revoke-btn {
   border: none;
 
   background: none;
 
-  color: #DC2626;
+  color: #B91C1C;
 
   font-weight: 700;
 
@@ -93,13 +93,13 @@ BUTTONS
   transition: opacity 0.15s;
 }
 
-.danger-btn:hover,
-.revoke-btn:hover {
+.settings-page .danger-btn:hover,
+.settings-page .revoke-btn:hover {
   opacity: 0.75;
 }
 
-.danger-btn:disabled {
-  color: #CBD5E1;
+.settings-page .danger-btn:disabled {
+  color: #64748B;
   cursor: default;
   opacity: 1;
 }
@@ -108,7 +108,7 @@ BUTTONS
 TOGGLE
 ========================= */
 
-.toggle {
+.settings-page .toggle {
   width: 54px;
   height: 28px;
 
@@ -119,11 +119,11 @@ TOGGLE
   position: relative;
 }
 
-.toggle.active {
+.settings-page .toggle.active {
   background: #0F172A;
 }
 
-.toggle-circle {
+.settings-page .toggle-circle {
   width: 22px;
   height: 22px;
 
@@ -137,7 +137,7 @@ TOGGLE
   left: 3px;
 }
 
-.toggle.active .toggle-circle {
+.settings-page .toggle.active .toggle-circle {
   left: 29px;
 }
 
@@ -145,14 +145,14 @@ TOGGLE
 TABLE
 ========================= */
 
-.session-table {
+.settings-page .session-table {
   width: 100%;
 
   border-collapse: collapse;
 }
 
-.session-table th,
-.session-table td {
+.settings-page .session-table th,
+.settings-page .session-table td {
   padding: 16px;
 
   border-bottom: 1px solid #F1F5F9;
@@ -160,7 +160,7 @@ TABLE
   text-align: left;
 }
 
-.session-table th {
+.settings-page .session-table th {
   background: #F8FAFC;
 
   color: #64748B;
@@ -172,7 +172,7 @@ TABLE
 STATUS
 ========================= */
 
-.status.current {
+.settings-page .status.current {
   display: inline-flex;
 
   padding: 6px 12px;
@@ -188,7 +188,7 @@ STATUS
   font-weight: 600;
 }
 
-.inactive {
+.settings-page .inactive {
   color: #6B7280;
 }
 
@@ -196,14 +196,14 @@ STATUS
 ACTIVITY
 ========================= */
 
-.activity-list {
+.settings-page .activity-list {
   display: flex;
   flex-direction: column;
 
   gap: 16px;
 }
 
-.activity-item {
+.settings-page .activity-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -213,15 +213,15 @@ ACTIVITY
   border-radius: 10px;
 }
 
-.activity-item.success {
+.settings-page .activity-item.success {
   background: #F0FDF4;
 }
 
-.activity-item.failed {
+.settings-page .activity-item.failed {
   background: #FEF2F2;
 }
 
-.activity-item p {
+.settings-page .activity-item p {
   color: #64748B;
   margin-top: 4px;
 }
@@ -230,7 +230,7 @@ ACTIVITY
 UPDATE PASSWORD / CONFIRM MODAL
 ========================= */
 
-.pw-backdrop {
+.settings-page .pw-backdrop {
   position: fixed; inset: 0;
   background: rgba(15, 23, 42, 0.40);
   backdrop-filter: blur(2px);
@@ -246,7 +246,7 @@ UPDATE PASSWORD / CONFIRM MODAL
   to   { opacity: 1; }
 }
 
-.pw-modal {
+.settings-page .pw-modal {
   background: #FFFFFF;
   border-radius: 14px;
   width: 480px;
@@ -264,7 +264,7 @@ UPDATE PASSWORD / CONFIRM MODAL
 }
 
 /* Header */
-.pw-modal-header {
+.settings-page .pw-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -272,50 +272,50 @@ UPDATE PASSWORD / CONFIRM MODAL
   border-bottom: 1px solid #F1F5F9;
 }
 
-.pw-modal-title {
+.settings-page .pw-modal-title {
   font-size: 20px;
   font-weight: 700;
   color: #0F172A;
   margin: 0;
 }
 
-.pw-close-btn {
+.settings-page .pw-close-btn {
   background: none; border: none;
-  font-size: 16px; color: #94A3B8;
+  font-size: 16px; color: #64748B;
   cursor: pointer; padding: 4px 8px;
   border-radius: 6px; line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
-.pw-close-btn:hover { background: #F1F5F9; color: #334155; }
+.settings-page .pw-close-btn:hover { background: #F1F5F9; color: #334155; }
 
 /* Body */
-.pw-modal-body {
+.settings-page .pw-modal-body {
   padding: 24px 24px 8px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.pw-field-group {
+.settings-page .pw-field-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.pw-label {
+.settings-page .pw-label {
   font-size: 11px;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.06em;
 }
 
-.pw-input-wrap {
+.settings-page .pw-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.pw-input {
+.settings-page .pw-input {
   width: 100%;
   padding: 12px 44px 12px 14px;
   border: 1px solid #E2E8F0;
@@ -326,37 +326,36 @@ UPDATE PASSWORD / CONFIRM MODAL
   transition: border-color 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
-.pw-input:focus {
-  outline: none;
-  border-color: #1E3A8A;
+.settings-page .pw-input:focus {
+border-color: #1E3A8A;
   box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.10);
 }
-.pw-input::placeholder { color: #CBD5E1; }
+.settings-page .pw-input::placeholder { color: #64748B; }
 
-.pw-eye-btn {
+.settings-page .pw-eye-btn {
   position: absolute; right: 12px;
   background: none; border: none;
   cursor: pointer; font-size: 15px;
-  color: #94A3B8; padding: 0; line-height: 1;
+  color: #64748B; padding: 0; line-height: 1;
   transition: color 0.15s;
 }
-.pw-eye-btn:hover { color: #475569; }
+.settings-page .pw-eye-btn:hover { color: #475569; }
 
 /* Strength */
-.pw-strength-wrap {
+.settings-page .pw-strength-wrap {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 4px;
 }
 
-.pw-strength-bars {
+.settings-page .pw-strength-bars {
   display: flex;
   gap: 6px;
   flex: 1;
 }
 
-.pw-strength-seg {
+.settings-page .pw-strength-seg {
   height: 5px;
   flex: 1;
   border-radius: 99px;
@@ -364,48 +363,48 @@ UPDATE PASSWORD / CONFIRM MODAL
   transition: background 0.2s;
 }
 
-.pw-strength-seg.seg-weak   { background: #EF4444; }
-.pw-strength-seg.seg-fair   { background: #F97316; }
-.pw-strength-seg.seg-good   { background: #EAB308; }
-.pw-strength-seg.seg-strong { background: #10B981; }
+.settings-page .pw-strength-seg.seg-weak { background: #EF4444; }
+.settings-page .pw-strength-seg.seg-fair { background: #F97316; }
+.settings-page .pw-strength-seg.seg-good { background: #EAB308; }
+.settings-page .pw-strength-seg.seg-strong { background: #10B981; }
 
-.pw-strength-label {
+.settings-page .pw-strength-label {
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
   min-width: 44px; text-align: right;
 }
-.pw-strength-label.str-weak   { color: #EF4444; }
-.pw-strength-label.str-fair   { color: #F97316; }
-.pw-strength-label.str-good   { color: #EAB308; }
-.pw-strength-label.str-strong { color: #10B981; }
+.settings-page .pw-strength-label.str-weak { color: #B91C1C; }
+.settings-page .pw-strength-label.str-fair { color: #F97316; }
+.settings-page .pw-strength-label.str-good { color: #EAB308; }
+.settings-page .pw-strength-label.str-strong { color: #15803D; }
 
 /* Match hint */
-.pw-match-hint {
+.settings-page .pw-match-hint {
   font-size: 12px; font-weight: 600; margin: 2px 0 0;
 }
-.pw-match-hint.match    { color: #16A34A; }
-.pw-match-hint.no-match { color: #DC2626; }
+.settings-page .pw-match-hint.match { color: #15803D; }
+.settings-page .pw-match-hint.no-match { color: #B91C1C; }
 
 /* Error / Success messages */
-.pw-error {
-  font-size: 13px; color: #DC2626;
+.settings-page .pw-error {
+  font-size: 13px; color: #B91C1C;
   background: #FEF2F2; border: 1px solid #FECACA;
   border-radius: 8px; padding: 10px 14px; margin: 0;
 }
-.pw-success {
-  font-size: 13px; color: #16A34A;
+.settings-page .pw-success {
+  font-size: 13px; color: #15803D;
   background: #F0FDF4; border: 1px solid #BBF7D0;
   border-radius: 8px; padding: 10px 14px; margin: 0;
 }
 
 /* Footer */
-.pw-modal-footer {
+.settings-page .pw-modal-footer {
   padding: 16px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.pw-update-btn {
+.settings-page .pw-update-btn {
   width: 100%;
   padding: 14px;
   border: none;
@@ -417,11 +416,11 @@ UPDATE PASSWORD / CONFIRM MODAL
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-.pw-update-btn:hover:not(:disabled) { background: #1E293B; }
-.pw-update-btn:disabled { opacity: 0.7; cursor: default; }
-.pw-update-btn--success { background: #16A34A; }
+.settings-page .pw-update-btn:hover:not(:disabled) { background: #1E293B; }
+.settings-page .pw-update-btn:disabled { opacity: 0.7; cursor: default; }
+.settings-page .pw-update-btn--success { background: #16A34A; }
 
-.pw-cancel-btn {
+.settings-page .pw-cancel-btn {
   width: 100%;
   padding: 12px;
   border: none;
@@ -433,21 +432,33 @@ UPDATE PASSWORD / CONFIRM MODAL
   border-radius: 10px;
   transition: background 0.15s;
 }
-.pw-cancel-btn:hover { background: #F8FAFC; color: #334155; }
+.settings-page .pw-cancel-btn:hover { background: #F8FAFC; color: #334155; }
 
 /* =========================
 TOGGLE TRANSITIONS
 ========================= */
 
-.toggle {
+.settings-page .toggle {
   transition: background 0.2s ease;
 }
 
-.toggle-circle {
+.settings-page .toggle-circle {
   transition: left 0.2s ease;
 }
-.security-settings fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-.security-settings .security-qr { width: 220px; height: 220px; align-self: center; }
-.security-settings .pw-modal { max-height: 90vh; overflow-y: auto; }
-.security-settings .security-row { gap: 20px; flex-wrap: wrap; }
-.security-settings [role="status"], .security-settings [role="alert"] { margin-bottom: 16px; }
+.settings-page .security-settings fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.settings-page .security-settings .security-qr { width: 220px; height: 220px; align-self: center; }
+.settings-page .security-settings .pw-modal { max-height: 90vh; overflow-y: auto; }
+.settings-page .security-settings .security-row { gap: 20px; flex-wrap: wrap; }
+.settings-page .security-settings [role="status"],
+.settings-page .security-settings [role="alert"] { margin-bottom: 16px; }
+
+.settings-page :is(button, input, select, textarea):focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
+  .settings-page .um-pagination button {
+    min-height: 44px;
+  }
+}

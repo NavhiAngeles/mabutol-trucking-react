@@ -2,6 +2,7 @@ import OfficeTools from "../../components/OfficeTools";
 import { useState } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import { ComplianceDialog } from "../Fleet/FleetDialogs";
+import "../Fleet/fleet.css";
 import "./compliance.css";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getDriverComplianceRows, getTruckComplianceRows } from "../../services/fleetService";
@@ -65,7 +66,7 @@ export default function Compliance() {
   return (
     <MainLayout>
       {/* Topbar */}
-      <header className="topbar">
+      <header className="topbar compliance-topbar">
         <div className="topbar-right">
           <OfficeTools />
         </div>
@@ -75,8 +76,8 @@ export default function Compliance() {
       <section className="content compliance-page">
         <div className="header compliance-header">
           <div>
-            <span className="compliance-pretitle">{isVehicle ? 'VEHICLE REGULATIONS' : 'DRIVER REGULATIONS'}</span>
-            <h2 className="compliance-title">{isVehicle ? 'Vehicle Compliance' : 'Driver Compliance'}</h2>
+            <span className="compliance-pretitle sr-only">{isVehicle ? 'VEHICLE REGULATIONS' : 'DRIVER REGULATIONS'}</span>
+            <h1 className="compliance-title">{isVehicle ? 'Vehicle Compliance' : 'Driver Compliance'}</h1>
             <p className="compliance-subtitle">
               {isVehicle
                 ? 'Monitor vehicle regulatory status, OR/CR registration, LTFRB permits, and emission testing.'
@@ -150,7 +151,6 @@ export default function Compliance() {
 
         {loading && (
           <div className="compliance-status-banner" role="status">
-            <span aria-hidden="true">⏳</span>
             <span>Loading compliance…</span>
           </div>
         )}
@@ -165,7 +165,7 @@ export default function Compliance() {
           {metrics.map(([label, count, detail, cardClass]) => (
             <div className={`compliance-stat-card stat-card ${cardClass || ''}`} key={label}>
               <h4>{label}</h4>
-              <h2>{data ? count : '—'}</h2>
+              <h2>{data ? count : 'N/A'}</h2>
               <p>{detail}</p>
             </div>
           ))}
@@ -174,7 +174,11 @@ export default function Compliance() {
         {!dismissedBanner && (
           <div className="compliance-info-banner">
             <div className="banner-content">
-              <span className="info-icon" aria-hidden="true">ℹ️</span>
+              <svg className="info-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
               <p>
                 {isVehicle
                   ? 'Counts cover all registered fleet vehicles. A vehicle may appear in more than one attention category. Warning dates follow shared compliance thresholds.'
@@ -196,7 +200,11 @@ export default function Compliance() {
         <div className="compliance-table-card" id="compliance-table-panel" role="tabpanel" aria-labelledby={isVehicle ? "vehicleComplianceTab" : "driverComplianceTab"}>
           <div className="table-header">
             <div className="table-search-box">
-              <span className="search-icon" aria-hidden="true">🔍</span>
+              <label htmlFor="complianceSearch" className="sr-only">Filter compliance table</label>
+              <svg className="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               <input
                 type="text"
                 id="complianceSearch"
@@ -225,7 +233,7 @@ export default function Compliance() {
                 </span>
               )}
               <div className="table-records-badge">
-                {data ? `${filtered.length} ${filtered.length === 1 ? (isVehicle ? 'vehicle' : 'driver') : (isVehicle ? 'vehicles' : 'drivers')}` : '—'}
+                {data ? `${filtered.length} ${filtered.length === 1 ? (isVehicle ? 'vehicle' : 'driver') : (isVehicle ? 'vehicles' : 'drivers')}` : 'N/A'}
               </div>
             </div>
           </div>
@@ -272,7 +280,7 @@ export default function Compliance() {
                           onClick={() => setSelectedEntity(entity)}
                         >
                           <span className={`driver-avatar-circle ${isVehicle ? 'truck-avatar-circle' : ''}`} aria-hidden="true">
-                            {isVehicle ? '🚛' : ((entityName || 'D').charAt(0).toUpperCase())}
+                            {isVehicle ? ((entityName || 'V').charAt(0).toUpperCase()) : ((entityName || 'D').charAt(0).toUpperCase())}
                           </span>
                           <span className="driver-name-text">
                             {entityName}
@@ -348,16 +356,16 @@ export default function Compliance() {
             </nav>
           </div>
         </div>
+        {selectedEntity && (
+          <ComplianceDialog
+            key={selectedEntity.id}
+            kind={isVehicle ? 'truck' : 'driver'}
+            entity={selectedEntity}
+            onClose={() => setSelectedEntity(null)}
+            onSaved={refresh}
+          />
+        )}
       </section>
-      {selectedEntity && (
-        <ComplianceDialog
-          key={selectedEntity.id}
-          kind={isVehicle ? 'truck' : 'driver'}
-          entity={selectedEntity}
-          onClose={() => setSelectedEntity(null)}
-          onSaved={refresh}
-        />
-      )}
     </MainLayout>
   );
 }

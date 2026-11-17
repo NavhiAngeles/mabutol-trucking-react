@@ -111,7 +111,7 @@ function SecurityDetails() {
       <section className="content security-settings">
         <div className="page-header">
           <div>
-            <h2>Settings — Security</h2>
+            <h1>Settings: Security</h1>
             <p>Manage your password, Two-Factor Authentication (2FA), and signed-in sessions.</p>
           </div>
         </div>
@@ -186,9 +186,9 @@ function SecurityDetails() {
                 <div className="pw-modal-body">
                   {modal === 'password' && (
                     <>
-                      <label>Current password<input className="pw-input" type="password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)} /></label>
-                      <label>New password<input className="pw-input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} /></label>
-                      <label>Confirm new password<input className="pw-input" type="password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
+                      <label htmlFor="sec-pw-current">Current password<input id="sec-pw-current" className="pw-input" type="password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)} /></label>
+                      <label htmlFor="sec-pw-new">New password<input id="sec-pw-new" className="pw-input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} /></label>
+                      <label htmlFor="sec-pw-confirm">Confirm new password<input id="sec-pw-confirm" className="pw-input" type="password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
                     </>
                   )}
                   {modal === 'sessions' && (
@@ -197,9 +197,10 @@ function SecurityDetails() {
                   {modal === 'enroll' && !setup && (
                     <>
                       <p>Protect your account with SMS verification codes delivered via TextBee. Enter your Philippine mobile phone number below.</p>
-                      <label>
+                      <label htmlFor="sec-mfa-phone">
                         Philippine Mobile Number
                         <input
+                          id="sec-mfa-phone"
                           className="pw-input"
                           type="tel"
                           autoComplete="tel"
@@ -218,12 +219,13 @@ function SecurityDetails() {
                       {setup.qr && (
                         <>
                           <img className="security-qr" src={setup.qr} alt="Authenticator enrollment QR code" />
-                          <label>Manual setup key<input className="pw-input" readOnly value={setup.secret || ''} autoComplete="off" /></label>
+                          <label htmlFor="sec-mfa-secret">Manual setup key<input id="sec-mfa-secret" className="pw-input" readOnly value={setup.secret || ''} autoComplete="off" /></label>
                         </>
                       )}
-                      <label>
+                      <label htmlFor="sec-mfa-code">
                         Verification code
                         <input
+                          id="sec-mfa-code"
                           className="pw-input"
                           inputMode="numeric"
                           autoComplete="one-time-code"

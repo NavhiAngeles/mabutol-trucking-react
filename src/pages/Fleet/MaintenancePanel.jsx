@@ -101,7 +101,9 @@ export default function MaintenancePanel({ fleet }) {
           <>
             <div className="table-filter-bar">
               <div className="filter-search-wrapper">
+                <label htmlFor="maintenance-search-input" className="sr-only">Search maintenance records</label>
                 <input
+                  id="maintenance-search-input"
                   type="text"
                   className="inner-search"
                   placeholder="Search maintenance by plate, service, workshop..."
@@ -150,7 +152,7 @@ export default function MaintenancePanel({ fleet }) {
                         statusLabel = "OVERDUE";
                       } else if (r.warningState === 'critical') {
                         statusClass = "status-pill status-danger";
-                        statusLabel = "CRITICAL — DUE SOON";
+                        statusLabel = "CRITICAL: DUE SOON";
                       } else if (r.warningState === 'expiring_soon') {
                         statusClass = "status-pill status-warning";
                         statusLabel = "DUE SOON";
@@ -168,17 +170,17 @@ export default function MaintenancePanel({ fleet }) {
 
                     return (
                       <tr key={r.id}>
-                        <td><strong>{r.trucks?.plate_number || '—'}</strong></td>
+                        <td><strong>{r.trucks?.plate_number || 'N/A'}</strong></td>
                         <td>
                           <span style={{ fontWeight: 600 }}>{r.kind}</span>
                           {r.description && <span className="subtext" style={{ display: 'block' }}>{r.description}</span>}
                         </td>
-                        <td>{r.scheduled_date || '—'}</td>
-                        <td>{r.completed_date || '—'}</td>
+                        <td>{r.scheduled_date || 'N/A'}</td>
+                        <td>{r.completed_date || 'N/A'}</td>
                         <td>
-                          {r.vendor || '—'}
+                          {r.vendor || 'N/A'}
                           <span className="subtext" style={{ display: 'block' }}>
-                            {r.cost == null ? '—' : `PHP ${Number(r.cost).toLocaleString()}`}
+                            {r.cost == null ? 'N/A' : `PHP ${Number(r.cost).toLocaleString()}`}
                           </span>
                         </td>
                         <td>

@@ -1106,9 +1106,9 @@ export default function CreateShipmentDrawer({
       <summary>Optional address details</summary>
       <div className="location-details-fields">
         {[["Building", "Building or warehouse name"], ["Unit", "Unit / floor number"], ["Gate", "Gate / entrance number"], ["Landmark", "Nearby landmark"]].map(([key, label]) => (
-          <label key={key} className="location-detail-label">
+          <label key={key} className="location-detail-label" htmlFor={`shipment-addr-${type}-${key}`}>
             {label}
-            <input type="text" value={form[`${type}${key}`]} maxLength={200}
+            <input id={`shipment-addr-${type}-${key}`} type="text" value={form[`${type}${key}`]} maxLength={200}
               onChange={event => update(`${type}${key}`, event.target.value)} placeholder={`${label} (optional)`} />
           </label>
         ))}
@@ -1121,11 +1121,12 @@ export default function CreateShipmentDrawer({
     <div className="step-scroll-content">
       {/* PICKUP */}
       <div className="form-group">
-        <label className="input-title">
+        <label className="input-title" htmlFor="shipment-pickup-location">
           PICK-UP LOCATION
         </label>
 
         <AddressAutocomplete
+          inputId="shipment-pickup-location"
           iconClass="las la-circle-notch input-icon input-blue-icon"
           placeholder="Search pickup address or landmark"
           value={form.pickupLocation}
@@ -1189,11 +1190,12 @@ export default function CreateShipmentDrawer({
 
       {/* DESTINATION */}
       <div className="form-group">
-        <label className="input-title">
+        <label className="input-title" htmlFor="shipment-destination-location">
           DESTINATION
         </label>
 
         <AddressAutocomplete
+          inputId="shipment-destination-location"
           iconClass="las la-map-marker input-icon input-orange-icon"
           placeholder="Search delivery address or landmark"
           value={form.destination}
@@ -1367,12 +1369,13 @@ export default function CreateShipmentDrawer({
 
       {/* TOLL ROAD */}
       <div className="form-group">
-        <label className="input-title">
+        <span className="input-title">
           TOLL ROAD
-        </label>
+        </span>
 
-        <label className="field-info-text">
+        <label className="field-info-text" htmlFor="shipment-uses-toll-road">
           <input
+            id="shipment-uses-toll-road"
             type="checkbox"
             checked={form.usesTollRoad}
             onChange={(e) =>
@@ -1392,7 +1395,7 @@ export default function CreateShipmentDrawer({
       {/* DEPARTURE DATE AND TIME */}
       <div className="form-grid-2x2">
         <div className="form-group">
-          <label className="input-title">
+          <label className="input-title" htmlFor="shipment-departure-date">
             SCHEDULE DEPARTURE
           </label>
 
@@ -1400,6 +1403,7 @@ export default function CreateShipmentDrawer({
             <i className="las la-calendar input-icon" />
 
             <input
+              id="shipment-departure-date"
               type="date"
               value={form.departureDate}
               min={scheduleLimits.today}
@@ -1416,7 +1420,7 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="form-group">
-          <label className="input-title">
+          <label className="input-title" htmlFor="shipment-departure-time">
             DEPARTURE TIME
           </label>
 
@@ -1424,6 +1428,7 @@ export default function CreateShipmentDrawer({
             <i className="las la-clock input-icon" />
 
             <input
+              id="shipment-departure-time"
               type="time"
               value={form.departureTime}
               disabled={noFutureTimeToday}
@@ -1451,12 +1456,13 @@ export default function CreateShipmentDrawer({
         </p>
       )}
       <div className="form-group">
-        <label className="input-title">
+        <label className="input-title" htmlFor="shipment-billing-customer">
           CUSTOMER BILLING
         </label>
 
         <div className="select-dropdown-wrapper">
           <select
+            id="shipment-billing-customer"
             value={form.billingCustomer}
             disabled={loadingCustomers}
             onChange={(e) =>
@@ -1512,11 +1518,12 @@ export default function CreateShipmentDrawer({
     <div className="step-scroll-content">
       {/* CARGO DESCRIPTION */}
       <div className="form-group">
-        <label className="input-title">
+        <label className="input-title" htmlFor="shipment-cargo-description">
           CARGO DESCRIPTION
         </label>
 
         <textarea
+          id="shipment-cargo-description"
           className="form-textarea"
           rows={2}
           placeholder="Enter cargo description"
@@ -1532,12 +1539,13 @@ export default function CreateShipmentDrawer({
 
       {/* WEIGHT */}
       <div className="form-group">
-        <label className="input-title">
+        <label className="input-title" htmlFor="shipment-total-weight">
           TOTAL WEIGHT
         </label>
 
         <div className="input-search-wrapper">
           <input
+            id="shipment-total-weight"
             type="number"
             min="0.01"
             step="0.01"
@@ -1557,9 +1565,9 @@ export default function CreateShipmentDrawer({
 
       {/* SPECIAL HANDLING */}
       <div className="form-group">
-        <label className="input-title">
+        <span className="input-title">
           SPECIAL HANDLING
-        </label>
+        </span>
 
         <div className="handling-badges-row">
           {HANDLING_OPTIONS.map((option) => (
@@ -1588,11 +1596,12 @@ export default function CreateShipmentDrawer({
 
       {/* DRIVER NOTES */}
       <div className="form-group">
-        <label className="input-title">
+        <label className="input-title" htmlFor="shipment-driver-notes">
           NOTES TO DRIVER
         </label>
 
         <textarea
+          id="shipment-driver-notes"
           className="form-textarea"
           rows={2}
           placeholder="Driver instructions"
@@ -1609,9 +1618,9 @@ export default function CreateShipmentDrawer({
       {/* VEHICLE SELECTION */}
       <div className="form-group">
         <div className="vehicle-header-row">
-          <label className="input-title">
+          <span className="input-title">
             SELECT VEHICLE TYPE
-          </label>
+          </span>
 
           <span className="weight-filter-label">
             Filtered by weight (
@@ -1771,9 +1780,9 @@ export default function CreateShipmentDrawer({
 
       {/* ROUTE */}
       <div className="review-section">
-        <label className="review-section-title">
+        <span className="review-section-title">
           ROUTE
-        </label>
+        </span>
 
         <div className="review-timeline-display">
           <div className="review-node blue-dot">
@@ -1815,9 +1824,9 @@ export default function CreateShipmentDrawer({
       {/* SCHEDULE AND CUSTOMER */}
       <div className="review-section-split">
         <div>
-          <label className="review-section-title">
+          <span className="review-section-title">
             SCHEDULE
-          </label>
+          </span>
 
           <div className="review-data-text">
             <i className="las la-calendar" />{" "}
@@ -1828,9 +1837,9 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div>
-          <label className="review-section-title">
+          <span className="review-section-title">
             CUSTOMER
-          </label>
+          </span>
 
           <div className="review-data-text">
             <strong>
@@ -1848,9 +1857,9 @@ export default function CreateShipmentDrawer({
 
       {/* CARGO */}
       <div className="review-section">
-        <label className="review-section-title">
+        <span className="review-section-title">
           CARGO
-        </label>
+        </span>
 
         <div className="review-data-row align-center">
           <strong className="font-bold">
@@ -1875,9 +1884,9 @@ export default function CreateShipmentDrawer({
 
       {/* VEHICLE */}
       <div className="review-section">
-        <label className="review-section-title">
+        <span className="review-section-title">
           REQUESTED VEHICLE TYPE
-        </label>
+        </span>
 
         <div className="assigned-entity-card">
           <div className="entity-icon-box">
@@ -1903,9 +1912,9 @@ export default function CreateShipmentDrawer({
 
       {/* DRIVER */}
       <div className="review-section">
-        <label className="review-section-title">
+        <span className="review-section-title">
           DRIVER
-        </label>
+        </span>
 
         <div className="assigned-entity-card">
           <div className="entity-avatar-box">
@@ -1938,9 +1947,10 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="financial-data-row">
-          <span>Base Rate</span>
+          <label htmlFor="shipment-base-rate">Base Rate</label>
 
           <input
+            id="shipment-base-rate"
             type="number"
             min="0"
             step="0.01"
@@ -1953,12 +1963,13 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="financial-data-row">
-          <span>
+          <label htmlFor="shipment-handling-charge">
             Special Handling (
             {form.specialHandling})
-          </span>
+          </label>
 
           <input
+            id="shipment-handling-charge"
             type="number"
             min="0"
             step="0.01"
@@ -1996,11 +2007,12 @@ export default function CreateShipmentDrawer({
         {tollPending && <p className="toll-total-notice">The final charge waits for a matching entry–exit toll rate. Truck class and expressways are identified automatically.</p>}
 
         <div className="override-input-group">
-          <label className="override-label">
+          <label className="override-label" htmlFor="shipment-override-amount">
             Override Amount (₱)
           </label>
 
           <input
+            id="shipment-override-amount"
             type="number"
             min="0"
             step="0.01"
@@ -2040,9 +2052,10 @@ export default function CreateShipmentDrawer({
         </div>
 
         <div className="financial-data-row">
-          <span>Allowance (₱) — defaults from Pricing; editable</span>
+          <label htmlFor="shipment-driver-allowance">Allowance (₱): defaults from Pricing; editable</label>
 
           <input
+            id="shipment-driver-allowance"
             type="number"
             min="0"
             step="0.01"
@@ -2076,9 +2089,9 @@ export default function CreateShipmentDrawer({
       </div> : (
       <div className="financial-statement-card profit-panel-white">
         <div className="financial-header-row border-none no-margin">
-          <label className="review-section-title">
+          <span className="review-section-title">
             ESTIMATED PROFIT
-          </label>
+          </span>
         </div>
 
         <div className="financial-data-row">
@@ -2482,7 +2495,7 @@ export default function CreateShipmentDrawer({
                   <strong className="meta-val color-blue">
                     {createdShipment?.tracking_number ||
                       createdShipment?.id ||
-                      "—"}
+                      "N/A"}
                   </strong>
                 </div>
 
