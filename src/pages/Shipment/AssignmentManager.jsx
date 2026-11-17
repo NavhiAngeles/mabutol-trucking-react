@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchAssignmentOptions, saveManualAssignment } from '../../services/assignmentService';
 
-export default function AssignmentManager({ shipmentId, onChanged, draftSuggestion }) {
+export default function AssignmentManager({ shipmentId, onChanged, draftSuggestion, shipmentRefreshVersion = 0 }) {
   const [options, setOptions] = useState(null);
   const [driverId, setDriverId] = useState(draftSuggestion?.driverId || '');
   const [truckId, setTruckId] = useState(draftSuggestion?.truckId || '');
@@ -23,7 +23,7 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
     fetchAssignmentOptions(shipmentId).then(result => { if (active) setOptions(result); })
       .catch(err => { if (active) setError(err.message || 'Could not load assignment options.'); });
     return () => { active = false; };
-  }, [shipmentId, revision]);
+  }, [shipmentId, revision, shipmentRefreshVersion]);
 
   const currentDriverId = options?.current?.driver_id;
   const currentTruckId = options?.current?.truck_id;
@@ -60,8 +60,12 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
     setBusy(true); setError('');
     try {
       await saveManualAssignment({ shipmentId, driverId, truckId, reason, expectedDelivery: options.current?.id || null });
+      setRevision(value => value + 1);
       await onChanged();
-    } catch (err) { setError(err.message || 'Could not save assignment. Reload and try again.'); }
+    } catch (err) {
+      setError(err.message || 'Could not save assignment. Reload and try again.');
+      setRevision(value => value + 1);
+    }
     finally { setBusy(false); }
   };
   return <section className="assignment-manager" aria-labelledby="assignment-manager-title">

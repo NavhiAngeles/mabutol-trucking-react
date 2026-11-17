@@ -32,6 +32,10 @@ test('eligible manual pair requires exact capacity, type, availability and curre
 test('reservations, maintenance, mobile identity and missing documents fail closed', () => {
   const data = fixture(); data.deliveries.push({ id: 'other', shipment_id: 'other', status: 'assigned', driver_id: 'd' });
   assert.match(buildAssignmentOptions(data, today).drivers[0].reason, /Reserved/);
+  data.deliveries = [{ id: 'other-cancelled-ship', shipment_id: 'other', status: 'assigned', driver_id: 'd', truck_id: 't', shipment: { status: 'cancelled' } }];
+  const afterCancelledShip = buildAssignmentOptions(data, today);
+  assert.equal(afterCancelledShip.drivers[0].eligible, true, 'Driver from cancelled shipment should be available');
+  assert.equal(afterCancelledShip.trucks[0].eligible, true, 'Truck from cancelled shipment should be available');
   data.deliveries = []; data.maintenance.push({ truck_id: 't', status: 'in_progress' });
   assert.match(buildAssignmentOptions(data, today).trucks[0].reason, /maintenance/);
   data.maintenance = []; data.shipment.booking_source = 'mobile';
