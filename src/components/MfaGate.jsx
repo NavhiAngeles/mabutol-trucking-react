@@ -101,7 +101,7 @@ export default function MfaGate({ children }) {
           </div>
           <div className="mfa-brand-text">
             <h1 className="mfa-brand-title">TANAW</h1>
-            <span className="mfa-brand-sub">NUEVA ECIJA LOGISTICS</span>
+            <span className="mfa-brand-sub">MABUTOL TRUCKING</span>
           </div>
         </div>
 

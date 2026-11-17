@@ -102,7 +102,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
           </div>
           <div className="brand-text">
             <h2>TANAW</h2>
-            <p>NUEVA ECIJA LOGISTICS</p>
+            <p>MABUTOL TRUCKING</p>
           </div>
           {typeof onClose === "function" && (
             <button

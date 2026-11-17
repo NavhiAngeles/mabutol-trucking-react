@@ -473,7 +473,7 @@ export default function Landing() {
               </div>
               <div className="landing-brand-text">
                 <span className="landing-brand-name">TANAW</span>
-                <span className="landing-brand-tag">NUEVA ECIJA LOGISTICS</span>
+                <span className="landing-brand-tag">MABUTOL TRUCKING</span>
               </div>
             </Link>
             <p className="footer-desc">
