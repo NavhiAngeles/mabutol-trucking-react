@@ -113,7 +113,7 @@ export default function Dashboard() {
         </div>
 
         <section className="dashboard-sync" aria-label="Data updates">
-          <div className="dashboard-sync-heading"><Clock aria-hidden="true" /><h3>Data updates</h3></div>
+          <div className="dashboard-sync-heading"><Clock aria-hidden="true" /><h2>Data updates</h2></div>
           <p className="dashboard-refresh-status dashboard-sync-note">Sections refresh independently; their times may differ.</p>
           <p className="dashboard-refresh-status">{snapshotStatus('Details (analytics, alerts and resources)', details.lastUpdated, details.error)}</p>
           {details.loading && <p role="status">Loading dashboard details…</p>}
@@ -126,12 +126,12 @@ export default function Dashboard() {
         <div className="stats">
           <div className="stat-card green" {...cardProps('/shipment?tab=active')}>
             <div className="stat-top">
-              <h4>Active Shipments</h4>
+              <p className="stat-label">Active Shipments</p>
               <div className="stat-icon green">
                 <Truck />
               </div>
             </div>
-            <h2>{stats?.activeShipments ?? '--'}</h2>
+            <strong className="stat-value">{stats?.activeShipments ?? '--'}</strong>
             <p className="stat-delta green">
               {comparisonLabel(stats?.activeDelta ?? null)}
             </p>
@@ -139,12 +139,12 @@ export default function Dashboard() {
 
           <div className="stat-card red" {...cardProps('/shipment?tab=delayed')}>
             <div className="stat-top">
-              <h4>Delayed Shipments</h4>
+              <p className="stat-label">Delayed Shipments</p>
               <div className="stat-icon red">
                 <AlertTriangle />
               </div>
             </div>
-            <h2>{stats?.delayedShipments ?? '--'}</h2>
+            <strong className="stat-value">{stats?.delayedShipments ?? '--'}</strong>
             <p className="stat-delta red">
               {comparisonLabel(stats?.delayedDelta ?? null)}
             </p>
@@ -152,23 +152,23 @@ export default function Dashboard() {
 
           <div className="stat-card orange" {...cardProps('/fleet?availability=dispatch-ready')}>
             <div className="stat-top">
-              <h4>Available Trucks</h4>
+              <p className="stat-label">Available Trucks</p>
               <div className="stat-icon orange">
                 <Truck />
               </div>
             </div>
-            <h2>{stats?.availableTrucks ?? '--'}</h2>
+            <strong className="stat-value">{stats?.availableTrucks ?? '--'}</strong>
             <p className="stat-delta orange">Ready for dispatch</p>
           </div>
 
           <div className="stat-card blue" {...cardProps('/shipment?tab=dispatch')}>
             <div className="stat-top">
-              <h4>Pending Dispatch</h4>
+              <p className="stat-label">Pending Dispatch</p>
               <div className="stat-icon blue">
                 <Clock />
               </div>
             </div>
-            <h2>{stats?.pendingDispatch ?? '--'}</h2>
+            <strong className="stat-value">{stats?.pendingDispatch ?? '--'}</strong>
             <p className="stat-delta blue">{stats ? `${stats.awaitingAssignment} awaiting assignment · ${stats.awaitingDispatch} awaiting dispatch` : 'Booked or assigned, not departed'}</p>
           </div>
         </div>
@@ -178,10 +178,9 @@ export default function Dashboard() {
           {/* Left column */}
           <div className="col-left">
             {/* Map */}
-            {/* Map */}
             <div className="map-card">
               <div className="map-card-header">
-                <h3>Live Tracking: Luzon</h3>
+                <h2>Live Tracking: Luzon</h2>
               </div>
 
               <DashboardMapSlot />
@@ -189,7 +188,7 @@ export default function Dashboard() {
 
             {/* Performance & Analytics */}
             <div className="analytics card">
-              <h3>Performance &amp; Analytics</h3>
+              <h2>Performance &amp; Analytics</h2>
               <div className="analytics-grid">
                 <div className="mini-stat">
                   <span>On-Time Delivery Rate</span>
@@ -202,7 +201,7 @@ export default function Dashboard() {
               </div>
 
               <div className="trends-header">
-                <h4>Shipment Trends</h4>
+                <h3>Shipment Trends</h3>
                 <span>Last 7 Days</span>
               </div>
 
@@ -230,7 +229,7 @@ export default function Dashboard() {
             {/* Action Center */}
             <div className="right-panel">
               <div className="right-panel-header">
-                <h3>Action Center</h3>
+                <h2>Action Center</h2>
                 <p>Critical alerts &amp; items requiring attention</p>
               </div>
 
@@ -240,7 +239,7 @@ export default function Dashboard() {
                   <div className={"alert-icon " + alert.color}><ClipboardList /></div>
                   <div><p className={"alert-title " + alert.color}>{alert.title}</p>
                     <p className="alert-body">{alert.body}</p>
-                    <button type="button" className={"alert-link " + alert.color} onClick={() => navigate(alert.path)}>{alert.action} →</button>
+                    <button type="button" className={"alert-link " + alert.color} onClick={() => navigate(alert.path)}>{alert.action}</button>
                   </div>
                 </div>
               ))}
@@ -248,7 +247,7 @@ export default function Dashboard() {
 
             {/* Resource Snapshot */}
             <div className="resources card">
-              <h3>Resource Snapshot</h3>
+              <h2>Resource Snapshot</h2>
               <p className="resource-label">Fleet Status</p>
 
               <div className="resource-row">

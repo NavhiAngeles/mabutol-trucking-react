@@ -37,7 +37,11 @@ export default function Login() {
       }
     };
 
-    if (typeof timer === "function") {
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+
+    if (!prefersReduced && typeof timer === "function") {
       timer(executeNav, 240);
     } else {
       executeNav();
@@ -85,11 +89,13 @@ export default function Login() {
                   placeholder="name@domain.com"
                   value={email}
                   disabled={isPending}
+                  aria-invalid={errors.email ? "true" : undefined}
+                  aria-describedby={errors.email ? "email-error" : undefined}
                   onChange={(e) => handleEmailChange(e.target.value)}
                 />
               </div>
               {errors.email && (
-                <p className="field-error">
+                <p id="email-error" className="field-error" role="alert">
                   <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
@@ -122,6 +128,8 @@ export default function Login() {
                   autoComplete="current-password"
                   value={password}
                   disabled={isPending}
+                  aria-invalid={errors.password ? "true" : undefined}
+                  aria-describedby={errors.password ? "password-error" : undefined}
                   onChange={(e) => handlePasswordChange(e.target.value)}
                 />
                 <button
@@ -146,7 +154,7 @@ export default function Login() {
                 </button>
               </div>
               {errors.password && (
-                <p className="field-error">
+                <p id="password-error" className="field-error" role="alert">
                   <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>

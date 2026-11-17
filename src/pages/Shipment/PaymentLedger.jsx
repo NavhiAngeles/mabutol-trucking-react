@@ -294,7 +294,7 @@ export default function PaymentLedger({ shipment, onChanged }) {
             <rect x="2" y="5" width="20" height="14" rx="2" />
             <line x1="2" y1="10" x2="22" y2="10" />
           </svg>
-          <h4>Payment Ledger &amp; Verification</h4>
+          <h3>Payment Ledger &amp; Verification</h3>
           {totals.isFullyPaid && (
             <span className="status transit-pill">● FULLY PAID</span>
           )}
@@ -307,7 +307,10 @@ export default function PaymentLedger({ shipment, onChanged }) {
             disabled={loading}
             aria-label="Refresh payment ledger"
           >
-            <i className={`las la-sync ${loading ? 'la-spin' : ''}`} />
+            <svg className={loading ? 'shipment-spin' : undefined} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
             <span>Refresh</span>
           </button>
           <button
@@ -318,7 +321,10 @@ export default function PaymentLedger({ shipment, onChanged }) {
             disabled={isCancelled || loading}
             title={isCancelled ? 'Cannot record payments on cancelled shipments' : 'Record a new payment'}
           >
-            <i className="las la-plus" />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
             <span>Record Payment</span>
           </button>
         </div>
@@ -326,7 +332,11 @@ export default function PaymentLedger({ shipment, onChanged }) {
 
       {concurrencyNotice && (
         <div role="status" className="payment-ledger-concurrency-alert">
-          <i className="las la-info-circle" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
           <span>{concurrencyNotice}</span>
           <button
             type="button"
@@ -341,7 +351,11 @@ export default function PaymentLedger({ shipment, onChanged }) {
 
       {error && (
         <div role="alert" className="shipment-details-error-msg">
-          <i className="las la-exclamation-circle" />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           <span>{error}</span>
           <button type="button" className="btn-secondary btn-sm" onClick={() => loadPayments()}>
             Retry
@@ -394,7 +408,10 @@ export default function PaymentLedger({ shipment, onChanged }) {
                 className="btn-primary"
                 onClick={openRecordModal}
               >
-                <i className="las la-plus" />
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
                 <span>Record Payment</span>
               </button>
             )}
@@ -514,7 +531,11 @@ export default function PaymentLedger({ shipment, onChanged }) {
 
             {formError && (
               <div role="alert" className="shipment-details-error-msg">
-                <i className="las la-exclamation-circle" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
                 <span>{formError}</span>
               </div>
             )}
@@ -606,7 +627,10 @@ export default function PaymentLedger({ shipment, onChanged }) {
                 <button type="submit" className="btn-primary" disabled={formBusy}>
                   {formBusy ? (
                     <>
-                      <i className="las la-spinner la-spin" /> Recording…
+                      <svg className="shipment-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      {' Recording…'}
                     </>
                   ) : (
                     'Save Payment'
@@ -652,7 +676,11 @@ export default function PaymentLedger({ shipment, onChanged }) {
 
             {verifyError && (
               <div role="alert" className="shipment-details-error-msg">
-                <i className="las la-exclamation-circle" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
                 <span>{verifyError}</span>
               </div>
             )}
@@ -686,7 +714,10 @@ export default function PaymentLedger({ shipment, onChanged }) {
               >
                 {verifyBusy ? (
                   <>
-                    <i className="las la-spinner la-spin" /> Verifying…
+                    <svg className="shipment-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    {' Verifying…'}
                   </>
                 ) : (
                   'Confirm Verification'
@@ -731,7 +762,11 @@ export default function PaymentLedger({ shipment, onChanged }) {
 
             {rejectError && (
               <div role="alert" className="shipment-details-error-msg">
-                <i className="las la-exclamation-circle" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
                 <span>{rejectError}</span>
               </div>
             )}
@@ -769,7 +804,10 @@ export default function PaymentLedger({ shipment, onChanged }) {
                 >
                   {rejectBusy ? (
                     <>
-                      <i className="las la-spinner la-spin" /> Rejecting…
+                      <svg className="shipment-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      {' Rejecting…'}
                     </>
                   ) : (
                     'Confirm Rejection'

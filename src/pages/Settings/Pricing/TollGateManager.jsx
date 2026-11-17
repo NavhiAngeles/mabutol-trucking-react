@@ -81,6 +81,8 @@ export default function TollGateManager() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const editTriggerRef = useRef(null);
+  const editDialogRef = useRef(null);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -143,8 +145,9 @@ export default function TollGateManager() {
     };
   }, []);
 
-  const openAddModal = () => {
+  const openAddModal = (event) => {
     if (!isAdmin) return;
+    editTriggerRef.current = event?.currentTarget || (typeof document !== "undefined" ? document.activeElement : null);
 
     setEditingId(null);
     setForm({ ...EMPTY_FORM });
@@ -153,8 +156,9 @@ export default function TollGateManager() {
     setModalOpen(true);
   };
 
-  const openEditModal = (toll) => {
+  const openEditModal = (toll, event) => {
     if (!isAdmin) return;
+    editTriggerRef.current = event?.currentTarget || (typeof document !== "undefined" ? document.activeElement : null);
 
     setEditingId(toll.id);
 
@@ -173,13 +177,35 @@ export default function TollGateManager() {
     setModalOpen(true);
   };
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     if (saving) return;
 
     setModalOpen(false);
     setEditingId(null);
     setModalError("");
-  };
+    const trigger = editTriggerRef.current;
+    editTriggerRef.current = null;
+    if (trigger && typeof trigger.focus === "function") {
+      trigger.focus();
+    }
+  }, [saving]);
+
+  useEffect(() => {
+    if (!modalOpen || typeof document === "undefined") return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!saving) {
+          closeModal();
+        }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [modalOpen, saving, closeModal]);
 
   const updateField = (field, value) => {
     setForm((previous) => ({
@@ -253,6 +279,8 @@ export default function TollGateManager() {
 
       await loadTolls();
 
+      const trigger = editTriggerRef.current;
+      editTriggerRef.current = null;
       setModalOpen(false);
       setEditingId(null);
 
@@ -261,6 +289,9 @@ export default function TollGateManager() {
           ? "Toll gate price updated successfully."
           : "Toll gate added successfully."
       );
+      if (trigger && typeof trigger.focus === "function") {
+        trigger.focus();
+      }
     } catch (err) {
       setModalError(
         err.message || "Unable to save toll gate."
@@ -409,7 +440,7 @@ export default function TollGateManager() {
     <div className="settings-card" id="toll-gates">
       <div className="card-header">
         <TollIcon />
-        <h3>Toll Gate Rates</h3>
+        <h2>Toll Gate Rates</h2>
       </div>
 
       <p className="card-desc card-desc-tight">
@@ -553,10 +584,13 @@ export default function TollGateManager() {
                               type="button"
                               className="toll-dropdown-item"
                               role="menuitem"
-                              onClick={() => {
+                              onClick={(e) => {
+                                const dotsBtn = e.currentTarget
+                                  .closest(".toll-action-menu-wrapper")
+                                  ?.querySelector(".toll-action-dots-btn");
                                 setOpenMenuId(null);
                                 setMenuPosition(null);
-                                openEditModal(toll);
+                                openEditModal(toll, { currentTarget: dotsBtn || e.currentTarget });
                               }}
                             >
                               <svg
@@ -649,8 +683,14 @@ export default function TollGateManager() {
             justifyContent: "center",
             padding: 16,
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !saving) {
+              closeModal();
+            }
+          }}
         >
           <div
+            ref={editDialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="toll-dialog-title"
@@ -673,14 +713,14 @@ export default function TollGateManager() {
                 marginBottom: 20,
               }}
             >
-              <h3
+              <h2
                 id="toll-dialog-title"
                 style={{ margin: 0 }}
               >
                 {editingId
                   ? "Edit Toll Gate Price"
                   : "Add New Toll Gate"}
-              </h3>
+              </h2>
 
               <button
                 type="button"
@@ -692,6 +732,11 @@ export default function TollGateManager() {
                   background: "transparent",
                   fontSize: 26,
                   cursor: "pointer",
+                  minWidth: 44,
+                  minHeight: 44,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 ×
@@ -728,7 +773,7 @@ export default function TollGateManager() {
                       </optgroup>
                     </select>
                   </label>
-                  <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
                     Auto-fills exact entry & exit plaza coordinates, confirmed Class 2/3 tariffs, and bidirectional route matching.
                   </p>
                 </div>
@@ -960,7 +1005,7 @@ export default function TollGateManager() {
               </svg>
             </div>
 
-            <h3
+            <h2
               id="toll-delete-dialog-title"
               style={{
                 margin: "0 0 8px 0",
@@ -970,7 +1015,7 @@ export default function TollGateManager() {
               }}
             >
               Delete toll gate?
-            </h3>
+            </h2>
 
             <p
               id="toll-delete-dialog-desc"

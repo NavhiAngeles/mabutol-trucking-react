@@ -24,6 +24,7 @@
 }
 
 .reports-page .sr-content h1,
+.reports-page .sr-content h2,
 .reports-page .sr-content h3,
 .reports-page .sr-content p,
 .reports-page .sr-content ul {
@@ -435,7 +436,7 @@
   min-height: 0;
 }
 
-.reports-page .sr-chart-card h3 {
+.reports-page .sr-chart-card :is(h2, h3) {
   font-size: 14px;
   font-weight: 600;
   color: #0F172A;
@@ -555,7 +556,7 @@
   border-bottom: 1px solid #F1F5F9;
 }
 
-.reports-page .sr-ledger-head h3 {
+.reports-page .sr-ledger-head :is(h2, h3) {
   font-size: 15.5px;
   font-weight: 600;
   color: #0F172A;

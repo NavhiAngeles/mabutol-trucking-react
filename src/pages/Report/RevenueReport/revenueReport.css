@@ -345,7 +345,8 @@ MISC
 .reports-page .revenue-report-live .filters { flex-wrap: wrap; align-items: center; }
 .reports-page .revenue-report-live .rv-date { color: #64748B; font-size: 13px; }
 .reports-page .revenue-report-live .rv-notes { color: #64748B; font-size: 13px; line-height: 1.6; margin: 12px 0; }
-.reports-page .revenue-report-live .stat-card h2 { overflow-wrap: anywhere; }
+.reports-page .revenue-report-live .stat-card :is(h2, .rv-stat-value) { display: block; overflow-wrap: anywhere; font-size: 1.5rem; font-weight: 700; color: #0F172A; margin-bottom: 6px; }
+.reports-page .revenue-report-live .stat-card .rv-stat-label { font-size: 0.875rem; font-weight: 700; color: #475569; margin: 0 0 6px; }
 .reports-page .revenue-report-live .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; }
 .reports-page .revenue-report-live .stat-card { min-width: 0; }
 
@@ -357,7 +358,7 @@ MISC
 .reports-page .revenue-report-live .rv-record-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .reports-page .revenue-report-live .rv-record-source { color: #334155; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
 .reports-page .revenue-report-live .rv-record-amount { color: #0F172A; font-size: 22px; }
-.reports-page .revenue-report-live .rv-cost-record h4 { margin: 10px 0 4px; text-transform: capitalize; }
+.reports-page .revenue-report-live .rv-cost-record :is(h3, h4) { margin: 10px 0 4px; text-transform: capitalize; }
 .reports-page .revenue-report-live .rv-cost-record p { margin: 4px 0; font-size: 13px; line-height: 1.5; }
 .reports-page .revenue-report-live .rv-record-detail,
 .reports-page .revenue-report-live .rv-record-meta { color: #475569; font-size: 12px; line-height: 1.6; }

@@ -56,8 +56,8 @@
 .landing-page .modern-top-loader-bar {
   height: 100%;
   width: 100%;
-  background: linear-gradient(90deg, #2563EB, #38BDF8, #60A5FA);
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.6), 0 0 4px #38BDF8;
+  background: #1D4ED8;
+  box-shadow: none;
   animation: modernLoaderSweep 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .landing-page .landing-brand-tag {
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #64748B;
@@ -289,52 +289,6 @@
   max-width: 900px;
   margin: 0 auto;
   text-align: center;
-}
-
-.landing-page .landing-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: #0F2A52;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  margin-bottom: 24px;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-  cursor: default;
-}
-
-.landing-page .landing-hero-badge:hover {
-  transform: translateY(-1px);
-  border-color: #94A3B8;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-}
-
-@keyframes badgePulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25);
-  }
-  50% {
-    transform: scale(1.2);
-    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
-  }
-}
-
-@keyframes liveDotGlow {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
-  }
-  50% {
-    transform: scale(1.25);
-    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0);
-  }
 }
 
 .landing-page .landing-hero-title {
@@ -491,24 +445,6 @@
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
 }
 
-.landing-page .preview-live-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #15803D;
-}
-
-.landing-page .preview-live-tag .live-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #16A34A;
-  animation: liveDotGlow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-}
-
 .landing-page .preview-dashboard-body {
   padding: 18px 20px 24px;
   background: #F8FAFC;
@@ -549,7 +485,7 @@
 }
 
 .landing-page .preview-badge-pht {
-  font-size: 11.5px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #64748B;
   background: #FFFFFF;
@@ -595,7 +531,7 @@
   border-radius: 50%;
   background: #0F2A52;
   color: #FFFFFF;
-  font-size: 11.5px;
+  font-size: 0.75rem;
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -622,7 +558,7 @@
   padding: 12px 14px 14px;
   overflow: hidden;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
-  cursor: pointer;
+  cursor: default;
 }
 
 .landing-page .preview-stat-card:hover {
@@ -646,7 +582,7 @@
 .landing-page .preview-stat-card.border-amber::after { background: #D97706; }
 
 .landing-page .stat-label {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -668,7 +604,7 @@
 }
 
 .landing-page .stat-note {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   display: block;
 }
@@ -706,7 +642,7 @@
   margin-bottom: 12px;
 }
 
-.landing-page .preview-card-header h4 {
+.landing-page .preview-card-header :is(h4, .preview-card-title) {
   font-size: 13.5px;
   font-weight: 700;
   color: #0F172A;
@@ -714,7 +650,7 @@
 }
 
 .landing-page .map-chip {
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 8px;
   background: #DCFCE7;
@@ -749,13 +685,13 @@
   color: #FFFFFF;
   padding: 3px 8px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 0.75rem;
   display: flex;
   align-items: center;
   gap: 4px;
   box-shadow: 0 2px 6px rgba(15, 42, 82, 0.3);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
-  cursor: pointer;
+  cursor: default;
 }
 
 .landing-page .map-truck-pin:hover {
@@ -764,7 +700,7 @@
 }
 
 .landing-page .pin-tooltip {
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -788,7 +724,7 @@
   top: 22px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9.5px;
+  font-size: 0.75rem;
   font-weight: 600;
   background: #FFFFFF;
   border: 1px solid #CBD5E1;
@@ -820,7 +756,7 @@
   border-radius: 6px;
   margin-bottom: 8px;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
-  cursor: pointer;
+  cursor: default;
 }
 
 .landing-page .preview-alert-item:hover {
@@ -853,7 +789,7 @@
 
 .landing-page .alert-content p {
   margin: 0;
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #475569;
   line-height: 1.35;
 }
@@ -873,7 +809,7 @@
 
 .landing-page .landing-section-tag {
   display: inline-block;
-  font-size: 11.5px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #0F2A52;
@@ -1025,7 +961,7 @@
 
 .landing-page .metric-sub {
   font-size: 12px;
-  color: #64748B;
+  color: #CBD5E1;
   margin: 0;
 }
 
@@ -1085,7 +1021,7 @@
   color: #FFFFFF;
 }
 
-.landing-page .workflow-step-card h4 {
+.landing-page .workflow-step-card :is(h3, h4) {
   font-size: 16px;
   font-weight: 700;
   color: #0F172A;
@@ -1260,7 +1196,7 @@
 .landing-page .landing-cta-content p {
   font-size: 15px;
   line-height: 1.6;
-  color: #64748B;
+  color: #CBD5E1;
   margin: 0 0 28px;
 }
 
@@ -1372,7 +1308,7 @@
   border: 1px solid #CBD5E1;
   color: #0F2A52;
   padding: 6px 14px;
-  border-radius: 20px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -1425,6 +1361,20 @@
 
   .landing-page .landing-mobile-toggle {
     display: grid;
+    width: 44px;
+    height: 44px;
+  }
+
+  .landing-page .landing-brand,
+  .landing-page .footer-col-links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .landing-page .landing-back-to-top {
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .landing-page .landing-nav-links {
@@ -1437,8 +1387,14 @@
     border-bottom: 1px solid #E2E8F0;
     flex-direction: column;
     padding: 20px 24px 24px;
-    gap: 16px;
+    gap: 8px;
     box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1);
+  }
+
+  .landing-page .landing-nav-links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .landing-page .landing-nav-links.open {

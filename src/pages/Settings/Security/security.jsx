@@ -28,6 +28,9 @@ function SecurityDetails() {
   const [notice, setNotice] = useState('');
   const guard = useRef(false);
   const mounted = useRef(true);
+  const modalRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const cancelRef = useRef(null);
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
@@ -38,10 +41,19 @@ function SecurityDetails() {
   }, [reload]);
 
   function refresh() { setSnapshot(null); setLoadError(''); setReload(n => n + 1); }
-  function clear() { setModal(null); setTarget(null); setSetup(null); setPhone(''); setCurrent(''); setPassword(''); setConfirm(''); setCode(''); setError(''); }
+  function restoreFocus() {
+    const prev = previousFocusRef.current;
+    previousFocusRef.current = null;
+    if (prev && typeof prev.focus === 'function') {
+      prev.focus();
+    }
+  }
+  function clear() { setModal(null); setTarget(null); setSetup(null); setPhone(''); setCurrent(''); setPassword(''); setConfirm(''); setCode(''); setError(''); restoreFocus(); }
   function open(kind, factor) {
     if (guard.current) return;
+    const active = typeof document !== 'undefined' ? document.activeElement : null;
     clear();
+    previousFocusRef.current = active;
     setNotice('');
     setModal(kind);
     setTarget(factor || null);
@@ -103,6 +115,31 @@ function SecurityDetails() {
     });
   }
 
+  useEffect(() => {
+    cancelRef.current = cancel;
+  });
+
+  useEffect(() => {
+    if (!modal || typeof document === 'undefined') return;
+    const dialog = modalRef.current;
+    if (dialog) {
+      const firstFocusable = dialog.querySelector?.('input:not([readonly]):not([disabled]), button:not([disabled])');
+      if (firstFocusable && typeof firstFocusable.focus === 'function') {
+        firstFocusable.focus();
+      } else if (typeof dialog.focus === 'function') {
+        dialog.focus();
+      }
+    }
+    const onKeyDown = event => {
+      if (event.key === 'Escape' && !guard.current) {
+        event.preventDefault();
+        cancelRef.current?.();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [modal]);
+
   const is2faActive = Boolean(snapshot?.twoFactorEnabled || (snapshot?.factors && snapshot.factors.some(f => f.status === 'verified')));
   const phoneDisplay = snapshot?.twoFactorPhone || snapshot?.phone || '';
 
@@ -122,7 +159,7 @@ function SecurityDetails() {
         {snapshot && (
           <div className="security-card-grid">
             <div className="settings-card">
-              <h3>Authentication</h3>
+              <h2>Authentication</h2>
               <div className="security-row">
                 <div>
                   <strong>Password</strong>
@@ -154,14 +191,14 @@ function SecurityDetails() {
               ))}
             </div>
             <div className="settings-card">
-              <h3>Sessions</h3>
+              <h2>Sessions</h2>
               <p>Signed in as {snapshot.email}.</p>
               <p>Device, location, IP address, and individual session history are unavailable here.</p>
               <p>Signing out other sessions revokes their refresh tokens. Existing access tokens may remain valid until expiry.</p>
               <button className="danger-btn" onClick={() => open('sessions')}>Sign Out Other Sessions</button>
             </div>
             <div className="settings-card">
-              <h3>Login Activity</h3>
+              <h2>Login Activity</h2>
               <p>Last sign-in: {snapshot.lastSignIn ? new Date(snapshot.lastSignIn).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable'}</p>
               <p>Failed sign-ins and full login history are unavailable here.</p>
               <button onClick={refresh} disabled={busy}>Refresh security settings</button>
@@ -169,11 +206,25 @@ function SecurityDetails() {
           </div>
         )}
         {modal && (
-          <div className="pw-backdrop">
-            <form className="pw-modal" role="dialog" aria-modal="true" aria-labelledby="security-dialog-title" onSubmit={submit}>
+          <div
+            className="pw-backdrop"
+            onClick={event => {
+              if (event.target === event.currentTarget && !busy) cancel();
+            }}
+          >
+            <form
+              ref={modalRef}
+              tabIndex={-1}
+              className="pw-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="security-dialog-title"
+              onClick={event => event.stopPropagation()}
+              onSubmit={submit}
+            >
               <fieldset disabled={busy}>
                 <div className="pw-modal-header">
-                  <h3 id="security-dialog-title">
+                  <h2 id="security-dialog-title">
                     {modal === 'password'
                       ? 'Update Password'
                       : modal === 'sessions'
@@ -181,7 +232,7 @@ function SecurityDetails() {
                       : modal === 'remove'
                       ? 'Disable 2FA'
                       : 'Set Up 2FA (TextBee SMS)'}
-                  </h3>
+                  </h2>
                 </div>
                 <div className="pw-modal-body">
                   {modal === 'password' && (
@@ -218,7 +269,7 @@ function SecurityDetails() {
                       <p>We sent a 6-digit verification code via TextBee SMS to <strong>{setup.phone || phone}</strong>. Enter the code below to complete 2FA setup.</p>
                       {setup.qr && (
                         <>
-                          <img className="security-qr" src={setup.qr} alt="Authenticator enrollment QR code" />
+                          <img className="security-qr" width="220" height="220" src={setup.qr} alt="Authenticator enrollment QR code" />
                           <label htmlFor="sec-mfa-secret">Manual setup key<input id="sec-mfa-secret" className="pw-input" readOnly value={setup.secret || ''} autoComplete="off" /></label>
                         </>
                       )}

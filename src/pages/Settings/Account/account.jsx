@@ -26,6 +26,8 @@ function AccountDetails() {
   const [success, setSuccess] = useState('');
   const operation = useRef(false);
   const mounted = useRef(true);
+  const modalRef = useRef(null);
+  const previousFocusRef = useRef(null);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -42,7 +44,15 @@ function AccountDetails() {
     return () => { disposed = true; clearInterval(timer); window.removeEventListener('focus', load); };
   }, [reload]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  function restoreFocus() {
+    const prev = previousFocusRef.current;
+    previousFocusRef.current = null;
+    if (prev && typeof prev.focus === 'function') {
+      prev.focus();
+    }
+  }
   function open(kind) {
+    previousFocusRef.current = typeof document !== 'undefined' ? document.activeElement : null;
     setForm({ fullName: profile.full_name || '', contact: profile.phone || '' });
     setFile(null); setPreview(null); setPasswords({ current: '', next: '', confirm: '' });
     setActionError(''); setSuccess(''); setModal(kind);
@@ -51,7 +61,30 @@ function AccountDetails() {
     if (operation.current) return;
     setModal(null); setFile(null); setPreview(null);
     setPasswords({ current: '', next: '', confirm: '' }); setActionError('');
+    restoreFocus();
   }
+  useEffect(() => {
+    if (!modal || typeof document === 'undefined') return;
+    const dialog = modalRef.current;
+    if (dialog) {
+      const firstFocusable = dialog.querySelector?.('input:not([readonly]):not([disabled]), button:not([disabled])');
+      if (firstFocusable && typeof firstFocusable.focus === 'function') {
+        firstFocusable.focus();
+      } else if (typeof dialog.focus === 'function') {
+        dialog.focus();
+      }
+    }
+    const onKeyDown = event => {
+      if (event.key === 'Escape' && !operation.current) {
+        event.preventDefault();
+        setModal(null); setFile(null); setPreview(null);
+        setPasswords({ current: '', next: '', confirm: '' }); setActionError('');
+        restoreFocus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [modal]);
   async function submit(event) {
     event.preventDefault();
     if (operation.current) return;
@@ -66,6 +99,7 @@ function AccountDetails() {
       if (mounted.current) {
         setSuccess(modal === 'profile' ? 'Profile saved.' : modal === 'password' ? 'Password updated.' : 'Other sessions revoked. Existing access may continue until their access tokens expire.');
         setModal(null); setFile(null); setPreview(null); setPasswords({ current: '', next: '', confirm: '' });
+        restoreFocus();
       }
     } catch (cause) { if (mounted.current) setActionError(cause.message); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
@@ -79,9 +113,9 @@ function AccountDetails() {
     <div className="settings-grid">
       <div className="left-column">
         <div className="settings-card">
-          <div className="card-header ep-card-header"><h3>Profile Information</h3><button className="primary-btn" onClick={() => open('profile')}>Edit Profile</button></div>
+          <div className="card-header ep-card-header"><h2>Profile Information</h2><button className="primary-btn" onClick={() => open('profile')}>Edit Profile</button></div>
           <div className="profile-layout">
-            <div className="avatar-box">{profile.photo ? <img src={profile.photo} alt="Your profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} /> : initials}</div>
+            <div className="avatar-box">{profile.photo ? <img src={profile.photo} alt="Your profile" width="88" height="88" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 18 }} /> : initials}</div>
             <div className="profile-info">
               <div className="info-group"><span className="info-label">FULL NAME</span><span>{profile.full_name || 'Not set'}</span></div>
               <div className="info-group"><span className="info-label">EMAIL ADDRESS</span><span>{profile.email}</span><p className="field-hint">Contact support to change your email.</p></div>
@@ -90,13 +124,13 @@ function AccountDetails() {
             </div>
           </div><div className="card-bottom-accent" />
         </div>
-        <div className="settings-card"><div className="card-header"><h3>Password & Authentication</h3></div>
+        <div className="settings-card"><div className="card-header"><h2>Password & Authentication</h2></div>
           <p>Your current password strength and last change date are unavailable. Use a strong, unique password.</p>
           <button className="primary-btn" onClick={() => open('password')}>Change Password</button>
         </div>
       </div>
       <div className="right-column"><div className="settings-card">
-        <div className="card-header"><h3>Login & Security</h3></div>
+        <div className="card-header"><h2>Login & Security</h2></div>
         <div className="section-label">Last Account Sign-in</div><div className="security-box"><strong>{dateLabel(profile.lastSignIn)}</strong><span>Philippine time. Device and location details are unavailable.</span></div>
         <div className="section-label" style={{ marginTop: 20 }}>Other Sessions</div><div className="session-box"><span>Other device sessions cannot be listed here. You can sign out all other sessions below.</span></div>
         <button className="logout-btn" onClick={() => open('sessions')}>Log Out All Other Sessions</button>
@@ -106,11 +140,11 @@ function AccountDetails() {
         </div>
       </div></div>
     </div>
-    {modal && <div className="ep-backdrop" onClick={close}><form className="ep-modal" role="dialog" aria-modal="true" aria-label={modal === 'profile' ? 'Edit profile' : modal === 'password' ? 'Change password' : 'Log out other sessions'} onClick={event => event.stopPropagation()} onSubmit={submit}>
-      <div className="ep-modal-header"><h3 className="ep-modal-title">{modal === 'profile' ? 'Edit Profile Information' : modal === 'password' ? 'Change Password' : 'Log Out Other Sessions?'}</h3><button type="button" className="ep-close-btn" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
+    {modal && <div className="ep-backdrop" onClick={close}><form ref={modalRef} tabIndex={-1} className="ep-modal" role="dialog" aria-modal="true" aria-label={modal === 'profile' ? 'Edit profile' : modal === 'password' ? 'Change password' : 'Log out other sessions'} onClick={event => event.stopPropagation()} onSubmit={submit}>
+      <div className="ep-modal-header"><h2 className="ep-modal-title">{modal === 'profile' ? 'Edit Profile Information' : modal === 'password' ? 'Change Password' : 'Log Out Other Sessions?'}</h2><button type="button" className="ep-close-btn" disabled={busy} onClick={close} aria-label="Close">✕</button></div>
       <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className="ep-modal-body">
         {modal === 'profile' && <>
-          <div className="ep-photo-row">{(preview || profile.photo) && <img className="ep-photo-preview" style={{ width: 64, height: 64, objectFit: 'cover' }} src={preview || profile.photo} alt="Profile preview" />}<label className="ep-label" htmlFor="ep-photo-input">PHOTO (JPG OR PNG, MAX 2MB)<input id="ep-photo-input" type="file" accept="image/jpeg,image/png" onChange={event => {
+          <div className="ep-photo-row">{(preview || profile.photo) && <img className="ep-photo-preview" width="64" height="64" style={{ width: 64, height: 64, objectFit: 'cover' }} src={preview || profile.photo} alt="Profile preview" />}<label className="ep-label" htmlFor="ep-photo-input">PHOTO (JPG OR PNG, MAX 2MB)<input id="ep-photo-input" type="file" accept="image/jpeg,image/png" onChange={event => {
             const selected = event.target.files[0];
             if (selected && (!['image/jpeg', 'image/png'].includes(selected.type) || selected.size <= 0 || selected.size > 2097152)) { setActionError('Choose a JPG or PNG photo under 2MB.'); event.target.value = ''; return; }
             setFile(selected || null); setPreview(selected ? URL.createObjectURL(selected) : null); setActionError('');

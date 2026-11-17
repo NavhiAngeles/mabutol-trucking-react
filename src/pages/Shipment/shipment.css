@@ -117,8 +117,8 @@
   margin-bottom: 10px;
 }
 
-.shipment-page .stat-header h4 {
-  font-size: 11px;
+.shipment-page .stat-header .stat-label {
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748B;
   text-transform: uppercase;
@@ -129,9 +129,11 @@
 .shipment-page .stat-icon {
   font-size: 18px;
   color: #64748B;
+  flex-shrink: 0;
 }
 
-.shipment-page .stat-card h2 {
+.shipment-page .stat-card .stat-value {
+  display: block;
   font-size: 26px;
   font-weight: 700;
   color: #0F172A;
@@ -338,7 +340,7 @@
 
 .shipment-page .shipment-table th {
   background: #F8FAFC;
-  font-size: 11px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #475569;
@@ -373,7 +375,7 @@
 }
 
 .shipment-page .cell-sub {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   text-transform: uppercase;
   margin-top: 2px;
@@ -406,7 +408,7 @@
 /* Driver instructions disclosure */
 .shipment-page .shipment-driver-instructions {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 
 .shipment-page .shipment-driver-instructions summary {
@@ -430,7 +432,7 @@
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #334155;
   white-space: pre-wrap;
   max-width: 240px;
@@ -443,7 +445,7 @@
   gap: 5px;
   padding: 3px 10px;
   border-radius: 9999px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -483,7 +485,7 @@
 
 .shipment-page .status.unknown-timing {
   background: #F1F5F9;
-  color: #64748B;
+  color: #475569;
   border: 1px solid #E2E8F0;
 }
 
@@ -494,7 +496,7 @@
 }
 
 .shipment-page .status-sub-indicator {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   margin-top: 2px;
 }
@@ -754,9 +756,19 @@
   font-weight: 500;
 }
 
-.shipment-page .shipment-loading i {
+.shipment-page .shipment-loading svg {
   font-size: 22px;
   color: #3B82F6;
+}
+
+.shipment-page .shipment-spin {
+  animation: shipmentSpin 0.9s linear infinite;
+}
+
+@keyframes shipmentSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --- SHIPMENT NOTIFICATION & FEEDBACK BANNERS --- */
@@ -885,7 +897,8 @@
   line-height: 1.4;
 }
 
-.shipment-page .shipment-dialog-alert i {
+.shipment-page .shipment-dialog-alert i,
+.shipment-page .shipment-dialog-alert svg {
   font-size: 16px;
   flex-shrink: 0;
 }
@@ -905,7 +918,8 @@
   color: #475569;
 }
 
-.shipment-page .shipment-dialog-alert.is-loading i {
+.shipment-page .shipment-dialog-alert.is-loading i,
+.shipment-page .shipment-dialog-alert.is-loading svg {
   color: #3B82F6;
 }
 
@@ -915,7 +929,8 @@
   color: #166534;
 }
 
-.shipment-page .shipment-dialog-alert.is-success i {
+.shipment-page .shipment-dialog-alert.is-success i,
+.shipment-page .shipment-dialog-alert.is-success svg {
   color: #15803D;
 }
 
@@ -925,7 +940,8 @@
   color: #92400E;
 }
 
-.shipment-page .shipment-dialog-alert.is-warning i {
+.shipment-page .shipment-dialog-alert.is-warning i,
+.shipment-page .shipment-dialog-alert.is-warning svg {
   color: #B45309;
 }
 
@@ -935,7 +951,8 @@
   color: #1E40AF;
 }
 
-.shipment-page .shipment-dialog-alert.is-info i {
+.shipment-page .shipment-dialog-alert.is-info i,
+.shipment-page .shipment-dialog-alert.is-info svg {
   color: #2563EB;
 }
 
@@ -954,9 +971,11 @@
   font-weight: 500;
 }
 
-.shipment-page .shipment-error-banner i {
+.shipment-page .shipment-error-banner i,
+.shipment-page .shipment-error-banner svg {
   font-size: 18px;
   color: #B91C1C;
+  flex-shrink: 0;
 }
 
 .shipment-page .shipment-error-banner span {
@@ -1031,7 +1050,8 @@
   margin-bottom: 16px;
 }
 
-.shipment-page .shipment-edit-success-msg i {
+.shipment-page .shipment-edit-success-msg i,
+.shipment-page .shipment-edit-success-msg svg {
   font-size: 16px;
   color: #15803D;
   flex-shrink: 0;
@@ -1167,11 +1187,11 @@
 }
 
 .shipment-page .shipment-edit-field-label {
-  font-size: 11.5px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748B;
+  color: #475569;
 }
 
 .shipment-page .shipment-edit-field-val {
@@ -1467,7 +1487,7 @@
 .shipment-page .shipment-details-close-x {
   background: #F1F5F9;
   border: none;
-  color: #64748B;
+  color: #475569;
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -1499,7 +1519,8 @@
   margin-bottom: 16px;
 }
 
-.shipment-page .shipment-details-status-msg i {
+.shipment-page .shipment-details-status-msg i,
+.shipment-page .shipment-details-status-msg svg {
   font-size: 16px;
   color: #3B82F6;
   flex-shrink: 0;
@@ -1519,7 +1540,8 @@
   margin-bottom: 16px;
 }
 
-.shipment-page .shipment-details-error-msg i {
+.shipment-page .shipment-details-error-msg i,
+.shipment-page .shipment-details-error-msg svg {
   font-size: 16px;
   color: #B91C1C;
   flex-shrink: 0;
@@ -1562,7 +1584,7 @@
   flex-shrink: 0;
 }
 
-.shipment-page .shipment-card-header h4 {
+.shipment-page .shipment-card-header h3 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1582,7 +1604,7 @@
 }
 
 .shipment-page .shipment-card-fields dt {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1624,7 +1646,7 @@
   background: #E2E8F0;
   color: #334155;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -1658,7 +1680,7 @@
 .shipment-page .shipment-toll-rates-list {
   margin: 6px 0 0 0;
   padding-left: 18px;
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
 }
 
@@ -1841,12 +1863,13 @@
 .shipment-page .overdue-departure-tag {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 2px 7px;
   background: #FEE2E2;
   border: 1px solid #FCA5A5;
   border-radius: 4px;
   color: #991B1B;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1889,7 +1912,7 @@
   border: 1px solid #BFDBFE;
   border-radius: 4px;
   color: #1D4ED8;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -1904,7 +1927,7 @@
 }
 
 .shipment-page .booking-review-quote-sub {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   font-weight: 400;
 }
@@ -1989,7 +2012,7 @@
   flex-shrink: 0;
 }
 
-.shipment-page .payment-ledger-title-row h4 {
+.shipment-page .payment-ledger-title-row h3 {
   font-size: 14px;
   font-weight: 600;
   color: #0F172A;
@@ -2108,7 +2131,7 @@
 }
 
 .shipment-page .payment-summary-label {
-  font-size: 11px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -2158,7 +2181,7 @@
   background: #F8FAFC;
   color: #475569;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   padding: 10px 14px;
@@ -2218,7 +2241,7 @@
 }
 
 .shipment-page .payment-cell-meta {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   margin-top: 2px;
   white-space: nowrap;
@@ -2229,7 +2252,7 @@
   align-items: center;
   justify-content: center;
   padding: 3px 9px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   border-radius: 6px;
   background: #EFF6FF;
@@ -2519,7 +2542,7 @@
   padding: 10px 16px !important;
 }
 
-.shipment-page .return-load-title-row h3 {
+.shipment-page .return-load-title-row h2 {
   font-size: 14px;
   font-weight: 600;
 }

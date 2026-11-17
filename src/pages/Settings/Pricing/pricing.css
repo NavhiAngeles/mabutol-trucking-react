@@ -216,7 +216,7 @@ background: transparent;
   border-bottom: 1px solid var(--line);
 }
 
-.settings-page .pricing-page .card-header h3 {
+.settings-page .pricing-page .card-header :is(h2, h3) {
   font-size: 16px;
   line-height: 24px;
   font-weight: 600;

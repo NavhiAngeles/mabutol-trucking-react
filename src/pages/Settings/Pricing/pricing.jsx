@@ -353,7 +353,7 @@ export default function Pricing() {
                   <div className="settings-card card-accent">
                     <div className="card-header">
                       <CashIcon />
-                      <h3>Fixed Trip Fees</h3>
+                      <h2>Fixed Trip Fees</h2>
                     </div>
 
                     <p className="card-desc">
@@ -417,7 +417,7 @@ export default function Pricing() {
                   <div className="settings-card">
                     <div className="card-header">
                       <BoxIcon />
-                      <h3>Special Handling Surcharges</h3>
+                      <h2>Special Handling Surcharges</h2>
                     </div>
 
                     <p className="card-desc card-desc-tight">
@@ -497,7 +497,7 @@ export default function Pricing() {
                   <div className="settings-card">
                     <div className="card-header">
                       <TruckIcon />
-                      <h3>Base Rate per Vehicle Type</h3>
+                      <h2>Base Rate per Vehicle Type</h2>
                     </div>
 
                     <p className="card-desc card-desc-tight">

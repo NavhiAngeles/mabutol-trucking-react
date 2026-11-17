@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "./Landing.css";
@@ -8,19 +8,41 @@ export default function Landing() {
   const isAuthenticated = Boolean(user && ["admin", "staff"].includes(role));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navigatingOut, setNavigatingOut] = useState(false);
+  const mobileToggleRef = useRef(null);
   const navigate = useNavigate();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const prefersReducedMotion = () =>
+    typeof window !== "undefined" &&
+    Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+
+  useEffect(() => {
+    if (!mobileMenuOpen || typeof document === "undefined") return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        mobileToggleRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileMenuOpen]);
 
   const handleSignInClick = (targetPath) => (e) => {
     if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
     }
     if (navigatingOut) return;
-    setNavigatingOut(true);
     closeMobileMenu();
 
     const destination = targetPath || (isAuthenticated ? "/dashboard" : "/login");
+    if (prefersReducedMotion()) {
+      navigate(destination);
+      return;
+    }
+
+    setNavigatingOut(true);
 
     setTimeout(() => {
       navigate(destination);
@@ -37,15 +59,16 @@ export default function Landing() {
     }
     const element = document.getElementById(targetId);
     if (element) {
+      const behavior = prefersReducedMotion() ? "auto" : "smooth";
       if (typeof element.scrollIntoView === "function") {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        element.scrollIntoView({ behavior, block: "start" });
       } else if (typeof window.scrollTo === "function") {
         const headerOffset = 76;
         const elementPosition = element.getBoundingClientRect?.().top ?? 0;
         const pageOffset = window.pageYOffset ?? window.scrollY ?? 0;
         window.scrollTo({
           top: elementPosition + pageOffset - headerOffset,
-          behavior: "smooth"
+          behavior
         });
       }
       try {
@@ -64,9 +87,10 @@ export default function Landing() {
     }
     closeMobileMenu();
     if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
+      const behavior = prefersReducedMotion() ? "auto" : "smooth";
       window.scrollTo({
         top: 0,
-        behavior: "smooth"
+        behavior
       });
       try {
         if (window.history && typeof window.history.pushState === "function") {
@@ -128,6 +152,7 @@ export default function Landing() {
               {isAuthenticated ? "Go to Dashboard" : "Sign In"}
             </Link>
             <button
+              ref={mobileToggleRef}
               type="button"
               className="landing-mobile-toggle"
               onClick={() => setMobileMenuOpen(prev => !prev)}
@@ -140,6 +165,7 @@ export default function Landing() {
         </div>
       </header>
 
+      <main>
       {/* ---------- Hero Section ---------- */}
       <section className="landing-hero" id="hero">
         <div className="landing-hero-inner">
@@ -164,7 +190,7 @@ export default function Landing() {
               className="landing-btn-outline"
               onClick={scrollToSection("features")}
             >
-              Explore Capabilities
+              View Platform Capabilities
             </a>
           </div>
 
@@ -232,7 +258,7 @@ export default function Landing() {
               <div className="preview-lower-grid">
                 <div className="preview-map-card">
                   <div className="preview-card-header">
-                    <h4>Live Tracking: Central Luzon</h4>
+                    <p className="preview-card-title">Live Tracking: Central Luzon</p>
                     <span className="map-chip">GPS Telemetry</span>
                   </div>
                   <div className="preview-map-canvas">
@@ -251,7 +277,7 @@ export default function Landing() {
 
                 <div className="preview-action-card">
                   <div className="preview-card-header">
-                    <h4>Operations Action Center</h4>
+                    <p className="preview-card-title">Operations Action Center</p>
                   </div>
                   <div className="preview-alert-item alert-compliance">
                     <div className="alert-content">
@@ -394,7 +420,7 @@ export default function Landing() {
       {/* ---------- 4-Step Operational Workflow ---------- */}
       <section className="landing-workflow" id="workflow">
         <div className="landing-section-header">
-          <span className="landing-section-tag">SEAMLESS LOGISTICS PIPELINE</span>
+          <span className="landing-section-tag">END-TO-END DISPATCH PIPELINE</span>
           <h2>How TANAW Powers Every Delivery</h2>
           <p>
             From the initial customer quotation to verified destination sign-off, every stage is structured for zero data loss and maximum punctuality.
@@ -404,7 +430,7 @@ export default function Landing() {
         <div className="workflow-steps-grid">
           <div className="workflow-step-card">
             <div className="step-number-badge">01</div>
-            <h4>Booking &amp; Quotation</h4>
+            <h3>Booking &amp; Quotation</h3>
             <p>
               Office staff reviews freight details, calculates exact toll fees, and generates verified booking agreements with clear delivery requirements.
             </p>
@@ -412,7 +438,7 @@ export default function Landing() {
 
           <div className="workflow-step-card">
             <div className="step-number-badge">02</div>
-            <h4>Automated Dispatch</h4>
+            <h3>Automated Dispatch</h3>
             <p>
               Eligible trucks and drivers are matched by capacity, license validity, and vehicle maintenance status, locking reservations atomically.
             </p>
@@ -420,7 +446,7 @@ export default function Landing() {
 
           <div className="workflow-step-card">
             <div className="step-number-badge">03</div>
-            <h4>In-Transit Telemetry</h4>
+            <h3>In-Transit Telemetry</h3>
             <p>
               Drivers confirm milestones via mobile app while dispatchers monitor live GPS road tracking, toll plaza crossings, and status updates.
             </p>
@@ -428,7 +454,7 @@ export default function Landing() {
 
           <div className="workflow-step-card">
             <div className="step-number-badge">04</div>
-            <h4>POD &amp; Financial Ledger</h4>
+            <h3>POD &amp; Financial Ledger</h3>
             <p>
               Upon drop-off, drivers upload digital signatures and photo evidence, immediately recording arrival timestamps and final delivery variance.
             </p>
@@ -497,6 +523,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* ---------- Footer ---------- */}
       <footer className="landing-footer">

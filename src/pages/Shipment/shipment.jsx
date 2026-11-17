@@ -12,6 +12,89 @@ import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
 import "./shipment.css";
 
+const svgProps = {
+  width: 15,
+  height: 15,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": true,
+};
+
+const BoxesIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+    <line x1="12" y1="22.08" x2="12" y2="12" />
+  </svg>
+);
+
+const TruckIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <rect x="1" y="3" width="15" height="13" rx="2" />
+    <path d="M16 8h4l3 3v5h-7V8z" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+  </svg>
+);
+
+const AlertTriangleIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+const AlertCircleIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const CheckCircleIcon = ({ className, size = 18 }) => (
+  <svg {...svgProps} width={size} height={size} className={className}>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const ClockIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const FlagIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <line x1="4" y1="22" x2="4" y2="15" />
+  </svg>
+);
+
+const BarChartIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <line x1="12" y1="20" x2="12" y2="10" />
+    <line x1="18" y1="20" x2="18" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="16" />
+  </svg>
+);
+
+const HourglassIcon = ({ className }) => (
+  <svg {...svgProps} width="18" height="18" className={className}>
+    <path d="M5 22h14" />
+    <path d="M5 2h14" />
+    <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
+    <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+  </svg>
+);
+
 export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [reviewShipment, setReviewShipment] = useState(null);
@@ -19,6 +102,7 @@ export default function Shipment() {
   const [editShipment, setEditShipment] = useState(null);
   const [cancelShipment, setCancelShipment] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [assignmentMessage, setAssignmentMessage] = useState("");
   const menuRef = useRef(null);
@@ -51,22 +135,62 @@ export default function Shipment() {
         !menuRef.current.contains(event.target)
       ) {
         setOpenMenuId(null);
+        setMenuPosition(null);
       }
     };
 
-    document.addEventListener("mousedown", onOutsideClick);
+    const onKeyDown = (event) => {
+      if (event.key === "Escape" && menuRef.current) {
+        const trigger = menuRef.current.querySelector(".action-btn");
+        setOpenMenuId(null);
+        setMenuPosition(null);
+        trigger?.focus();
+      }
+    };
 
-    return () =>
-      document.removeEventListener(
-        "mousedown",
-        onOutsideClick
-      );
+    const onDismiss = () => {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    };
+
+    document.addEventListener("mousedown", onOutsideClick);
+    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("scroll", onDismiss, true);
+    window.addEventListener("resize", onDismiss);
+
+    return () => {
+      document.removeEventListener("mousedown", onOutsideClick);
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("scroll", onDismiss, true);
+      window.removeEventListener("resize", onDismiss);
+    };
   }, []);
 
-  const toggleMenu = (id) =>
-    setOpenMenuId((previous) =>
-      previous === id ? null : id
-    );
+  const toggleMenu = (id, event) => {
+    if (openMenuId === id) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+      return;
+    }
+
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    if (rect) {
+      const winHeight = typeof window !== "undefined" ? window.innerHeight : 800;
+      const winWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
+      const spaceBelow = winHeight - rect.bottom;
+      const openUpward = spaceBelow < 210 && rect.top > 210;
+
+      setMenuPosition({
+        top: openUpward ? "auto" : `${rect.bottom + 4}px`,
+        bottom: openUpward ? `${winHeight - rect.top + 4}px` : "auto",
+        right: `${Math.max(12, winWidth - rect.right)}px`,
+      });
+    } else {
+      setMenuPosition(null);
+    }
+
+    setOpenMenuId(id);
+  };
 
   const handleAssign = async (shipment) => {
     if (assigningId) return;
@@ -136,7 +260,7 @@ export default function Shipment() {
         className="action-btn"
         aria-label={`Actions for ${shipment.id}`}
         aria-expanded={openMenuId === shipment.dbId}
-        onClick={() => toggleMenu(shipment.dbId)}
+        onClick={(event) => toggleMenu(shipment.dbId, event)}
       >
         <svg
           width="16"
@@ -152,12 +276,32 @@ export default function Shipment() {
       </button>
 
       {openMenuId === shipment.dbId && (
-        <div className="action-dropdown">
+        <div
+          className="action-dropdown"
+          style={
+            menuPosition
+              ? {
+                  position: "fixed",
+                  top: menuPosition.top,
+                  bottom: menuPosition.bottom,
+                  right: menuPosition.right,
+                  left: "auto",
+                  zIndex: 1000,
+                }
+              : undefined
+          }
+        >
           {shipment.rawStatus === 'pending' && (
             <button type="button" onClick={event => {
-              reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+              reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
               setReviewShipment(shipment); setOpenMenuId(null);
-            }}><i className="las la-clipboard-check" /> Review booking request</button>
+            }}>
+              <svg {...svgProps}>
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+              {' Review booking request'}
+            </button>
           )}
           {shipment.rawStatus === "booked" && !shipment.assignmentId && (
             <button type="button" disabled={Boolean(assigningId)}
@@ -168,18 +312,30 @@ export default function Shipment() {
           <button
             type="button"
             onClick={event => {
-              reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+              reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
               setDetailsShipment(shipment);
               setOpenMenuId(null);
             }}
           >
-            <i className="las la-eye" /> View Details
+            <svg {...svgProps}>
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            {' View Details'}
           </button>
 
           {!completed && shipment.status !== "cancelled" && (
             <>
-              <button type="button" onClick={() => { setEditShipment(shipment); setOpenMenuId(null); }}>
-                <i className="las la-pen" /> Edit shipment
+              <button type="button" onClick={event => {
+                reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
+                setEditShipment(shipment);
+                setOpenMenuId(null);
+              }}>
+                <svg {...svgProps}>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                {' Edit shipment'}
               </button>
 
               {shipment.status !== "review" && (
@@ -187,11 +343,16 @@ export default function Shipment() {
                   type="button"
                   className="action-danger"
                   onClick={event => {
-                    reviewLauncher.current = event.currentTarget.closest('.action-menu-wrapper')?.querySelector('.action-btn');
+                    reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
                     setCancelShipment(shipment); setOpenMenuId(null);
                   }}
                 >
-                  <i className="las la-times-circle" /> Cancel shipment
+                  <svg {...svgProps}>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                  {' Cancel shipment'}
                 </button>
               )}
             </>
@@ -223,7 +384,11 @@ export default function Shipment() {
             className="btn-primary"
             onClick={() => setIsDrawerOpen(true)}
           >
-            <i className="las la-plus" /> ADD SHIPMENT
+            <svg {...svgProps} width="16" height="16">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            {' ADD SHIPMENT'}
           </button>
         </div>
 
@@ -244,18 +409,16 @@ export default function Shipment() {
             role="status"
           >
             <div className="feedback-content">
-              <i
-                className={`las ${
-                  assignmentMessage.toLowerCase().includes("could not") ||
-                  assignmentMessage.toLowerCase().includes("error") ||
-                  assignmentMessage.toLowerCase().includes("denied")
-                    ? "la-exclamation-circle"
-                    : assignmentMessage.toLowerCase().includes("no available") ||
-                      assignmentMessage.toLowerCase().includes("awaiting")
-                    ? "la-exclamation-triangle"
-                    : "la-check-circle"
-                } feedback-icon`}
-              />
+              {assignmentMessage.toLowerCase().includes("could not") ||
+              assignmentMessage.toLowerCase().includes("error") ||
+              assignmentMessage.toLowerCase().includes("denied") ? (
+                <AlertCircleIcon className="feedback-icon" />
+              ) : assignmentMessage.toLowerCase().includes("no available") ||
+                assignmentMessage.toLowerCase().includes("awaiting") ? (
+                <AlertTriangleIcon className="feedback-icon" />
+              ) : (
+                <CheckCircleIcon className="feedback-icon" />
+              )}
               <span>{assignmentMessage}</span>
             </div>
             <button
@@ -271,7 +434,9 @@ export default function Shipment() {
         {recordFilter && (
           <div className="shipment-feedback-banner is-info" role="status">
             <div className="feedback-content">
-              <i className="las la-filter feedback-icon" />
+              <svg {...svgProps} width="18" height="18" className="feedback-icon">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
               <span>
                 {!isLoading && !error && !visibleShipments.length
                   ? "The selected shipment is unavailable or does not match your search."
@@ -292,7 +457,7 @@ export default function Shipment() {
             className="shipment-error-banner"
             role="alert"
           >
-            <i className="las la-exclamation-circle" />
+            <AlertCircleIcon />
 
             <span>
               Could not load shipments: {error}
@@ -314,28 +479,28 @@ export default function Shipment() {
             <>
               <div className="stat-card">
                 <div className="stat-header">
-                  <h4>Total Shipments</h4>
-                  <i className="las la-boxes stat-icon" />
+                  <p className="stat-label">Total Shipments</p>
+                  <BoxesIcon className="stat-icon" />
                 </div>
-                <h2>{visibleShipments.length}</h2>
+                <strong className="stat-value">{visibleShipments.length}</strong>
                 <p>Recorded in system</p>
               </div>
 
               <div className="stat-card completed">
                 <div className="stat-header">
-                  <h4>In Transit</h4>
-                  <i className="las la-truck stat-icon text-transit" />
+                  <p className="stat-label">In Transit</p>
+                  <TruckIcon className="stat-icon text-transit" />
                 </div>
-                <h2>{stats.transitCount ?? 0}</h2>
+                <strong className="stat-value">{stats.transitCount ?? 0}</strong>
                 <p>Currently on the road</p>
               </div>
 
               <div className="stat-card late">
                 <div className="stat-header">
-                  <h4>Delayed</h4>
-                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
+                  <p className="stat-label">Delayed</p>
+                  <AlertTriangleIcon className="stat-icon text-delayed" />
                 </div>
-                <h2>{stats.delayedCount ?? 0}</h2>
+                <strong className="stat-value">{stats.delayedCount ?? 0}</strong>
                 <p className="text-danger-accent">
                   Requires attention
                 </p>
@@ -347,28 +512,28 @@ export default function Shipment() {
             <>
               <div className="stat-card completed">
                 <div className="stat-header">
-                  <h4>In Transit</h4>
-                  <i className="las la-truck stat-icon text-transit" />
+                  <p className="stat-label">In Transit</p>
+                  <TruckIcon className="stat-icon text-transit" />
                 </div>
-                <h2>{stats.transitCount}</h2>
+                <strong className="stat-value">{stats.transitCount}</strong>
                 <p>Currently on the road</p>
               </div>
 
               <div className="stat-card ontime">
                 <div className="stat-header">
-                  <h4>Loading / Preparing</h4>
-                  <i className="las la-box stat-icon text-loading" />
+                  <p className="stat-label">Loading / Preparing</p>
+                  <BoxesIcon className="stat-icon text-loading" />
                 </div>
-                <h2>{stats.loadingCount}</h2>
+                <strong className="stat-value">{stats.loadingCount}</strong>
                 <p>Awaiting dispatch</p>
               </div>
 
               <div className="stat-card late">
                 <div className="stat-header">
-                  <h4>Delayed</h4>
-                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
+                  <p className="stat-label">Delayed</p>
+                  <AlertTriangleIcon className="stat-icon text-delayed" />
                 </div>
-                <h2>{stats.delayedCount}</h2>
+                <strong className="stat-value">{stats.delayedCount}</strong>
                 <p className="text-danger-accent">
                   Requires attention
                 </p>
@@ -380,28 +545,28 @@ export default function Shipment() {
             <>
               <div className="stat-card late">
                 <div className="stat-header">
-                  <h4>Delayed Now</h4>
-                  <i className="las la-exclamation-triangle stat-icon text-delayed" />
+                  <p className="stat-label">Delayed Now</p>
+                  <AlertTriangleIcon className="stat-icon text-delayed" />
                 </div>
-                <h2>{stats.delayedCount}</h2>
+                <strong className="stat-value">{stats.delayedCount}</strong>
                 <p>Requires attention</p>
               </div>
 
               <div className="stat-card ontime">
                 <div className="stat-header">
-                  <h4>Avg. Delay</h4>
-                  <i className="las la-clock stat-icon" />
+                  <p className="stat-label">Avg. Delay</p>
+                  <ClockIcon className="stat-icon" />
                 </div>
-                <h2>{stats.avgDelayLabel}</h2>
+                <strong className="stat-value">{stats.avgDelayLabel}</strong>
                 <p>Across delayed shipments</p>
               </div>
 
               <div className="stat-card completed">
                 <div className="stat-header">
-                  <h4>Worst Delay</h4>
-                  <i className="las la-hourglass-end stat-icon text-delayed" />
+                  <p className="stat-label">Worst Delay</p>
+                  <HourglassIcon className="stat-icon text-delayed" />
                 </div>
-                <h2>{stats.worstDelay.label}</h2>
+                <strong className="stat-value">{stats.worstDelay.label}</strong>
                 <p>{stats.worstDelay.id}</p>
               </div>
             </>
@@ -411,28 +576,28 @@ export default function Shipment() {
             <>
               <div className="stat-card completed">
                 <div className="stat-header">
-                  <h4>Completed Today</h4>
-                  <i className="las la-check-circle stat-icon" />
+                  <p className="stat-label">Completed Today</p>
+                  <CheckCircleIcon className="stat-icon" />
                 </div>
-                <h2>{stats.completedToday}</h2>
+                <strong className="stat-value">{stats.completedToday}</strong>
                 <p>Deliveries finished today</p>
               </div>
 
               <div className="stat-card ontime">
                 <div className="stat-header">
-                  <h4>On Time Fulfill</h4>
-                  <i className="las la-clock stat-icon" />
+                  <p className="stat-label">On Time Fulfill</p>
+                  <ClockIcon className="stat-icon" />
                 </div>
-                <h2>{stats.onTimeToday}</h2>
+                <strong className="stat-value">{stats.onTimeToday}</strong>
                 <p>{stats.onTimePct == null ? 'Timing unavailable' : `${stats.onTimePct}% of today's handoffs with known timing`}</p>
               </div>
 
               <div className="stat-card late">
                 <div className="stat-header">
-                  <h4>Late Deliveries</h4>
-                  <i className="las la-exclamation-triangle stat-icon" />
+                  <p className="stat-label">Late Deliveries</p>
+                  <AlertTriangleIcon className="stat-icon" />
                 </div>
-                <h2>{stats.lateToday}</h2>
+                <strong className="stat-value">{stats.lateToday}</strong>
                 <p>Delivered outside window</p>
               </div>
             </>
@@ -442,28 +607,28 @@ export default function Shipment() {
             <>
               <div className="stat-card late">
                 <div className="stat-header">
-                  <h4>Pending Review</h4>
-                  <i className="las la-flag stat-icon text-delayed" />
+                  <p className="stat-label">Pending Review</p>
+                  <FlagIcon className="stat-icon text-delayed" />
                 </div>
-                <h2>{visibleShipments.length}</h2>
+                <strong className="stat-value">{visibleShipments.length}</strong>
                 <p>Needs manual review</p>
               </div>
 
               <div className="stat-card ontime">
                 <div className="stat-header">
-                  <h4>Avg. Age</h4>
-                  <i className="las la-history stat-icon" />
+                  <p className="stat-label">Avg. Age</p>
+                  <ClockIcon className="stat-icon" />
                 </div>
-                <h2>{stats.avgReviewAgeLabel}</h2>
+                <strong className="stat-value">{stats.avgReviewAgeLabel}</strong>
                 <p>Since last update</p>
               </div>
 
               <div className="stat-card completed">
                 <div className="stat-header">
-                  <h4>Resolved This Week</h4>
-                  <i className="las la-check-circle stat-icon" />
+                  <p className="stat-label">Resolved This Week</p>
+                  <CheckCircleIcon className="stat-icon" />
                 </div>
-                <h2>N/A</h2>
+                <strong className="stat-value">N/A</strong>
                 <p>Not yet tracked</p>
               </div>
             </>
@@ -471,10 +636,10 @@ export default function Shipment() {
 
           <div className="stat-card trips">
             <div className="stat-header">
-              <h4>This Week's Trips</h4>
-              <i className="las la-chart-bar stat-icon" />
+              <p className="stat-label">This Week's Trips</p>
+              <BarChartIcon className="stat-icon" />
             </div>
-            <h2>{String(stats.weeklyTrips ?? "").replace(/\u2014/g, "N/A")}</h2>
+            <strong className="stat-value">{String(stats.weeklyTrips ?? "").replace(/\u2014/g, "N/A")}</strong>
             <p>{stats.weeklyTrips === "\u2014" ? (isLoading ? "Loading count…" : "Count unavailable") : "Shipments created this week"}</p>
           </div>
         </div>
@@ -517,7 +682,10 @@ export default function Shipment() {
             <label htmlFor="shipmentSearch" className="sr-only">
               Search shipments
             </label>
-            <i className="las la-search table-search-icon" />
+            <svg {...svgProps} className="table-search-icon">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
 
             <input
               type="text"
@@ -537,7 +705,11 @@ export default function Shipment() {
             className="control-btn"
             onClick={() => refresh()}
           >
-            REFRESH <i className="las la-sync" />
+            REFRESH{" "}
+            <svg {...svgProps} width="14" height="14">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
           </button>
         </div>
 
@@ -547,7 +719,9 @@ export default function Shipment() {
             className="shipment-loading"
             role="status"
           >
-            <i className="las la-spinner la-spin" />
+            <svg {...svgProps} width="22" height="22" className="shipment-spin">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
             <span>Loading shipments…</span>
           </div>
         )}
@@ -626,7 +800,15 @@ export default function Shipment() {
 
                         <td>
                           <span className={`status ${s.deliveryStatus === 'UNKNOWN' ? 'unknown-timing' : 'transit'}`}>
-                            <i className={`las ${s.deliveryStatus === 'UNKNOWN' ? 'la-question-circle' : 'la-check-circle'}`} />{" "}
+                            {s.deliveryStatus === 'UNKNOWN' ? (
+                              <svg {...svgProps} width="13" height="13">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                              </svg>
+                            ) : (
+                              <CheckCircleIcon size={13} />
+                            )}{" "}
                             {s.deliveryStatus}
                           </span>
                         </td>

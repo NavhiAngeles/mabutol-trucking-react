@@ -259,7 +259,7 @@ transition: border-color 0.15s;
   margin-bottom: 24px;
 }
 
-.settings-page .modal-header h3 {
+.settings-page .modal-header :is(h2, h3) {
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
@@ -354,7 +354,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .settings-page .field-error {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #B91C1C;
   font-weight: 500;
   margin-top: 2px;
@@ -458,7 +458,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .settings-page .toast-icon {
-  background: #22c55e;
+  background: #15803D;
   color: white;
   width: 20px;
   height: 20px;
@@ -466,7 +466,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -568,7 +568,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   background: #cbd5e1;
   color: #475569;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
   margin-top: 1px;
@@ -598,7 +598,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 .settings-page .rp-table th {
   background: #f8fafc;
   padding: 13px 20px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
@@ -663,7 +663,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 
 /* Full access — green */
 .settings-page .perm-full .perm-badge-icon {
-  background: #22c55e;
+  background: #15803D;
   color: white;
 }
 
@@ -706,7 +706,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .settings-page .rp-legend-label {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -734,13 +734,13 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   width: 20px;
   height: 20px;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .settings-page .full-icon {
-  background: #22c55e;
+  background: #15803D;
   color: white;
 }
 
@@ -884,9 +884,11 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .settings-page .action-item-icon {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 18px;
-  text-align: center;
+  height: 18px;
   flex-shrink: 0;
   line-height: 1;
 }
@@ -910,6 +912,12 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   border: 0;
   border-top: 1px solid #e2e8f0;
   border-radius: 0;
+}
+@media (max-width: 1024px) {
+  .settings-page .office-user-management .um-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 .settings-page .office-user-management .table-card {
   overflow: visible;
@@ -1022,7 +1030,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   background: #e2e8f0;
   color: #475569;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 
@@ -1057,9 +1065,9 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #15803D;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -1106,7 +1114,7 @@ transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.settings-page .office-user-management .um-directory-heading h3 {
+.settings-page .office-user-management .um-directory-heading :is(h2, h3) {
   margin: 0;
   color: #0f172a;
   font-size: 16px;
@@ -1264,7 +1272,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
 .settings-page .office-user-management .user-table th {
   padding: 12px 24px;
   background: #f8fafc;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #475569;
   letter-spacing: 0.04em;
@@ -1350,7 +1358,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
 .settings-page .office-user-management .um-self-badge {
   color: #475569;
   background: #f1f5f9;
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 500;
   padding: 1px 6px;
   border-radius: 4px;
@@ -1499,7 +1507,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
 .settings-page .office-user-management .modal-overlay { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 20px; background: #0f172a66; }
 .settings-page .office-user-management .modal { width: min(600px,100%); max-height: 90vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 64px #0f172a33; padding: 0; }
 .settings-page .office-user-management .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #e2e8f0; }
-.settings-page .office-user-management .modal-header h3 { font-size: 20px; color: #0f172a; margin: 0; }
+.settings-page .office-user-management .modal-header :is(h2, h3) { font-size: 20px; color: #0f172a; margin: 0; }
 .settings-page .office-user-management .modal-header button { border: 0; border-radius: 6px; background: #f1f5f9; width: 32px; height: 32px; cursor: pointer; }
 .settings-page .office-user-management .modal-body { padding: 24px; display: grid; gap: 16px; }
 .settings-page .office-user-management .modal-body p { margin: 0; color: #64748b; line-height: 1.6; font-size: 13px; }
@@ -1547,7 +1555,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
   flex-shrink: 0;
 }
 
-.settings-page .office-user-management .um-audit-modal .modal-header h3 {
+.settings-page .office-user-management .um-audit-modal .modal-header :is(h2, h3) {
   margin: 0;
   font-size: 20px;
   font-weight: 700;
@@ -1728,7 +1736,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
   z-index: 10;
   background: #f8fafc;
   padding: 12px 16px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748b;
   text-transform: uppercase;
@@ -1805,7 +1813,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 .settings-page .office-user-management .um-audit-role {
   display: inline-block;
   margin-top: 3px;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
@@ -1821,7 +1829,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
   align-items: center;
   padding: 4px 10px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1924,7 +1932,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
   border: 1px solid #cbd5e1;
   background: #ffffff;
   color: #334155;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -2083,7 +2091,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
   gap: 12px;
 }
 
-.settings-page .office-user-management .um-mfa-factors-list h4 {
+.settings-page .office-user-management .um-mfa-factors-list :is(h3, h4) {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
@@ -2122,13 +2130,13 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 
 .settings-page .office-user-management .um-factor-meta {
   display: block;
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748b;
   margin-top: 3px;
 }
 
 .settings-page .office-user-management .um-factor-meta code {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #334155;
   background: #f1f5f9;
   padding: 2px 6px;
@@ -2138,7 +2146,7 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 .settings-page .office-user-management .um-factor-status {
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 0.75rem;
   padding: 2px 6px;
   border-radius: 4px;
   background: #ecfdf5;

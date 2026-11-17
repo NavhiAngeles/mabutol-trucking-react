@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOperationsFeed } from '../../viewmodels/OperationsFeedViewModel';
 import { absoluteEventTime, relativeEventTime } from '../../services/operationsFeed';
+import './OperationsFeed.css';
 
 function EventList({ events, now, full = false }) {
   const navigate = useNavigate();

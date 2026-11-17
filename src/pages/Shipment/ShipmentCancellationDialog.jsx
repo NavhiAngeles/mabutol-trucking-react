@@ -49,8 +49,24 @@ export default function ShipmentCancellationDialog({ shipment, onClose, onCancel
   return <dialog ref={dialog} className="booking-review-dialog shipment-cancellation-dialog" aria-labelledby="shipment-cancel-title" aria-busy={loading || saving}
     onCancel={event => { event.preventDefault(); if (!busy.current) onClose(); }}>
     <h2 id="shipment-cancel-title">Cancel shipment {record?.tracking_number || shipment.id}?</h2>
-    {loading && <div role="status" className="shipment-dialog-alert is-loading"><i className="las la-spinner la-spin" /> <span>Checking current shipment and payment records…</span></div>}
-    {error && <div role="alert" className="shipment-dialog-alert is-error error-message"><i className="las la-exclamation-circle" /> <span>{error}</span></div>}
+    {loading && (
+      <div role="status" className="shipment-dialog-alert is-loading">
+        <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
+        <span>Checking current shipment and payment records…</span>
+      </div>
+    )}
+    {error && (
+      <div role="alert" className="shipment-dialog-alert is-error error-message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <span>{error}</span>
+      </div>
+    )}
     {record && !loading && <>
       <p>Current status: {record.status}. Cancellation is available before a trip starts. No-show cancellation uses its separate review.</p>
       {policy.overdue12h && (

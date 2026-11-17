@@ -358,7 +358,7 @@
   font-size: var(--text-caption, 0.75rem);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .office-tools > .icon-btn,
   .office-tools > .avatar,
   .office-tools .office-notifications-close {

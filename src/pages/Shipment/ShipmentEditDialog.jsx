@@ -171,19 +171,28 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
         {/* NOTICES & ALERTS */}
         {loading && (
           <div role="status" className="shipment-details-status-msg">
-            <i className="las la-spinner la-spin" />
+            <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
             <span>Loading current shipment details…</span>
           </div>
         )}
         {error && (
           <div role="alert" className="shipment-details-error-msg">
-            <i className="las la-exclamation-circle" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
             <span>{error}</span>
           </div>
         )}
         {notice && (
           <div role="status" className="shipment-edit-success-msg">
-            <i className="las la-check-circle" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
             <span>{notice}</span>
           </div>
         )}
@@ -235,7 +244,7 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                   <circle cx="5.5" cy="18.5" r="2.5" />
                   <circle cx="18.5" cy="18.5" r="2.5" />
                 </svg>
-                <h4>Cargo & Vehicle</h4>
+                <h3>Cargo & Vehicle</h3>
               </div>
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('cargo_description') ? (
@@ -313,7 +322,7 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                <h4>Route & Schedule</h4>
+                <h3>Route & Schedule</h3>
               </div>
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('scheduled_departure') ? (
@@ -359,7 +368,7 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                   <line x1="16" y1="17" x2="8" y2="17" />
                   <polyline points="10 9 9 9 8 9" />
                 </svg>
-                <h4>Instructions & Special Handling</h4>
+                <h3>Instructions & Special Handling</h3>
               </div>
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('special_handling') ? (

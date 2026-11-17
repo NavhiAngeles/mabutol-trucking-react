@@ -304,7 +304,7 @@ export default function DriverReport() {
             {/* On-time rate by driver */}
             <div className="dr-card dr-chart-card">
               <div className="dr-card-header">
-                <h3>On-Time Rate by Driver</h3>
+                <h2>On-Time Rate by Driver</h2>
 
               </div>
 
@@ -338,7 +338,7 @@ export default function DriverReport() {
             {/* Delay incidents */}
             <div className="dr-card dr-chart-card dr-chart-card-inc">
               <div className="dr-card-header">
-                <h3>Reported Incidents</h3>
+                <h2>Reported Incidents</h2>
 
               </div>
 
@@ -380,7 +380,7 @@ export default function DriverReport() {
           {/* Table */}
           <div className="dr-card dr-table-card">
             <div className="dr-table-header">
-              <h3>Driver Performance</h3>
+              <h2>Driver Performance</h2>
 <div className="dr-table-tools"><label htmlFor="dr-status">Current status </label><select id="dr-status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); setExpandedId(null); }}><option value="all">All statuses</option>{DRIVER_STATUSES.map(key => <option key={key} value={key}>{key.replaceAll('_', ' ')}</option>)}</select></div>
             </div>
 
@@ -488,7 +488,7 @@ export default function DriverReport() {
                               <td colSpan={8}>
                                 <div className="dr-detail">
                                   <div className="dr-detail-main">
-                                    <h4>Recorded Incidents in Period</h4>
+                                    <h3>Recorded Incidents in Period</h3>
                                     {d.delays.length === 0 ? (
                                       <p className="dr-detail-none">
                                         No incidents recorded for this period.
@@ -506,7 +506,7 @@ export default function DriverReport() {
                                     )}
                                   </div>
                                   <div className="dr-detail-side">
-<h4>Fleet</h4><Link className="dr-detail-btn" to="/fleet?view=drivers">View Drivers</Link>
+<h3>Fleet</h3><Link className="dr-detail-btn" to="/fleet?view=drivers">View Drivers</Link>
                                   </div>
                                 </div>
                               </td>

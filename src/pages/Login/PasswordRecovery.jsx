@@ -121,7 +121,7 @@ function PhoneRecovery() {
           </>)}
         </fieldset>
       </form>}
-      <Link className="recovery-back" aria-disabled={busy || undefined} onClick={event => { if (busy) event.preventDefault(); }} to="/">{phase === 'done' ? 'Return to login' : 'Cancel and return to login'}</Link>
+      <Link className="recovery-back" aria-disabled={busy || undefined} onClick={event => { if (busy) event.preventDefault(); }} to="/">{phase === 'done' ? 'Return to home' : 'Cancel and return to home'}</Link>
       {phase === 'ready' && <p className="recovery-help">Reloading or leaving this page requires a new SMS verification.</p>}
     </section>
   </main></div>;

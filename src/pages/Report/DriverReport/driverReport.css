@@ -415,14 +415,14 @@
   height: 28px;
 }
 
-.reports-page .dr-card-header h3,
-.reports-page .dr-table-header h3 {
+.reports-page .dr-card-header :is(h2, h3),
+.reports-page .dr-table-header :is(h2, h3) {
   font-family: "Manrope", sans-serif;
   font-weight: 700;
   color: var(--ink);
 }
 
-.reports-page .dr-card-header h3 {
+.reports-page .dr-card-header :is(h2, h3) {
   font-size: 18px;
   line-height: 28px;
 }
@@ -619,7 +619,7 @@
   padding: 0 24px;
 }
 
-.reports-page .dr-table-header h3 {
+.reports-page .dr-table-header :is(h2, h3) {
   font-size: 20px;
 }
 
@@ -795,7 +795,7 @@
 }
 
 .reports-page .dr-rating svg {
-  color: #d9a414;
+  color: #B45309;
 }
 
 .reports-page .dr-delays {
@@ -852,7 +852,7 @@
   border-radius: 2px;
 }
 
-.reports-page .dr-detail h4 {
+.reports-page .dr-detail :is(h3, h4) {
   margin-bottom: 12px;
   font-size: 12px;
   font-weight: 700;
@@ -934,7 +934,7 @@
   gap: 8px;
 }
 
-.reports-page.dr-page-btn {
+.reports-page .dr-page-btn {
   width: 24px;
   height: 24px;
   border: none;
@@ -945,12 +945,12 @@
   font-weight: 600;
 }
 
-.reports-page.dr-page-btn.active {
+.reports-page .dr-page-btn.active {
   background: var(--navy);
   color: #fff;
 }
 
-.reports-page.dr-page-arrow {
+.reports-page .dr-page-arrow {
   display: inline-flex;
   padding: 4px;
   border: none;
@@ -958,7 +958,7 @@
   color: #64748B;
 }
 
-.reports-page.dr-page-gap {
+.reports-page .dr-page-gap {
   width: 16px;
   text-align: center;
   color: var(--muted);

@@ -73,12 +73,12 @@ function NotificationPreferences() {
     {loadError ? <div role="alert" className="notification-error"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status">Loading notification preferences…</p> : <>
       <button className="notification-refresh" disabled={!!saving} onClick={refresh}>Reload preferences</button>
       <div className="notification-grid">
-        <div className="settings-card"><div className="card-header"><h3>Delivery Channels</h3></div>
+        <div className="settings-card"><div className="card-header"><h2>Delivery Channels</h2></div>
           <div className="toggle-row"><div><strong>In-app Notifications</strong><p>Available through the notification bell. Choose categories below.</p></div><span>Available</span></div>
           {['Email Notifications', 'Push Notifications', 'SMS Alerts'].map(label => <div className="toggle-row" key={label}><div><strong>{label}</strong><p>Delivery is not configured.</p></div><button type="button" role="switch" aria-checked={false} aria-label={label} className="toggle inactive" disabled><span className="toggle-circle" /></button></div>)}
         </div>
-        {GROUPS.map(([title, items]) => <div className="settings-card" key={title}><div className="card-header"><h3>{title}</h3></div>{items.map(([type, label, description]) => <div className="toggle-row" key={type}><div><strong>{label}</strong><p>{description}</p>{saving === type && <span role="status">Saving…</span>}</div><button type="button" role="switch" aria-label={label} aria-checked={snapshot.preferences[type]} disabled={!!saving} className={`toggle ${snapshot.preferences[type] ? 'active' : 'inactive'}`} onClick={() => save(type, !snapshot.preferences[type])}><span className="toggle-circle" /></button></div>)}</div>)}
-        <div className="settings-card"><div className="card-header"><h3>Additional Alerts</h3></div><p>Off-route, cold-chain temperature and live tracking alerts are not connected to notification delivery. Maintenance and compliance notices are managed under Fleet & Compliance. Their separate controls are unavailable.</p></div>
+        {GROUPS.map(([title, items]) => <div className="settings-card" key={title}><div className="card-header"><h2>{title}</h2></div>{items.map(([type, label, description]) => <div className="toggle-row" key={type}><div><strong>{label}</strong><p>{description}</p>{saving === type && <span role="status">Saving…</span>}</div><button type="button" role="switch" aria-label={label} aria-checked={snapshot.preferences[type]} disabled={!!saving} className={`toggle ${snapshot.preferences[type] ? 'active' : 'inactive'}`} onClick={() => save(type, !snapshot.preferences[type])}><span className="toggle-circle" /></button></div>)}</div>)}
+        <div className="settings-card"><div className="card-header"><h2>Additional Alerts</h2></div><p>Off-route, cold-chain temperature and live tracking alerts are not connected to notification delivery. Maintenance and compliance notices are managed under Fleet & Compliance. Their separate controls are unavailable.</p></div>
       </div>
     </>}
   </section>;

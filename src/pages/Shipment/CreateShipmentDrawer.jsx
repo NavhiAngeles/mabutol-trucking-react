@@ -1127,7 +1127,6 @@ export default function CreateShipmentDrawer({
 
         <AddressAutocomplete
           inputId="shipment-pickup-location"
-          iconClass="las la-circle-notch input-icon input-blue-icon"
           placeholder="Search pickup address or landmark"
           value={form.pickupLocation}
           disabled={isResolvingAddress}
@@ -1152,7 +1151,10 @@ export default function CreateShipmentDrawer({
             )
           }
         >
-          <i className="las la-map-marker" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
 
           {pickerMode === "pickup"
             ? " Exit Pickup Picker"
@@ -1161,7 +1163,10 @@ export default function CreateShipmentDrawer({
 
         {confirmedPickup && (
           <p className="field-info-text">
-            <i className="las la-check-circle" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>{" "}
             Pickup location confirmed.
             {` (${confirmedPickup.lat.toFixed(6)}, ${confirmedPickup.lng.toFixed(6)})`}
           </p>
@@ -1196,7 +1201,6 @@ export default function CreateShipmentDrawer({
 
         <AddressAutocomplete
           inputId="shipment-destination-location"
-          iconClass="las la-map-marker input-icon input-orange-icon"
           placeholder="Search delivery address or landmark"
           value={form.destination}
           disabled={isResolvingAddress}
@@ -1221,7 +1225,10 @@ export default function CreateShipmentDrawer({
             )
           }
         >
-          <i className="las la-map-marker" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
 
           {pickerMode === "destination"
             ? " Exit Destination Picker"
@@ -1230,7 +1237,10 @@ export default function CreateShipmentDrawer({
 
         {confirmedDestination && (
           <p className="field-info-text">
-            <i className="las la-check-circle" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>{" "}
             Destination location confirmed.
             {` (${confirmedDestination.lat.toFixed(6)}, ${confirmedDestination.lng.toFixed(6)})`}
           </p>
@@ -1307,7 +1317,11 @@ export default function CreateShipmentDrawer({
               setFullRouteViewRequest(previous => previous + 1);
             }}
           >
-            <i className="las la-map" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+              <line x1="8" y1="2" x2="8" y2="18" />
+              <line x1="16" y1="6" x2="16" y2="22" />
+            </svg>{" "}
             View Full Route
           </button>
         </div>
@@ -1316,7 +1330,9 @@ export default function CreateShipmentDrawer({
       {/* ROUTE STATUS */}
       {isCalculatingRoute && (
         <p className="field-info-text">
-          <i className="las la-spinner la-spin" />{" "}
+          <svg className="shipment-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>{" "}
           Calculating truck route...
         </p>
       )}
@@ -1329,7 +1345,10 @@ export default function CreateShipmentDrawer({
               color: "#15803d",
             }}
           >
-            <i className="las la-check-circle" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>{" "}
             Driving route calculated successfully.
           </p>
         )}
@@ -1349,7 +1368,11 @@ export default function CreateShipmentDrawer({
             lineHeight: "1.4",
           }}
         >
-          <i className="las la-info-circle" style={{ marginRight: "4px" }} />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginRight: "4px", flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
           {routeNotice}
         </p>
       )}
@@ -1362,7 +1385,11 @@ export default function CreateShipmentDrawer({
             fontSize: "13px",
           }}
         >
-          <i className="las la-exclamation-triangle" />{" "}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "text-bottom" }}>
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>{" "}
           {routeError}
         </p>
       )}
@@ -1400,7 +1427,12 @@ export default function CreateShipmentDrawer({
           </label>
 
           <div className="input-search-wrapper">
-            <i className="las la-calendar input-icon" />
+            <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
 
             <input
               id="shipment-departure-date"
@@ -1425,7 +1457,10 @@ export default function CreateShipmentDrawer({
           </label>
 
           <div className="input-search-wrapper">
-            <i className="las la-clock input-icon" />
+            <svg className="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
 
             <input
               id="shipment-departure-time"
@@ -1491,11 +1526,17 @@ export default function CreateShipmentDrawer({
             </optgroup>
           </select>
 
-          <i className="las la-angle-down custom-select-arrow" />
+          <svg className="custom-select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </div>
 
         <p className="field-info-text">
-          <i className="las la-info-circle" />{" "}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>{" "}
           Active customers only. Driver and office accounts are excluded.
         </p>
 
@@ -1694,7 +1735,7 @@ export default function CreateShipmentDrawer({
 
                 <div className="vehicle-card-details">
                   <div className="vehicle-title-line">
-                    <h4>{truck.name}</h4>
+                    <h3>{truck.name}</h3>
 
                     <span className="vehicle-fleet-id-tag">
                       {missingPrice
@@ -1736,12 +1777,20 @@ export default function CreateShipmentDrawer({
                   </div>
                 ) : tooSmall ? (
                   <div className="error-alert-text">
-                    <i className="las la-exclamation-circle" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
                     Insufficient capacity
                   </div>
                 ) : tooLarge ? (
                   <div className="error-alert-text">
-                    <i className="las la-exclamation-circle" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
                     Exceeds 2,000 kg allowance
                   </div>
                 ) : missingPrice ? (
@@ -1749,7 +1798,10 @@ export default function CreateShipmentDrawer({
                     Pricing unavailable
                   </div>
                 ) : selected ? (
-                  <i className="las la-check-circle select-check-icon" />
+                  <svg className="select-check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
                 ) : null}
               </div>
             );
@@ -1768,7 +1820,11 @@ export default function CreateShipmentDrawer({
   const renderReviewStep = () => (
     <div className="step-scroll-content">
       <div className="review-alert-banner">
-        <i className="las la-exclamation-triangle alert-banner-icon" />
+        <svg className="alert-banner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
 
         <p>
           Review the shipment information
@@ -1829,9 +1885,17 @@ export default function CreateShipmentDrawer({
           </span>
 
           <div className="review-data-text">
-            <i className="las la-calendar" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "text-bottom" }}>
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>{" "}
             {form.departureDate}{" "}
-            <i className="las la-clock" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "text-bottom" }}>
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>{" "}
             {form.departureTime}
           </div>
         </div>
@@ -1863,7 +1927,10 @@ export default function CreateShipmentDrawer({
 
         <div className="review-data-row align-center">
           <strong className="font-bold">
-            <i className="las la-weight-hanging" />{" "}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "text-bottom" }}>
+              <path d="M6 2h12l2 7H4l2-7z" />
+              <path d="M4 9h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9z" />
+            </svg>{" "}
             {form.weight} kg
           </strong>
 
@@ -1894,10 +1961,10 @@ export default function CreateShipmentDrawer({
           </div>
 
           <div className="entity-info-box">
-            <h4>
+            <h3>
               {selectedVehicle?.name ||
                 "Not selected"}
-            </h4>
+            </h3>
 
             <p>
               {selectedVehicle?.pricing ? `${currency(selectedVehicle.pricing.per_km_rate)}/km · Minimum ${currency(selectedVehicle.pricing.min_charge)}` : "No vehicle pricing selected"}
@@ -1918,11 +1985,14 @@ export default function CreateShipmentDrawer({
 
         <div className="assigned-entity-card">
           <div className="entity-avatar-box">
-            <i className="las la-user" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
           </div>
 
           <div className="entity-info-box">
-            <h4>Automatic assignment</h4>
+            <h3>Automatic assignment</h3>
 
             <p>
               We will check availability when you confirm.
@@ -2176,7 +2246,10 @@ export default function CreateShipmentDrawer({
                 onClick={handleCloseAll}
                 disabled={isSaving}
               >
-                <i className="las la-arrow-left" />{" "}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>{" "}
                 BACK TO SHIPMENTS
               </button>
 
@@ -2285,7 +2358,11 @@ export default function CreateShipmentDrawer({
                   color: "#b91c1c",
                 }}
               >
-                <i className="las la-exclamation-circle" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "2px" }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
 
                 <p>{saveError}</p>
               </div>
@@ -2304,7 +2381,11 @@ export default function CreateShipmentDrawer({
                   fontSize: "13px",
                 }}
               >
-                <i className="las la-exclamation-triangle" />{" "}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ verticalAlign: "text-bottom" }}>
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>{" "}
                 {addressError}
               </div>
             )}
@@ -2344,10 +2425,10 @@ export default function CreateShipmentDrawer({
                     ? "Cargo & Vehicle"
                     : "Review & Confirm"}
 
-                  <i
-                    className="las la-arrow-right"
-                    aria-hidden="true"
-                  />
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
                 </button>
               </div>
             ) : (
@@ -2367,10 +2448,10 @@ export default function CreateShipmentDrawer({
                     padding: "8px 0",
                   }}
                 >
-                  <i
-                    className="las la-arrow-left"
-                    aria-hidden="true"
-                  />
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                  </svg>
                   Back to Step 2
                 </button>
 
@@ -2393,14 +2474,16 @@ export default function CreateShipmentDrawer({
                     isCalculatingRoute
                   }
                 >
-                  <i
-                    className={
-                      isSaving
-                        ? "las la-spinner la-spin"
-                        : "las la-check-circle"
-                    }
-                    aria-hidden="true"
-                  />
+                  {isSaving ? (
+                    <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                      <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                  )}
 
                   {isSaving
                     ? "Saving Shipment..."
@@ -2471,7 +2554,9 @@ export default function CreateShipmentDrawer({
               }
             >
               <div className="alert-success-icon-ring">
-                <i className="las la-check" />
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
               </div>
 
               <h2>

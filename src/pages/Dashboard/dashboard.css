@@ -129,7 +129,7 @@
   justify-content: space-between;
 }
 
-.dashboard-page .stat-card h4 {
+.dashboard-page .stat-card .stat-label {
   font-size: var(--text-compact);
   font-weight: 500;
   color: var(--text-muted);
@@ -171,7 +171,8 @@
   color: var(--color-accent-cobalt);
 }
 
-.dashboard-page .stat-card h2 {
+.dashboard-page .stat-card .stat-value {
+  display: block;
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
@@ -242,7 +243,7 @@
   margin-bottom: 14px;
 }
 
-.dashboard-page .map-card-header h3 {
+.dashboard-page .map-card-header h2 {
   font-size: var(--text-subsection);
   font-weight: 600;
   color: var(--text-primary);
@@ -258,7 +259,7 @@
   border: 1px solid var(--border-subtle);
 }
 
-.dashboard-page .right-panel-header h3 {
+.dashboard-page .right-panel-header h2 {
   font-size: var(--text-subsection);
   font-weight: 600;
   color: var(--text-primary);
@@ -377,7 +378,7 @@
   border: 1px solid var(--border-subtle);
 }
 
-.dashboard-page .card h3 {
+.dashboard-page .card h2 {
   font-size: var(--text-subsection);
   font-weight: 600;
   color: var(--text-primary);
@@ -487,7 +488,7 @@
   margin: 22px 0 14px 0;
 }
 
-.dashboard-page .trends-header h4 {
+.dashboard-page .trends-header h3 {
   font-size: var(--text-compact);
   font-weight: 600;
   color: var(--text-primary);
@@ -1210,7 +1211,7 @@
   height: 17px;
 }
 
-.dashboard-page .dashboard-sync-heading h3 {
+.dashboard-page .dashboard-sync-heading h2 {
   margin: 0;
   font-size: var(--text-compact);
   font-weight: 600;
@@ -1668,7 +1669,7 @@
     padding: 14px 16px;
   }
 
-  .dashboard-page .stat-card h2 {
+  .dashboard-page .stat-card .stat-value {
     font-size: 24px;
   }
 

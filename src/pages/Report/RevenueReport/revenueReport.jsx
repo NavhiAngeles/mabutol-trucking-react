@@ -167,23 +167,23 @@ export default function RevenueReport() {
       {hasData && missing > 0 && <p role="status">{missing} record(s) have missing or invalid amounts and are excluded from monetary totals; {report.charges.missing} are completed shipment charges.</p>}
       {hasData && report.undatedPayments > 0 && <p>{report.undatedPayments} verified payment(s) lack a valid payment date and cannot be included in a date range.</p>}
       <div className="stats">
-        {stats.map(([label, summary, explanation, variant]) => <div className={`stat-card${variant ? ` ${variant}` : ''}`} key={label}><h4>{label}</h4><h2>{hasData ? money(summary.amount) : 'N/A'}</h2><p>{explanation}</p><small>{hasData ? summary.count : 'N/A'} records{summary.missing ? ` · ${summary.missing} without valid amounts` : ''}</small></div>)}
+        {stats.map(([label, summary, explanation, variant]) => <div className={`stat-card${variant ? ` ${variant}` : ''}`} key={label}><p className="rv-stat-label">{label}</p><strong className="rv-stat-value">{hasData ? money(summary.amount) : 'N/A'}</strong><p>{explanation}</p><small>{hasData ? summary.count : 'N/A'} records{summary.missing ? ` · ${summary.missing} without valid amounts` : ''}</small></div>)}
       </div>
       {hasData && <>
         <div className="analytics-grid">
           <div className="chart-card wide">
-            <div className="card-header"><h3>Completed Charges Over Time</h3></div>
+            <div className="card-header"><h2>Completed Charges Over Time</h2></div>
             {!report.charges.count && <p className="empty-state-text">No completed shipments were created in this period.</p>}
             <ChargeChart trend={report.trend} />
             <p className="rv-notes">Average per priced completed shipment: {report.averageCharge == null ? 'N/A' : money(report.averageCharge)}. Missing charge amounts are excluded.</p>
           </div>
           <div className="chart-card">
-            <div className="card-header"><h3>Recorded Costs</h3><span className="rv-record-count">{costRecords.length} records</span></div>
+            <div className="card-header"><h2>Recorded Costs</h2><span className="rv-record-count">{costRecords.length} records</span></div>
             <p className="rv-notes">Fuel purchases and approved trip expenses, listed individually with the newest first. Separate sources may describe the same purchase; they are not added together.</p>
             {!visibleCosts.length ? <p className="empty-state-text">{q ? 'No cost records match this search.' : 'No fuel purchases or approved trip expenses recorded in this period.'}</p> : <ol className="rv-record-list" aria-label="Individual cost records">
               {visibleCosts.map(record => <li className={`rv-cost-record${record.source === 'Fuel purchase' ? ' rv-cost-record-fuel' : ''}`} key={record.id}>
                 <div className="rv-record-heading"><span className="rv-record-source">{record.source}</span><strong className="rv-record-amount">{record.amount == null ? 'Amount unavailable' : money(record.amount)}</strong></div>
-                <h4>{record.category}</h4><p>{record.description}</p>
+                <h3>{record.category}</h3><p>{record.description}</p>
                 {record.source === 'Fuel purchase' && <p className="rv-record-detail">{record.liters == null ? 'Liters unavailable' : `${record.liters} L`} · {record.pricePerLiter == null ? 'Unit price unavailable' : `${money(record.pricePerLiter)}/L`} · {record.odometer == null ? 'Odometer unavailable' : `${record.odometer} km`}</p>}
                 <div className="rv-record-meta"><span>{record.reference}</span><time dateTime={record.date}>{new Date(record.date).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' })}</time></div>
               </li>)}
@@ -193,12 +193,12 @@ export default function RevenueReport() {
         </div>
         <div className="bottom-grid">
           <div className="info-card">
-            <div className="card-header"><h3>Top Customers by Charges</h3><Link className="view-btn" to="/customer">Customers</Link></div>
+            <div className="card-header"><h2>Top Customers by Charges</h2><Link className="view-btn" to="/customer">Customers</Link></div>
             <p className="rv-notes">Billing customer where specified; otherwise the booking customer. Top five by recorded completed charges.</p>
             <div className="customer-list">{!topCustomers.length ? <p className="empty-state-text">{q ? 'No customer charges match this search.' : 'No customer charges for this period.'}</p> : topCustomers.map(customer => <div className="customer-row" key={customer.id}><span>{customer.name}<small>{customer.priced} priced of {customer.shipments} completed shipments</small></span><strong>{money(customer.revenue)}</strong></div>)}</div>
           </div>
           <div className="info-card">
-            <div className="card-header"><h3>Charges by Route</h3><Link className="view-btn" to="/shipment">Shipments</Link></div>
+            <div className="card-header"><h2>Charges by Route</h2><Link className="view-btn" to="/shipment">Shipments</Link></div>
             <p className="rv-notes">Routes group exact recorded addresses. Expense column includes only approved expenses created in the selected dates, linked to these completed shipments; it excludes shared costs and is not a margin.</p>
             <div className="rv-table-scroll"><table className="report-table"><thead><tr><th>Origin → Destination</th><th>Completed Shipments</th><th>Charges</th><th>Approved Expenses</th></tr></thead><tbody>
               {!visibleRoutes.length ? <tr><td colSpan={4} className="empty-row">No routes match this period and search.</td></tr> : visibleRoutes.map(route => <tr key={route.id}><td>{route.route}</td><td>{route.shipments}<small>{route.priced} priced</small></td><td>{money(route.revenue)}</td><td>{money(route.expenses)}</td></tr>)}

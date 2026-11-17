@@ -39,7 +39,7 @@ const rangeTabs = [
   ["last3Months", "Last 3 Months"],
 ];
 
-const statusColors = { completed: '#0A2A4D', active: '#DBE4F7', delayed: '#475569', cancelled: '#B91C1C', pending: '#EAB308', booked: '#8B5CF6', other: '#9CA3AF' };
+const statusColors = { completed: '#15803D', active: '#1D4ED8', delayed: '#B45309', cancelled: '#B91C1C', pending: '#0F2A52', booked: '#475569', other: '#0F172A' };
 function StatusDiamond({ report }) {
   let offset = 0;
   return <svg className="sr-diamond" viewBox="0 0 270 270" role="img" aria-label={'Shipment status breakdown: ' + report.total + ' total'}>
@@ -285,7 +285,7 @@ export default function ShipmentReport() {
         {/* Analytics */}
         {hasData && <div className="sr-analytics">
           <div className="sr-card sr-chart-card">
-            <h3>Shipment Status</h3>
+            <h2>Shipment Status</h2>
             <StatusDiamond report={report} />
             <ul className="sr-legend">
               {Object.keys(statusColors).map((k) => (
@@ -299,7 +299,7 @@ export default function ShipmentReport() {
 
           <div className="sr-card sr-chart-card">
             <div className="sr-trend-head">
-              <h3>Delivery Performance Trend</h3>
+              <h2>Delivery Performance Trend</h2>
               <div className="sr-trend-legend">
                 <span><i className="solid" /> Actual</span>
 
@@ -314,7 +314,7 @@ export default function ShipmentReport() {
         {/* Ledger */}
         <div className="sr-card sr-ledger">
           <div className="sr-ledger-head">
-            <h3>Shipment Ledger</h3>
+            <h2>Shipment Ledger</h2>
             <div className="sr-ledger-tools">
               <label htmlFor="sr-status">Status </label>
               <select id="sr-status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>

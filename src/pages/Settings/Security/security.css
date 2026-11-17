@@ -35,7 +35,7 @@ CARDS
   margin-bottom: 24px;
 }
 
-.settings-page .card-header h3 {
+.settings-page .card-header :is(h2, h3) {
   font-size: 24px;
 }
 
@@ -181,7 +181,7 @@ STATUS
 
   color: #166534;
 
-  border-radius: 20px;
+  border-radius: 4px;
 
   font-size: 12px;
 
@@ -303,7 +303,7 @@ UPDATE PASSWORD / CONFIRM MODAL
 }
 
 .settings-page .pw-label {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.06em;
@@ -369,12 +369,12 @@ border-color: #1E3A8A;
 .settings-page .pw-strength-seg.seg-strong { background: #10B981; }
 
 .settings-page .pw-strength-label {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em;
   min-width: 44px; text-align: right;
 }
 .settings-page .pw-strength-label.str-weak { color: #B91C1C; }
-.settings-page .pw-strength-label.str-fair { color: #F97316; }
-.settings-page .pw-strength-label.str-good { color: #EAB308; }
+.settings-page .pw-strength-label.str-fair { color: #B45309; }
+.settings-page .pw-strength-label.str-good { color: #B45309; }
 .settings-page .pw-strength-label.str-strong { color: #15803D; }
 
 /* Match hint */
@@ -418,7 +418,7 @@ border-color: #1E3A8A;
 }
 .settings-page .pw-update-btn:hover:not(:disabled) { background: #1E293B; }
 .settings-page .pw-update-btn:disabled { opacity: 0.7; cursor: default; }
-.settings-page .pw-update-btn--success { background: #16A34A; }
+.settings-page .pw-update-btn--success { background: #15803D; }
 
 .settings-page .pw-cancel-btn {
   width: 100%;
@@ -452,6 +452,20 @@ TOGGLE TRANSITIONS
 .settings-page .security-settings [role="status"],
 .settings-page .security-settings [role="alert"] { margin-bottom: 16px; }
 
+.settings-page .security-settings :is(.card-header h2, .settings-card > h2) {
+  color: #0f172a;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 600;
+  margin: 0;
+}
+.settings-page .security-settings .settings-card > h2 { margin-bottom: 20px; }
+.settings-page .security-settings .pw-modal-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1.4;
+}
 .settings-page :is(button, input, select, textarea):focus-visible {
   outline: 2px solid #1D4ED8;
   outline-offset: 2px;

@@ -44,7 +44,7 @@ CARDS
   margin-bottom: 24px;
 }
 
-.settings-page .card-header h3 {
+.settings-page .card-header :is(h2, h3) {
   font-size: 22px;
 }
 

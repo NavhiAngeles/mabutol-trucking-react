@@ -122,8 +122,24 @@ export default function ShipmentDetails({ shipment, onClose }) {
         </button>
       </div>
 
-      {loading && <div role="status" className="shipment-details-status-msg"><i className="las la-spinner la-spin" /> <span>{details ? 'Refreshing shipment details… Showing the last successfully loaded details.' : 'Loading current shipment details…'}</span></div>}
-      {error && <div role="alert" className="shipment-details-error-msg"><i className="las la-exclamation-circle" /> <span>{error}{details && ' Showing the last successfully loaded shipment details.'}</span></div>}
+      {loading && (
+        <div role="status" className="shipment-details-status-msg">
+          <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span>{details ? 'Refreshing shipment details… Showing the last successfully loaded details.' : 'Loading current shipment details…'}</span>
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="shipment-details-error-msg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{error}{details && ' Showing the last successfully loaded shipment details.'}</span>
+        </div>
+      )}
       {details && <>
         <dl className="shipment-details-grid">
           {/* CARD 1: ROUTE & SCHEDULE */}
@@ -133,7 +149,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              <h4>Route & Schedule</h4>
+              <h3>Route & Schedule</h3>
             </div>
             <div className="shipment-card-fields">
               <div className="shipment-field-full">
@@ -182,7 +198,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <circle cx="5.5" cy="18.5" r="2.5" />
                 <circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
-              <h4>Cargo & Vehicle</h4>
+              <h3>Cargo & Vehicle</h3>
             </div>
             <div className="shipment-card-fields">
               <div>
@@ -218,7 +234,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              <h4>Customer & Booking</h4>
+              <h3>Customer & Booking</h3>
             </div>
             <div className="shipment-card-fields">
               <div>
@@ -257,7 +273,7 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <line x1="12" y1="1" x2="12" y2="23" />
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
-              <h4>Financials & Tolls</h4>
+              <h3>Financials & Tolls</h3>
             </div>
             <div className="shipment-card-fields">
               <div>

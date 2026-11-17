@@ -71,7 +71,11 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
   return <section className="assignment-manager" aria-labelledby="assignment-manager-title">
     <div className="assignment-manager-header">
       <div className="assignment-manager-header-icon">
-        <i className="las la-user-check" />
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <polyline points="17 11 19 13 23 9" />
+        </svg>
       </div>
       <div className="assignment-manager-header-text">
         <h3 id="assignment-manager-title">Office assignment</h3>
@@ -85,14 +89,20 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
 
     {!options && !error && (
       <div role="status" className="shipment-dialog-alert is-loading">
-        <i className="las la-spinner la-spin" />
+        <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
         <span>Loading eligible drivers and trucks…</span>
       </div>
     )}
 
     {error && (
       <div className="shipment-dialog-alert is-error" role="alert">
-        <i className="las la-exclamation-circle" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
         <span style={{ flex: 1 }}>{error}</span>
         <button
           type="button"
@@ -106,7 +116,10 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
 
     {options?.blockedReason && (
       <div className="assignment-blocked shipment-dialog-alert is-warning" role="status">
-        <i className="las la-ban" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+        </svg>
         <span>{options.blockedReason}</span>
       </div>
     )}
@@ -115,7 +128,11 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
       <form onSubmit={submit}>
         {draftSuggestion && (
           <div className="shipment-dialog-alert is-info return-load-draft-notice" role="status">
-            <i className="las la-route" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="6" cy="19" r="3" />
+              <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+              <circle cx="18" cy="5" r="3" />
+            </svg>
             <span>
               <strong>Return load suggestion:</strong> Returning driver and truck pre-selected for backhaul review. Verify capacity and compliance before assigning.
             </span>
@@ -136,7 +153,11 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
           </label>
           {selectedDriver && !selectedDriver.eligible && selectedDriver.reason && (
             <p className="assignment-warning" role="status">
-              <i className="las la-exclamation-triangle" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
               <span><strong>Driver note:</strong> {selectedDriver.reason}</span>
             </p>
           )}
@@ -154,14 +175,22 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
           </label>
           {selectedTruck && !selectedTruck.eligible && selectedTruck.reason && (
             <p className="assignment-warning" role="status">
-              <i className="las la-exclamation-triangle" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
               <span><strong>Truck note:</strong> {selectedTruck.reason}</span>
             </p>
           )}
 
           {(!drivers.length || !trucks.length) && (
             <div role="status" className="assignment-warning shipment-dialog-alert is-warning">
-              <i className="las la-exclamation-triangle" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
               <span>No eligible pair is currently available. Review Fleet availability, maintenance, reservations and Compliance. Excluded: {excluded.drivers} driver(s), {excluded.trucks} truck(s).</span>
             </div>
           )}
@@ -185,14 +214,34 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
 
           {currentPair && (
             <div role="alert" className="assignment-warning shipment-dialog-alert is-warning">
-              <i className="las la-info-circle" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
               <span>Choose a different driver or truck for reassignment.</span>
             </div>
           )}
         </div>
 
         <button type="submit" className="btn-primary assignment-submit-btn" disabled={!canSave}>
-          <i className={`las ${busy ? 'la-spinner la-spin' : options.current ? 'la-exchange-alt' : 'la-check-circle'}`} />
+          {busy ? (
+            <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          ) : options.current ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          )}
           <span>{busy ? 'Saving…' : options.current ? 'Reassign before trip' : 'Assign driver and truck'}</span>
         </button>
       </form>

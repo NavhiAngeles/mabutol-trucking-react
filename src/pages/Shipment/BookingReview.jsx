@@ -146,8 +146,24 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
         </button>
       </div>
 
-      {loading && <div role="status" className="shipment-details-status-msg"><i className="las la-spinner la-spin" /> <span>Loading current request…</span></div>}
-      {error && <div role="alert" className="shipment-details-error-msg"><i className="las la-exclamation-circle" /> <span>{error}</span></div>}
+      {loading && (
+        <div role="status" className="shipment-details-status-msg">
+          <svg className="shipment-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span>Loading current request…</span>
+        </div>
+      )}
+      {error && (
+        <div role="alert" className="shipment-details-error-msg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>{error}</span>
+        </div>
+      )}
       {request && !loading && <>
         <dl className="shipment-details-grid">
           {/* CARD 1: CARGO & VEHICLE */}
@@ -159,7 +175,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
                 <circle cx="5.5" cy="18.5" r="2.5" />
                 <circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
-              <h4>Cargo & Vehicle</h4>
+              <h3>Cargo & Vehicle</h3>
             </div>
             <div className="shipment-card-fields">
               <div>
@@ -195,7 +211,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              <h4>Route & Schedule</h4>
+              <h3>Route & Schedule</h3>
             </div>
             <div className="shipment-card-fields">
               <div className="shipment-field-full">
@@ -232,7 +248,12 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
                   <span>{departure(request.scheduled_departure)}</span>
                   {isPastDeparture && (
                     <span className="overdue-departure-tag" title="Departure date/time is in the past">
-                      ⚠️ Past date
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      {' Past date'}
                     </span>
                   )}
                 </dd>
@@ -258,7 +279,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
                 <line x1="12" y1="1" x2="12" y2="23" />
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
-              <h4>Quotation & Charges</h4>
+              <h3>Quotation & Charges</h3>
             </div>
             <div className="shipment-card-fields">
               <div>
@@ -319,7 +340,11 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
 
         {(request.quoted_amount == null || !(request.distance_km > 0)) && (
           <div className="booking-review-warning-notice" role="status">
-            <span aria-hidden="true" style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }}>⚠️</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px' }}>
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
             <div className="booking-review-warning-body">
               <strong className="booking-review-warning-title">Quotation required before approval</strong>
               <p>

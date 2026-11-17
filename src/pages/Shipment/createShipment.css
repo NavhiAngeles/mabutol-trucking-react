@@ -52,7 +52,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   background: rgba(15, 23, 42, 0.4); 
   backdrop-filter: blur(4px);
@@ -104,7 +104,7 @@
   background: none;
   border: none;
   color: #64748B;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -193,7 +193,7 @@
 }
 
 .shipment-page .input-title {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.5px;
@@ -215,6 +215,10 @@
   font-weight: 500;
   color: #0F172A;
   transition: all 0.2s;
+}
+
+.shipment-page .input-search-wrapper:has(.input-icon) input {
+  padding-left: 38px;
 }
 
 .shipment-page .input-search-wrapper input:focus {
@@ -281,7 +285,7 @@
 .shipment-page .location-details { margin-top: 10px; }
 .shipment-page .location-details summary { color: #1E40AF; font-size: 12px; cursor: pointer; }
 .shipment-page .location-details-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-.shipment-page .location-detail-label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; color: #64748B; }
+.shipment-page .location-detail-label { display: flex; flex-direction: column; gap: 5px; font-size: 0.75rem; color: #64748B; }
 .shipment-page .location-detail-label input { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #D8E2EF; border-radius: 6px; background: #F8FAFC; color: #0F172A; font: inherit; font-size: 12px; }
 .shipment-page .location-detail-label input:focus { border-color: #1D4ED8; background: #FFFFFF; }
 .shipment-page .location-detail-label input:focus-visible { outline: 2px solid #1D4ED8; outline-offset: 2px; }
@@ -290,9 +294,11 @@
   position: absolute;
   left: 14px;
   font-size: 16px;
+  color: #64748B;
+  pointer-events: none;
 }
 .shipment-page .input-blue-icon { color: #1E40AF; }
-.shipment-page .input-orange-icon { color: #EA580C; }
+.shipment-page .input-orange-icon { color: #B45309; }
 
 .shipment-page .address-autocomplete-wrapper input {
   padding-right: 38px;
@@ -349,7 +355,7 @@
 
 .shipment-page .select-dropdown-wrapper select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 40px 12px 16px;
   border-radius: 6px;
   border: 1px solid #D8E2EF;
   background: #F8FAFC;
@@ -382,13 +388,14 @@
 .shipment-page .custom-select-arrow {
   position: absolute;
   right: 16px;
-  top: 15px;
+  top: 50%;
+  transform: translateY(-50%);
   color: #64748B;
   pointer-events: none;
 }
 
 .shipment-page .field-info-text {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   display: flex;
   align-items: center;
@@ -419,7 +426,7 @@
 .shipment-page .toll-badge {
   background: #FFEDD5;
   color: #C2410C;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
@@ -463,7 +470,7 @@
 
 .shipment-page .metric-label {
   display: block;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #64748B;
 }
@@ -716,7 +723,7 @@
   color: #B91C1C;
 }
 
-.shipment-page .vehicle-card-details h4 {
+.shipment-page .vehicle-card-details h3 {
   font-size: 14px;
   font-weight: 600;
   color: #0F172A;
@@ -730,7 +737,7 @@
 
 .shipment-page .vehicle-tag {
   display: inline-block;
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
@@ -753,7 +760,7 @@
   position: absolute;
   right: 16px;
   bottom: 16px;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #B91C1C;
 }
@@ -783,9 +790,10 @@
 }
 
 .shipment-page .alert-banner-icon {
-  color: #EA580C;
+  color: #B45309;
   font-size: 16px;
   margin-top: 2px;
+  flex-shrink: 0;
 }
 
 .shipment-page .review-alert-banner p {
@@ -813,7 +821,7 @@
 }
 
 .shipment-page .review-section-title {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   color: #64748B;
   letter-spacing: 0.5px;
@@ -856,7 +864,7 @@
 }
 
 .shipment-page .review-node span {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
 }
 
@@ -867,7 +875,7 @@
 }
 
 .shipment-page .info-inline-pill {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   background: #F1F5F9;
   color: #475569;
@@ -893,7 +901,7 @@
 .shipment-page .font-bold { font-weight: 700 !important; color: #0F172A; }
 
 .shipment-page .blue-status-tag {
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 700;
   background: #EFF6FF;
   color: #1E40AF;
@@ -903,7 +911,7 @@
 }
 
 .shipment-page .review-sub-notes {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   font-style: italic;
   margin-top: 4px;
@@ -929,7 +937,7 @@
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  color: #64748B;
+  color: #475569;
   margin-right: 12px;
 }
 
@@ -942,7 +950,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   margin-right: 12px;
 }
@@ -951,14 +959,14 @@
   flex: 1;
 }
 
-.shipment-page .entity-info-box h4 {
+.shipment-page .entity-info-box h3 {
   font-size: 13px;
   font-weight: 600;
   color: #0F172A;
 }
 
 .shipment-page .entity-info-box p {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   margin-top: 1px;
 }
@@ -966,7 +974,7 @@
 .shipment-page .green-text { color: #15803D; font-weight: 600; }
 
 .shipment-page .live-status-indicator {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #15803D;
   display: flex;
@@ -982,7 +990,7 @@
 }
 
 .shipment-page .auto-assign-tag {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #64748B;
   font-weight: 500;
 }
@@ -1023,7 +1031,7 @@
 }
 
 .shipment-page .financial-badge-tag {
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
@@ -1078,7 +1086,7 @@
 }
 
 .shipment-page .override-label {
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #475569;
 }
@@ -1095,7 +1103,7 @@
 }
 
 .shipment-page .override-hint-text {
-  font-size: 10px;
+  font-size: 0.75rem;
   color: #64748B;
   line-height: 1.3;
 }
@@ -1147,7 +1155,7 @@
 }
 
 .shipment-page .footer-notice-subtext {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   font-weight: 500;
 }
@@ -1178,7 +1186,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   background: rgba(15, 23, 42, 0.6); /* Slightly darker mask to isolate focus context */
   backdrop-filter: blur(6px);
@@ -1392,7 +1400,7 @@
 }
 
 .shipment-page .profit-disclaimer-text {
-  font-size: 11px;
+  font-size: 0.75rem;
   color: #64748B;
   line-height: 1.4;
   margin-top: 4px;
@@ -1410,35 +1418,35 @@
 .shipment-page .shipment-toll-rates button { padding: 6px 10px; margin-top: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e3a8a; font: inherit; font-size: 12px; cursor: pointer; }
 .shipment-page .shipment-toll-rates :focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .shipment-page .shipment-toll-rates { padding: 16px; margin: 8px 0 14px; font-size: 12px; color: #475569; }
-.shipment-page .shipment-toll-rates legend { font-size: 11px; letter-spacing: .02em; }
+.shipment-page .shipment-toll-rates legend { font-size: 0.75rem; letter-spacing: .02em; }
 .shipment-page .toll-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
 .shipment-page .toll-panel-heading strong { display: block; font-size: 13px; line-height: 1.4; color: #0f172a; }
-.shipment-page .toll-panel-heading p { margin: 3px 0 0; font-size: 11px; line-height: 1.5; color: #64748b; }
-.shipment-page .toll-price-chip { flex-shrink: 0; padding: 4px 8px; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 11px; font-weight: 600; }
+.shipment-page .toll-panel-heading p { margin: 3px 0 0; font-size: 0.75rem; line-height: 1.5; color: #64748b; }
+.shipment-page .toll-price-chip { flex-shrink: 0; padding: 4px 8px; border-radius: 6px; background: #eef2ff; color: #3730a3; font-size: 0.75rem; font-weight: 600; }
 .shipment-page .toll-price-chip.is-pending { background: #fff7ed; color: #9a3412; }
-.shipment-page .shipment-toll-rates > label { font-size: 11px; font-weight: 600; margin-bottom: 7px; }
+.shipment-page .shipment-toll-rates > label { font-size: 0.75rem; font-weight: 600; margin-bottom: 7px; }
 .shipment-page .shipment-toll-rates select { font-size: 13px; line-height: 1.4; padding: 10px; }
-.shipment-page .shipment-toll-rates .toll-panel-hint { margin: 7px 0 12px; font-size: 11px; line-height: 1.6; color: #64748b; }
+.shipment-page .shipment-toll-rates .toll-panel-hint { margin: 7px 0 12px; font-size: 0.75rem; line-height: 1.6; color: #64748b; }
 .shipment-page .toll-panel-message { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; line-height: 1.6; background: #f8fafc; }
 .shipment-page .toll-panel-message.is-warning { border-color: #fde4b8; background: #fffbf2; color: #854d0e; }
 .shipment-page .toll-panel-message strong { display: block; font-size: 12px; line-height: 1.5; font-weight: 600; }
-.shipment-page .toll-panel-message p { margin: 4px 0 0; font-size: 11px; line-height: 1.6; }
+.shipment-page .toll-panel-message p { margin: 4px 0 0; font-size: 0.75rem; line-height: 1.6; }
 .shipment-page .toll-message-icon { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 7px; background: #fef0cf; color: #92400e; font-size: 15px; font-weight: 700; }
 .shipment-page .toll-panel-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
-.shipment-page .toll-panel-actions a { color: #1e40af; font-size: 11px; line-height: 1.5; font-weight: 600; text-decoration: none; }
+.shipment-page .toll-panel-actions a { color: #1e40af; font-size: 0.75rem; line-height: 1.5; font-weight: 600; text-decoration: none; }
 .shipment-page .toll-panel-actions a:hover { text-decoration: underline; }
-.shipment-page .toll-panel-actions button { margin-top: 0; font-size: 11px; padding: 7px 9px; }
+.shipment-page .toll-panel-actions button { margin-top: 0; font-size: 0.75rem; padding: 7px 9px; }
 .shipment-page .toll-link-context { font-weight: 400; color: #64748b; }
 .shipment-page .shipment-toll-rates .toll-draft-hint { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #f1f5f9; }
-.shipment-page .financial-data-row strong.toll-pending-text { color: #b45309; font-size: 11px; font-weight: 600; }
-.shipment-page .cost-charge-blue .toll-total-notice { margin: 8px 0 0; color: #92400e; font-size: 11px; line-height: 1.6; }
+.shipment-page .financial-data-row strong.toll-pending-text { color: #b45309; font-size: 0.75rem; font-weight: 600; }
+.shipment-page .cost-charge-blue .toll-total-notice { margin: 8px 0 0; color: #92400e; font-size: 0.75rem; line-height: 1.6; }
 .shipment-page .toll-profit-pending h3 { margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #64748b; }
-.shipment-page .toll-profit-pending p { margin: 0; font-size: 11px; line-height: 1.6; color: #64748b; }
+.shipment-page .toll-profit-pending p { margin: 0; font-size: 0.75rem; line-height: 1.6; color: #64748b; }
 .shipment-page .toll-auto-summary { margin: 0 0 14px; }
 .shipment-page .toll-auto-summary > div { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-bottom: 1px solid #edf2f7; }
-.shipment-page .toll-auto-summary dt { color: #64748b; font-size: 11px; }
+.shipment-page .toll-auto-summary dt { color: #64748b; font-size: 0.75rem; }
 .shipment-page .toll-auto-summary dd { margin: 0; color: #1e293b; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
-.shipment-page .toll-auto-summary small { display: block; margin-top: 3px; font-size: 10px; font-weight: 400; color: #64748b; }
+.shipment-page .toll-auto-summary small { display: block; margin-top: 3px; font-size: 0.75rem; font-weight: 400; color: #64748b; }
 .shipment-page .shipment-review .financial-data-row { align-items: center; gap: 12px; }
 .shipment-page .shipment-review .financial-data-row > span { flex: 1; min-width: 0; line-height: 1.5; }
 .shipment-page .shipment-review .financial-data-row > input { width: 128px; max-width: 48%; flex-shrink: 0; text-align: right; }
