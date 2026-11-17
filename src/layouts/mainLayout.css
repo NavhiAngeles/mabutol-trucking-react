@@ -1,81 +1,171 @@
-/* ==========================================================================
-   MAIN APPLICATION LAYOUT SPECIFICATION
-   Ensures the 260px fixed sidebar and main scrollable content area are always
-   properly positioned and responsive across all lazy-loaded routes.
-   ========================================================================== */
-
+/* Shell layout positioning across lazy-loaded authenticated routes. */
 .dashboard {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background-color: #F8FAFC;
+  background-color: var(--bg-canvas, #F8FAFC);
   position: relative;
 }
 
 .main {
-  margin-left: 260px;
+  margin-left: var(--sidebar-width, 260px);
   min-height: 100vh;
-  width: calc(100% - 260px);
+  width: calc(100% - var(--sidebar-width, 260px));
   display: flex;
   flex-direction: column;
-  background-color: #F8FAFC;
+  background-color: var(--bg-canvas, #F8FAFC);
   flex: 1 1 auto;
   min-width: 0;
   position: relative;
 }
 
 .content {
-  padding: 32px 40px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: var(--space-7, 28px) var(--space-8, 32px);
+  font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   pointer-events: auto;
   position: relative;
   flex: 1 1 auto;
 }
 
-/* Mobile navigation menu trigger */
 .mobile-menu-trigger {
   display: none;
 }
 
-/* Sidebar backdrop overlay for mobile drawer */
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(2px);
-  z-index: 999;
+  background-color: var(--bg-overlay, rgba(15, 23, 42, 0.50));
+  z-index: var(--z-drawer-backdrop, 999);
 }
 
-/* ==========================================================================
-   RESPONSIVE LAYOUT BREAKPOINTS
-   ========================================================================== */
+/* Idle-timeout warning dialog */
+.idle-timeout-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--bg-overlay, rgba(15, 23, 42, 0.50));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-alertdialog, 99999);
+  padding: var(--space-4, 16px);
+}
 
+.idle-timeout-dialog {
+  background-color: var(--bg-surface, #FFFFFF);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-7, 28px);
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow-modal, 0 20px 40px rgba(15, 23, 42, 0.16));
+  text-align: center;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+}
+
+.idle-timeout-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto var(--space-3, 12px);
+  border-radius: var(--radius-lg, 12px);
+  background-color: var(--status-warning-bg, #FEF3C7);
+  color: var(--status-warning-text, #B45309);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.idle-timeout-title {
+  font-size: var(--text-section-title, 1.125rem);
+  font-weight: 700;
+  color: var(--text-primary, #0F172A);
+  margin: 0 0 var(--space-2, 8px);
+  line-height: 1.35;
+}
+
+.idle-timeout-desc {
+  font-size: var(--text-body, 0.875rem);
+  color: var(--text-secondary, #475569);
+  margin: 0 0 var(--space-4, 16px);
+  line-height: 1.5;
+}
+
+.idle-timeout-countdown {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--color-brand-navy, #0F2A52);
+  margin: 0 0 var(--space-6, 24px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.idle-timeout-countdown[data-urgent="true"] {
+  color: var(--status-danger-text, #B91C1C);
+}
+
+.btn-stay-signed-in {
+  width: 100%;
+  min-height: var(--touch-target, 44px);
+  padding: var(--space-3, 12px) var(--space-6, 24px);
+  background-color: var(--color-brand-navy, #0F2A52);
+  color: var(--bg-surface, #FFFFFF);
+  border: 0;
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--text-subsection, 0.9375rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.btn-stay-signed-in:hover {
+  background-color: var(--color-brand-navy-hover, #0B1F3D);
+}
+
+.btn-stay-signed-in:active {
+  background-color: var(--color-brand-navy-active, #08172E);
+}
+
+.btn-stay-signed-in:disabled,
+.btn-stay-signed-in[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+/* Responsive shell breakpoints */
 @media (max-width: 1024px) {
   .mobile-menu-trigger {
     display: flex;
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: 14px;
-    left: 14px;
-    width: 42px;
-    height: 42px;
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    color: #0f2a52;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+    top: 10px;
+    left: 12px;
+    width: var(--touch-target, 44px);
+    height: var(--touch-target, 44px);
+    background: var(--bg-surface, #FFFFFF);
+    border: 1px solid var(--border-control, #CBD5E1);
+    border-radius: var(--radius-md, 8px);
+    color: var(--color-brand-navy, #0F2A52);
+    box-shadow: var(--shadow-lift, 0 2px 6px rgba(15, 23, 42, 0.06));
     cursor: pointer;
-    z-index: 120;
-    transition: background-color 0.15s, border-color 0.15s;
+    z-index: var(--z-mobile-trigger, 120);
+    transition:
+      background-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
+      border-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1));
   }
 
-  .mobile-menu-trigger:hover,
+  .mobile-menu-trigger:hover {
+    background-color: var(--bg-surface-subtle, #F1F5F9);
+    border-color: var(--border-control-hover, #94A3B8);
+  }
+
   .mobile-menu-trigger:focus-visible {
-    background-color: #f1f5f9;
-    border-color: #94a3b8;
-    outline: 2px solid #1a4b9c;
-    outline-offset: 2px;
+    outline: var(--focus-ring-width, 2px) solid var(--color-accent-cobalt, #1D4ED8);
+    outline-offset: var(--focus-ring-offset, 2px);
+  }
+
+  .mobile-menu-trigger:disabled,
+  .mobile-menu-trigger[aria-disabled="true"] {
+    opacity: var(--disabled-opacity, 0.55);
+    cursor: not-allowed;
   }
 
   .main {
@@ -88,15 +178,16 @@
     padding: 20px 16px !important;
   }
 
-  /* Provide clearance for the fixed hamburger button on all topbars */
-  .topbar,
-  .reports-topbar,
-  .settings-topbar,
-  .dr-topbar,
-  .ov-topbar,
-  .sr-topbar {
+  /* Keep left clearance for the fixed hamburger trigger until Phase 1 unifies page topbars. */
+  .dashboard .main :is(.topbar, .reports-topbar, .settings-topbar, .dr-topbar, .ov-topbar, .sr-topbar) {
     padding-left: 68px !important;
     padding-right: 16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .idle-timeout-dialog {
+    padding: var(--space-5, 20px);
   }
 }
 
@@ -105,15 +196,8 @@
     padding: 16px 12px !important;
   }
 
-  .topbar,
-  .reports-topbar,
-  .settings-topbar,
-  .dr-topbar,
-  .ov-topbar,
-  .sr-topbar {
+  .dashboard .main :is(.topbar, .reports-topbar, .settings-topbar, .dr-topbar, .ov-topbar, .sr-topbar) {
     padding-left: 64px !important;
     padding-right: 12px !important;
   }
 }
-
-

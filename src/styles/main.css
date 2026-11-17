@@ -1,55 +1,138 @@
-/* Reset */
-* {
+/* Base reset: avoid resetting margin on native <dialog> so margin: auto centering stays intact. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  font-family: system-ui, -apple-system, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  margin: 0;
+}
+
+html,
+body {
+  font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  color: var(--text-primary, #0F172A);
+  background-color: var(--bg-canvas, #F8FAFC);
 }
 
 body {
-  height: 100vh;
+  min-height: 100vh;
   position: relative;
+  font-size: var(--text-body, 0.875rem);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Blur + overlay */
-body::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  /* Decorative only: never intercept clicks on unpositioned report content. */
-  pointer-events: none;
+/* Pointer and disabled affordances (R-39). */
+a[href]:not([aria-disabled="true"]),
+button:not(:disabled):not([aria-disabled="true"]),
+summary:not([aria-disabled="true"]),
+select:not(:disabled):not([aria-disabled="true"]),
+label[for],
+label:has(> input[type="checkbox"]:not(:disabled), > input[type="radio"]:not(:disabled)),
+[role="button"]:not([aria-disabled="true"]),
+[role="link"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+[role="menuitem"]:not([aria-disabled="true"]),
+[role="option"]:not([aria-disabled="true"]),
+[role="switch"]:not([aria-disabled="true"]),
+input[type="checkbox"]:not(:disabled):not([aria-disabled="true"]),
+input[type="radio"]:not(:disabled):not([aria-disabled="true"]),
+input[type="file"]:not(:disabled):not([aria-disabled="true"]),
+input[type="submit"]:not(:disabled):not([aria-disabled="true"]),
+input[type="button"]:not(:disabled):not([aria-disabled="true"]),
+input[type="reset"]:not(:disabled):not([aria-disabled="true"]) {
+  cursor: pointer;
 }
 
-/* Core Layout Structure */
+:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Global keyboard focus ring (R-32). */
+:focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #1D4ED8);
+  outline-offset: var(--focus-ring-offset, 2px);
+}
+
+/* Core shell primitives */
 .dashboard {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background-color: #F8FAFC;
+  background-color: var(--bg-canvas, #F8FAFC);
   position: relative;
 }
 
 .main {
-  margin-left: 260px;
+  margin-left: var(--sidebar-width, 260px);
   min-height: 100vh;
-  width: calc(100% - 260px);
+  width: calc(100% - var(--sidebar-width, 260px));
   display: flex;
   flex-direction: column;
-  background-color: #F8FAFC;
+  background-color: var(--bg-canvas, #F8FAFC);
   flex: 1 1 auto;
   min-width: 0;
   position: relative;
 }
 
+.topbar {
+  height: var(--topbar-height, 64px);
+  min-height: var(--topbar-height, 64px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  padding: 0 var(--space-8, 32px);
+  background-color: var(--bg-surface, #FFFFFF);
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
+}
+
 .content {
-  padding: 32px 40px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: var(--space-7, 28px) var(--space-8, 32px);
+  font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
   pointer-events: auto;
   position: relative;
   flex: 1 1 auto;
 }
 
-.office-tools { display: flex; gap: 12px; align-items: center; position: relative; }
-.office-notifications { position: absolute; right: 0; top: 100%; width: min(380px,85vw); max-height: 65vh; overflow: auto; z-index: 100; padding: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 24px #0f172a22; }
-.office-notifications article { padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
-.office-notifications article button { display: block; margin-top: 8px; }
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

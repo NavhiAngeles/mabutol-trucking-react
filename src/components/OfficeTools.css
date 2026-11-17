@@ -1,38 +1,374 @@
-.main > .topbar:has(.office-tools) { position: relative; z-index: 40; } /* Keep the entire header above page actions; dropdown z-index cannot escape a lower parent layer. */
-.office-tools { display: flex; align-items: center; gap: 12px; position: relative; }
-.office-tools .office-messages-tool { position: static; }
-.office-tools > .icon-btn { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; padding: 0; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; color: #475569; cursor: pointer; }
-.office-tools > .icon-btn:hover,.office-tools > .icon-btn[aria-expanded="true"] { color: #0b2a4a; background: #f1f5f9; border-color: #cbd5e1; }
-.office-tools .office-unread-count { position: absolute; top: -5px; right: -5px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border: 2px solid #fff; border-radius: 20px; background: #dc2626; color: #fff; font: 600 10px/1 system-ui,sans-serif; box-sizing: content-box; }
-.office-tools > .avatar { display: grid; place-items: center; flex: none; width: 38px; height: 38px; padding: 0; border: 1px solid #e2e8f0; border-radius: 50%; background: #f1f5f9; color: #0b2a4a; font: 600 12px/1 system-ui,sans-serif; cursor: pointer; }
-.office-tools :is(button):focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
-.office-tools .office-notifications { position: absolute; right: 0; top: calc(100% + 12px); z-index: 100; display: flex; flex-direction: column; width: min(400px,calc(100vw - 32px)); max-height: min(600px,75vh); padding: 0; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 16px 48px #0f172a26; color: #0f172a; text-align: left; font: 400 13px/1.5 system-ui,sans-serif; }
-.office-tools .office-notifications-header { display: flex; align-items: flex-start; justify-content: space-between; flex: none; gap: 12px; padding: 16px 18px; border-bottom: 1px solid #e2e8f0; }
-.office-tools .office-notifications-header-main { min-width: 0; flex: 1; }
-.office-tools .office-notifications-header h2 { margin: 0; color: #0f172a; font-size: 16px; font-weight: 600; line-height: 1.4; }
-.office-tools .office-notifications-header p { margin: 4px 0 0; color: #64748b; font-size: 12px; }
-.office-tools .office-notifications-header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.office-tools .office-notifications-tool-btn { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; color: #475569; font: 500 11.5px/28px system-ui,sans-serif; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
-.office-tools .office-notifications-tool-btn:hover:not(:disabled) { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
-.office-tools .office-notifications-tool-btn:disabled { opacity: .55; cursor: default; }
-.office-tools .office-notifications-mark-read { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; font-weight: 600; }
-.office-tools .office-notifications-mark-read:hover:not(:disabled) { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
-.office-tools .office-notifications-close { width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 6px; background: #f1f5f9; color: #64748b; cursor: pointer; font-size: 13px; line-height: 1; }
-.office-tools .office-notifications-close:hover { background: #e2e8f0; color: #0f172a; }
-.office-tools .office-notifications-list { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
-.office-tools .office-notification { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; }
-.office-tools .office-notification-unread { background: #f6f9ff; }
-.office-tools .office-notification-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.office-tools .office-notification-title strong { font-weight: 600; overflow-wrap: anywhere; }
-.office-tools .office-notification-dot { width: 7px; height: 7px; margin-top: 6px; flex: none; border-radius: 50%; background: #2563eb; }
-.office-tools .office-notification p { margin: 6px 0 12px; color: #64748b; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
-.office-tools .office-notification-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
-.office-tools .office-notification-meta time { color: #94a3b8; font-size: 11px; }
-.office-tools .office-notification-action { display: inline-flex; margin: 0; padding: 5px 9px; border: 1px solid #dbeafe; border-radius: 6px; background: #eff6ff; color: #1e40af; font: 500 12px/18px system-ui,sans-serif; cursor: pointer; }
-.office-tools .office-notification-action:disabled { opacity: .55; cursor: default; }
-.office-tools .office-notification-state { padding: 32px 20px; margin: 0; text-align: center; color: #64748b; }
-.office-tools .office-notification-state strong { display: block; color: #334155; font-size: 14px; }
-.office-tools .office-notification-state p { margin: 6px 0 0; }
-.office-tools .office-notification-error { padding: 12px 16px; margin: 12px; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; color: #991b1b; }
-.office-tools .office-notification-error button { margin-left: 8px; padding: 4px 8px; border: 1px solid #fecaca; border-radius: 5px; background: #fff; color: #991b1b; cursor: pointer; }
-.office-tools .office-notifications-footer { flex: none; padding: 10px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; color: #94a3b8; font-size: 11px; }
+/* Keep the topbar above page actions so popovers are not clipped by sibling layers. */
+.main > :is(.topbar, .reports-topbar, .settings-topbar):has(.office-tools) {
+  position: relative;
+  z-index: var(--z-topbar, 40);
+}
+
+.office-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  position: relative;
+}
+
+.office-tools .office-messages-tool {
+  position: static;
+}
+
+.office-tools > .icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--control-height, 40px);
+  height: var(--control-height, 40px);
+  padding: 0;
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
+    color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.office-tools > .icon-btn:hover,
+.office-tools > .icon-btn[aria-expanded="true"] {
+  color: var(--color-brand-navy, #0F2A52);
+  background: var(--bg-surface-subtle, #F1F5F9);
+  border-color: var(--border-control-hover, #94A3B8);
+}
+
+.office-tools > .icon-btn:disabled,
+.office-tools > .icon-btn[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.office-tools .office-unread-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 2px solid var(--bg-surface, #FFFFFF);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--status-danger-text, #B91C1C);
+  color: var(--bg-surface, #FFFFFF);
+  font: 600 var(--text-caption, 0.75rem)/1 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-variant-numeric: tabular-nums;
+  box-sizing: content-box;
+}
+
+.office-tools > .avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--control-height, 40px);
+  height: var(--control-height, 40px);
+  padding: 0;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--bg-surface-subtle, #F1F5F9);
+  color: var(--color-brand-navy, #0F2A52);
+  font: 600 var(--text-caption, 0.75rem)/1 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.office-tools > .avatar:hover {
+  background: var(--bg-nav-active, #E8EEF8);
+  border-color: var(--border-control-hover, #94A3B8);
+}
+
+.office-tools > .avatar:disabled,
+.office-tools > .avatar[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.office-tools :is(button):focus-visible {
+  outline: var(--focus-ring-width, 2px) solid var(--color-accent-cobalt, #1D4ED8);
+  outline-offset: var(--focus-ring-offset, 2px);
+}
+
+.office-tools .office-notifications {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-3, 12px));
+  z-index: var(--z-dropdown, 100);
+  display: flex;
+  flex-direction: column;
+  width: min(400px, calc(100vw - 32px));
+  max-height: min(600px, 75vh);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-surface, #FFFFFF);
+  box-shadow: var(--shadow-popover, 0 10px 25px rgba(15, 23, 42, 0.12));
+  color: var(--text-primary, #0F172A);
+  text-align: left;
+  font: 400 var(--text-compact, 0.8125rem)/1.5 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+.office-tools .office-notifications-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex: none;
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px) 18px;
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
+}
+
+.office-tools .office-notifications-header-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.office-tools .office-notifications-header h2 {
+  margin: 0;
+  color: var(--text-primary, #0F172A);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.office-tools .office-notifications-header p {
+  margin: var(--space-1, 4px) 0 0;
+  color: var(--text-secondary, #475569);
+  font-size: var(--text-caption, 0.75rem);
+}
+
+.office-tools .office-notifications-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5, 6px);
+  flex-shrink: 0;
+}
+
+.office-tools .office-notifications-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  min-height: 32px;
+  padding: 0 var(--space-2, 8px);
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-canvas, #F8FAFC);
+  color: var(--text-secondary, #475569);
+  font: 500 var(--text-caption, 0.75rem)/1.25 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
+    border-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
+    color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.office-tools .office-notifications-tool-btn:hover:not(:disabled) {
+  background: var(--bg-surface-subtle, #F1F5F9);
+  color: var(--text-primary, #0F172A);
+  border-color: var(--border-control-hover, #94A3B8);
+}
+
+.office-tools .office-notifications-tool-btn:disabled,
+.office-tools .office-notifications-tool-btn[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.office-tools .office-notifications-mark-read {
+  border-color: var(--status-info-border, #BFDBFE);
+  background: var(--status-info-bg-subtle, #EFF6FF);
+  color: var(--color-accent-cobalt, #1D4ED8);
+  font-weight: 600;
+}
+
+.office-tools .office-notifications-mark-read:hover:not(:disabled) {
+  background: var(--status-info-bg, #DBEAFE);
+  color: var(--status-info-text, #1E40AF);
+  border-color: var(--status-info-border, #BFDBFE);
+}
+
+.office-tools .office-notifications-close {
+  width: var(--control-height, 40px);
+  height: var(--control-height, 40px);
+  min-width: var(--control-height, 40px);
+  min-height: var(--control-height, 40px);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface-subtle, #F1F5F9);
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+  font-size: var(--text-compact, 0.8125rem);
+  line-height: 1;
+}
+
+.office-tools .office-notifications-close:hover {
+  background: var(--border-subtle, #E2E8F0);
+  color: var(--text-primary, #0F172A);
+}
+
+.office-tools .office-notifications-close:disabled,
+.office-tools .office-notifications-close[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.office-tools .office-notifications-list {
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.office-tools .office-notification {
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  border-bottom: 1px solid var(--bg-surface-subtle, #F1F5F9);
+}
+
+.office-tools .office-notification-unread {
+  background: #F6F9FF;
+}
+
+.office-tools .office-notification-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+.office-tools .office-notification-title strong {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.office-tools .office-notification-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  flex: none;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-accent-cobalt, #1D4ED8);
+}
+
+.office-tools .office-notification p {
+  margin: var(--space-1-5, 6px) 0 var(--space-3, 12px);
+  color: var(--text-secondary, #475569);
+  font-size: var(--text-compact, 0.8125rem);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.office-tools .office-notification-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-3, 12px);
+}
+
+.office-tools .office-notification-meta time {
+  color: var(--text-muted, #64748B);
+  font-size: var(--text-caption, 0.75rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.office-tools .office-notification-action {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--status-info-bg, #DBEAFE);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--status-info-bg-subtle, #EFF6FF);
+  color: var(--status-info-text, #1E40AF);
+  font: 500 var(--text-caption, 0.75rem)/1.3 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  cursor: pointer;
+}
+
+.office-tools .office-notification-action:hover:not(:disabled) {
+  background: var(--status-info-bg, #DBEAFE);
+}
+
+.office-tools .office-notification-action:disabled,
+.office-tools .office-notification-action[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.office-tools .office-notification-state {
+  padding: var(--space-8, 32px) var(--space-5, 20px);
+  margin: 0;
+  text-align: center;
+  color: var(--text-secondary, #475569);
+}
+
+.office-tools .office-notification-state strong {
+  display: block;
+  color: var(--text-primary, #0F172A);
+  font-size: var(--text-body, 0.875rem);
+}
+
+.office-tools .office-notification-state p {
+  margin: var(--space-1-5, 6px) 0 0;
+}
+
+.office-tools .office-notification-error {
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  margin: var(--space-3, 12px);
+  border: 1px solid var(--status-danger-border, #FECACA);
+  border-radius: var(--radius-md, 8px);
+  background: var(--status-danger-bg, #FEE2E2);
+  color: var(--status-danger-text, #B91C1C);
+}
+
+.office-tools .office-notification-error button {
+  margin-left: var(--space-2, 8px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  border: 1px solid var(--status-danger-border, #FECACA);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--status-danger-text, #B91C1C);
+  cursor: pointer;
+}
+
+.office-tools .office-notification-error button:disabled,
+.office-tools .office-notification-error button[aria-disabled="true"] {
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+.office-tools .office-notifications-footer {
+  flex: none;
+  padding: 10px var(--space-5, 20px);
+  border-top: 1px solid var(--border-subtle, #E2E8F0);
+  background: var(--bg-canvas, #F8FAFC);
+  color: var(--text-muted, #64748B);
+  font-size: var(--text-caption, 0.75rem);
+}
+
+@media (max-width: 640px) {
+  .office-tools > .icon-btn,
+  .office-tools > .avatar,
+  .office-tools .office-notifications-close {
+    width: var(--touch-target, 44px);
+    height: var(--touch-target, 44px);
+  }
+
+  .office-tools .office-notifications-tool-btn,
+  .office-tools .office-notification-action,
+  .office-tools .office-notification-error button {
+    min-height: var(--touch-target, 44px);
+  }
+}

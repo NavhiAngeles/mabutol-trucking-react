@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
 import { useAuth } from "../../context/AuthContext";
@@ -50,6 +50,27 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
     setSettingsOpen(currentSettingsOpen);
   }
 
+  const closeLogoutModal = useCallback(() => {
+    if (isLoggingOut) return;
+    setIsLogoutModalOpen(false);
+    if (typeof document !== "undefined") {
+      document.querySelector(".logout-button")?.focus?.();
+    }
+  }, [isLoggingOut]);
+
+  useEffect(() => {
+    if (!isLogoutModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        closeLogoutModal();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isLogoutModalOpen, closeLogoutModal]);
+
   const handleConfirmLogout = async () => {
     if (logoutInFlight.current) return;
     logoutInFlight.current = true;
@@ -74,7 +95,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="brand-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
@@ -99,7 +120,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
         </div>
 
         {/* Nav */}
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Main navigation">
           <button type="button"
             className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
             onClick={() => handleNav("/dashboard")}
@@ -157,6 +178,8 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             </svg>
             Compliance
           </button>
+
+          <div className="sidebar-nav-divider" role="separator" />
 
           {/* Reports Dropdown */}
           <div className="nav-group">
@@ -265,10 +288,10 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             <p>Are you sure you want to log out?</p>
             {logoutError && <p role="alert">{logoutError}</p>}
             <div className="logout-modal-actions">
-              <button className="btn-modal-yes" disabled={isLoggingOut} onClick={handleConfirmLogout}>
+              <button type="button" className="btn-modal-yes" disabled={isLoggingOut} onClick={handleConfirmLogout}>
                 {isLoggingOut ? "Logging out…" : "Yes"}
               </button>
-              <button className="btn-modal-no" disabled={isLoggingOut} onClick={() => setIsLogoutModalOpen(false)}>
+              <button type="button" className="btn-modal-no" disabled={isLoggingOut} onClick={closeLogoutModal} autoFocus>
                 No
               </button>
             </div>

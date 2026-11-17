@@ -20,16 +20,26 @@ export default function MainLayout({ children }) {
   const seconds = remainingSeconds % 60;
   const formattedCountdown = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+    // Query DOM instead of useRef so unit test VM harnesses without useRef stay compatible.
+    if (typeof document !== 'undefined') {
+      document.querySelector('.mobile-menu-trigger')?.focus?.();
+    }
+  }, []);
+
   useEffect(() => {
     if (!mobileMenuOpen) return;
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setMobileMenuOpen(false);
+      if (e.key !== 'Escape') return;
+      if (typeof document !== 'undefined' && document.querySelector?.('.logout-modal-backdrop')) return;
+      closeMobileMenu();
     };
     if (typeof document !== 'undefined') {
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, closeMobileMenu]);
 
   return (
     <div className={`dashboard ${mobileMenuOpen ? 'mobile-menu-active' : ''}`}>
@@ -51,7 +61,7 @@ export default function MainLayout({ children }) {
       {mobileMenuOpen && (
         <div
           className="sidebar-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={closeMobileMenu}
           aria-hidden="true"
         />
       )}
@@ -59,7 +69,7 @@ export default function MainLayout({ children }) {
       <Sidebar
         id="main-sidebar"
         mobileOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
+        onClose={closeMobileMenu}
       />
 
       <main className="main">
@@ -73,67 +83,35 @@ export default function MainLayout({ children }) {
           aria-labelledby="idle-warning-title"
           aria-describedby="idle-warning-desc"
           className="idle-timeout-overlay"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            padding: '16px',
-            backdropFilter: 'blur(3px)',
-          }}
         >
-          <div
-            className="idle-timeout-dialog"
-            style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              padding: '28px',
-              maxWidth: '420px',
-              width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              textAlign: 'center',
-              border: '1px solid #e2e8f0',
-            }}
-          >
-            <div style={{ fontSize: '2.5rem', marginBottom: '12px' }} aria-hidden="true">
-              ⏳
+          <div className="idle-timeout-dialog">
+            <div className="idle-timeout-icon" aria-hidden="true">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
             </div>
-            <h3
-              id="idle-warning-title"
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 700,
-                color: '#0f172a',
-                marginBottom: '8px',
-              }}
-            >
+            <h3 id="idle-warning-title" className="idle-timeout-title">
               Session Expiring Soon
             </h3>
-            <p
-              id="idle-warning-desc"
-              style={{
-                fontSize: '0.925rem',
-                color: '#475569',
-                marginBottom: '16px',
-                lineHeight: 1.5,
-              }}
-            >
+            <p id="idle-warning-desc" className="idle-timeout-desc">
               You have been inactive. For security, your session will automatically sign out in:
             </p>
             <div
               className="idle-timeout-countdown"
+              data-urgent={remainingSeconds <= 30 ? 'true' : 'false'}
               aria-live="polite"
               aria-atomic="true"
-              style={{
-                fontSize: '2.25rem',
-                fontWeight: 800,
-                color: remainingSeconds <= 30 ? '#dc2626' : '#0b2a4a',
-                marginBottom: '24px',
-                fontVariantNumeric: 'tabular-nums',
-              }}
             >
               {formattedCountdown}
             </div>
@@ -142,17 +120,6 @@ export default function MainLayout({ children }) {
               className="btn-stay-signed-in"
               onClick={staySignedIn}
               autoFocus
-              style={{
-                width: '100%',
-                padding: '12px 24px',
-                backgroundColor: '#0b2a4a',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
             >
               Stay signed in
             </button>
