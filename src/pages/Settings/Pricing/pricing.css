@@ -410,14 +410,15 @@ background: transparent;
 
 .settings-page .pricing-page .peso-cell input {
   width: 96px;
-  height: 36px;
+  height: 38px;
   padding: 0 12px;
   background: #fff;
-  border: 1px solid var(--input-border);
-  border-bottom-width: 2px;
-  border-radius: 2px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
   color: var(--ink);
 }
 
@@ -460,17 +461,29 @@ background: transparent;
   color: #4b5563;
 }
 
+.settings-page .pricing-page .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .settings-page .pricing-page .rate-input {
   width: 96px;
   height: 38px;
   padding: 0 12px;
   background: #fff;
-  border: 1px solid var(--input-border);
-  border-bottom-width: 2px;
-  border-radius: 2px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
   font: inherit;
-  font-size: 16px;
-  text-align: center;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
   color: var(--ink);
 }
 
