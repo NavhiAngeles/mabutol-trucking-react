@@ -144,14 +144,15 @@ Deno.serve(async (req) => {
     }
 
     // ---- 4. Ensure public.users row has role='customer' ----
-    await adminClient.from("users").upsert({
+    const { error: upsertErr } = await adminClient.from("users").upsert({
       id: targetUserId,
-      email,
+      email: email.trim().toLowerCase(),
       ...(phone ? { phone } : {}),
       role: "customer",
-      full_name: fullName || customerData?.name || "",
+      full_name: (fullName || customerData?.name || "").trim(),
       is_active: true,
     });
+    if (upsertErr) throw upsertErr;
 
     // ---- 5. Insert or link customer record in public.customers ----
     let customerRecord = null;

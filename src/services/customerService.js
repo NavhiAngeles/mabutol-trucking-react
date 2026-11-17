@@ -99,7 +99,59 @@ export function customerEditValues(customer) {
 
 export const AUTHORIZED_OFFICE_ROLES = ["admin", "staff"];
 
+export function normalizeCustomerPhone(raw) {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  if (!trimmed) return null;
+  const cleaned = trimmed.replace(/[ ()-]/g, "");
+  if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
+  if (/^9\d{9}$/.test(cleaned)) return `+63${cleaned}`;
+  if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
+  if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
+  return trimmed;
+}
+
+async function syncCustomerMobileUser({ userId, customerId = null, name = "", email = null, phone = null }) {
+  if (!userId) return;
+  const normalizedPhone = normalizeCustomerPhone(phone);
+  let rpcSucceeded = false;
+
+  if (typeof supabase?.rpc === "function") {
+    const { data, error: rpcError } = await supabase.rpc("office_confirm_customer_user", {
+      p_user_id: userId,
+      p_customer_id: customerId,
+    });
+    if (!rpcError && data !== false) {
+      rpcSucceeded = true;
+    } else if (rpcError && rpcError.code !== "42883" && rpcError.code !== "PGRST202") {
+      // Surface real permission or account confirmation errors
+      throw new Error(rpcError.message || "Unable to confirm customer mobile credentials in public.users.");
+    }
+  }
+
+  if (!rpcSucceeded && typeof supabase?.from === "function") {
+    try {
+      const usersTable = supabase.from("users");
+      const userPayload = {
+        id: userId,
+        email: email || null,
+        full_name: name || "",
+        ...(normalizedPhone ? { phone: normalizedPhone } : {}),
+        role: "customer",
+        is_active: true,
+      };
+      if (typeof usersTable?.upsert === "function") {
+        await usersTable.upsert(userPayload);
+      } else if (typeof usersTable?.update === "function") {
+        await usersTable.update(userPayload).eq("id", userId);
+      }
+    } catch {
+      // Ignore if mock table does not implement users upsert
+    }
+  }
+}
+
 export async function createCustomerAuthUser({ email, password, fullName, phone, customerData = null }) {
+  const normalizedPhone = normalizeCustomerPhone(phone || customerData?.phone);
   if (supabase?.functions?.invoke) {
     try {
       const { data: fnData, error: fnError } = await supabase.functions.invoke("create-customer-user", {
@@ -107,7 +159,7 @@ export async function createCustomerAuthUser({ email, password, fullName, phone,
           email,
           password,
           fullName,
-          phone: phone || null,
+          phone: normalizedPhone || phone || null,
           customerData,
         },
       });
@@ -175,7 +227,8 @@ export async function createCustomerAuthUser({ email, password, fullName, phone,
         data: {
           full_name: fullName,
           role: "customer",
-          phone: phone || "",
+          phone: normalizedPhone || phone || "",
+          contact_email: email,
         },
       },
     });
@@ -187,7 +240,8 @@ export async function createCustomerAuthUser({ email, password, fullName, phone,
         data: {
           full_name: fullName,
           role: "customer",
-          phone: phone || "",
+          phone: normalizedPhone || phone || "",
+          contact_email: email,
         },
       },
     });
@@ -281,6 +335,13 @@ export async function createCustomer(values, { callerRole } = {}) {
     });
 
     if (authRes?.customer) {
+      await syncCustomerMobileUser({
+        userId: authRes.userId || authRes.customer.user_id,
+        customerId: authRes.customer.id || null,
+        name,
+        email: effectiveEmail,
+        phone: phoneRaw || null,
+      });
       clearCustomerCache();
       return authRes.customer;
     }
@@ -348,15 +409,14 @@ export async function createCustomer(values, { callerRole } = {}) {
       savedCustomer = inserted;
     }
 
-    // Attempt to confirm the user in auth.users via RPC so mobile login is instantaneous
-    try {
-      await supabase.rpc("office_confirm_customer_user", {
-        p_user_id: userId,
-        p_customer_id: savedCustomer?.id || null,
-      });
-    } catch {
-      // Non-blocking if migration pending
-    }
+    // Confirm the user in auth.users and upsert public.users via RPC so mobile login works immediately
+    await syncCustomerMobileUser({
+      userId,
+      customerId: savedCustomer?.id || null,
+      name,
+      email: effectiveEmail,
+      phone: phoneRaw || null,
+    });
 
     clearCustomerCache();
     return savedCustomer;
@@ -519,14 +579,6 @@ export async function updateCustomer(customer, values) {
 
     if (authRes?.userId) {
       assignedUserId = authRes.userId;
-      try {
-        await supabase.rpc("office_confirm_customer_user", {
-          p_user_id: assignedUserId,
-          p_customer_id: customer.id,
-        });
-      } catch {
-        // Safe fallback
-      }
     }
   }
 
@@ -539,6 +591,17 @@ export async function updateCustomer(customer, values) {
     .eq("id", customer.id).eq("updated_at", customer.updated_at).select(CUSTOMER_COLUMNS).maybeSingle();
   if (error) throw new Error("Unable to save customer details. Check your connection and account permissions, then refresh before retrying.");
   if (!data) throw new Error("This customer changed or is no longer editable. Close this form and refresh before editing again.");
+
+  if (assignedUserId) {
+    await syncCustomerMobileUser({
+      userId: assignedUserId,
+      customerId: customer.id,
+      name: fields.name,
+      email: loginEmail || fields.email || null,
+      phone: fields.phone || null,
+    });
+  }
+
   clearCustomerCache();
   return data;
 }

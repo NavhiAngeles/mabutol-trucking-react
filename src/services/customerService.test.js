@@ -742,3 +742,103 @@ test("updateCustomer provisions mobile auth user and links user_id when password
   assert.equal(res.user_id, "auth-pedro-777");
 });
 
+test("createCustomer upserts public.users with normalized phone when office_confirm_customer_user RPC is missing", async () => {
+  let usersUpserted = null;
+  let signedUpOptions = null;
+
+  const mockCustomer = {
+    id: "cust-direct-202",
+    customer_code: "CUST-0202",
+    user_id: null,
+    name: "Elena Cruz",
+    email: "elena@customer.ph",
+    phone: "0917-555-8888",
+    is_active: true,
+  };
+
+  const context = {
+    supabase: {
+      supabaseUrl: "https://mock.supabase.co",
+      supabaseKey: "mock-key",
+      functions: {
+        invoke: async () => ({
+          data: null,
+          error: { status: 404, message: "Function not found" },
+        }),
+      },
+      auth: {
+        signUp: async ({ email, options }) => {
+          signedUpOptions = options;
+          return {
+            data: {
+              user: {
+                id: "auth-user-elena-202",
+                email,
+                identities: [{ id: "elena-identity" }],
+              },
+            },
+            error: null,
+          };
+        },
+      },
+      from: (table) => {
+        if (table === "customers") {
+          return {
+            select: () => ({
+              or: () => ({
+                limit: async () => ({ data: [mockCustomer], error: null }),
+              }),
+            }),
+            update: (payload) => ({
+              eq: () => ({
+                select: () => ({
+                  single: async () => ({
+                    data: { ...mockCustomer, ...payload },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "users") {
+          return {
+            upsert: async (payload) => {
+              usersUpserted = payload;
+              return { error: null };
+            },
+          };
+        }
+        return {};
+      },
+      rpc: async () => ({ data: null, error: { code: "42883", message: "function not found" } }),
+    },
+  };
+
+  const scope = vm.createContext(context);
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8")
+    .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.api={createCustomer,normalizeCustomerPhone};", scope);
+
+  assert.equal(scope.api.normalizeCustomerPhone("0917-555-8888"), "+639175558888");
+
+  await scope.api.createCustomer({
+    name: "Elena Cruz",
+    email: "elena@customer.ph",
+    phone: "0917-555-8888",
+    password: "Password123!",
+    confirmPassword: "Password123!",
+  });
+
+  assert.equal(signedUpOptions.data.phone, "+639175558888");
+  assert.equal(signedUpOptions.data.contact_email, "elena@customer.ph");
+  assert.ok(usersUpserted);
+  assert.equal(usersUpserted.id, "auth-user-elena-202");
+  assert.equal(usersUpserted.email, "elena@customer.ph");
+  assert.equal(usersUpserted.full_name, "Elena Cruz");
+  assert.equal(usersUpserted.phone, "+639175558888");
+  assert.equal(usersUpserted.role, "customer");
+  assert.equal(usersUpserted.is_active, true);
+});
+
+
