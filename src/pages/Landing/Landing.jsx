@@ -1,592 +1,305 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { Link } from "react-router-dom";
+import PublicLayout from "../../components/PublicLayout";
+import MobileShowcase from "../Public/MobileShowcase";
 import "./Landing.css";
 
+const HERO_TRUCK_PHOTO_URL =
+  "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80";
+
+const BASELINE_METRICS = [
+  {
+    value: "Est. 2015",
+    label: "Peñaranda, Nueva Ecija Freight Operations",
+  },
+  {
+    value: "6 Truck Classes",
+    label: "Wing Vans, Dropsides, Closed Vans & Elfs",
+  },
+  {
+    value: "4 User Roles",
+    label: "Admin, Dispatcher, Driver & Customer Access",
+  },
+  {
+    value: "4.69 / 5.00",
+    label: "ISO/IEC 25010 Pilot Rating (n = 30)",
+  },
+];
+
+const PLATFORM_HALVES = [
+  {
+    id: "web-console",
+    audience: "Office & Admin",
+    audienceTone: "navy",
+    title: "Web Dispatch Console",
+    description:
+      "Manage daily freight operations from one browser workspace built for dispatchers, fleet coordinators, and administrators.",
+    highlights: [
+      "Shipment booking intake, truck capacity matching, and driver assignment",
+      "MapLibre route mapping with NLEX, SCTEX, and TPLEX expressway toll calculation",
+      "Driver and vehicle compliance tracking across LTFRB, OR/CR, and license expiry",
+      "Operational and financial summaries exported directly to CSV and PDF",
+    ],
+    ctaLabel: "Explore Operations Workflow",
+    to: "/workflow",
+  },
+  {
+    id: "android-app",
+    audience: "Customers & Drivers",
+    audienceTone: "orange",
+    title: "TANAW Android App",
+    description:
+      "Connect shippers and road drivers directly to office dispatch through one companion Android APK.",
+    highlights: [
+      "Customer freight booking requests with vehicle class selection",
+      "Live GPS route tracking from Cabanatuan hub to destination bays",
+      "In-transit driver milestone updates and trip-scoped messaging",
+      "Digital Proof of Delivery capture with drop-off photo and recipient signature",
+    ],
+    ctaLabel: "Get Mobile APK & Guide",
+    to: "/mobile-app",
+  },
+];
+
+const ISO_EVALUATION_SCORES = [
+  { label: "Functional Suitability", score: 4.75, formatted: "4.75 / 5.00", isOverall: false },
+  { label: "Safety", score: 4.75, formatted: "4.75 / 5.00", isOverall: false },
+  { label: "Performance Efficiency", score: 4.73, formatted: "4.73 / 5.00", isOverall: false },
+  { label: "Interaction Capability", score: 4.73, formatted: "4.73 / 5.00", isOverall: false },
+  { label: "Compatibility", score: 4.72, formatted: "4.72 / 5.00", isOverall: false },
+  { label: "Security", score: 4.72, formatted: "4.72 / 5.00", isOverall: false },
+  { label: "Reliability", score: 4.68, formatted: "4.68 / 5.00", isOverall: false },
+  { label: "Overall System Mean", score: 4.69, formatted: "4.69 / 5.00", isOverall: true },
+];
+
+const RESPONDENT_COMPOSITION = [
+  "18 Staff",
+  "5 Drivers",
+  "5 IT Evaluators",
+  "2 External",
+];
+
+const VERBATIM_FEEDBACK = [
+  {
+    id: "q21-1",
+    topic: "UI Speed",
+    verbatim: "Super bilis mag-response ng UI at maganda.",
+    translation: "Very fast UI response and clean visual design.",
+  },
+  {
+    id: "q21-2",
+    topic: "Button Clarity",
+    verbatim: "Good UI and clean, good button actions, no delay, and hindi gaano mahirap intindihin.",
+    translation: "Clean UI with responsive button actions, zero lag, and easy to understand.",
+  },
+  {
+    id: "q21-3",
+    topic: "Zero Lag",
+    verbatim: "Ayos ang UI, hindi gaanong delay ang pag-click, wala namang error.",
+    translation: "Well-structured UI, responsive clicks with minimal delay, and error-free operation.",
+  },
+];
+
 export default function Landing() {
-  const { user, role } = useAuth();
-  const isAuthenticated = Boolean(user && ["admin", "staff"].includes(role));
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [navigatingOut, setNavigatingOut] = useState(false);
-  const mobileToggleRef = useRef(null);
-  const navigate = useNavigate();
-
-  const closeMobileMenu = () => setMobileMenuOpen(false);
-
-  const prefersReducedMotion = () =>
-    typeof window !== "undefined" &&
-    Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
-
-  useEffect(() => {
-    if (!mobileMenuOpen || typeof document === "undefined") return;
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") {
-        setMobileMenuOpen(false);
-        mobileToggleRef.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [mobileMenuOpen]);
-
-  const handleSignInClick = (targetPath) => (e) => {
-    if (e && typeof e.preventDefault === "function") {
-      e.preventDefault();
-    }
-    if (navigatingOut) return;
-    closeMobileMenu();
-
-    const destination = targetPath || (isAuthenticated ? "/dashboard" : "/login");
-    if (prefersReducedMotion()) {
-      navigate(destination);
-      return;
-    }
-
-    setNavigatingOut(true);
-
-    setTimeout(() => {
-      navigate(destination);
-    }, 240);
-  };
-
-  const scrollToSection = (targetId) => (e) => {
-    if (e && typeof e.preventDefault === "function") {
-      e.preventDefault();
-    }
-    closeMobileMenu();
-    if (typeof document === "undefined" || typeof window === "undefined") {
-      return;
-    }
-    const element = document.getElementById(targetId);
-    if (element) {
-      const behavior = prefersReducedMotion() ? "auto" : "smooth";
-      if (typeof element.scrollIntoView === "function") {
-        element.scrollIntoView({ behavior, block: "start" });
-      } else if (typeof window.scrollTo === "function") {
-        const headerOffset = 76;
-        const elementPosition = element.getBoundingClientRect?.().top ?? 0;
-        const pageOffset = window.pageYOffset ?? window.scrollY ?? 0;
-        window.scrollTo({
-          top: elementPosition + pageOffset - headerOffset,
-          behavior
-        });
-      }
-      try {
-        if (window.history && typeof window.history.pushState === "function") {
-          window.history.pushState(null, "", `#${targetId}`);
-        }
-      } catch {
-        // safely ignore in sandboxed or mock test environments
-      }
-    }
-  };
-
-  const scrollToTop = (e) => {
-    if (e && typeof e.preventDefault === "function") {
-      e.preventDefault();
-    }
-    closeMobileMenu();
-    if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
-      const behavior = prefersReducedMotion() ? "auto" : "smooth";
-      window.scrollTo({
-        top: 0,
-        behavior
-      });
-      try {
-        if (window.history && typeof window.history.pushState === "function") {
-          window.history.pushState(null, "", window.location.pathname);
-        }
-      } catch {
-        // safely ignore
-      }
-    }
-  };
-
   return (
-    <div className={`landing-page ${navigatingOut ? "navigating-out" : ""}`}>
-      {navigatingOut && (
-        <div className="modern-top-loader" aria-hidden="true">
-          <div className="modern-top-loader-bar" />
-        </div>
-      )}
+    <PublicLayout className="landing-page">
+      <section className="landing-hero" id="hero">
+        <div className="landing-hero-grid">
+          <div className="landing-hero-content">
+            <span className="landing-eyebrow">
+              PEÑARANDA, NUEVA ECIJA &middot; EST. 2015
+            </span>
+            <h1 className="landing-hero-title">
+              Dedicated Full Truckload (FTL) Freight Dispatch
+            </h1>
+            <p className="landing-hero-subtitle">
+              Mabutol Trucking coordinates dedicated Full Truckload (FTL) hauls from Peñaranda, Nueva Ecija across Central Luzon and Metro Manila with real-time GPS visibility and verified Proof of Delivery.
+            </p>
 
-      {/* ---------- Top Navigation ---------- */}
-      <header className="landing-header">
-        <div className="landing-nav-container">
-          <Link to="/" className="landing-brand" onClick={scrollToTop}>
-            <div className="landing-logo-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </div>
-            <div className="landing-brand-text">
-              <span className="landing-brand-name">TANAW</span>
-              <span className="landing-brand-tag">MABUTOL TRUCKING</span>
-            </div>
-          </Link>
-
-          <nav className={`landing-nav-links ${mobileMenuOpen ? "open" : ""}`} aria-label="Main Navigation">
-            <a href="#features" onClick={scrollToSection("features")}>Features</a>
-            <a href="#preview" onClick={scrollToSection("preview")}>Operations</a>
-            <a href="#metrics" onClick={scrollToSection("metrics")}>Overview</a>
-            <a href="#workflow" onClick={scrollToSection("workflow")}>Workflow</a>
-            <a href="#mobile-app" onClick={scrollToSection("mobile-app")}>Mobile App</a>
-            <div className="landing-nav-auth-mobile">
-              <Link
-                to={isAuthenticated ? "/dashboard" : "/login"}
-                className="landing-btn-primary"
-                onClick={handleSignInClick()}
-              >
-                {isAuthenticated ? "Go to Dashboard" : "Sign In"}
+            <div className="landing-hero-ctas">
+              <Link to="/login" className="landing-cta-primary">
+                <span>Office Staff Sign In</span>
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
+              <Link to="/mobile-app" className="landing-cta-secondary">
+                Get Mobile APK
               </Link>
             </div>
-          </nav>
-
-          <div className="landing-nav-actions">
-            <Link
-              to={isAuthenticated ? "/dashboard" : "/login"}
-              className="landing-btn-primary desktop-only"
-              onClick={handleSignInClick()}
-            >
-              {isAuthenticated ? "Go to Dashboard" : "Sign In"}
-            </Link>
-            <button
-              ref={mobileToggleRef}
-              type="button"
-              className="landing-mobile-toggle"
-              onClick={() => setMobileMenuOpen(prev => !prev)}
-              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? "✕" : "☰"}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main>
-      {/* ---------- Hero Section ---------- */}
-      <section className="landing-hero" id="hero">
-        <div className="landing-hero-inner">
-          <h1 className="landing-hero-title">
-            Smart Fleet Dispatch &amp; Real-Time Delivery Tracking
-          </h1>
-
-          <p className="landing-hero-subtitle">
-            The unified operations center for Mabutol Trucking. Dispatch shipments with automatic toll calculations, monitor live GPS positions across Luzon highways, coordinate directly with drivers, and maintain rigorous financial audit precision.
-          </p>
-
-          <div className="landing-hero-actions">
-            <Link
-              to={isAuthenticated ? "/dashboard" : "/login"}
-              className="landing-btn-cta"
-              onClick={handleSignInClick()}
-            >
-              {isAuthenticated ? "Open Operations Dashboard" : "Sign In to Operations"}
-            </Link>
-            <a
-              href="#features"
-              className="landing-btn-outline"
-              onClick={scrollToSection("features")}
-            >
-              View Platform Capabilities
-            </a>
           </div>
 
-          <div className="landing-trust-bar">
-            <span>✓ Live GPS Luzon Telemetry</span>
-            <span className="dot-divider">•</span>
-            <span>✓ Automated NLEX · SCTEX · TPLEX Tolls</span>
-            <span className="dot-divider">•</span>
-            <span>✓ Encrypted POD &amp; Photo Signatures</span>
-            <span className="dot-divider">•</span>
-            <span>✓ Real-time Driver Messages</span>
-          </div>
-        </div>
-
-        {/* ---------- Interactive Operations Preview Window ---------- */}
-        <div className="landing-preview-section" id="preview">
-          <div className="landing-preview-window">
-            <div className="preview-window-bar">
-              <div className="preview-url-pill">
-                <span>tanaw.mabutol.ph/dashboard</span>
-              </div>
-            </div>
-
-            <div className="preview-dashboard-body">
-              {/* Mini Topbar */}
-              <div className="preview-topbar">
-                <div className="preview-search">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                  <span className="preview-search-text">Search shipments, customers, routes, drivers…</span>
-                </div>
-                <div className="preview-topbar-tools">
-                  <span className="preview-badge-pht">PHT (UTC+8)</span>
-                  <span className="preview-avatar">MT</span>
-                </div>
-              </div>
-
-              {/* Stat Cards */}
-              <div className="preview-stats-grid">
-                <div className="preview-stat-card border-green">
-                  <span className="stat-label">Active Shipments</span>
-                  <strong className="stat-num text-green">Live</strong>
-                  <span className="stat-note">Real-time route status</span>
-                </div>
-                <div className="preview-stat-card border-red">
-                  <span className="stat-label">Delayed Shipments</span>
-                  <strong className="stat-num text-slate">Monitored</strong>
-                  <span className="stat-note">ETA variance tracking</span>
-                </div>
-                <div className="preview-stat-card border-blue">
-                  <span className="stat-label">Available Trucks</span>
-                  <strong className="stat-num text-blue">Verified</strong>
-                  <span className="stat-note">Capacity &amp; compliance ready</span>
-                </div>
-                <div className="preview-stat-card border-amber">
-                  <span className="stat-label">Pending Dispatch</span>
-                  <strong className="stat-num text-amber">Queue</strong>
-                  <span className="stat-note">Office dispatch review</span>
-                </div>
-              </div>
-
-              {/* Lower Section: Simulated Map & Action Center */}
-              <div className="preview-lower-grid">
-                <div className="preview-map-card">
-                  <div className="preview-card-header">
-                    <p className="preview-card-title">Live Tracking: Central Luzon</p>
-                    <span className="map-chip">GPS Telemetry</span>
-                  </div>
-                  <div className="preview-map-canvas">
-                    <div className="map-road-line" />
-                    <div className="map-truck-pin pin-active">
-                      <span className="pin-tooltip">Active Route · Cabanatuan to Balagtas</span>
-                    </div>
-                    <div className="map-depot-pin pin-depot">
-                      <span className="depot-tooltip">Cabanatuan Depot</span>
-                    </div>
-                    <div className="map-dest-pin pin-dest">
-                      <span className="dest-tooltip">Balagtas Dropoff</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="preview-action-card">
-                  <div className="preview-card-header">
-                    <p className="preview-card-title">Operations Action Center</p>
-                  </div>
-                  <div className="preview-alert-item alert-compliance">
-                    <div className="alert-content">
-                      <strong>Fleet Compliance Standing</strong>
-                      <p>Vehicle inspection &amp; driver credentials verified.</p>
-                    </div>
-                  </div>
-                  <div className="preview-alert-item alert-booking">
-                    <div className="alert-content">
-                      <strong>Customer Booking Request</strong>
-                      <p>Freight quotation awaiting office assignment review.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- Core Capabilities Grid ---------- */}
-      <section className="landing-features" id="features">
-        <div className="landing-section-header">
-          <span className="landing-section-tag">BUILT FOR MODERN LOGISTICS</span>
-          <h2>Comprehensive Freight Operations Infrastructure</h2>
-          <p>
-            Engineered to replace fragmented spreadsheets and phone calls with high-precision tracking, automated toll calculation, and auditable accountability.
-          </p>
-        </div>
-
-        <div className="landing-features-grid">
-          {/* Feature 1 */}
-          <div className="landing-feature-card">
-            <div className="feature-icon-wrapper icon-navy">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polygon points="3 11 22 2 13 21 11 13 3 11" />
-              </svg>
-            </div>
-            <h3>Real-Time GPS Fleet Tracking</h3>
-            <p>
-              Monitor vehicle positions across Luzon arterial highways with automated delay alerts, leg-by-leg journey tracking, and accurate estimated arrival timestamps.
-            </p>
-            <ul className="feature-list">
-              <li>Continuous GPS telemetry and geofenced milestone checks</li>
-              <li>Live highway route previews across Nueva Ecija, Bulacan, and Pampanga</li>
-              <li>Instant delay detection based on planned arrival variance</li>
-            </ul>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="landing-feature-card">
-            <div className="feature-icon-wrapper icon-blue">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="1" y="3" width="15" height="13" />
-                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                <circle cx="5.5" cy="18.5" r="2.5" />
-                <circle cx="18.5" cy="18.5" r="2.5" />
-              </svg>
-            </div>
-            <h3>Capacity-Aware Smart Dispatch</h3>
-            <p>
-              Match freight requests against exact truck capacity, axle limits, and maintenance readiness while preventing double-booking and unauthorized assignments.
-            </p>
-            <ul className="feature-list">
-              <li>Automatic cargo weight and volume capacity validation</li>
-              <li>Integrated NLEX, SCTEX, and TPLEX toll pricing matrices</li>
-              <li>Prevent dispatch of vehicles with overdue maintenance logs</li>
-            </ul>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="landing-feature-card">
-            <div className="feature-icon-wrapper icon-green">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <h3>In-App Driver Communication</h3>
-            <p>
-              Coordinate directly with drivers through a dedicated, auditable communication stream without relying on external messaging apps.
-            </p>
-            <ul className="feature-list">
-              <li>Instant conversation inbox with unread badges in the topbar</li>
-              <li>Trip-specific chat bubbles with verified Philippine timestamps</li>
-              <li>Digital proof of delivery (POD) photo and signature sync</li>
-            </ul>
-          </div>
-
-          {/* Feature 4 */}
-          <div className="landing-feature-card">
-            <div className="feature-icon-wrapper icon-amber">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="20" x2="18" y2="10" />
-                <line x1="12" y1="20" x2="12" y2="4" />
-                <line x1="6" y1="20" x2="6" y2="14" />
-              </svg>
-            </div>
-            <h3>Audited Ledger &amp; Performance Reports</h3>
-            <p>
-              Track on-time arrival trends, revenue per customer, fuel costs, and recorded expenses in an auditable ledger with export capabilities.
-            </p>
-            <ul className="feature-list">
-              <li>Delivery Performance Trend chart with widescreen variance analysis</li>
-              <li>Multi-range filtering (Today, This Week, Month, Custom Range)</li>
-              <li>Automated CSV and PDF report generation with scheduled delivery</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- High-Impact Metric Bar ---------- */}
-      <section className="landing-metrics" id="metrics">
-        <div className="landing-metrics-inner">
-          <div className="metric-col">
-            <strong className="metric-number">Multi-Class</strong>
-            <span className="metric-label">FLEET REGISTRY</span>
-            <p className="metric-sub">Heavy, medium &amp; light cargo trucks</p>
-          </div>
-          <div className="metric-divider" />
-          <div className="metric-col">
-            <strong className="metric-number">Timed ETA</strong>
-            <span className="metric-label">ARRIVAL TRACKING</span>
-            <p className="metric-sub">Across completed deliveries</p>
-          </div>
-          <div className="metric-divider" />
-          <div className="metric-col">
-            <strong className="metric-number">PHT</strong>
-            <span className="metric-label">PHILIPPINE TIMEZONE</span>
-            <p className="metric-sub">Synchronized Asia/Manila (UTC+8) dates</p>
-          </div>
-          <div className="metric-divider" />
-          <div className="metric-col">
-            <strong className="metric-number">Live Sync</strong>
-            <span className="metric-label">DISPATCH UPDATES</span>
-            <p className="metric-sub">Direct driver alert &amp; chat stream</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- 4-Step Operational Workflow ---------- */}
-      <section className="landing-workflow" id="workflow">
-        <div className="landing-section-header">
-          <span className="landing-section-tag">END-TO-END DISPATCH PIPELINE</span>
-          <h2>How TANAW Powers Every Delivery</h2>
-          <p>
-            From the initial customer quotation to verified destination sign-off, every stage is structured for zero data loss and maximum punctuality.
-          </p>
-        </div>
-
-        <div className="workflow-steps-grid">
-          <div className="workflow-step-card">
-            <div className="step-number-badge">01</div>
-            <h3>Booking &amp; Quotation</h3>
-            <p>
-              Office staff reviews freight details, calculates exact toll fees, and generates verified booking agreements with clear delivery requirements.
-            </p>
-          </div>
-
-          <div className="workflow-step-card">
-            <div className="step-number-badge">02</div>
-            <h3>Automated Dispatch</h3>
-            <p>
-              Eligible trucks and drivers are matched by capacity, license validity, and vehicle maintenance status, locking reservations atomically.
-            </p>
-          </div>
-
-          <div className="workflow-step-card">
-            <div className="step-number-badge">03</div>
-            <h3>In-Transit Telemetry</h3>
-            <p>
-              Drivers confirm milestones via mobile app while dispatchers monitor live GPS road tracking, toll plaza crossings, and status updates.
-            </p>
-          </div>
-
-          <div className="workflow-step-card">
-            <div className="step-number-badge">04</div>
-            <h3>POD &amp; Financial Ledger</h3>
-            <p>
-              Upon drop-off, drivers upload digital signatures and photo evidence, immediately recording arrival timestamps and final delivery variance.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------- Mobile App Download QR Section ---------- */}
-      <section className="landing-mobile-app" id="mobile-app" aria-labelledby="mobile-app-heading">
-        <div className="mobile-app-card">
-          <div className="mobile-app-info">
-            <div className="mobile-app-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="6" y="2" width="12" height="20" rx="2" ry="2" />
-                <line x1="12" y1="18" x2="12.01" y2="18" />
-              </svg>
-            </div>
-            <h2 id="mobile-app-heading">Download the TANAW Mobile App</h2>
-            <p className="mobile-app-desc">
-              Scan the QR code with your phone camera to download the Mabutol Trucking mobile application for drivers and customers.
-            </p>
-            <ul className="mobile-app-checklist">
-              <li>Drivers: Receive trip assignments, update milestones, and upload POD photos</li>
-              <li>Customers: Track active shipments and view booking updates</li>
-              <li>Sign in using your registered Mabutol Trucking account credentials</li>
-            </ul>
-          </div>
-
-          <div className="mobile-app-qr-panel">
-            <div className="mobile-app-qr-frame">
+          <div className="landing-hero-media">
+            <figure className="hero-photo-frame">
               <img
-                src="/mobile-app-qr.jpg"
-                alt="QR code to download the Mabutol Trucking mobile application"
-                className="mobile-app-qr-image"
-                width="200"
-                height="200"
-                loading="lazy"
+                src={HERO_TRUCK_PHOTO_URL}
+                alt="Commercial cargo freight truck operating along an open highway corridor"
+                width="1200"
+                height="750"
+                className="hero-photo-img"
+                fetchPriority="high"
+                decoding="sync"
               />
-            </div>
-            <span className="mobile-app-qr-caption">Scan with camera to download</span>
+              <figcaption className="hero-corridor-pill">
+                <span className="hero-corridor-pin" aria-hidden="true" />
+                <span className="hero-corridor-primary">NLEX &middot; SCTEX &middot; TPLEX CORRIDOR</span>
+                <span className="hero-corridor-sep" aria-hidden="true">|</span>
+                <span className="hero-corridor-secondary">GPS &amp; Digital POD Enabled</span>
+              </figcaption>
+            </figure>
           </div>
         </div>
       </section>
 
-      {/* ---------- Call to Action Banner ---------- */}
-      <section className="landing-cta-section">
-        <div className="landing-cta-card">
-          <div className="landing-cta-content">
-            <div className="landing-logo-icon cta-logo" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+      <section className="landing-baseline-bar" aria-label="Mabutol Trucking Operational Baseline">
+        <div className="landing-baseline-grid">
+          {BASELINE_METRICS.map((item) => (
+            <div key={item.value} className="baseline-metric-item">
+              <strong className="baseline-metric-value">{item.value}</strong>
+              <span className="baseline-metric-label">{item.label}</span>
             </div>
-            <h2>Ready to Access the Operations Center?</h2>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-platform-section" aria-labelledby="platform-heading">
+        <div className="landing-platform-inner">
+          <div className="landing-platform-header">
+            <h2 id="platform-heading">Two Connected Surfaces for Mabutol Trucking</h2>
             <p>
-              Sign in with your authorized office administrator or dispatcher account to access the live operations board, fleet registry, and reports.
+              Office staff coordinate routes, tolls, and compliance on the web while drivers and freight clients track every trip on Android.
             </p>
-            <Link
-              to={isAuthenticated ? "/dashboard" : "/login"}
-              className="landing-btn-cta cta-light"
-              onClick={handleSignInClick()}
-            >
-              {isAuthenticated ? "Enter Operations Dashboard" : "Sign In to Operations"}
-            </Link>
           </div>
+
+          <div className="platform-split-grid">
+            {PLATFORM_HALVES.map((card) => (
+              <article key={card.id} className="platform-card">
+                <div className="platform-card-top">
+                  <span className={`platform-audience-badge is-${card.audienceTone}`}>
+                    {card.audience}
+                  </span>
+                  <h3>{card.title}</h3>
+                  <p>{card.description}</p>
+                </div>
+
+                <ul className="platform-card-list">
+                  {card.highlights.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+
+                <div className="platform-card-footer">
+                  <Link to={card.to} className="platform-card-link">
+                    <span>{card.ctaLabel}</span>
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <MobileShowcase variant="compact" />
         </div>
       </section>
-      </main>
 
-      {/* ---------- Footer ---------- */}
-      <footer className="landing-footer">
-        <div className="landing-footer-inner">
-          <div className="footer-col-brand">
-            <Link to="/" className="landing-brand" onClick={scrollToTop}>
-              <div className="landing-logo-icon small" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
+      <section className="landing-evaluation-section" aria-labelledby="evaluation-heading">
+        <div className="landing-evaluation-inner">
+          <div className="landing-evaluation-header">
+            <span className="landing-eyebrow">
+              ISO/IEC 25010:2023 QUALITY EVALUATION &middot; NOV 8&ndash;10, 2026
+            </span>
+            <h2 id="evaluation-heading">
+              Validated by Mabutol Trucking Staff, Drivers &amp; Technical Evaluators
+            </h2>
+            <p>
+              Evaluated across 30 consented respondents (18 operations staff, 5 drivers, 5 IT evaluators, and 2 external users), with 98.2% of 549 eligible item ratings scoring Agree or Strongly Agree.
+            </p>
+          </div>
+
+          <div className="evaluation-grid">
+            <div className="evaluation-card evaluation-scores-card">
+              <div className="evaluation-scores-main">
+                <div className="evaluation-card-head">
+                  <h3>ISO/IEC 25010 Category Scores</h3>
+                  <span className="evaluation-scale-note">Mean Score out of 5.00 (n = 30)</span>
+                </div>
+
+                <ul className="evaluation-score-list">
+                  {ISO_EVALUATION_SCORES.map((item) => {
+                    const widthPct = `${(item.score / 5) * 100}%`;
+                    return (
+                      <li
+                        key={item.label}
+                        className={`evaluation-score-item ${item.isOverall ? "is-overall" : ""}`}
+                      >
+                        <div className="evaluation-score-row">
+                          <span className="evaluation-score-label">{item.label}</span>
+                          <span className="evaluation-score-value">{item.formatted}</span>
+                        </div>
+                        <div className="evaluation-bar-track" aria-hidden="true">
+                          <div className="evaluation-bar-fill" style={{ width: widthPct }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+
+              <div className="evaluation-composition-strip" aria-label="Respondent Composition">
+                <span className="evaluation-composition-label">Respondent Mix</span>
+                <div className="evaluation-composition-pills">
+                  {RESPONDENT_COMPOSITION.map((group) => (
+                    <span key={group} className="evaluation-composition-pill">
+                      {group}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="evaluation-card evaluation-feedback-card">
+              <div className="evaluation-card-head">
+                <h3>Verbatim Respondent Feedback</h3>
+                <span className="evaluation-disclosure-tag">
+                  Anonymous Survey Export &middot; Q21: &ldquo;What did you like most about TANAW?&rdquo; (Nov 8&ndash;10, 2026)
+                </span>
+              </div>
+
+              <div className="evaluation-quote-list">
+                {VERBATIM_FEEDBACK.map((entry) => (
+                  <figure key={entry.id} className="evaluation-quote-item">
+                    <div className="evaluation-quote-top">
+                      <blockquote className="evaluation-quote-verbatim">
+                        <p>&ldquo;{entry.verbatim}&rdquo;</p>
+                      </blockquote>
+                      <span className="evaluation-quote-topic">{entry.topic}</span>
+                    </div>
+                    <figcaption className="evaluation-quote-translation">
+                      <em>&ldquo;{entry.translation}&rdquo;</em>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+
+              <p className="evaluation-qa-footnote">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 6 9 17l-5-5" />
                 </svg>
-              </div>
-              <div className="landing-brand-text">
-                <span className="landing-brand-name">TANAW</span>
-                <span className="landing-brand-tag">MABUTOL TRUCKING</span>
-              </div>
-            </Link>
-            <p className="footer-desc">
-              Centralized logistics operations, fleet telemetry, and dispatch management system for Mabutol Trucking.
-            </p>
-          </div>
-
-          <div className="footer-col-links">
-            <span className="footer-links-title">Platform</span>
-            <a href="#features" onClick={scrollToSection("features")}>Features</a>
-            <a href="#preview" onClick={scrollToSection("preview")}>Operations</a>
-            <a href="#workflow" onClick={scrollToSection("workflow")}>Workflow</a>
-            <a href="#mobile-app" onClick={scrollToSection("mobile-app")}>Mobile App</a>
-          </div>
-
-          <div className="footer-col-links">
-            <span className="footer-links-title">Access</span>
-            <Link
-              to={isAuthenticated ? "/dashboard" : "/login"}
-              onClick={handleSignInClick()}
-            >
-              {isAuthenticated ? "Dashboard" : "Office Sign In"}
-            </Link>
-            <Link to="/forgot-password">Password Recovery</Link>
-          </div>
-
-          <div className="footer-col-notice">
-            <span className="footer-links-title">Notice</span>
-            <p>
-              This portal is restricted to authorized Mabutol Trucking dispatchers, fleet administrators, and operations personnel. All activities are recorded for audit compliance.
-            </p>
+                <span>
+                  IEEE 829 Functional Verification: 49 / 51 Test Cases Passed (TRK-004 GPS &amp; ALR-001 Alerts Verified)
+                </span>
+              </p>
+            </div>
           </div>
         </div>
-
-        <div className="landing-footer-bottom">
-          <span>&copy; {new Date().getFullYear()} Mabutol Trucking. All rights reserved.</span>
-          <button
-            type="button"
-            className="landing-back-to-top"
-            onClick={scrollToTop}
-            aria-label="Back to top"
-          >
-            Back to top ↑
-          </button>
-          <span>Philippine Standard Time (PHT · UTC+8)</span>
-        </div>
-      </footer>
-    </div>
+      </section>
+    </PublicLayout>
   );
 }
-

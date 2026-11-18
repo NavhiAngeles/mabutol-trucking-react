@@ -1,0 +1,1067 @@
+/* Shared styling for TANAW public routes (/services, /workflow, /mobile-app). */
+
+.public-subpage .public-page-header {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 48px 24px 40px;
+}
+
+.public-subpage .public-page-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.public-subpage .public-page-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  margin-bottom: 14px;
+  background-color: #E8EEF8;
+  border: 1px solid #BFDBFE;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #0F2A52;
+}
+
+.public-subpage .public-page-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.875rem, 1.35rem + 1.8vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #0F172A;
+  margin: 0 0 12px;
+  max-width: 780px;
+}
+
+.public-subpage .public-page-subtitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 720px;
+}
+
+.public-subpage .public-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 52px 24px;
+}
+
+.public-subpage .public-section-muted {
+  background-color: #F1F5F9;
+  border-top: 1px solid #E2E8F0;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 52px 24px;
+}
+
+.public-subpage .public-section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.public-subpage .public-section-heading {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.375rem, 1.15rem + 0.8vw, 1.75rem);
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.public-subpage .public-section-lead {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 680px;
+}
+
+/* Shared Buttons */
+.public-subpage .public-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 22px;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #0F172A;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.public-subpage .public-btn-primary:hover {
+  background-color: #1E293B;
+  border-color: #1E293B;
+}
+
+.public-subpage .public-btn-primary-on-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 22px;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  font-size: 14.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid #FFFFFF;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 150ms ease;
+}
+
+.public-subpage .public-btn-primary-on-dark:hover {
+  background-color: #E2E8F0;
+}
+
+.public-subpage .public-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  font-size: 14.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.public-subpage .public-btn-secondary:hover {
+  background-color: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+/* /services: Service Tiers */
+.public-subpage .services-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.public-subpage .service-tier-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.public-subpage .service-tier-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background-color: #0F172A;
+  overflow: hidden;
+}
+
+.public-subpage .service-tier-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-subpage .service-tier-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.public-subpage .service-tier-tag {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: #E8EEF8;
+  border: 1px solid #BFDBFE;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0F2A52;
+}
+
+.public-subpage .service-tier-body h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.public-subpage .service-tier-body p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+/* /services: Fleet Vehicle Matrix (Container-Responsive Table) */
+.public-subpage .fleet-table-wrapper {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: auto;
+  max-inline-size: 100%;
+  container-type: inline-size;
+}
+
+.public-subpage .fleet-matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  --label-1: "Vehicle Class";
+  --label-2: "Configuration";
+  --label-3: "Payload Capacity";
+  --label-4: "Operational Use";
+}
+
+.public-subpage .fleet-matrix-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.public-subpage .fleet-matrix-table thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background-color: #F1F5F9;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.public-subpage .fleet-matrix-table tbody th,
+.public-subpage .fleet-matrix-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #F1F5F9;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0F172A;
+  vertical-align: middle;
+}
+
+.public-subpage .fleet-matrix-table tbody tr:last-child th,
+.public-subpage .fleet-matrix-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.public-subpage .fleet-matrix-table tbody tr:hover th,
+.public-subpage .fleet-matrix-table tbody tr:hover td {
+  background-color: #F8FAFC;
+}
+
+.public-subpage .fleet-class-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.public-subpage .fleet-silhouette-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 32px;
+  border-radius: 6px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #0F2A52;
+  flex-shrink: 0;
+}
+
+.public-subpage .fleet-capacity-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0F2A52;
+}
+
+.public-subpage .fleet-config-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+@container (width < 680px) {
+  .public-subpage .fleet-table-wrapper {
+    background: transparent;
+    border: 0;
+    overflow: visible;
+  }
+
+  .public-subpage .fleet-matrix-table,
+  .public-subpage .fleet-matrix-table thead,
+  .public-subpage .fleet-matrix-table tbody,
+  .public-subpage .fleet-matrix-table tr,
+  .public-subpage .fleet-matrix-table th,
+  .public-subpage .fleet-matrix-table td {
+    display: block;
+  }
+
+  .public-subpage .fleet-matrix-table thead {
+    display: none;
+  }
+
+  .public-subpage .fleet-matrix-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .public-subpage .fleet-matrix-table tbody tr {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .public-subpage .fleet-matrix-table tbody th {
+    background-color: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+  }
+
+  .public-subpage .fleet-matrix-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    text-align: right;
+  }
+
+  .public-subpage .fleet-matrix-table tbody td:nth-child(2)::before {
+    content: var(--label-2);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    text-align: left;
+  }
+
+  .public-subpage .fleet-matrix-table tbody td:nth-child(3)::before {
+    content: var(--label-3);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    text-align: left;
+  }
+
+  .public-subpage .fleet-matrix-table tbody td:nth-child(4)::before {
+    content: var(--label-4);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #475569;
+    text-align: left;
+  }
+}
+
+/* Bottom CTA Callout */
+.public-subpage .public-callout-band {
+  background-color: #0F172A;
+  border-radius: 12px;
+  padding: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.public-subpage .public-callout-copy h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #F8FAFC;
+}
+
+.public-subpage .public-callout-copy p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  max-width: 580px;
+}
+
+.public-subpage .public-callout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* /workflow: Modern Side-by-Side Operational Diff Ledger */
+.public-subpage .workflow-diff-ledger {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.public-subpage .workflow-diff-head {
+  display: grid;
+  grid-template-columns: 0.75fr 1fr 1fr;
+  gap: 16px;
+  padding: 14px 20px;
+  background-color: #F1F5F9;
+  border-bottom: 1px solid #E2E8F0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.public-subpage .workflow-diff-row {
+  display: grid;
+  grid-template-columns: 0.75fr 1fr 1fr;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #F1F5F9;
+  align-items: start;
+}
+
+.public-subpage .workflow-diff-row:last-child {
+  border-bottom: 0;
+}
+
+.public-subpage .workflow-diff-area h3 {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.public-subpage .workflow-diff-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.public-subpage .workflow-diff-cell p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.public-subpage .workflow-diff-cell.is-after p {
+  color: #0F172A;
+  font-weight: 500;
+}
+
+.public-subpage .workflow-diff-tag {
+  display: none;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.public-subpage .workflow-diff-tag.is-before {
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.public-subpage .workflow-diff-tag.is-after {
+  background-color: #E8EEF8;
+  color: #0F2A52;
+}
+
+/* /workflow: Interactive 5-Stage Master-Detail Explorer */
+.public-subpage .workflow-explorer {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.public-subpage .workflow-stage-tablist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.public-subpage .workflow-stage-tab {
+  position: relative;
+  width: 100%;
+  min-height: 64px;
+  padding: 14px 16px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.public-subpage .workflow-stage-tab:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.public-subpage .workflow-stage-tab.is-selected {
+  border-color: #0F2A52;
+  background-color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+/* Non-color selection bar per WCAG 1.4.1 */
+.public-subpage .workflow-stage-tab.is-selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background-color: #1D4ED8;
+}
+
+.public-subpage .workflow-stage-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 8px;
+  background-color: #F1F5F9;
+  color: #0F2A52;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.public-subpage .workflow-stage-tab.is-selected .workflow-stage-num {
+  background-color: #0F2A52;
+  color: #FFFFFF;
+}
+
+.public-subpage .workflow-stage-tab-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.public-subpage .workflow-stage-tab-text strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.public-subpage .workflow-stage-tab-text span {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.public-subpage .workflow-inspector-panel {
+  background-color: #0F172A;
+  border: 1px solid #1E293B;
+  border-radius: 12px;
+  padding: 26px;
+  color: #F8FAFC;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.public-subpage .workflow-inspector-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.public-subpage .workflow-inspector-step {
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: #1E3A8A;
+  color: #DBEAFE;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.public-subpage .workflow-inspector-surface {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #FB923C;
+}
+
+.public-subpage .workflow-inspector-top h3 {
+  margin: 0 0 8px;
+  font-size: 21px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.public-subpage .workflow-inspector-top p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #CBD5E1;
+}
+
+.public-subpage .workflow-artifact-box {
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.public-subpage .workflow-artifact-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.public-subpage .workflow-artifact-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.public-subpage .workflow-artifact-status {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.public-subpage .workflow-artifact-status.is-info {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+}
+
+.public-subpage .workflow-artifact-status.is-verified {
+  background-color: #DCFCE7;
+  color: #15803D;
+}
+
+.public-subpage .workflow-artifact-status.is-transit {
+  background-color: #FFF7ED;
+  color: #C2410C;
+}
+
+.public-subpage .workflow-artifact-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.public-subpage .workflow-artifact-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.public-subpage .workflow-artifact-row dt {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.public-subpage .workflow-artifact-row dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.public-subpage .workflow-inspector-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-subpage .workflow-step-nav-btn {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 14px;
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #F8FAFC;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.public-subpage .workflow-step-nav-btn:hover:not(:disabled) {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+.public-subpage .workflow-step-nav-btn:disabled {
+  opacity: 0.45;
+}
+
+/* /workflow: Dark-Slate QA Validation Band */
+.public-subpage .workflow-qa-band {
+  background-color: #0F172A;
+  color: #F8FAFC;
+  padding: 52px 24px;
+}
+
+.public-subpage .workflow-qa-band-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.public-subpage .workflow-qa-band-header {
+  max-width: 680px;
+  margin-bottom: 28px;
+}
+
+.public-subpage .workflow-qa-band-header h2 {
+  margin: 0 0 8px;
+  font-size: clamp(1.375rem, 1.15rem + 0.8vw, 1.75rem);
+  font-weight: 800;
+  color: #F8FAFC;
+}
+
+.public-subpage .workflow-qa-band-header p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #CBD5E1;
+}
+
+.public-subpage .workflow-qa-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.public-subpage .workflow-qa-card-dark {
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.public-subpage .workflow-qa-code-dark {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: #0F2A52;
+  border: 1px solid #1E3A8A;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #DBEAFE;
+}
+
+.public-subpage .workflow-qa-metric-dark {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #F8FAFC;
+}
+
+.public-subpage .workflow-qa-detail-dark {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #CBD5E1;
+}
+
+/* /mobile-app: Dark Slate Hero Download, QR Card & Interactive Showcase */
+.public-subpage .mobile-download-hero {
+  background-color: #0F172A;
+  border: 1px solid #1E293B;
+  border-radius: 12px;
+  padding: 36px;
+  color: #F8FAFC;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: center;
+  gap: 32px;
+}
+
+.public-subpage .mobile-download-left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.public-subpage .mobile-download-info {
+  min-width: 0;
+}
+
+.public-subpage .mobile-download-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.public-subpage .mobile-download-showcase {
+  min-width: 0;
+  width: 100%;
+}
+
+.public-subpage .mobile-download-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: #FB923C;
+  margin-bottom: 14px;
+}
+
+.public-subpage .mobile-download-info h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #F8FAFC;
+}
+
+.public-subpage .mobile-download-lead {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  max-width: 580px;
+}
+
+.public-subpage .mobile-install-steps {
+  margin: 0 0 24px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #E2E8F0;
+}
+
+.public-subpage .mobile-apk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.public-subpage .mobile-apk-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.public-subpage .mobile-qr-card {
+  flex-shrink: 0;
+  background-color: #1E293B;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.public-subpage .mobile-qr-white-box {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.public-subpage .mobile-qr-img {
+  display: block;
+  width: 144px;
+  height: 144px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.public-subpage .mobile-qr-caption {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #E2E8F0;
+}
+
+/* /mobile-app: Role Breakdown 2-Column Comparison */
+.public-subpage .role-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.public-subpage .role-compare-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.public-subpage .role-badge {
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.public-subpage .role-badge.is-customer {
+  background-color: #E8EEF8;
+  border: 1px solid #BFDBFE;
+  color: #0F2A52;
+}
+
+.public-subpage .role-badge.is-driver {
+  background-color: #FFF7ED;
+  border: 1px solid #FED7AA;
+  color: #C2410C;
+}
+
+.public-subpage .role-compare-card h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.public-subpage .role-compare-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+@media (max-width: 1080px) {
+  .public-subpage .mobile-download-hero {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+}
+
+@media (max-width: 960px) {
+
+  .public-subpage .services-tier-grid,
+  .public-subpage .workflow-explorer,
+  .public-subpage .workflow-qa-grid,
+  .public-subpage .role-compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .public-subpage .workflow-diff-head {
+    display: none;
+  }
+
+  .public-subpage .workflow-diff-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .public-subpage .workflow-diff-tag {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .public-subpage .public-page-header {
+    padding: 32px 16px 28px;
+  }
+
+  .public-subpage .public-section,
+  .public-subpage .public-section-muted,
+  .public-subpage .workflow-qa-band {
+    padding: 36px 16px;
+  }
+
+  .public-subpage .workflow-inspector-panel {
+    padding: 20px 16px;
+  }
+
+  .public-subpage .public-callout-band,
+  .public-subpage .mobile-download-hero {
+    padding: 24px 18px;
+  }
+
+  .public-subpage .mobile-download-cta-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .public-subpage .mobile-qr-card {
+    align-self: stretch;
+  }
+
+  .public-subpage .public-btn-primary,
+  .public-subpage .public-btn-primary-on-dark,
+  .public-subpage .public-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
