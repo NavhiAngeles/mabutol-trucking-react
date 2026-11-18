@@ -5,6 +5,7 @@
   width: 100%;
   background-color: var(--bg-canvas, #F8FAFC);
   position: relative;
+  overflow-x: clip;
 }
 
 .main {
@@ -25,6 +26,8 @@
   pointer-events: auto;
   position: relative;
   flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .mobile-menu-trigger {
@@ -197,7 +200,13 @@
   }
 
   .dashboard .main :is(.topbar, .reports-topbar, .settings-topbar, .dr-topbar, .ov-topbar, .sr-topbar) {
+    height: auto;
+    min-height: var(--topbar-height, 64px);
+    flex-wrap: wrap;
+    padding-top: 8px;
+    padding-bottom: 8px;
     padding-left: 64px !important;
     padding-right: 12px !important;
+    gap: 10px;
   }
 }

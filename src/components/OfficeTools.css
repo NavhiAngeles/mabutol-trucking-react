@@ -372,3 +372,19 @@
     min-height: var(--touch-target, 44px);
   }
 }
+
+@media (max-width: 640px) {
+  .office-tools {
+    gap: var(--space-2, 8px);
+  }
+
+  .office-tools .office-notifications {
+    width: min(400px, calc(100vw - 24px));
+    max-height: calc(100dvh - 84px);
+  }
+
+  .office-tools .office-notifications-header {
+    flex-wrap: wrap;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+  }
+}

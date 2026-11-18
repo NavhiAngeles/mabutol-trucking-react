@@ -1383,7 +1383,8 @@ MODAL STRUCTURAL CONFIGURATIONS
 }
 
 .fleet-page .vehicle-success-modal {
-  width: 450px;
+  width: min(450px, calc(100vw - 24px));
+  max-width: 100%;
   background: #fff;
   border-radius: 12px;
   padding: 32px;

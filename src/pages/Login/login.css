@@ -589,6 +589,13 @@
   .login-page .card {
     padding: 24px 18px;
   }
+
+  .tanaw-toast {
+    top: 16px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
 }
 
 /* Preserved for LoginSuccessToast.jsx */
@@ -596,7 +603,7 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  width: 340px;
+  width: min(340px, calc(100vw - 24px));
   background: var(--bg-surface, #FFFFFF);
   border: 1px solid var(--border-subtle, #E2E8F0);
   border-left: 5px solid var(--status-success-text, #15803D);

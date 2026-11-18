@@ -41,8 +41,10 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  width: 448px;
+  width: min(448px, 100%);
   max-width: 100%;
+  flex: 1 1 220px;
+  min-width: 0;
   height: 48px;
   padding: 0 14px;
   background: var(--band);
@@ -881,6 +883,7 @@ background: transparent;
 .settings-page .pricing-page .pricing-table-scroll {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .settings-page :is(button, input, select, textarea):focus-visible {

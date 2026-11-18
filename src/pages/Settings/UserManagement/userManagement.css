@@ -2195,6 +2195,22 @@ box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
   outline-offset: 2px;
 }
 @media (max-width: 640px) {
+  .settings-page .modal,
+  .settings-page .rp-modal {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .settings-page .form-row,
+  .settings-page .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-page .office-user-management :is(input, select) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
   .settings-page .um-pagination button {
     min-height: 44px;

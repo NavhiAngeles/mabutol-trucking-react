@@ -988,3 +988,16 @@
     min-width: 44px;
   }
 }
+
+@media (max-width: 640px) {
+  .reports-page .dr-topbar {
+    height: auto;
+    min-height: 64px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .reports-page .dr-topbar-right {
+    gap: 8px;
+  }
+}

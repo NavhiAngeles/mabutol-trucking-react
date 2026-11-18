@@ -101,7 +101,6 @@ input[type="reset"]:not(:disabled):not([aria-disabled="true"]) {
 }
 
 .topbar {
-  height: var(--topbar-height, 64px);
   min-height: var(--topbar-height, 64px);
   display: flex;
   align-items: center;
@@ -118,6 +117,8 @@ input[type="reset"]:not(:disabled):not([aria-disabled="true"]) {
   pointer-events: auto;
   position: relative;
   flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .tabular-nums {

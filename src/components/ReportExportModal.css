@@ -234,7 +234,10 @@
 
 .rem-preview-canvas {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 24px;
   display: flex;
   justify-content: center;

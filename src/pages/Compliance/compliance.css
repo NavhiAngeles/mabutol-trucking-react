@@ -421,7 +421,8 @@
   position: relative;
   display: flex;
   align-items: center;
-  width: 320px;
+  width: min(320px, 100%);
+  max-width: 100%;
 }
 
 .compliance-page .table-search-box .search-icon {
@@ -820,6 +821,10 @@
   .compliance-page .compliance-header button {
     width: 100%;
     justify-content: center;
+  }
+
+  .compliance-page .table-search-box {
+    width: 100%;
   }
 
   .compliance-page .compliance-stats-grid,
