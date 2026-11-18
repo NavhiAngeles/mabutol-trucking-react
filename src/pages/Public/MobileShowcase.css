@@ -306,7 +306,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   padding: 7px 10px;
   border-radius: 10px;
   background-color: #172130;
@@ -316,13 +317,14 @@
 .m3-active-strip-left {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 5px;
   min-width: 0;
 }
 
 .m3-shipment-id {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #F8FAFC;
@@ -337,7 +339,7 @@
   padding: 2px 6px;
   border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -518,7 +520,7 @@
 }
 
 .m3-vehicle-title-row strong {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #F8FAFC;
 }
@@ -983,16 +985,16 @@
   font-weight: 600;
 }
 
-/* Floating Layered Glassmorphic Callout Cards (Desktop overlap, <768px stack) */
+/* Floating Layered Glassmorphic Callout Cards (flank phone on wide stage, stack cleanly otherwise) */
 .mobile-callout-card {
   position: absolute;
   z-index: 3;
-  width: min(212px, calc(50% - 92px));
+  width: 204px;
   padding: 12px 14px;
-  background: rgba(30, 41, 59, 0.88);
+  background: rgba(30, 41, 59, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 12px;
   box-shadow: 0 14px 28px rgba(2, 6, 23, 0.45);
   display: flex;
@@ -1002,12 +1004,14 @@
 
 .mobile-callout-card.is-left {
   top: 76px;
-  left: 0;
+  right: calc(50% + 162px);
+  left: auto;
 }
 
 .mobile-callout-card.is-right {
   bottom: 64px;
-  right: 0;
+  left: calc(50% + 162px);
+  right: auto;
 }
 
 .callout-badge {
@@ -1047,7 +1051,18 @@
   color: #CBD5E1;
 }
 
-@media (max-width: 767px) {
+/* Compact variant and narrower stages stack callouts below the phone so they never cover the UI */
+.mobile-showcase-compact .mobile-showcase-frame-wrap {
+  gap: 14px;
+}
+
+.mobile-showcase-compact .mobile-callout-card {
+  position: static;
+  width: 100%;
+  max-width: 340px;
+}
+
+@media (max-width: 820px) {
   .mobile-showcase-frame-wrap {
     gap: 14px;
   }
