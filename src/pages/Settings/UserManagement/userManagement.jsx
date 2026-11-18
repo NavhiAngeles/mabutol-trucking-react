@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { userManagementApi, validateOfficeCreation } from '../../../services/userManagementService';
+import { SkeletonBlock, SkeletonTableRows } from '../../../components/Skeleton/Skeleton';
 import './userManagement.css';
 
 const dateLabel = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable';
@@ -227,7 +228,33 @@ function OfficeUsers() {
     )}
     {snapshot?.provisioningError && <p role="alert" className="um-error-banner">{snapshot.provisioningError}</p>}
     {loadError && <div role="alert" className="um-error-banner"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div>}
-    {!snapshot && !loadError && <p role="status">Loading office users…</p>}
+    {!snapshot && !loadError && (
+      <>
+        <p role="status">Loading office users…</p>
+        <div className="um-directory" aria-hidden="true">
+          <div className="um-directory-heading">
+            <div><h2>Office accounts</h2><p>Manage access for your office team.</p></div>
+            <SkeletonBlock width={86} height={22} radius="xs" />
+          </div>
+          <div className="table-card um-table-scroll">
+            <table className="user-table">
+              <thead>
+                <tr>
+                  <th>User / Login Email</th>
+                  <th>Role</th>
+                  <th>Created (Philippine time)</th>
+                  <th>Status</th>
+                  <th className="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <SkeletonTableRows rows={5} columns={["avatar-stack", "badge", "short", "badge", "action"]} />
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    )}
     {snapshot && <>
       <div className="um-directory">
         <div className="um-directory-heading">
@@ -430,7 +457,27 @@ function OfficeUsers() {
               </button>
             </div>
 
-            {auditLoading && !auditLogs && <p role="status" className="um-audit-status">Loading audit logs…</p>}
+            {auditLoading && !auditLogs && (
+              <>
+                <p role="status" className="um-audit-status">Loading audit logs…</p>
+                <div className="table-card um-table-scroll um-audit-table-card" aria-hidden="true">
+                  <table className="user-table um-audit-table">
+                    <thead>
+                      <tr>
+                        <th>Timestamp (Philippine time)</th>
+                        <th>Actor</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Metadata</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <SkeletonTableRows rows={5} columns={["short", "avatar-stack", "badge", "short", "text"]} />
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
             {auditError && (
               <div role="alert" className="um-error-banner">
                 <p>{auditError}</p>

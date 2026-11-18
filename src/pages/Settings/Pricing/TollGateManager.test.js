@@ -167,6 +167,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
     getCurrentPricingUser: async () => mockCurrentUser,
     VERIFIED_TOLL_PRESETS: [],
     cleanGateName: (name) => String(name || '').trim(),
+    SkeletonTableRows: ({ rows, columns }) => ({ type: 'SkeletonTableRows', props: { rows, columns }, children: [] }),
     setTimeout: (fn) => { fn(); return 1; },
     clearTimeout: () => {},
   });

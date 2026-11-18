@@ -7,6 +7,7 @@ import {
 import { getCurrentPricingUser } from "../../../services/tollGateService";
 import TollGateManager from "./TollGateManager";
 import { HANDLING_OPTIONS } from "../../../services/handlingPricing";
+import { SkeletonBlock, SkeletonTableRows } from "../../../components/Skeleton/Skeleton";
 import "./pricing.css";
 
 /* =========================
@@ -29,14 +30,6 @@ const Svg = ({ size = 20, children, ...rest }) => (
     {children}
   </svg>
 );
-
-const SearchIcon = () => (
-  <Svg size={18}>
-    <circle cx="11" cy="11" r="7" />
-    <path d="M21 21l-4.3-4.3" />
-  </Svg>
-);
-
 
 const WarningIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
@@ -116,7 +109,6 @@ export default function Pricing() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [search, setSearch] = useState("");
 
   const loadPricing = useCallback(async () => {
     setLoading(true);
@@ -263,27 +255,8 @@ export default function Pricing() {
     }
   };
 
-  const filteredVehicles = vehicles.filter((vehicle) =>
-    vehicle.name
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
-
   return (
-    <SettingsLayout search={<label className="settings-search" htmlFor="pricing-search-input">
-            <SearchIcon />
-
-            <input
-              id="pricing-search-input"
-              type="search"
-              aria-label="Search vehicle types"
-              placeholder="Search vehicle types..."
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
-            />
-          </label>}>
+    <SettingsLayout>
       <div className="pricing-page">
         <section className="content">
           {/* HEADER */}
@@ -343,7 +316,49 @@ export default function Pricing() {
           )}
 
           {loading ? (
-            <p>Loading pricing data from Supabase...</p>
+            <>
+              <p role="status">Loading pricing data from Supabase...</p>
+              <div className="pricing-grid" aria-hidden="true">
+                <div className="left-column">
+                  <div className="settings-card card-accent">
+                    <div className="card-header"><h2>Fixed Trip Fees</h2></div>
+                    <div className="form-grid">
+                      <div className="input-group"><SkeletonBlock width="58%" height={12} /><SkeletonBlock width="100%" height={40} radius="sm" /></div>
+                      <div className="input-group"><SkeletonBlock width="62%" height={12} /><SkeletonBlock width="100%" height={40} radius="sm" /></div>
+                    </div>
+                  </div>
+                  <div className="settings-card">
+                    <div className="card-header"><h2>Special Handling Surcharges</h2></div>
+                    <div className="pricing-table-scroll">
+                      <table className="pricing-table surcharge-table">
+                        <thead><tr><th>HANDLING TYPE</th><th>SURCHARGE AMOUNT (₱)</th><th className="ta-right">APPLIED AS</th></tr></thead>
+                        <tbody><SkeletonTableRows rows={5} columns={["badge", "short", "short"]} /></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div className="right-column">
+                  <div className="settings-card">
+                    <div className="card-header"><h2>Base Rate per Vehicle Type</h2></div>
+                    <div className="pricing-table-scroll">
+                      <table className="pricing-table vehicle-table">
+                        <thead><tr><th>VEHICLE TYPE</th><th>CAPACITY</th><th className="ta-right">RATE PER KM (₱)</th></tr></thead>
+                        <tbody><SkeletonTableRows rows={4} columns={["text", "short", "short"]} /></tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="settings-card">
+                    <div className="card-header"><h2>Toll Gate Rates</h2></div>
+                    <div className="toll-table-wrapper">
+                      <table className="pricing-table toll-table">
+                        <thead><tr><th>TOLL GATE</th><th>HIGHWAY</th><th>VEHICLE CLASS</th><th className="ta-right">FEE (₱)</th></tr></thead>
+                        <tbody><SkeletonTableRows rows={4} columns={["stack", "badge", "short", "short"]} /></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           ) : (
             <>
               <div className="pricing-grid">
@@ -517,7 +532,7 @@ export default function Pricing() {
                       </thead>
 
                       <tbody>
-                        {filteredVehicles.map((vehicle) => (
+                        {vehicles.map((vehicle) => (
                           <tr key={vehicle.id}>
                             <td>
                               <div className="vehicle-name">
@@ -572,10 +587,10 @@ export default function Pricing() {
                           </tr>
                         ))}
 
-                        {filteredVehicles.length === 0 && (
+                        {vehicles.length === 0 && (
                           <tr>
                             <td colSpan={3}>
-                              No matching vehicle types.
+                              No vehicle types found.
                             </td>
                           </tr>
                         )}

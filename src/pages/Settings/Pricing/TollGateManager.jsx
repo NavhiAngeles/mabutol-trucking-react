@@ -7,6 +7,7 @@ import {
   getCurrentPricingUser,
 } from "../../../services/tollGateService";
 import { VERIFIED_TOLL_PRESETS, cleanGateName } from "../../../services/tollPricing";
+import { SkeletonTableRows } from "../../../components/Skeleton/Skeleton";
 
 const TollIcon = ({ size = 22 }) => (
   <svg
@@ -491,11 +492,10 @@ export default function TollGateManager() {
 
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={isAdmin ? 5 : 4}>
-                  Loading toll gates...
-                </td>
-              </tr>
+              <SkeletonTableRows
+                rows={4}
+                columns={isAdmin ? ["stack", "badge", "short", "short", "action"] : ["stack", "badge", "short", "short"]}
+              />
             ) : tolls.length === 0 ? (
               <tr>
                 <td colSpan={isAdmin ? 5 : 4}>

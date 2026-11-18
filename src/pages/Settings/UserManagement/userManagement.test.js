@@ -20,6 +20,8 @@ async function screen(api={}){
  const scope=vm.createContext({React:{createElement:(type,props,...children)=>({type,props:props||{},children})},
   useState(initial){const i=si++;if(!(i in states))states[i]=initial;return[states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];},useRef(value){return refs[ri++]||={current:value};},useEffect(fn){effects.push(fn);},
   validateOfficeCreation:validationScope.validate,
+  SkeletonBlock:({width,height})=>({type:'SkeletonBlock',props:{width,height},children:[]}),
+  SkeletonTableRows:({rows,columns})=>({type:'SkeletonTableRows',props:{rows,columns},children:[]}),
   userManagementApi:{load:async()=>({callerId:'caller',users:[row],provisioningReady:true}),...api},
  });
  vm.runInContext(code.replace(/^import .*;$/gm,'').replace(/export default function/g,'function')+'\nthis.Component=OfficeUsers;',scope);

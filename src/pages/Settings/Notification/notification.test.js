@@ -18,6 +18,7 @@ async function screen(api = {}) {
     useState(initial) { const i = si++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(value) { return refs[ri++] ||= { current: value }; },
     useEffect(fn) { effects.push(fn); },
+    SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
     notificationPreferencesApi: { load: async () => snapshot(), ...api },
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace(/export default function/g, 'function') + '\nthis.renderComponent=NotificationPreferences;', context);

@@ -3,6 +3,7 @@ import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
 import { securityApi } from '../../../services/securityService';
+import { SkeletonBlock } from '../../../components/Skeleton/Skeleton';
 import './security.css';
 import '../../../components/accountSecurityDesign.css';
 
@@ -154,7 +155,41 @@ function SecurityDetails() {
         </div>
         {notice && <p role="status" className="pw-success">{notice}</p>}
         {loadError && <p role="alert" className="pw-error">{loadError} <button onClick={refresh}>Retry</button></p>}
-        {!snapshot && !loadError && <p role="status">Loading security settings...</p>}
+        {!snapshot && !loadError && (
+          <>
+            <p role="status">Loading security settings...</p>
+            <div className="security-card-grid" aria-hidden="true">
+              <div className="settings-card">
+                <h2>Authentication</h2>
+                <div className="security-row">
+                  <div className="tanaw-skeleton-stack"><SkeletonBlock width="42%" height={14} /><SkeletonBlock width="76%" height={12} /></div>
+                  <SkeletonBlock width={128} height={38} radius="sm" />
+                </div>
+                <div className="security-row">
+                  <div className="tanaw-skeleton-stack"><SkeletonBlock width="56%" height={14} /><SkeletonBlock width="84%" height={12} /></div>
+                  <SkeletonBlock width={116} height={38} radius="sm" />
+                </div>
+              </div>
+              <div className="settings-card">
+                <h2>Sessions</h2>
+                <div className="tanaw-skeleton-stack">
+                  <SkeletonBlock width="62%" height={13} />
+                  <SkeletonBlock width="88%" height={13} />
+                  <SkeletonBlock width="74%" height={13} />
+                </div>
+                <SkeletonBlock width={176} height={38} radius="sm" style={{ marginTop: 14 }} />
+              </div>
+              <div className="settings-card">
+                <h2>Login Activity</h2>
+                <div className="tanaw-skeleton-stack">
+                  <SkeletonBlock width="68%" height={13} />
+                  <SkeletonBlock width="80%" height={13} />
+                </div>
+                <SkeletonBlock width={164} height={36} radius="sm" style={{ marginTop: 14 }} />
+              </div>
+            </div>
+          </>
+        )}
         {error && !modal && <p role="alert" className="pw-error">{error}</p>}
         {snapshot && (
           <div className="security-card-grid">

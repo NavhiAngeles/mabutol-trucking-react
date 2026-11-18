@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { notificationPreferencesApi } from '../../../services/notificationPreferencesService';
+import { SkeletonBlock } from '../../../components/Skeleton/Skeleton';
 import './notification.css';
 
 const GROUPS = [
@@ -70,7 +71,27 @@ function NotificationPreferences() {
     <p>These preferences do not remove existing notifications or hide operational warnings on the Dashboard and Fleet pages. Enabling a category does not create new alert monitors.</p>
     {notice && <p role="status" className="notification-success">{notice}</p>}
     {saveError && <div role="alert" className="notification-error"><p>{saveError}</p><button disabled={!!saving} onClick={() => save(failed.type, failed.enabled)}>Retry save</button><button disabled={!!saving} onClick={refresh}>Reload preferences</button></div>}
-    {loadError ? <div role="alert" className="notification-error"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status">Loading notification preferences…</p> : <>
+    {loadError ? <div role="alert" className="notification-error"><p>{loadError}</p><button onClick={refresh}>Retry loading</button></div> : !snapshot ? (
+      <>
+        <p role="status">Loading notification preferences…</p>
+        <div className="notification-grid" aria-hidden="true">
+          {['Delivery Channels', 'Shipment Alerts', 'Fleet & Compliance', 'Other Notifications'].map((title) => (
+            <div className="settings-card" key={title}>
+              <div className="card-header"><h2>{title}</h2></div>
+              {[0, 1, 2].map((rowIdx) => (
+                <div className="tanaw-skeleton-toggle-row" key={`${title}-${rowIdx}`}>
+                  <div className="tanaw-skeleton-stack">
+                    <SkeletonBlock width="48%" height={14} />
+                    <SkeletonBlock width="84%" height={12} />
+                  </div>
+                  <SkeletonBlock width={44} height={24} radius="lg" />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </>
+    ) : <>
       <button className="notification-refresh" disabled={!!saving} onClick={refresh}>Reload preferences</button>
       <div className="notification-grid">
         <div className="settings-card"><div className="card-header"><h2>Delivery Channels</h2></div>

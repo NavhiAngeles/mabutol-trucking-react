@@ -17,6 +17,7 @@ async function screen(api = {}) {
     useState(initial) { const i = si++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(value) { return refs[ri++] ||= { current: value }; },
     useEffect(fn) { effects.push(fn); },
+    SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
     accountApi: { load: async () => row, ...api },
     window: { addEventListener() {}, removeEventListener() {} }, setInterval: () => 1, clearInterval() {},
   });

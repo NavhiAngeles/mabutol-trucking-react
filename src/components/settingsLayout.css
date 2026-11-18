@@ -45,47 +45,6 @@
   flex: none;
 }
 
-.settings-page .settings-search {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 12px);
-  width: 448px;
-  min-width: 0;
-  max-width: 100%;
-  height: var(--control-height, 40px);
-  padding: 0 var(--space-3, 12px);
-  border: 1px solid var(--border-control, #CBD5E1);
-  border-radius: var(--radius-sm, 6px);
-  background: var(--bg-surface, #FFFFFF);
-  color: var(--text-muted, #64748B);
-}
-
-.settings-page .settings-search input {
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-primary, #0F172A);
-  font: 400 var(--text-body, 0.875rem)/1.4 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-}
-
-.settings-page .settings-search input::placeholder {
-  color: var(--text-muted, #64748B);
-}
-
-/* Parent .settings-search displays the visible cobalt focus ring via :focus-within. */
-.settings-page .settings-search input:focus-visible {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-}
-
-.settings-page .settings-search:focus-within {
-  border-color: var(--color-accent-cobalt, #1D4ED8);
-  outline: var(--focus-ring-width, 2px) solid var(--color-accent-cobalt, #1D4ED8);
-  outline-offset: var(--focus-ring-offset, 2px);
-}
-
 .settings-page .content > .page-header {
   display: flex;
   justify-content: space-between;
@@ -189,10 +148,6 @@
 
   .settings-topbar-context {
     gap: var(--space-3, 12px);
-  }
-
-  .settings-page .settings-search {
-    height: var(--touch-target, 44px);
   }
 
   .settings-page .content > .page-header :is(.primary-btn, .secondary-btn) {

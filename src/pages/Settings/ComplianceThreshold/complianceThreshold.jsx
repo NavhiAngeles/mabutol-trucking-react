@@ -3,6 +3,7 @@ import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { complianceThresholdApi } from '../../../services/complianceThresholdService';
 import { THRESHOLD_FIELDS, DEFAULT_THRESHOLDS, validateThresholds } from '../../../services/complianceThresholds.js';
+import { SkeletonBlock } from '../../../components/Skeleton/Skeleton';
 import './complianceThreshold.css';
 
 export default function ComplianceThresholds() {
@@ -49,7 +50,27 @@ function ThresholdForm({ role }) {
   }
   return <section className="content compliance-threshold-settings">
     <div className="page-header"><div><h1>Settings: Compliance Thresholds</h1><p>Configure warning lead times for driver documents, vehicle documents and scheduled maintenance.</p></div></div>
-    {loadError ? <div className="threshold-error-banner" role="alert"><p>{loadError}</p><button type="button" className="secondary-btn" onClick={refresh}>Retry loading</button></div> : !snapshot ? <p role="status" className="threshold-loading">Loading compliance thresholds…</p> : <form onSubmit={submit} className="settings-card">
+    {loadError ? <div className="threshold-error-banner" role="alert"><p>{loadError}</p><button type="button" className="secondary-btn" onClick={refresh}>Retry loading</button></div> : !snapshot ? (
+      <>
+        <p role="status" className="threshold-loading">Loading compliance thresholds…</p>
+        <div className="settings-card" aria-hidden="true">
+          {['DRIVER DOCUMENTATION', 'VEHICLE DOCUMENTATION'].map((title) => (
+            <div className="section-block" key={title}>
+              <h2 className="section-title">{title}</h2>
+              {[0, 1, 2].map((idx) => (
+                <div className="threshold-row" key={`${title}-${idx}`}>
+                  <div className="threshold-info"><SkeletonBlock width="180px" height={15} /></div>
+                  <div className="threshold-inputs">
+                    <SkeletonBlock width={110} height={38} radius="sm" />
+                    <SkeletonBlock width={110} height={38} radius="sm" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </>
+    ) : <form onSubmit={submit} className="settings-card">
       <div className="threshold-notice-box">
         <p className="intro-text">First Alert marks an approaching expiry or service date. Critical Alert marks the final warning window, including the due date. Past dates remain expired or overdue. All dates use Philippine time.</p>
         {!snapshot.thresholds && <p className="threshold-suggested-notice" role="status">No per-document thresholds are saved. Documents currently use the existing {snapshot.legacyDays}-day warning window; maintenance warnings currently cover overdue work only. The values below are suggested settings and take effect only after an administrator saves them.</p>}

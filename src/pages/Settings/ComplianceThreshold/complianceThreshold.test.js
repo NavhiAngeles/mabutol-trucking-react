@@ -17,6 +17,7 @@ async function screen(api = {}, role = 'admin', options = {}) {
     useRef(value){return refs[ri++]||={current:value};}, useEffect(fn){effects.push(fn);},
     complianceThresholdApi:{load:async()=>({thresholds:null,legacyDays:30,updatedAt:null}),...api},
     THRESHOLD_FIELDS,DEFAULT_THRESHOLDS,validateThresholds,
+    SkeletonBlock:({width,height})=>({type:'SkeletonBlock',props:{width,height},children:[]}),
     window: options.window || { confirm: () => true },
   });
   vm.runInContext(code.replace(/^import .*;$/gm,'').replace(/export default function/g,'function')+'\nthis.Component=ThresholdForm;',scope);

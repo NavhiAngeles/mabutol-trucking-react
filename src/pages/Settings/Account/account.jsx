@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
+import { SkeletonBlock } from '../../../components/Skeleton/Skeleton';
 import './account.css';
 import '../../../components/accountSecurityDesign.css';
 
@@ -104,7 +105,47 @@ function AccountDetails() {
     } catch (cause) { if (mounted.current) setActionError(cause.message); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
   }
-  if (!profile) return <section className="content account-settings"><div className="page-header"><div><h1>Settings: Account</h1><p>Manage your personal details and account security.</p></div></div>{error ? <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></> : <p role="status">Loading account…</p>}</section>;
+  if (!profile) return (
+    <section className="content account-settings">
+      <div className="page-header"><div><h1>Settings: Account</h1><p>Manage your personal details and account security.</p></div></div>
+      {error ? (
+        <><p role="alert">{error}</p><button onClick={() => setReload(value => value + 1)}>Retry</button></>
+      ) : (
+        <>
+          <p role="status">Loading account…</p>
+          <div className="settings-grid" aria-hidden="true">
+            <div className="left-column">
+              <div className="settings-card">
+                <div className="card-header ep-card-header"><h2>Profile Information</h2><SkeletonBlock width={104} height={36} radius="sm" /></div>
+                <div className="profile-layout">
+                  <SkeletonBlock width={88} height={88} radius="lg" />
+                  <div className="profile-info" style={{ flex: 1 }}>
+                    <div className="info-group"><SkeletonBlock width="42%" height={11} /><SkeletonBlock width="68%" height={15} /></div>
+                    <div className="info-group"><SkeletonBlock width="46%" height={11} /><SkeletonBlock width="76%" height={15} /></div>
+                    <div className="info-group"><SkeletonBlock width="30%" height={11} /><SkeletonBlock width="80px" height={22} /></div>
+                    <div className="info-group"><SkeletonBlock width="48%" height={11} /><SkeletonBlock width="54%" height={15} /></div>
+                  </div>
+                </div>
+              </div>
+              <div className="settings-card">
+                <div className="card-header"><h2>Password &amp; Authentication</h2></div>
+                <SkeletonBlock width="92%" height={13} />
+                <SkeletonBlock width={148} height={38} radius="sm" style={{ marginTop: 12 }} />
+              </div>
+            </div>
+            <div className="right-column">
+              <div className="settings-card">
+                <div className="card-header"><h2>Login &amp; Security</h2></div>
+                <div className="security-box"><SkeletonBlock width="62%" height={16} /><SkeletonBlock width="88%" height={12} /></div>
+                <div className="session-box" style={{ marginTop: 16 }}><SkeletonBlock width="90%" height={13} /></div>
+                <SkeletonBlock width="100%" height={40} radius="sm" style={{ marginTop: 16 }} />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
   const initials = (profile.full_name || '').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase() || '?';
   return <section className="content account-settings">
     <div className="page-header"><div><h1>Settings: Account</h1><p>Manage your personal details and account security.</p></div></div>

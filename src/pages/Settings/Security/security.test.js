@@ -19,6 +19,8 @@ async function screen(kind, security = {}, account = {}) {
     useState(initial) { const i = si++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(value) { return refs[ri++] ||= { current: value }; }, useEffect(fn) { effects.push(fn); },
     OfficeTools() {},
+    WorkspaceLoadingScreen(props) { return { type: 'WorkspaceLoadingScreen', props, children: [] }; },
+    SkeletonBlock({ width, height }) { return { type: 'SkeletonBlock', props: { width, height }, children: [] }; },
     securityApi: { load: async () => ({ email: 'fixture@example.test', twoFactorEnabled: false, twoFactorPhone: '', factors: [] }), assurance: async () => ({ required: false, factors: [] }), ...security },
     accountApi: account,
   });
@@ -157,9 +159,12 @@ test('Disable 2FA confirms and disables SMS 2FA with success notice', async () =
   assert.ok(JSON.stringify(ui.render()).includes('2FA disabled.'));
 });
 
-test('MFA gate hides content during initial check and only releases after assurance passes', async () => {
+test('MFA gate shows WorkspaceLoadingScreen during initial check without flashing MFA challenge, then releases after assurance passes', async () => {
   const ui = await screen('gate');
   assert.notEqual(ui.first, 'PROTECTED');
+  assert.equal(ui.first.type?.name, 'WorkspaceLoadingScreen');
+  assert.equal(ui.first.props.message, 'Checking security verification…');
+  assert.ok(!JSON.stringify(ui.first).includes('Verify your sign-in'));
   assert.equal(ui.render(), 'PROTECTED');
 });
 
