@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { recordDeviceSession } from "./sessionService";
 
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -29,6 +30,11 @@ export async function signIn(email, password) {
   // lastActivityAt left over from an earlier session makes the idle timer
   // sign the new session out immediately after login.
   markActivity();
+  try {
+    await recordDeviceSession(supabase, data.user, { forceGeoRefresh: true });
+  } catch {
+    // Session metadata recording is best-effort and must not block sign-in.
+  }
   return { ...data, role: profile.role };
 }
 

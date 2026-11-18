@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient';
+import { clearOtherDeviceSessions, ensureDeviceSessions, removeDeviceSession } from './sessionService';
 
 const COLUMNS = 'id,full_name,phone,role,avatar_url,created_at,updated_at';
 const BUCKET = 'account-avatars';
@@ -22,7 +23,12 @@ export function accountService(client = supabase, verifierFactory = () => create
     const user = await identity();
     const { data, error } = await client.from('users').select(COLUMNS).eq('id', user.id).single();
     if (error || !data) throw new Error('Unable to load your account. Please retry.');
-    return { ...data, email: user.email, lastSignIn: user.last_sign_in_at, photo: await photoUrl(data.avatar_url, user.id) };
+    const [photo, sessions] = await Promise.all([
+      photoUrl(data.avatar_url, user.id),
+      ensureDeviceSessions(client, user).catch(() => []),
+    ]);
+    const currentSession = sessions.find(item => item.isCurrent) || sessions[0] || null;
+    return { ...data, email: user.email, lastSignIn: user.last_sign_in_at, photo, sessions, currentSession };
   }
   async function save(form, file, expected) {
     const fullName = form.fullName?.trim();
@@ -65,11 +71,18 @@ export function accountService(client = supabase, verifierFactory = () => create
     if (error) throw new Error(error.message || 'Unable to update password. Please retry.');
   }
   async function revokeOthers() {
-    await identity();
+    const user = await identity();
     const { error } = await client.auth.signOut({ scope: 'others' });
     if (error) throw new Error('Unable to sign out other sessions. Please retry.');
+    const sessions = await clearOtherDeviceSessions(client, user);
+    return { sessions };
   }
-  return { load, save, changePassword, revokeOthers };
+  async function revokeSession(sessionId) {
+    const user = await identity();
+    const sessions = await removeDeviceSession(client, user, sessionId);
+    return { sessions };
+  }
+  return { load, save, changePassword, revokeOthers, revokeSession };
 }
 
 export const accountApi = accountService();
