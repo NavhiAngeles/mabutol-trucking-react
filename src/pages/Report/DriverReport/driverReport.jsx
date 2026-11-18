@@ -1,548 +1,634 @@
-import ReportSchedule from '../../../components/ReportSchedule';
+import { Fragment, useCallback, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FilterX,
+  ShieldAlert,
+  Users,
+} from 'lucide-react';
+import MainLayout from '../../../layouts/mainLayout';
+import ReportTopbar from '../../../components/ReportTopbar';
 import ReportExportModal from '../../../components/ReportExportModal';
 import { useReportRange } from '../../../hooks/useReportRange';
-import { useState, useRef, useEffect, useCallback, Fragment } from "react";
-import { Link } from 'react-router-dom';
-import ReportTopbar from '../../../components/ReportTopbar';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { reportRange } from '../../../services/reportOverview.js';
-import { buildDriverReport, DRIVER_STATUSES } from '../../../services/driverReport.js';
-import { getDriverReportRecords, DRIVER_REPORT_TABLES } from '../../../services/driverReportService';
-import MainLayout from "../../../layouts/mainLayout";
 import {
-  SkeletonListRows,
-  SkeletonStatValue,
-  SkeletonTableRows,
-} from '../../../components/Skeleton/Skeleton';
-import "./driverReport.css";
+  buildDriverReport,
+  DRIVER_STATUSES,
+} from '../../../services/driverReport.js';
+import {
+  DRIVER_REPORT_TABLES,
+  getDriverReportRecords,
+} from '../../../services/driverReportService';
+import { formatManilaDateTime, REPORT_PRESET_RANGES } from '@/lib/reportFormatters';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import ReportPageHeader from '@/components/reports/ReportPageHeader';
+import ReportRangeToolbar from '@/components/reports/ReportRangeToolbar';
+import AccountingNoteDisclosure from '@/components/reports/AccountingNoteDisclosure';
+import ReportStatusBanner from '@/components/reports/ReportStatusBanner';
+import KpiStatCard from '@/components/reports/KpiStatCard';
+import AnalyticsBarChart from '@/components/reports/AnalyticsBarChart';
+import ReportEmptyState from '@/components/reports/ReportEmptyState';
+import './driverReport.css';
 import '../../../components/reportControls.css';
 
-/* =========================
-   ICONS (inline SVG, no extra dependency)
-========================= */
-const Icon = ({ children, size = 18, sw = 2, ...rest }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={sw}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    {...rest}
-  >
-    {children}
-  </svg>
-);
-
-const ChevronRight = (p) => (
-  <Icon {...p}>
-    <path d="m9 6 6 6-6 6" />
-  </Icon>
-);
-const ChevronLeft = (p) => (
-  <Icon {...p}>
-    <path d="m15 6-6 6 6 6" />
-  </Icon>
-);
-const CaretDown = (p) => (
-  <Icon {...p}>
-    <path d="m7 10 5 5 5-5" />
-  </Icon>
-);
-const AlertIcon = (p) => (
-  <Icon {...p}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7.5v5.5" />
-    <path d="M12 16.5v.01" />
-  </Icon>
-);
-const UsersIcon = (p) => (
-  <Icon {...p}>
-    <circle cx="9" cy="8" r="3" />
-    <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-    <circle cx="17" cy="9" r="2.2" />
-    <path d="M17 14c2.5 0 4 1.8 4 4" />
-  </Icon>
-);
-const TimerIcon = (p) => (
-  <Icon {...p}>
-    <circle cx="12" cy="13" r="8" />
-    <path d="M12 9v4l2 2" />
-    <path d="M9 2h6" />
-  </Icon>
-);
-const SwapIcon = (p) => (
-  <Icon {...p}>
-    <path d="M7 4v14" />
-    <path d="m3 14 4 4 4-4" />
-    <path d="M17 20V6" />
-    <path d="m13 10 4-4 4 4" />
-  </Icon>
-);
-
-const STAT_ICONS = [UsersIcon, TimerIcon, SwapIcon];
-
-const RANGES = [
-  { key: "today", label: "Today" },
-  { key: "thisWeek", label: "This Week" },
-  { key: "thisMonth", label: "This Month" },
-  { key: "last3Months", label: "Last 3 Months" },
-];
-
-// Round the axis max up to a clean step so ticks land on whole numbers
-const buildAxis = (max) => {
-  const step = Math.max(1, Math.ceil(max / 4));
-  const top = Math.max(step, Math.ceil(max / step) * step);
-  const ticks = [];
-  for (let v = 0; v <= top; v += step) ticks.push(v);
-  return { top, ticks };
+const DRIVER_RATE_CONFIG = {
+  rate: { label: 'On-Time Rate', color: '#0F2A52' },
 };
 
-/* =========================
-   PAGE
-========================= */
+const INCIDENT_CHART_CONFIG = {
+  count: { label: 'Incidents', color: '#B91C1C' },
+};
+
+const DRIVER_STATUS_BADGE = {
+  available: 'border-emerald-200 bg-emerald-50 text-[#15803D]',
+  on_trip: 'border-blue-200 bg-blue-50 text-[#1E40AF]',
+  off_duty: 'border-slate-200 bg-slate-100 text-slate-700',
+  on_leave: 'border-amber-200 bg-amber-50 text-[#B45309]',
+  inactive: 'border-red-200 bg-red-50 text-[#B91C1C]',
+};
+
 export default function DriverReport() {
   const [status, setStatus] = useState('all');
   const [rangeError, setRangeError] = useState('');
-  const [activeRange, setActiveRange] = useState("thisMonth");
-  const [customStart, setCustomStart] = useState("");
-  const [customEnd, setCustomEnd] = useState("");
+  const [activeRange, setActiveRange] = useState('thisMonth');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [appliedCustom, setAppliedCustom] = useState(null);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [page, setPage] = useState(1);
-  const customPickerRef = useRef(null);
 
   const range = useReportRange(activeRange, appliedCustom);
-  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const memoCallback = typeof useCallback === 'function' ? useCallback : (fn) => fn;
   const loadData = memoCallback(() => getDriverReportRecords(range), [range.start, range.end]);
   const live = useLiveData(loadData, DRIVER_REPORT_TABLES);
 
-  // Close the custom range popover on outside click or Escape
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (customPickerRef.current && !customPickerRef.current.contains(e.target)) {
-        setShowCustomPicker(false);
-      }
-    }
-    function handleKey(e) {
-      if (e.key === "Escape") {
-        setShowCustomPicker(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, []);
-
-  const handleRangeClick = (range) => {
-    setActiveRange(range);
-    setPage(1); setExpandedId(null);
+  const handleRangeClick = (key) => {
+    setActiveRange(key);
+    setPage(1);
+    setExpandedId(null);
     setShowCustomPicker(false);
   };
 
   const handleApplyCustomRange = () => {
-    try { setAppliedCustom(reportRange('custom', customStart, customEnd)); setRangeError(''); }
-    catch (error) { setRangeError(error.message); return; }
-    setPage(1); setExpandedId(null);
-    setActiveRange("custom");
+    try {
+      setAppliedCustom(reportRange('custom', customStart, customEnd));
+      setRangeError('');
+    } catch (error) {
+      setRangeError(error.message);
+      return;
+    }
+    setPage(1);
+    setExpandedId(null);
+    setActiveRange('custom');
     setShowCustomPicker(false);
   };
 
-  const report = buildDriverReport(live.data || { drivers: [], shipments: [], deliveries: [], incidents: [] }, range, '', status);
+  const report = buildDriverReport(
+    live.data || { drivers: [], shipments: [], deliveries: [], incidents: [] },
+    range,
+    '',
+    status
+  );
   const hasData = !!live.data;
   const initialLoading = live.loading && !hasData;
-  const dateLabel = range.start + ' – ' + range.end;
-  const incidentAxis = buildAxis(Math.max(1, ...report.incidents.map(i => i.count)));
-  const emptyText = !hasData ? 'Report data is not loaded.' : 'No matching driver data for this selection.';
   const pageCount = Math.max(1, Math.ceil(report.rows.length / 10));
   const currentPage = Math.min(page, pageCount);
   const visibleRows = report.rows.slice((currentPage - 1) * 10, currentPage * 10);
-  const stats = [
-    { label: 'Drivers with Trips', value: hasData ? report.driversWithTrips : 'N/A' },
-    { label: 'On-Time Rate', value: hasData && report.rate != null ? report.rate + '%' : 'N/A' },
-    { label: 'Assigned Trips', value: hasData ? report.totalTrips : 'N/A' },
-  ];
+
+  const warnings =
+    hasData && report.unattributedIncidents > 0
+      ? [
+        {
+          label: `${report.unattributedIncidents} unattributed incident(s) excluded`,
+          tone: 'warning',
+        },
+      ]
+      : [];
 
   return (
     <MainLayout>
-      <div className="dr-page dr-report-live reports-page">
-        {/* Topbar */}
+      <div className="reports-page dr-page dr-report-live min-w-0 bg-[#F8FAFC] text-slate-900">
         <ReportTopbar />
 
-        <section className="dr-content">
-          {/* Header */}
-          <div className="report-controls"><div className="dr-header-row">
-            <div>
-              <h1>Reports: Drivers</h1>
-              <p>Analyze individual driver performance, reliability, and delivery metrics.</p>
-            </div>
+        <section className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+          <ReportPageHeader
+            title="Reports: Drivers"
+            subtitle="Analyze individual driver performance, reliability, and delivery metrics."
+            reportType="Drivers"
+            onRefresh={live.refresh}
+            onExport={() => setShowExportModal(true)}
+            exportDisabled={!live.data || !!live.error}
+            loading={live.loading}
+          />
 
-            <div className="dr-actions">
-              <button className="dr-btn dr-btn-secondary" onClick={live.refresh}>Refresh</button>
-              <button type="button" className="dr-btn dr-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => setShowExportModal(true)}>Export Report</button>
-              <ReportSchedule type="Drivers" />
-            </div>
+          <ReportRangeToolbar
+            activeRange={activeRange}
+            onSelectRange={handleRangeClick}
+            range={range}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomStartChange={setCustomStart}
+            onCustomEndChange={setCustomEnd}
+            onApplyCustom={handleApplyCustomRange}
+            showCustomPicker={showCustomPicker}
+            onShowCustomPickerChange={setShowCustomPicker}
+            rangeError={rangeError}
+            startInputId="dr-start"
+            endInputId="dr-end"
+          />
+
+          <AccountingNoteDisclosure
+            summary={`Non-cancelled delivery assignments for shipments created in Philippine time · ${hasData ? report.timed : 'N/A'} timed trips`}
+            warnings={warnings}
+            notes={[
+              `Trips count non-cancelled delivery assignments for shipments created in the selected dates (Asia/Manila). On-time rate compares delivered arrival with shipment ETA across ${hasData ? report.timed : 'N/A'} timed trips.`,
+              'Kilometres sum valid odometer differences (odometer_end >= odometer_start) on delivered trips.',
+              'Incidents use their reported dates and the linked delivery driver, independently of shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.',
+            ]}
+          />
+
+          <ReportStatusBanner
+            loading={live.loading}
+            loadingText="Loading driver report…"
+            error={live.error}
+            hasData={hasData}
+            onRetry={live.refresh}
+          />
+
+          {/* KPI Summary Row */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <KpiStatCard
+              label="Drivers with Trips"
+              icon={Users}
+              loading={initialLoading}
+              value={hasData ? report.driversWithTrips.toLocaleString('en-PH') : 'N/A'}
+              description={hasData ? `${report.rows.length} drivers in filtered roster` : undefined}
+            />
+            <KpiStatCard
+              label="On-Time Rate"
+              icon={Clock}
+              loading={initialLoading}
+              value={hasData && report.rate != null ? `${report.rate}%` : 'N/A'}
+              description={hasData ? `${report.timed} timed deliveries` : undefined}
+            />
+            <KpiStatCard
+              label="Assigned Trips"
+              icon={ArrowUpDown}
+              loading={initialLoading}
+              value={hasData ? report.totalTrips.toLocaleString('en-PH') : 'N/A'}
+              description="Non-cancelled assignments"
+            />
           </div>
 
-          {/* Filters */}
-          <div className="dr-filters">
-            <div className="dr-tabs">
-              {RANGES.map((r) => (
-                <button
-                  key={r.key}
-                  className={`dr-tab ${activeRange === r.key ? "active" : ""}`}
-                  aria-pressed={activeRange === r.key}
-                  onClick={() => handleRangeClick(r.key)}
-                >
-                  {r.label}
-                </button>
-              ))}
-
-              <div className="dr-custom-wrapper" ref={customPickerRef}>
-                <button
-                  className={`dr-tab ${activeRange === "custom" ? "active" : ""}`}
-                  aria-pressed={activeRange === "custom"}
-                  aria-expanded={showCustomPicker}
-                  onClick={() => setShowCustomPicker((open) => !open)}
-                >
-                  Custom Range
-                  <CaretDown size={12} sw={2.4} />
-                </button>
-
-                {showCustomPicker && (
-                  <div className="dr-popover">
-                    <div className="dr-popover-field">
-                      <label htmlFor="dr-start">Start date</label>
-                      <input
-                        id="dr-start"
-                        type="date"
-                        value={customStart}
-                        onChange={(e) => setCustomStart(e.target.value)}
-                      />
-                    </div>
-                    <div className="dr-popover-field">
-                      <label htmlFor="dr-end">End date</label>
-                      <input
-                        id="dr-end"
-                        type="date"
-                        value={customEnd}
-                        min={customStart || undefined}
-                        onChange={(e) => setCustomEnd(e.target.value)}
-                      />
-                    </div>
-                    {rangeError && <p role="alert">{rangeError}</p>}
-                    <button
-                      className="dr-popover-apply"
-                      onClick={handleApplyCustomRange}
-
-                    >
-                      Apply
-                    </button>
-                  </div>
+          {/* Analytics Row */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0">
+              <CardHeader className="border-b border-slate-100 px-5 py-4">
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  On-Time Rate by Driver
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-600">
+                  Top five drivers with timed completed trips
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <Skeleton className="h-[240px] w-full rounded-lg" />
+                ) : report.driverRates.length === 0 ? (
+                  <ReportEmptyState
+                    icon={Users}
+                    title={
+                      hasData
+                        ? 'No drivers have timed completed trips'
+                        : 'Report data is not loaded'
+                    }
+                    description="Timed completed deliveries with both planned ETA and arrival timestamps are required to rank driver on-time rates."
+                    action={
+                      status !== 'all'
+                        ? {
+                          label: 'Show All Statuses',
+                          onClick: () => {
+                            setStatus('all');
+                            setPage(1);
+                          },
+                        }
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <AnalyticsBarChart
+                    data={report.driverRates}
+                    layout="vertical"
+                    xKey="name"
+                    dataKey="rate"
+                    color="#0F2A52"
+                    config={DRIVER_RATE_CONFIG}
+                    valueDomain={[0, 100]}
+                    valueFormatter={(v) => `${v}%`}
+                    yAxisWidth={120}
+                    className="h-[230px]"
+                    tooltipFormatter={(value, _name, item) => (
+                      <span className="font-mono font-medium text-slate-900 tabular-nums">
+                        {value}% ({item?.payload?.timed ?? 0} timed)
+                      </span>
+                    )}
+                    ariaLabel="Top five drivers by on-time delivery rate"
+                  />
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {dateLabel && <div className="dr-date-pill">{dateLabel} · Philippine time</div>}
-          </div>
-
-</div>
-<div className="dr-report-note report-scope-note"><p>Trips are non-cancelled delivery assignments for shipments created in the selected dates (Philippine time). On-time rate compares delivered trip arrival with shipment ETA; {hasData ? report.timed : 'N/A'} trips have both timestamps. Kilometres use valid odometer differences on delivered trips.</p><p>Incidents use their reported dates and the driver linked to the delivery, independently of the shipment creation date. Driver status is current; drivers without trips remain in the roster. Ratings are unavailable.</p></div>
-          {live.loading && <p role="status">Loading driver report…</p>}
-          {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
-          {/* Stats */}
-          <div className="dr-stats">
-            {stats.map((stat, i) => {
-              const StatIcon = STAT_ICONS[i];
-              return (
-                <div className={"dr-stat gray"} key={stat.label}>
-                  <div className="dr-stat-top">
-                    <span className="dr-stat-label">{stat.label}</span>
-                    <span className="dr-stat-icon">
-                      <StatIcon size={14} />
-                    </span>
-                  </div>
-                  <div className="dr-stat-bottom">
-                    <span className="dr-stat-value">{initialLoading ? <SkeletonStatValue width="60px" height={28} /> : stat.value}</span>
-
-                  </div>
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-slate-100 px-5 py-4">
+                <div>
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    Reported Incidents
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-600">
+                    Attributed delivery incidents by category
+                  </CardDescription>
                 </div>
-              );
-            })}
+                {hasData && report.unattributedIncidents > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 rounded border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-[#B45309]"
+                  >
+                    {report.unattributedIncidents} unattributed
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <Skeleton className="h-[240px] w-full rounded-lg" />
+                ) : report.incidents.length === 0 ? (
+                  <ReportEmptyState
+                    icon={ShieldAlert}
+                    title={
+                      hasData
+                        ? 'No attributed incidents for this selection'
+                        : 'Report data is not loaded'
+                    }
+                    description="No driver-attributed delay incidents were reported in the selected dates."
+                  />
+                ) : (
+                  <AnalyticsBarChart
+                    data={report.incidents}
+                    layout="vertical"
+                    xKey="label"
+                    dataKey="count"
+                    color="#B91C1C"
+                    config={INCIDENT_CHART_CONFIG}
+                    allowDecimals={false}
+                    yAxisWidth={120}
+                    className="h-[230px]"
+                    ariaLabel="Reported incidents by category"
+                  />
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Charts */}
-          <div className="dr-charts">
-            {/* On-time rate by driver */}
-            <div className="dr-card dr-chart-card">
-              <div className="dr-card-header">
-                <h2>On-Time Rate by Driver</h2>
-
+          {/* Driver Performance Table */}
+          <Card className="mt-5 gap-0 overflow-hidden rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0">
+            <CardHeader className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center">
+              <div>
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Driver Performance
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-600">
+                  Expand a driver row to inspect recorded incidents in this period
+                </CardDescription>
               </div>
-
-              {initialLoading ? (
-                <SkeletonListRows rows={4} variant="bar" />
-              ) : report.driverRates.length === 0 ? (
-                <p className="dr-empty">{hasData ? 'No drivers have timed completed trips for this selection.' : emptyText}</p>
-              ) : (
-                <>
-                  <p>Top five drivers with timed completed trips.</p>
-                  <div className="dr-rate-rows">
-                    {report.driverRates.map((d) => (
-                      <div className="dr-rate-row" key={d.id}>
-                        <span className="dr-rate-name">{d.name}</span>
-                        <div className="dr-rate-track">
-                          <div className="dr-rate-bg">
-                            <div
-                              className={"dr-rate-fill"}
-                              style={{ width: `${d.rate}%` }}
-                            />
-                          </div>
-                        </div>
-                        <strong className={"dr-rate-val"}>
-                          {d.rate}%
-                        </strong>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Delay incidents */}
-            <div className="dr-card dr-chart-card dr-chart-card-inc">
-              <div className="dr-card-header">
-                <h2>Reported Incidents</h2>
-
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="dr-status"
+                  className="text-xs font-semibold text-slate-600"
+                >
+                  Current status
+                </label>
+                <select
+                  id="dr-status"
+                  value={status}
+                  onChange={(e) => {
+                    setStatus(e.target.value);
+                    setPage(1);
+                    setExpandedId(null);
+                  }}
+                  className="min-h-[38px] rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-[13px] font-medium text-slate-900 max-sm:min-h-[44px]"
+                >
+                  <option value="all">All statuses</option>
+                  {DRIVER_STATUSES.map((key) => (
+                    <option key={key} value={key}>
+                      {key.replaceAll('_', ' ')}
+                    </option>
+                  ))}
+                </select>
               </div>
+            </CardHeader>
 
-              {hasData && report.unattributedIncidents > 0 && <p>{report.unattributedIncidents} incident(s) lack a matching delivery driver and are excluded from driver counts.</p>}
-              {initialLoading ? (
-                <SkeletonListRows rows={4} variant="bar" />
-              ) : report.incidents.length === 0 ? (
-                <p className="dr-empty">{hasData ? 'No attributed incidents for this selection.' : emptyText}</p>
-              ) : (
-                <>
-                  <div className="dr-inc-plot">
-                    {report.incidents.map((inc) => {
-                      const pct = (inc.count / incidentAxis.top) * 100;
-                      return (
-                        <div className="dr-inc-row" key={inc.label}>
-                          <span className="dr-inc-name">{inc.label}</span>
-                          <div className="dr-inc-track">
-                            <div className="dr-inc-bar" style={{ width: `${pct}%` }} />
-                            <span className="dr-inc-count" style={{ left: `calc(${pct}% + 8px)` }}>
-                              {inc.count}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="dr-axis">
-                    <div className="dr-axis-ticks">
-                      {incidentAxis.ticks.map((t) => (
-                        <span key={t} style={{ left: `${(t / incidentAxis.top) * 100}%` }}>
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="dr-card dr-table-card">
-            <div className="dr-table-header">
-              <h2>Driver Performance</h2>
-<div className="dr-table-tools"><label htmlFor="dr-status">Current status </label><select id="dr-status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); setExpandedId(null); }}><option value="all">All statuses</option>{DRIVER_STATUSES.map(key => <option key={key} value={key}>{key.replaceAll('_', ' ')}</option>)}</select></div>
-            </div>
-
-            <div className="dr-table-scroll">
-              <table className="dr-table">
-                <colgroup>
-                  <col style={{ width: 91 }} />
-                  <col style={{ width: 193 }} />
-                  <col style={{ width: 96 }} />
-                  <col style={{ width: 192 }} />
-                  <col style={{ width: 99 }} />
-                  <col style={{ width: 120 }} />
-                  <col style={{ width: 90 }} />
-                  <col style={{ width: 79 }} />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th aria-label="Expand" />
-                    <th>Driver</th>
-                    <th>
-                      Total
-                      <br />
-                      Trips
-                    </th>
-                    <th>On-Time Rate</th>
-                    <th>
-                      Timed<br />Trips
-                    </th>
-                    <th>
-                      Reported<br />Incidents
-                    </th>
-                    <th>
-                      Recorded<br />KM
-                    </th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-
-                <tbody>
+            <div className="overflow-x-auto">
+              <Table className="min-w-[860px] text-[13px]">
+                <TableHeader className="bg-slate-50">
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableHead className="w-12 pl-4" aria-label="Expand" />
+                    <TableHead className="text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      Driver
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      Total Trips
+                    </TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      On-Time Rate
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      Timed Trips
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      Reported Incidents
+                    </TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      Recorded KM
+                    </TableHead>
+                    <TableHead className="pr-5 text-xs font-semibold tracking-wider text-slate-600 uppercase">
+                      Status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {initialLoading ? (
-                    <SkeletonTableRows
-                      rows={5}
-                      columns={["action", "avatar-stack", "short", "text", "short", "short", "short", "badge"]}
-                    />
+                    Array.from({ length: 5 }, (_, idx) => (
+                      <TableRow key={`skel-${idx}`}>
+                        {Array.from({ length: 8 }, (__, cIdx) => (
+                          <TableCell key={cIdx} className="py-3.5">
+                            <Skeleton className="h-4 w-full max-w-[110px] rounded" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
                   ) : report.rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="dr-empty-row">
-                        {emptyText}
-                      </td>
-                    </tr>
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={8} className="p-6">
+                        <ReportEmptyState
+                          compact
+                          icon={FilterX}
+                          title={
+                            !hasData
+                              ? 'Report data is not loaded'
+                              : 'No matching driver data for this selection'
+                          }
+                          description="Try resetting the driver status filter or selecting another date range."
+                          action={
+                            status !== 'all'
+                              ? {
+                                label: 'Show All Statuses',
+                                onClick: () => {
+                                  setStatus('all');
+                                  setPage(1);
+                                },
+                              }
+                              : undefined
+                          }
+                        />
+                      </TableCell>
+                    </TableRow>
                   ) : (
                     visibleRows.map((row) => {
-                      const d = { ...row, initials: row.name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase(), tone: 'navy', delays: row.incidents };
-                      const open = expandedId === d.id;
-                      const toggle = () => setExpandedId(open ? null : d.id);
+                      const initials = row.name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((p) => p[0])
+                        .join('')
+                        .toUpperCase();
+                      const open = expandedId === row.id;
+                      const toggle = () => setExpandedId(open ? null : row.id);
+                      const badgeStyle =
+                        DRIVER_STATUS_BADGE[row.status] ||
+                        'border-slate-200 bg-slate-100 text-slate-700';
+
                       return (
-                        <Fragment key={d.id}>
-                          <tr className={`dr-row ${open ? "open" : ""}`} onClick={toggle}>
-                            <td className="dr-cell-chev">
+                        <Fragment key={row.id}>
+                          <TableRow
+                            className={`cursor-pointer border-slate-100 ${open ? 'bg-blue-50/40 hover:bg-blue-50/50' : 'hover:bg-slate-50/80'
+                              }`}
+                            onClick={toggle}
+                          >
+                            <TableCell className="pl-4">
                               <button
-                                className={`dr-chev ${open ? "open" : ""}`}
+                                type="button"
+                                className="inline-flex size-9 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 max-sm:size-11"
                                 aria-expanded={open}
-                                aria-label={`${open ? "Collapse" : "Expand"} ${d.name}`}
+                                aria-label={`${open ? 'Collapse' : 'Expand'} ${row.name}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggle();
                                 }}
                               >
-                                <ChevronRight size={14} sw={2.2} />
+                                <ChevronRight
+                                  className={`size-4 transition-transform duration-150 ${open ? 'rotate-90 text-[#0F2A52]' : ''
+                                    }`}
+                                  aria-hidden="true"
+                                />
                               </button>
-                            </td>
-                            <td>
-                              <div className="dr-driver">
-                                <span className={`dr-initials ${d.tone}`}>{d.initials}</span>
-                                <div>
-                                  <div className="dr-driver-name">{d.name}</div>
-                                  <div className="dr-driver-id">ID: {d.id}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#0F2A52] text-[11px] font-bold text-blue-100">
+                                  {initials || 'DR'}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-slate-900">
+                                    {row.name}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 break-all">
+                                    ID: {row.id}
+                                  </div>
                                 </div>
                               </div>
-                            </td>
-                            <td className="dr-num">{row.trips}</td>
-                            <td>
-                              <div className="dr-ontime">
-                                <strong>{row.rate == null ? 'N/A' : row.rate + '%'}</strong>
-                                <span className="dr-mini-bar">
-                                  <span
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-slate-900 tabular-nums">
+                              {row.trips}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2.5">
+                                <span className="w-11 font-semibold text-slate-900 tabular-nums">
+                                  {row.rate == null ? 'N/A' : `${row.rate}%`}
+                                </span>
+                                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+                                  <div
+                                    className="h-full rounded-full bg-[#0F2A52]"
                                     style={{ width: `${row.rate ?? 0}%` }}
                                   />
-                                </span>
+                                </div>
                               </div>
-                            </td>
-                            <td>
-<span title="Delivered trips with both arrival and ETA timestamps">{row.timed}</span>
-                            </td>
-                            <td className="dr-delays">
+                            </TableCell>
+                            <TableCell
+                              className="text-right text-slate-700 tabular-nums"
+                              title="Delivered trips with both arrival and ETA timestamps"
+                            >
+                              {row.timed}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-slate-900 tabular-nums">
                               {row.incidents.length}
-                            </td>
-                            <td>
-                              <span className="dr-km" title={`${row.measuredTrips} of ${row.completed} delivered trips have valid odometer readings`}>{row.km == null ? 'N/A' : row.km.toLocaleString() + ' km'}</span>
-                            </td>
-                            <td className="dr-cell-status">
-                              <span className={`dr-status ${row.status}`}>
+                            </TableCell>
+                            <TableCell
+                              className="text-right text-slate-600 tabular-nums"
+                              title={`${row.measuredTrips} of ${row.completed} delivered trips have valid odometer readings`}
+                            >
+                              {row.km == null ? 'N/A' : `${row.km.toLocaleString()} km`}
+                            </TableCell>
+                            <TableCell className="pr-5">
+                              <Badge
+                                variant="outline"
+                                className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase ${badgeStyle}`}
+                              >
                                 {row.status.replaceAll('_', ' ')}
-                              </span>
-                            </td>
-                          </tr>
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
 
                           {open && (
-                            <tr className="dr-detail-row">
-                              <td colSpan={8}>
-                                <div className="dr-detail">
-                                  <div className="dr-detail-main">
-                                    <h3>Recorded Incidents in Period</h3>
-                                    {d.delays.length === 0 ? (
-                                      <p className="dr-detail-none">
+                            <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
+                              <TableCell colSpan={8} className="p-4 sm:px-8">
+                                <div className="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-[1fr_240px]">
+                                  <div>
+                                    <h3 className="m-0 mb-2.5 text-xs font-bold tracking-wider text-slate-700 uppercase">
+                                      Recorded Incidents in Period
+                                    </h3>
+                                    {row.incidents.length === 0 ? (
+                                      <p className="m-0 text-xs text-slate-600">
                                         No incidents recorded for this period.
                                       </p>
                                     ) : (
-                                      <ul>
-                                        {d.delays.map((item) => (
-                                          <li key={item.id}>
-                                            <AlertIcon size={14} sw={2} />
-                                            <strong>{String(item.category || 'other').replaceAll('_', ' ')}</strong>
-                                            <span>{new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.created_at))}{item.delay_minutes != null ? ' · ' + item.delay_minutes + ' min reported delay' : ''} · <Link to={'/shipment?tab=all&record=' + encodeURIComponent(item.shipmentId)}>View shipment</Link></span>
+                                      <ul className="m-0 space-y-2 p-0 list-none">
+                                        {row.incidents.map((item) => (
+                                          <li
+                                            key={item.id}
+                                            className="flex flex-wrap items-center gap-2 text-xs text-slate-700"
+                                          >
+                                            <AlertTriangle
+                                              className="size-3.5 shrink-0 text-[#B91C1C]"
+                                              aria-hidden="true"
+                                            />
+                                            <strong className="capitalize text-slate-900">
+                                              {String(item.category || 'other').replaceAll('_', ' ')}
+                                            </strong>
+                                            <span className="text-slate-600">
+                                              {formatManilaDateTime(item.created_at)}
+                                              {item.delay_minutes != null
+                                                ? ` · ${item.delay_minutes} min reported delay`
+                                                : ''}
+                                              {' · '}
+                                              <Link
+                                                to={
+                                                  '/shipment?tab=all&record=' +
+                                                  encodeURIComponent(item.shipmentId)
+                                                }
+                                                className="font-semibold text-[#1D4ED8] no-underline hover:underline"
+                                              >
+                                                View shipment
+                                              </Link>
+                                            </span>
                                           </li>
                                         ))}
                                       </ul>
                                     )}
                                   </div>
-                                  <div className="dr-detail-side">
-<h3>Fleet</h3><Link className="dr-detail-btn" to="/fleet?view=drivers">View Drivers</Link>
+                                  <div className="flex flex-col justify-between border-t border-slate-200 pt-3 md:border-t-0 md:border-l md:pt-0 md:pl-4">
+                                    <div>
+                                      <h3 className="m-0 mb-2 text-xs font-bold tracking-wider text-slate-700 uppercase">
+                                        Fleet
+                                      </h3>
+                                      <Link
+                                        to="/fleet?view=drivers"
+                                        className="inline-flex min-h-[36px] w-full items-center justify-center rounded-md border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-[#0F2A52] no-underline transition-colors hover:bg-slate-100"
+                                      >
+                                        View Drivers
+                                      </Link>
+                                    </div>
                                   </div>
                                 </div>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           )}
                         </Fragment>
                       );
                     })
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {report.rows.length > 0 && (
-              <div className="dr-table-foot">
-                <span>
-                  Showing {(currentPage - 1) * 10 + 1}-{Math.min(currentPage * 10, report.rows.length)} of {report.rows.length} Drivers
+              <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-600 sm:flex-row">
+                <span className="tabular-nums">
+                  Showing {(currentPage - 1) * 10 + 1}-
+                  {Math.min(currentPage * 10, report.rows.length)} of {report.rows.length} Drivers
                 </span>
-                <div className="dr-pager">
-                  <button
-                    className="dr-page-arrow"
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
                     aria-label="Previous page"
                     disabled={currentPage === 1}
                     onClick={() => setPage(currentPage - 1)}
+                    className="border-slate-300 bg-white max-sm:size-11"
                   >
-                    <ChevronLeft size={14} sw={2.2} />
-                  </button>
-                  <span>Page {currentPage} of {pageCount}</span>
-                  <button
-                    className="dr-page-arrow"
+                    <ChevronLeft className="size-4" aria-hidden="true" />
+                  </Button>
+                  <span className="px-1 font-medium text-slate-700 tabular-nums">
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
                     aria-label="Next page"
                     disabled={currentPage === pageCount}
                     onClick={() => setPage(currentPage + 1)}
+                    className="border-slate-300 bg-white max-sm:size-11"
                   >
-                    <ChevronRight size={14} sw={2.2} />
-                  </button>
+                    <ChevronRight className="size-4" aria-hidden="true" />
+                  </Button>
                 </div>
               </div>
             )}
-          </div>
+          </Card>
         </section>
+
         <ReportExportModal
           open={showExportModal && !!live.data && !live.error}
           onClose={() => setShowExportModal(false)}
           reportType="Drivers"
           range={range}
-          activeRangeLabel={RANGES.find(r => r.key === activeRange)?.label || 'Custom Range'}
+          activeRangeLabel={
+            REPORT_PRESET_RANGES.find(([key]) => key === activeRange)?.[1] || 'Custom Range'
+          }
           reportData={report}
           filters={{ status }}
         />

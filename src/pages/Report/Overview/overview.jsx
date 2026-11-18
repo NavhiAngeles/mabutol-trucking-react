@@ -1,37 +1,51 @@
-import ReportSchedule from '../../../components/ReportSchedule';
-import ReportExportModal from '../../../components/ReportExportModal';
-import { useReportRange } from '../../../hooks/useReportRange';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Banknote,
+  Clock,
+  Package,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 import MainLayout from '../../../layouts/mainLayout';
 import ReportTopbar from '../../../components/ReportTopbar';
+import ReportExportModal from '../../../components/ReportExportModal';
 import OperationsFeed from '../../Dashboard/OperationsFeed';
+import { useReportRange } from '../../../hooks/useReportRange';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { getReportOverview, REPORT_TABLES } from '../../../services/reportOverviewService';
 import { reportRange, summarizeOverview } from '../../../services/reportOverview.js';
-import {
-  SkeletonBlock,
-  SkeletonDonut,
-  SkeletonListRows,
-  SkeletonStatValue,
-  SkeletonTrendBars,
-} from '../../../components/Skeleton/Skeleton';
+import { formatCompactPhp, formatPhp, REPORT_PRESET_RANGES } from '@/lib/reportFormatters';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import ReportPageHeader from '@/components/reports/ReportPageHeader';
+import ReportRangeToolbar from '@/components/reports/ReportRangeToolbar';
+import AccountingNoteDisclosure from '@/components/reports/AccountingNoteDisclosure';
+import ReportStatusBanner from '@/components/reports/ReportStatusBanner';
+import KpiStatCard from '@/components/reports/KpiStatCard';
+import AnalyticsAreaChart from '@/components/reports/AnalyticsAreaChart';
+import AnalyticsBarChart from '@/components/reports/AnalyticsBarChart';
+import AnalyticsDonutChart from '@/components/reports/AnalyticsDonutChart';
+import ReportEmptyState from '@/components/reports/ReportEmptyState';
 import './overview.css';
 import '../../../components/reportControls.css';
 
-const money = value => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(value);
-const ranges = [['today', 'Today'], ['thisWeek', 'This Week'], ['thisMonth', 'This Month'], ['last3Months', 'Last 3 Months']];
+const VOLUME_CHART_CONFIG = {
+  completed: { label: 'Completed', color: '#0F2A52' },
+  delayed: { label: 'Delayed', color: '#B45309' },
+};
 
-function Chart({ buckets, revenue = false }) {
-  const max = Math.max(1, ...buckets.map(b => revenue ? b.revenue : Math.max(b.completed, b.delayed)));
-  const x = i => 60 + i * 350 / Math.max(1, buckets.length - 1);
-  const y = v => 165 - v / max * 130;
-  return <svg className="ov-chart-svg" viewBox="0 0 460 215" role="img" aria-label={revenue ? 'Completed shipment charges by creation date' : 'Completed and currently delayed shipments by creation date'}>
-    {[0, 0.5, 1].map(r => <g key={r}><line x1="55" x2="435" y1={y(max * r)} y2={y(max * r)} stroke="#E5E7EB" /><text x="50" y={y(max * r) - 5} textAnchor="end" className="ov-axis ov-axis-sm">{revenue ? money(max * r) : Math.ceil(max * r)}</text></g>)}
-    {revenue ? buckets.map((b, i) => <rect key={b.date} x={x(i) - 8} y={y(b.revenue)} width="16" height={165 - y(b.revenue)} fill="#0F172A"><title>{b.date}: {money(b.revenue)}</title></rect>) : ['completed', 'delayed'].map((key, k) => <g key={key}><polyline points={buckets.map((b, i) => `${x(i)},${y(b[key])}`).join(' ')} fill="none" stroke={k ? '#F97316' : '#0F172A'} strokeWidth="3" strokeDasharray={k ? '5 4' : undefined} />{buckets.map((b, i) => <circle key={b.date} cx={x(i)} cy={y(b[key])} r="3" fill={k ? '#F97316' : '#0F172A'}><title>{b.date}: {b[key]} {key}</title></circle>)}</g>)}
-    {buckets.map((b, i) => <text key={b.date} x={x(i)} y="188" textAnchor="end" transform={`rotate(-25 ${x(i)} 188)`} className="ov-axis ov-axis-sm">{b.date.slice(5)}</text>)}
-  </svg>;
-}
+const REVENUE_CHART_CONFIG = {
+  revenue: { label: 'Completed Charges', color: '#0F2A52' },
+};
+
+const COMPLIANCE_CHART_CONFIG = {
+  verified: { label: 'Verified', color: '#15803D' },
+  expiring: { label: 'Expiring Soon', color: '#B45309' },
+  attention: { label: 'Missing / Expired / Rejected', color: '#B91C1C' },
+  pending: { label: 'Pending Review', color: '#64748B' },
+};
 
 export default function Overview() {
   const [activeRange, setActiveRange] = useState('thisMonth');
@@ -41,115 +55,426 @@ export default function Overview() {
   const [showCustom, setShowCustom] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [rangeError, setRangeError] = useState('');
-  const customRef = useRef(null);
 
   const range = useReportRange(activeRange, custom);
-  const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
+  const memoCallback = typeof useCallback === 'function' ? useCallback : (fn) => fn;
   const loadData = memoCallback(() => getReportOverview(range), [range.start, range.end]);
   const live = useLiveData(loadData, REPORT_TABLES);
 
-  useEffect(() => {
-    const outside = event => {
-      if (!customRef.current?.contains(event.target)) setShowCustom(false);
-    };
-    const escape = event => {
-      if (event.key === 'Escape') {
-        setShowCustom(false);
-      }
-    };
-    document.addEventListener('mousedown', outside);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('mousedown', outside);
-      document.removeEventListener('keydown', escape);
-    };
-  }, []);
-
   const report = live.data && summarizeOverview(live.data, range);
-  const percent = report?.complianceTotal ? Math.round(report.compliance.verified / report.complianceTotal * 100) : null;
-  const stats = report ? [
-    ['Total Shipments', report.total, `${report.completed} completed · ${report.delayed} currently delayed`],
-    ['On-Time Rate', report.onTime == null ? 'N/A' : report.onTime + '%', `${report.timed} completed shipments with both arrival timestamps`],
-    ['Completed Charges', money(report.revenue), `Recorded final amounts; not payments or net profit${report.missingAmounts ? ` · ${report.missingAmounts} missing amounts excluded` : ''}`],
-    ['Current Compliance', percent == null ? 'N/A' : percent + '%', `${report.compliance.verified} of ${report.complianceTotal} drivers and vehicles fully verified`],
-  ] : [];
+  const initialLoading = live.loading && !report;
+  const percent = report?.complianceTotal
+    ? Math.round((report.compliance.verified / report.complianceTotal) * 100)
+    : null;
+
   function applyRange() {
-    try { setCustom(reportRange('custom', customStart, customEnd)); setActiveRange('custom'); setShowCustom(false); setRangeError(''); }
-    catch (error) { setRangeError(error.message); }
+    try {
+      setCustom(reportRange('custom', customStart, customEnd));
+      setActiveRange('custom');
+      setShowCustom(false);
+      setRangeError('');
+    } catch (error) {
+      setRangeError(error.message);
+    }
   }
-  return <MainLayout><div className="reports-page">
-    <ReportTopbar />
-    <section className="ov-content">
-      <div className="report-controls"><div className="ov-header"><div><h1>Reports: Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><button type="button" className="ov-btn ov-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => setShowExportModal(true)}>Export Report</button><ReportSchedule type="Overview" /></div></div>
-      <div className="ov-filters"><div className="ov-tabs">{ranges.map(([key, label]) => <button key={key} className={`ov-tab ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustom(false); }}>{label}</button>)}<div className="ov-custom-wrap" ref={customRef}><button className={`ov-tab ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustom} onClick={() => setShowCustom(!showCustom)}>Custom Range</button>{showCustom && <form className="ov-popover" onSubmit={event => { event.preventDefault(); applyRange(); }}><div className="ov-field"><label htmlFor="ov-start">Start date</label><input id="ov-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div><div className="ov-field"><label htmlFor="ov-end">End date</label><input id="ov-end" type="date" min={customStart} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>{rangeError && <p role="alert">{rangeError}</p>}<button className="ov-apply" type="submit">Apply</button></form>}</div></div><span className="ov-date-pill">{range.start} – {range.end} · Philippine time</span></div>
-</div>
-      <p className="report-scope-note">Period metrics use shipments created in the selected dates (Philippine time) and their current status. Fleet and compliance show the current snapshot.</p>
-      {live.loading && <p role="status">Loading report…</p>}
-      {live.error && <p role="alert">Unable to refresh the report. {live.data ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
-      {live.loading && !report && (
-        <div aria-hidden="true">
-          <div className="ov-stats">
-            {['Total Shipments', 'On-Time Rate', 'Completed Charges', 'Current Compliance'].map((label) => (
-              <div className="ov-stat ov-accent-navy" key={label}>
-                <div className="ov-stat-top"><span className="ov-stat-label">{label}</span></div>
-                <div className="ov-stat-value"><SkeletonStatValue width="84px" height={28} /></div>
-                <p className="ov-stat-sub"><SkeletonBlock width="78%" height={12} /></p>
-              </div>
-            ))}
+
+  const warnings = report?.missingAmounts
+    ? [{ label: `${report.missingAmounts} missing charge amount(s) excluded`, tone: 'warning' }]
+    : [];
+
+  const complianceSlices = report
+    ? [
+      { key: 'verified', label: 'Verified', value: report.compliance.verified, color: '#15803D' },
+      { key: 'expiring', label: 'Expiring Soon', value: report.compliance.expiring, color: '#B45309' },
+      { key: 'attention', label: 'Missing / Expired / Rejected', value: report.compliance.attention, color: '#B91C1C' },
+      { key: 'pending', label: 'Pending Review', value: report.compliance.pending, color: '#64748B' },
+    ]
+    : [];
+
+  return (
+    <MainLayout>
+      <div className="reports-page min-w-0 bg-[#F8FAFC] text-slate-900">
+        <ReportTopbar />
+
+        <section className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+          <ReportPageHeader
+            title="Reports: Overview"
+            subtitle="Track operational performance and key logistics metrics."
+            reportType="Overview"
+            onRefresh={live.refresh}
+            onExport={() => setShowExportModal(true)}
+            exportDisabled={!live.data || !!live.error}
+            loading={live.loading}
+          />
+
+          <ReportRangeToolbar
+            activeRange={activeRange}
+            onSelectRange={(key) => {
+              setActiveRange(key);
+              setShowCustom(false);
+            }}
+            range={range}
+            customStart={customStart}
+            customEnd={customEnd}
+            onCustomStartChange={setCustomStart}
+            onCustomEndChange={setCustomEnd}
+            onApplyCustom={applyRange}
+            showCustomPicker={showCustom}
+            onShowCustomPickerChange={setShowCustom}
+            rangeError={rangeError}
+            startInputId="ov-start"
+            endInputId="ov-end"
+          />
+
+          <AccountingNoteDisclosure
+            summary="Period metrics use shipments created in the selected Philippine time dates; fleet and compliance show current snapshot."
+            warnings={warnings}
+            notes={[
+              'Shipments are grouped by creation date (Asia/Manila) using their current status.',
+              'Completed Charges sum recorded final_amount values on completed shipments; they are not cash receipts or net profit.',
+              'Compliance and Fleet Summary reflect current live records regardless of the selected date range.',
+            ]}
+          />
+
+          <ReportStatusBanner
+            loading={live.loading}
+            loadingText="Loading report…"
+            error={live.error}
+            hasData={!!live.data}
+            onRetry={live.refresh}
+          />
+
+          {/* KPI Summary Row */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiStatCard
+              label="Total Shipments"
+              icon={Package}
+              loading={initialLoading}
+              value={report ? report.total.toLocaleString('en-PH') : 'N/A'}
+              description={
+                report
+                  ? `${report.completed} completed · ${report.delayed} currently delayed`
+                  : undefined
+              }
+            />
+            <KpiStatCard
+              label="On-Time Rate"
+              icon={Clock}
+              loading={initialLoading}
+              value={report ? (report.onTime == null ? 'N/A' : `${report.onTime}%`) : 'N/A'}
+              description={
+                report
+                  ? `${report.timed} timed completed shipments`
+                  : undefined
+              }
+              tooltip="Share of completed shipments with both planned ETA and actual arrival timestamps delivered on or before ETA."
+            />
+            <KpiStatCard
+              label="Completed Charges"
+              icon={Banknote}
+              loading={initialLoading}
+              value={report ? formatPhp(report.revenue) : 'N/A'}
+              description="Recorded final amounts"
+              meta={
+                report?.missingAmounts
+                  ? `${report.missingAmounts} missing amounts excluded`
+                  : 'Not payments or net profit'
+              }
+              tooltip="Recorded final_amount on completed shipments created in this range. Excludes shipments without a recorded amount."
+            />
+            <KpiStatCard
+              label="Current Compliance"
+              icon={ShieldCheck}
+              loading={initialLoading}
+              value={report ? (percent == null ? 'N/A' : `${percent}%`) : 'N/A'}
+              description={
+                report
+                  ? `${report.compliance.verified} of ${report.complianceTotal} drivers and vehicles verified`
+                  : undefined
+              }
+              tone={percent != null && percent < 80 ? 'warning' : 'default'}
+            />
           </div>
-          <div className="ov-charts">
-            <div className="ov-card ov-chart-card">
-              <div className="ov-chart-head"><div className="ov-chart-title"><h2>Shipment Volume</h2><p>Current completed and delayed status by creation date</p></div></div>
-              <SkeletonTrendBars count={7} />
-            </div>
-            <div className="ov-card ov-chart-card">
-              <div className="ov-chart-head"><div className="ov-chart-title"><h2>Completed Shipment Charges</h2><p>Recorded final amounts by shipment creation date</p></div></div>
-              <SkeletonTrendBars count={7} />
-            </div>
+
+          {/* Primary Charts */}
+          <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0">
+              <CardHeader className="border-b border-slate-100 px-5 py-4">
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Shipment Volume
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-600">
+                  Completed and currently delayed shipments by creation date
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <Skeleton className="h-[250px] w-full rounded-lg" />
+                ) : !report?.total ? (
+                  <ReportEmptyState
+                    icon={Package}
+                    title="No shipments created in this period"
+                    description={`No shipment records fall between ${range.start} and ${range.end}.`}
+                    action={
+                      activeRange !== 'last3Months'
+                        ? { label: 'View Last 3 Months', onClick: () => setActiveRange('last3Months') }
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <AnalyticsAreaChart
+                    data={report.buckets}
+                    xKey="date"
+                    series={[
+                      { key: 'completed', label: 'Completed', color: '#0F2A52' },
+                      { key: 'delayed', label: 'Delayed', color: '#B45309', strokeDasharray: '4 4' },
+                    ]}
+                    config={VOLUME_CHART_CONFIG}
+                    allowDecimals={false}
+                    yAxisWidth={36}
+                    showLegend
+                    ariaLabel="Completed and currently delayed shipments by creation date"
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0">
+              <CardHeader className="border-b border-slate-100 px-5 py-4">
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Completed Shipment Charges
+                </CardTitle>
+                <CardDescription className="text-xs text-slate-600">
+                  Recorded final amounts by creation date (no revenue target configured)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <Skeleton className="h-[250px] w-full rounded-lg" />
+                ) : !report?.total ? (
+                  <ReportEmptyState
+                    icon={TrendingUp}
+                    title="No shipment charges in this period"
+                    description="Completed shipment charges will appear here once shipments are created and completed."
+                    action={
+                      activeRange !== 'last3Months'
+                        ? { label: 'View Last 3 Months', onClick: () => setActiveRange('last3Months') }
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <AnalyticsBarChart
+                    data={report.buckets}
+                    xKey="date"
+                    dataKey="revenue"
+                    color="#0F2A52"
+                    config={REVENUE_CHART_CONFIG}
+                    valueFormatter={formatCompactPhp}
+                    yAxisWidth={60}
+                    tooltipFormatter={(value) => (
+                      <span className="font-mono font-medium text-slate-900 tabular-nums">
+                        {formatPhp(value)}
+                      </span>
+                    )}
+                    ariaLabel="Completed shipment charges by creation date"
+                  />
+                )}
+              </CardContent>
+            </Card>
           </div>
-          <div className="ov-bottom">
-            <div className="ov-card ov-drivers">
-              <div className="ov-card-head"><h2>Top Performing Drivers</h2></div>
-              <SkeletonListRows rows={3} variant="feed" />
-            </div>
-            <div className="ov-card ov-compliance">
-              <div className="ov-comp-head"><h2>Current Compliance</h2></div>
-              <div className="ov-comp-body"><SkeletonDonut size={156} /></div>
-              <SkeletonListRows rows={3} variant="bar" />
-            </div>
-            <div className="ov-lower">
-              <div className="ov-card ov-fleet">
-                <div className="ov-card-head"><h2>Current Fleet Summary</h2></div>
-                <div className="ov-fleet-grid">
-                  {['TOTAL FLEET', 'DISPATCH READY', 'ON TRIP / RESERVED', 'MAINTENANCE', 'OTHER', 'OVERDUE SERVICE RECORDS'].map((label) => (
-                    <div className="ov-tile" key={label}><span>{label}</span><SkeletonStatValue width="36px" height={24} /></div>
-                  ))}
+
+          {/* Operational Breakdowns */}
+          <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
+            {/* Top Performing Drivers */}
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0 xl:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div>
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    Top Performing Drivers
+                  </CardTitle>
+                  <CardDescription className="mt-0.5 text-xs text-slate-600">
+                    On-time share of completed shipments with recorded arrival times in this cohort
+                  </CardDescription>
                 </div>
-              </div>
-              <div className="ov-card ov-activity">
-                <div className="ov-card-head"><h2>Operations Feed</h2></div>
-                <SkeletonListRows rows={3} variant="feed" />
-              </div>
+                <Link
+                  to="/fleet?view=drivers"
+                  className="shrink-0 text-xs font-semibold text-[#1D4ED8] no-underline hover:underline"
+                >
+                  View Fleet
+                </Link>
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((row) => (
+                      <Skeleton key={row} className="h-12 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : !report?.drivers?.length ? (
+                  <ReportEmptyState
+                    compact
+                    icon={Users}
+                    title="No eligible driver performance records"
+                    description="Drivers appear here once they complete timed deliveries in the selected period."
+                  />
+                ) : (
+                  <ul className="m-0 divide-y divide-slate-100 p-0 list-none">
+                    {report.drivers.map((d) => (
+                      <li
+                        key={d.id}
+                        className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-[#E8EEF8] text-xs font-bold text-[#0F2A52]">
+                            {d.full_name.slice(0, 2).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="m-0 truncate text-sm font-semibold text-slate-900">
+                              {d.full_name}
+                            </p>
+                            <p className="m-0 text-xs text-slate-500 tabular-nums">
+                              {d.trips} timed completed shipments
+                            </p>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span className="block text-sm font-bold text-slate-900 tabular-nums">
+                            {d.pct}%
+                          </span>
+                          <span className="text-[11px] font-medium tracking-wide text-slate-500 uppercase">
+                            On-Time
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Current Compliance */}
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div>
+                  <CardTitle className="text-base font-semibold text-slate-900">
+                    Current Compliance
+                  </CardTitle>
+                  <CardDescription className="mt-0.5 text-xs text-slate-600">
+                    Drivers and vehicles including missing documents
+                  </CardDescription>
+                </div>
+                <Link
+                  to="/fleet?view=compliance"
+                  className="shrink-0 text-xs font-semibold text-[#1D4ED8] no-underline hover:underline"
+                >
+                  View Compliance
+                </Link>
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <Skeleton className="mx-auto h-[220px] w-full rounded-lg" />
+                ) : (
+                  <AnalyticsDonutChart
+                    data={complianceSlices}
+                    config={COMPLIANCE_CHART_CONFIG}
+                    centerValue={percent == null ? 'N/A' : `${percent}%`}
+                    centerLabel="Compliant"
+                    legendColumns={1}
+                    ariaLabel={`Current compliance: ${percent == null ? 'N/A' : `${percent}%`}`}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Current Fleet Summary */}
+            <Card className="gap-0 rounded-xl border border-slate-200 bg-white py-0 shadow-none ring-0 xl:col-span-2">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-5 py-4">
+                <CardTitle className="text-base font-semibold text-slate-900">
+                  Current Fleet Summary
+                </CardTitle>
+                <Link
+                  to="/fleet"
+                  className="shrink-0 text-xs font-semibold text-[#1D4ED8] no-underline hover:underline"
+                >
+                  Manage Fleet
+                </Link>
+              </CardHeader>
+              <CardContent className="p-5">
+                {initialLoading ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {[1, 2, 3, 4, 5, 6].map((tile) => (
+                      <Skeleton key={tile} className="h-20 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {[
+                      ['Total Fleet', live.data?.resources?.total ?? 0, false],
+                      ['Dispatch Ready', live.data?.resources?.available ?? 0, false],
+                      ['On Trip / Reserved', live.data?.resources?.inUse ?? 0, false],
+                      ['Maintenance', live.data?.resources?.maintenance ?? 0, false],
+                      ['Other', live.data?.resources?.other ?? 0, false],
+                      ['Overdue Service Records', live.data?.overdue ?? 0, (live.data?.overdue ?? 0) > 0],
+                    ].map(([label, value, highlight]) => (
+                      <div
+                        key={label}
+                        className={
+                          highlight
+                            ? 'flex flex-col justify-between rounded-lg border border-amber-200 bg-amber-50/70 p-3.5'
+                            : 'flex flex-col justify-between rounded-lg border border-slate-200 bg-slate-50/70 p-3.5'
+                        }
+                      >
+                        <span
+                          className={
+                            highlight
+                              ? 'text-[11px] font-semibold tracking-wide text-[#B45309] uppercase'
+                              : 'text-[11px] font-semibold tracking-wide text-slate-600 uppercase'
+                          }
+                        >
+                          {label}
+                        </span>
+                        <strong
+                          className={
+                            highlight
+                              ? 'mt-2 text-2xl font-bold text-[#B45309] tabular-nums'
+                              : 'mt-2 text-2xl font-bold text-slate-900 tabular-nums'
+                          }
+                        >
+                          {value}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Operations Feed (mounted directly without a redundant outer card wrapper) */}
+            <div className="min-w-0">
+              <OperationsFeed />
             </div>
           </div>
-        </div>
-      )}
-      {report && <>
-        {!report.total && <p role="status">No shipments were created in this period.</p>}
-        <div className="ov-stats">{stats.map(([label, value, sub]) => <div className="ov-stat ov-accent-navy" key={label}><div className="ov-stat-top"><span className="ov-stat-label">{label}</span></div><div className="ov-stat-value"><strong>{value}</strong></div><p className="ov-stat-sub">{sub}</p></div>)}</div>
-        <div className="ov-charts"><div className="ov-card ov-chart-card"><div className="ov-chart-head"><div className="ov-chart-title"><h2>Shipment Volume</h2><p>Current completed and delayed status by creation date</p></div></div><Chart buckets={report.buckets} /><div className="ov-legend"><span><i className="sq" /> Completed</span><span><i className="dash" /> Delayed</span></div></div><div className="ov-card ov-chart-card"><div className="ov-chart-head"><div className="ov-chart-title"><h2>Completed Shipment Charges</h2><p>Recorded final amounts by shipment creation date</p></div></div><Chart buckets={report.buckets} revenue /><p>No revenue target is configured.</p></div></div>
-        <div className="ov-bottom"><div className="ov-card ov-drivers"><div className="ov-card-head"><h2>Top Performing Drivers</h2><Link className="ov-link" to="/fleet?view=drivers">View Fleet</Link></div><p>On-time share of completed shipments with recorded arrival times in this cohort.</p>{!report.drivers.length && <p>No eligible driver performance records for this period.</p>}<ul className="ov-driver-list">{report.drivers.map(d => <li key={d.id}><span className="ov-initials ov-initials-dark">{d.full_name.slice(0, 2).toUpperCase()}</span><div className="ov-driver-info"><strong>{d.full_name}</strong><span>{d.trips} timed completed shipments</span></div><div className="ov-driver-pct"><strong>{d.pct}%</strong><span>ON-TIME</span></div></li>)}</ul></div>
-        <div className="ov-card ov-compliance"><div className="ov-comp-head"><h2>Current Compliance</h2><Link className="ov-link" to="/fleet?view=compliance">View Compliance</Link></div><div className="ov-comp-body"><div className="ov-gauge" style={{ background: `conic-gradient(#0F172A ${(percent || 0) * 3.6}deg, #E5E7EB 0)` }}><div><strong>{percent == null ? 'N/A' : percent + '%'}</strong><span>COMPLIANT</span></div></div></div><ul className="ov-comp-list">{[['Verified', 'verified'], ['Expiring Soon', 'expiring'], ['Missing / Expired / Rejected', 'attention'], ['Pending Review', 'pending']].map(([label, key]) => <li key={key}><span>{label}</span><b>{report.compliance[key]}</b></li>)}</ul><p>Counts drivers and vehicles, including missing required documents.</p></div>
-        <div className="ov-lower"><div className="ov-card ov-fleet"><div className="ov-card-head"><h2>Current Fleet Summary</h2><Link className="ov-link" to="/fleet">Manage Fleet</Link></div><div className="ov-fleet-grid">{[['TOTAL FLEET', live.data.resources.total], ['DISPATCH READY', live.data.resources.available], ['ON TRIP / RESERVED', live.data.resources.inUse], ['MAINTENANCE', live.data.resources.maintenance], ['OTHER', live.data.resources.other], ['OVERDUE SERVICE RECORDS', live.data.overdue]].map(([label, value]) => <div className="ov-tile" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></div><div className="ov-card ov-activity"><OperationsFeed /></div></div></div>
-      </>}
-    </section>
-    <ReportExportModal
-      open={showExportModal && !!live.data && !live.error}
-      onClose={() => setShowExportModal(false)}
-      reportType="Overview"
-      range={range}
-      activeRangeLabel={ranges.find(([key]) => key === activeRange)?.[1] || 'Custom Range'}
-      reportData={report ? { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue } : null}
-    />
-  </div></MainLayout>;
+        </section>
+
+        <ReportExportModal
+          open={showExportModal && !!live.data && !live.error}
+          onClose={() => setShowExportModal(false)}
+          reportType="Overview"
+          range={range}
+          activeRangeLabel={
+            REPORT_PRESET_RANGES.find(([key]) => key === activeRange)?.[1] || 'Custom Range'
+          }
+          reportData={
+            report
+              ? {
+                ...report,
+                fleet: live.data.resources,
+                overdueServiceRecords: live.data.overdue,
+              }
+              : null
+          }
+        />
+      </div>
+    </MainLayout>
+  );
 }
