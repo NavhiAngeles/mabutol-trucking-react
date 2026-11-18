@@ -101,9 +101,9 @@ test("directory loads, refreshes changed/deleted records, exposes errors, and cl
   [...intervals.values()][0](); await flush();
   assert.equal(render().customers[0].name, "Updated live customer");
   assert.equal(render().customers.length, 1);
-  currentRows = []; [...intervals.values()][0](); await flush();
+  currentRows = [];[...intervals.values()][0](); await flush();
   assert.equal(render().customers.length, 0);
-  fail = true; [...intervals.values()][0](); await flush();
+  fail = true;[...intervals.values()][0](); await flush();
   assert.equal(render().error, "Permission denied");
   assert.equal(render().customers.length, 0);
   render(false);
@@ -114,14 +114,16 @@ test("customer page renders loading/empty/error/live states and real profile act
   const { transformWithOxc } = await import("vite");
   let states = [], cursor = 0;
   let officeRole = "staff";
-  let directory = { customers: [], bookings: [], loading: true, error: "", refresh() {} };
+  let directory = { customers: [], bookings: [], loading: true, error: "", refresh() { } };
   const scope = {
     ...context.api, useCustomerDirectory: () => directory,
-    useNavigate: () => () => {}, MainLayout: "Layout", OfficeTools: "OfficeTools", CustomerEditDialog: "CustomerEditDialog",
-    downloadCustomerExport: () => {},
+    useNavigate: () => () => { }, MainLayout: "Layout", OfficeTools: "OfficeTools", CustomerEditDialog: "CustomerEditDialog",
+    ReportExportModal: "ReportExportModal",
     useAuth: () => ({ user: { id: "office-a" }, role: officeRole }),
+    SkeletonStatValue: ({ width, height }) => ({ type: "SkeletonStatValue", props: { width, height }, children: [] }),
+    SkeletonTableRows: ({ rows, columns }) => ({ type: "SkeletonTableRows", props: { rows, columns }, children: [] }),
     useState(initial) { const i = cursor++; if (!(i in states)) states[i] = initial; return [states[i], value => states[i] = typeof value === "function" ? value(states[i]) : value]; },
-    useMemo: fn => fn(), useRef: () => ({ current: null }), useEffect() {},
+    useMemo: fn => fn(), useRef: () => ({ current: null }), useEffect() { },
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
   };
   vm.createContext(scope);
@@ -129,7 +131,7 @@ test("customer page renders loading/empty/error/live states and real profile act
   const { code } = await transformWithOxc(fs.readFileSync(path, "utf8"), path.pathname, { jsx: { runtime: "classic" } });
   vm.runInContext(code.replace(/^import .*;$/gm, "").replace("export default function", "function") + "\nthis.Page=Customer;", scope);
   const render = () => { cursor = 0; return scope.Page(); };
-  const find = (node, type) => !node || typeof node !== "object" ? [] : [ ...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type)) ];
+  const find = (node, type) => !node || typeof node !== "object" ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
   assert.ok(JSON.stringify(render()).includes("Loading customers..."));
   directory = { ...directory, loading: false };
   assert.ok(JSON.stringify(render()).includes("No registered customers yet."));

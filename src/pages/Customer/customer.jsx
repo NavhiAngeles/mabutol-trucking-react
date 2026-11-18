@@ -7,7 +7,8 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
-import { downloadCustomerExport } from "../../services/customerExport";
+import ReportExportModal from "../../components/ReportExportModal";
+import { SkeletonStatValue, SkeletonTableRows } from "../../components/Skeleton/Skeleton";
 
 const PAGE_SIZE = 10;
 
@@ -38,12 +39,6 @@ const DownloadIcon = (props) => (
   </svg>
 );
 
-const ChevronDownIcon = (props) => (
-  <svg {...iconProps} width={14} height={14} {...props}>
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
 const ChevronLeftIcon = (props) => (
   <svg {...iconProps} width={14} height={14} {...props}>
     <polyline points="15 18 9 12 15 6" />
@@ -53,27 +48,6 @@ const ChevronLeftIcon = (props) => (
 const ChevronRightIcon = (props) => (
   <svg {...iconProps} width={14} height={14} {...props}>
     <polyline points="9 18 15 12 9 6" />
-  </svg>
-);
-
-const FileSpreadsheetIcon = (props) => (
-  <svg {...iconProps} width={18} height={18} {...props}>
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <path d="M8 13h2" />
-    <path d="M8 17h2" />
-    <path d="M14 13h2" />
-    <path d="M14 17h2" />
-  </svg>
-);
-
-const FileTextIcon = (props) => (
-  <svg {...iconProps} width={18} height={18} {...props}>
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <line x1="10" y1="9" x2="8" y2="9" />
   </svg>
 );
 
@@ -174,9 +148,8 @@ export default function Customer() {
   }, [saveMessage]);
   const [profileCustomerId, setProfileCustomerId] = useState(null);
   const [historyCustomerId, setHistoryCustomerId] = useState(null);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const menuRef = useRef(null);
-  const exportMenuRef = useRef(null);
   const cpModalRef = useRef(null);
   const bhModalRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -214,20 +187,13 @@ export default function Customer() {
     setPage(1);
     if (!value) setDebouncedQuery("");
   };
-  const countLabel = value => loading || error ? "--" : value;
-  const handleExport = (format = "csv") => {
-    setShowExportMenu(false);
-    const exportMatches = query && query !== activeSearchQuery
+  const countLabel = value => loading ? <SkeletonStatValue width="48px" height={28} /> : error ? "--" : value;
+  const exportMatches = useMemo(() => (
+    query && query !== activeSearchQuery
       ? filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly })
-      : filtered;
-    if (!exportMatches.length) return;
-    downloadCustomerExport(exportMatches, format, {
-      query: activeSearchQuery,
-      status: statusFilter,
-      sort,
-      todayOnly,
-    });
-  };
+      : filtered
+  ), [rows, filtered, query, activeSearchQuery, statusFilter, sort, todayOnly]);
+  const [snapshotDate] = useState(() => new Date(Date.now() + 28800000).toISOString().slice(0, 10));
 
   // Close dropdowns on outside click or Escape
   useEffect(() => {
@@ -235,14 +201,10 @@ export default function Customer() {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpenMenuId(null);
       }
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
-        setShowExportMenu(false);
-      }
     }
     function handleKeyDown(e) {
       if (e.key === "Escape") {
         setOpenMenuId(null);
-        setShowExportMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -355,49 +317,16 @@ export default function Customer() {
                 <span>Add Customer</span>
               </button>
             )}
-            <div className="customer-export-container" ref={exportMenuRef}>
-              <button
-                type="button"
-                className="btn-export"
-                disabled={loading || Boolean(error) || !filtered.length}
-                aria-haspopup="true"
-                aria-expanded={showExportMenu}
-                onClick={() => setShowExportMenu((open) => !open)}
-                title="Export customer list to CSV or PDF"
-              >
-                <DownloadIcon />
-                <span>Export</span>
-                <ChevronDownIcon className={`export-chevron ${showExportMenu ? "open" : ""}`} />
-              </button>
-              {showExportMenu && (
-                <div className="customer-export-menu" role="menu" aria-label="Export options">
-                  <button
-                    type="button"
-                    className="customer-export-menu-item"
-                    role="menuitem"
-                    onClick={() => handleExport("csv")}
-                  >
-                    <span className="export-menu-icon" aria-hidden="true"><FileSpreadsheetIcon /></span>
-                    <div className="export-menu-text">
-                      <span className="export-menu-title">Export as CSV</span>
-                      <span className="export-menu-desc">Spreadsheet data (.csv)</span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className="customer-export-menu-item"
-                    role="menuitem"
-                    onClick={() => handleExport("pdf")}
-                  >
-                    <span className="export-menu-icon" aria-hidden="true"><FileTextIcon /></span>
-                    <div className="export-menu-text">
-                      <span className="export-menu-title">Export as PDF</span>
-                      <span className="export-menu-desc">Print-ready document (.pdf)</span>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              className="btn-export"
+              disabled={loading || Boolean(error) || !filtered.length}
+              onClick={() => setShowExportModal(true)}
+              title="Preview and export customer directory to PDF or Excel"
+            >
+              <DownloadIcon />
+              <span>Export Report</span>
+            </button>
           </div>
         </div>
 
@@ -442,6 +371,7 @@ export default function Customer() {
           </div>
         )}
         <div className="customer-table-card" aria-busy={loading}>
+          {loading && <p className="sr-only" role="status">Loading customers...</p>}
           <div className="customer-table-scroll">
             <table className="customer-table">
               <thead>
@@ -456,8 +386,21 @@ export default function Customer() {
                 </tr>
               </thead>
               <tbody>
-                {loading || error || customers.length === 0 ? (
-                  <tr><td colSpan={7} className="customer-table-message">{loading ? "Loading customers..." : error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
+                {loading ? (
+                  <SkeletonTableRows
+                    rows={6}
+                    columns={[
+                      "avatar-stack",
+                      "text",
+                      "short",
+                      "short",
+                      "short",
+                      "badge",
+                      "action",
+                    ]}
+                  />
+                ) : error || customers.length === 0 ? (
+                  <tr><td colSpan={7} className="customer-table-message">{error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
                 ) : customers.map((cust) => (
                   <tr key={cust.id}>
                     <td>
@@ -536,315 +479,330 @@ export default function Customer() {
             </div>
           </div>
         </div>
-      {/* ===== CUSTOMER PROFILE MODAL ===== */}
-      {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} onClose={() => setEditing(null)} onSaved={() => {
-        setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
-      }} />}
-      {canEdit && statusTarget && (
-        <CustomerStatusDialog
-          key={`status:${statusTarget.id}:${statusTarget.updated_at}`}
-          customer={statusTarget}
-          callerRole={role}
-          onClose={() => setStatusTarget(null)}
-          onConfirmed={(updated) => {
-            setStatusTarget(null);
-            const actionName = updated.is_active ? "reactivated" : "suspended";
-            setSaveMessage(`Customer account ${actionName} successfully.`);
-            void refresh();
-          }}
-        />
-      )}
-      {canEdit && showAddModal && (
-        <CustomerAddDialog
-          callerRole={role}
-          onClose={() => setShowAddModal(false)}
-          onSaved={(newCustomer) => {
-            setShowAddModal(false);
-            setSaveMessage(`Customer "${newCustomer.name}" (${newCustomer.customer_code || 'new'}) registered successfully.`);
-            void refresh();
-          }}
-        />
-      )}
-      {profileModal && profile && (
-        <div className="cp-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setProfileModal(null); }}>
-          <div
-            ref={cpModalRef}
-            className="cp-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="cp-modal-title"
-            tabIndex={-1}
-          >
+        {/* ===== CUSTOMER PROFILE MODAL ===== */}
+        {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} existingCustomers={records} onClose={() => setEditing(null)} onSaved={() => {
+          setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
+        }} />}
+        {canEdit && statusTarget && (
+          <CustomerStatusDialog
+            key={`status:${statusTarget.id}:${statusTarget.updated_at}`}
+            customer={statusTarget}
+            callerRole={role}
+            onClose={() => setStatusTarget(null)}
+            onConfirmed={(updated) => {
+              setStatusTarget(null);
+              const actionName = updated.is_active ? "reactivated" : "suspended";
+              setSaveMessage(`Customer account ${actionName} successfully.`);
+              void refresh();
+            }}
+          />
+        )}
+        {canEdit && showAddModal && (
+          <CustomerAddDialog
+            callerRole={role}
+            existingCustomers={records}
+            onClose={() => setShowAddModal(false)}
+            onSaved={(newCustomer) => {
+              setShowAddModal(false);
+              setSaveMessage(`Customer "${newCustomer.name}" (${newCustomer.customer_code || 'new'}) registered successfully.`);
+              void refresh();
+            }}
+          />
+        )}
+        {profileModal && profile && (
+          <div className="cp-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setProfileModal(null); }}>
+            <div
+              ref={cpModalRef}
+              className="cp-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cp-modal-title"
+              tabIndex={-1}
+            >
 
-            {/* Modal Header */}
-            <div className="cp-modal-header">
-              <div className="cp-modal-title-row">
-                <h2 id="cp-modal-title" className="cp-modal-title">Customer Profile</h2>
-                <span className={`cp-status-pill ${profileModal.status.toLowerCase()}`}>
-                  {profileModal.status}
-                </span>
+              {/* Modal Header */}
+              <div className="cp-modal-header">
+                <div className="cp-modal-title-row">
+                  <h2 id="cp-modal-title" className="cp-modal-title">Customer Profile</h2>
+                  <span className={`cp-status-pill ${profileModal.status.toLowerCase()}`}>
+                    {profileModal.status}
+                  </span>
+                </div>
+                <button type="button" className="cp-close-btn" aria-label="Close customer profile" onClick={() => setProfileModal(null)}><CloseIcon /></button>
               </div>
-              <button type="button" className="cp-close-btn" aria-label="Close customer profile" onClick={() => setProfileModal(null)}><CloseIcon /></button>
+
+              {/* Modal Body */}
+              <div className="cp-modal-body">
+
+                {/* LEFT COLUMN */}
+                <div className="cp-left">
+
+                  {/* Identity Card */}
+                  <div className="cp-identity-card">
+                    <div className="cp-avatar-box">
+                      <div className="cp-avatar-placeholder">
+                        {profileModal.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                      </div>
+                    </div>
+                    <h3 className="cp-name">{profileModal.name}</h3>
+                    <p className="cp-cust-id tabular-nums">ID: {profile.id}</p>
+
+                    <div className="cp-details-list">
+                      <div className="cp-detail-row">
+                        <span className="cp-detail-icon" aria-hidden="true"><MailIcon /></span>
+                        <div>
+                          <div className="cp-detail-label">EMAIL</div>
+                          <div className="cp-detail-value">{profileModal.email}</div>
+                        </div>
+                      </div>
+                      <div className="cp-detail-row">
+                        <span className="cp-detail-icon" aria-hidden="true"><PhoneIcon /></span>
+                        <div>
+                          <div className="cp-detail-label">CONTACT</div>
+                          <div className="cp-detail-value tabular-nums">{profileModal.phone}</div>
+                        </div>
+                      </div>
+                      <div className="cp-detail-row">
+                        <span className="cp-detail-icon" aria-hidden="true"><MapPinIcon /></span>
+                        <div>
+                          <div className="cp-detail-label">ADDRESS</div>
+                          <div className="cp-detail-value">{profile.address}</div>
+                        </div>
+                      </div>
+                      <div className="cp-detail-row">
+                        <span className="cp-detail-icon" aria-hidden="true"><CalendarIcon /></span>
+                        <div>
+                          <div className="cp-detail-label">MEMBER SINCE</div>
+                          <div className="cp-detail-value tabular-nums">{profileModal.memberSince}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Status Card */}
+                  <div className="cp-status-card">
+                    <h3 className="cp-section-label">ACCOUNT STATUS</h3>
+                    <div className="cp-status-row">
+                      <span>Current Status</span>
+                      <span className={`cp-status-dot ${profileModal.status.toLowerCase()}`}>
+                        <span className="cp-status-indicator" aria-hidden="true" />
+                        <span>{profileModal.status === "ACTIVE" ? "Active" : profileModal.status === "SUSPENDED" ? "Suspended" : "Unknown"}</span>
+                      </span>
+                    </div>
+                    {canEdit ? (
+                      <>
+                        <button
+                          type="button"
+                          className={`cp-suspend-btn ${profileModal.status === "ACTIVE" ? "" : "reactivate"}`}
+                          onClick={() => {
+                            const record = records.find(item => item.id === profileModal.id);
+                            if (record) { setStatusTarget(record); setSaveMessage(""); }
+                          }}
+                        >
+                          {profileModal.status === "ACTIVE" ? (
+                            <><BanIcon /><span>Suspend Account</span></>
+                          ) : (
+                            <><CheckIcon /><span>Reactivate Account</span></>
+                          )}
+                        </button>
+                        <p className="cp-suspend-hint">
+                          {profileModal.status === "ACTIVE"
+                            ? "Deactivates customer access while preserving history."
+                            : "Restores customer access and booking privileges."}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="cp-suspend-hint">Only office staff can manage customer account status.</p>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* RIGHT COLUMN */}
+                <div className="cp-right">
+
+                  {/* Booking Summary */}
+                  <div className="cp-section-title-row">
+                    <h3 className="cp-section-label">BOOKING SUMMARY</h3>
+                  </div>
+                  <div className="cp-summary-grid">
+                    <div className="cp-summary-card">
+                      <div className="cp-summary-label">TOTAL</div>
+                      <div className="cp-summary-value tabular-nums">{profile.bookingSummary.total}</div>
+                      <div className="cp-summary-accent neutral"></div>
+                    </div>
+                    <div className="cp-summary-card">
+                      <div className="cp-summary-label">COMPLETED</div>
+                      <div className="cp-summary-value tabular-nums">{profile.bookingSummary.completed}</div>
+                      <div className="cp-summary-accent green"></div>
+                    </div>
+                    <div className="cp-summary-card">
+                      <div className="cp-summary-label">CANCELLED</div>
+                      <div className="cp-summary-value tabular-nums">{profile.bookingSummary.cancelled}</div>
+                      <div className="cp-summary-accent red"></div>
+                    </div>
+                    <div className="cp-summary-card">
+                      <div className="cp-summary-label">ACTIVE NOW</div>
+                      <div className="cp-summary-value tabular-nums">{profile.bookingSummary.activeNow}</div>
+                      <div className="cp-summary-accent blue"></div>
+                    </div>
+                  </div>
+
+                  {/* Recent Bookings */}
+                  <div className="cp-recent-header">
+                    <h3 className="cp-section-label">RECENT BOOKINGS</h3>
+                    <button type="button" className="cp-view-all-btn" onClick={() => { setProfileModal(null); setBookingHistoryModal(profileModal); }}>View All Bookings <span aria-hidden="true">→</span></button>
+                  </div>
+                  <div className="cp-bookings-table-wrap">
+                    <table className="cp-bookings-table">
+                      <thead>
+                        <tr>
+                          <th>SHIPMENT ID</th>
+                          <th>ROUTE</th>
+                          <th>DATE</th>
+                          <th>STATUS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profile.recentBookings.length === 0 && <tr><td colSpan={4}>No bookings recorded.</td></tr>}
+                        {profile.recentBookings.slice(0, 5).map((b) => (
+                          <tr key={b.id}>
+                            <td className="cp-shipment-id tabular-nums">{b.id}</td>
+                            <td>{b.route}</td>
+                            <td className="tabular-nums">{b.date}</td>
+                            <td>
+                              <span className={`cp-booking-status ${b.status.toLowerCase()}`}>
+                                {b.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              </div>
             </div>
+          </div>
+        )}
+        {/* ===== BOOKING HISTORY MODAL ===== */}
+        {bookingHistoryModal && historyProfile && (
+          <div className="bh-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setBookingHistoryModal(null); }}>
+            <div
+              ref={bhModalRef}
+              className="bh-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="bh-modal-title"
+              tabIndex={-1}
+            >
 
-            {/* Modal Body */}
-            <div className="cp-modal-body">
-
-              {/* LEFT COLUMN */}
-              <div className="cp-left">
-
-                {/* Identity Card */}
-                <div className="cp-identity-card">
-                  <div className="cp-avatar-box">
-                    <div className="cp-avatar-placeholder">
-                      {profileModal.name.split(" ").map(n => n[0]).join("").slice(0,2)}
-                    </div>
+              {/* Modal Header */}
+              <div className="bh-modal-header">
+                <div className="bh-header-left">
+                  <div className="bh-avatar-placeholder">
+                    {bookingHistoryModal.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                   </div>
-                  <h3 className="cp-name">{profileModal.name}</h3>
-                  <p className="cp-cust-id tabular-nums">ID: {profile.id}</p>
-
-                  <div className="cp-details-list">
-                    <div className="cp-detail-row">
-                      <span className="cp-detail-icon" aria-hidden="true"><MailIcon /></span>
-                      <div>
-                        <div className="cp-detail-label">EMAIL</div>
-                        <div className="cp-detail-value">{profileModal.email}</div>
-                      </div>
-                    </div>
-                    <div className="cp-detail-row">
-                      <span className="cp-detail-icon" aria-hidden="true"><PhoneIcon /></span>
-                      <div>
-                        <div className="cp-detail-label">CONTACT</div>
-                        <div className="cp-detail-value tabular-nums">{profileModal.phone}</div>
-                      </div>
-                    </div>
-                    <div className="cp-detail-row">
-                      <span className="cp-detail-icon" aria-hidden="true"><MapPinIcon /></span>
-                      <div>
-                        <div className="cp-detail-label">ADDRESS</div>
-                        <div className="cp-detail-value">{profile.address}</div>
-                      </div>
-                    </div>
-                    <div className="cp-detail-row">
-                      <span className="cp-detail-icon" aria-hidden="true"><CalendarIcon /></span>
-                      <div>
-                        <div className="cp-detail-label">MEMBER SINCE</div>
-                        <div className="cp-detail-value tabular-nums">{profileModal.memberSince}</div>
-                      </div>
-                    </div>
+                  <div>
+                    <h2 id="bh-modal-title" className="bh-modal-title">{bookingHistoryModal.name}</h2>
+                    <p className="bh-modal-meta">
+                      <span className="bh-meta-id tabular-nums">ID: {historyProfile.id}</span>
+                      <span className="bh-meta-dot" aria-hidden="true">·</span>
+                      <span className={`bh-status-pill ${bookingHistoryModal.status.toLowerCase()}`}>{bookingHistoryModal.status}</span>
+                      <span className="bh-meta-dot" aria-hidden="true">·</span>
+                      <span className="bh-meta-count tabular-nums">{historyProfile.bookingSummary.total} total bookings</span>
+                    </p>
                   </div>
                 </div>
-
-                {/* Account Status Card */}
-                <div className="cp-status-card">
-                  <h3 className="cp-section-label">ACCOUNT STATUS</h3>
-                  <div className="cp-status-row">
-                    <span>Current Status</span>
-                    <span className={`cp-status-dot ${profileModal.status.toLowerCase()}`}>
-                      <span className="cp-status-indicator" aria-hidden="true" />
-                      <span>{profileModal.status === "ACTIVE" ? "Active" : profileModal.status === "SUSPENDED" ? "Suspended" : "Unknown"}</span>
-                    </span>
-                  </div>
-                  {canEdit ? (
-                    <>
-                      <button
-                        type="button"
-                        className={`cp-suspend-btn ${profileModal.status === "ACTIVE" ? "" : "reactivate"}`}
-                        onClick={() => {
-                          const record = records.find(item => item.id === profileModal.id);
-                          if (record) { setStatusTarget(record); setSaveMessage(""); }
-                        }}
-                      >
-                        {profileModal.status === "ACTIVE" ? (
-                          <><BanIcon /><span>Suspend Account</span></>
-                        ) : (
-                          <><CheckIcon /><span>Reactivate Account</span></>
-                        )}
-                      </button>
-                      <p className="cp-suspend-hint">
-                        {profileModal.status === "ACTIVE"
-                          ? "Deactivates customer access while preserving history."
-                          : "Restores customer access and booking privileges."}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="cp-suspend-hint">Only office staff can manage customer account status.</p>
-                  )}
-                </div>
-
+                <button type="button" className="bh-close-btn" aria-label="Close booking history" onClick={() => setBookingHistoryModal(null)}><CloseIcon /></button>
               </div>
 
-              {/* RIGHT COLUMN */}
-              <div className="cp-right">
+              {/* Summary Strip */}
+              <div className="bh-summary-strip">
+                <div className="bh-strip-card">
+                  <span className="bh-strip-label">TOTAL</span>
+                  <span className="bh-strip-value neutral tabular-nums">{historyProfile.bookingSummary.total}</span>
+                </div>
+                <div className="bh-strip-divider" />
+                <div className="bh-strip-card">
+                  <span className="bh-strip-label">COMPLETED</span>
+                  <span className="bh-strip-value green tabular-nums">{historyProfile.bookingSummary.completed}</span>
+                </div>
+                <div className="bh-strip-divider" />
+                <div className="bh-strip-card">
+                  <span className="bh-strip-label">CANCELLED</span>
+                  <span className="bh-strip-value red tabular-nums">{historyProfile.bookingSummary.cancelled}</span>
+                </div>
+                <div className="bh-strip-divider" />
+                <div className="bh-strip-card">
+                  <span className="bh-strip-label">ACTIVE NOW</span>
+                  <span className="bh-strip-value blue tabular-nums">{historyProfile.bookingSummary.activeNow}</span>
+                </div>
+              </div>
 
-                {/* Booking Summary */}
-                <div className="cp-section-title-row">
-                  <h3 className="cp-section-label">BOOKING SUMMARY</h3>
-                </div>
-                <div className="cp-summary-grid">
-                  <div className="cp-summary-card">
-                    <div className="cp-summary-label">TOTAL</div>
-                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.total}</div>
-                    <div className="cp-summary-accent neutral"></div>
-                  </div>
-                  <div className="cp-summary-card">
-                    <div className="cp-summary-label">COMPLETED</div>
-                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.completed}</div>
-                    <div className="cp-summary-accent green"></div>
-                  </div>
-                  <div className="cp-summary-card">
-                    <div className="cp-summary-label">CANCELLED</div>
-                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.cancelled}</div>
-                    <div className="cp-summary-accent red"></div>
-                  </div>
-                  <div className="cp-summary-card">
-                    <div className="cp-summary-label">ACTIVE NOW</div>
-                    <div className="cp-summary-value tabular-nums">{profile.bookingSummary.activeNow}</div>
-                    <div className="cp-summary-accent blue"></div>
-                  </div>
-                </div>
-
-                {/* Recent Bookings */}
-                <div className="cp-recent-header">
-                  <h3 className="cp-section-label">RECENT BOOKINGS</h3>
-                  <button type="button" className="cp-view-all-btn" onClick={() => { setProfileModal(null); setBookingHistoryModal(profileModal); }}>View All Bookings <span aria-hidden="true">→</span></button>
-                </div>
-                <div className="cp-bookings-table-wrap">
-                  <table className="cp-bookings-table">
-                    <thead>
-                      <tr>
-                        <th>SHIPMENT ID</th>
-                        <th>ROUTE</th>
-                        <th>DATE</th>
-                        <th>STATUS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {profile.recentBookings.length === 0 && <tr><td colSpan={4}>No bookings recorded.</td></tr>}
-                      {profile.recentBookings.slice(0, 5).map((b) => (
-                        <tr key={b.id}>
-                          <td className="cp-shipment-id tabular-nums">{b.id}</td>
-                          <td>{b.route}</td>
-                          <td className="tabular-nums">{b.date}</td>
-                          <td>
-                            <span className={`cp-booking-status ${b.status.toLowerCase()}`}>
+              {/* Timeline Body */}
+              <div className="bh-body">
+                <h3 className="bh-section-label">BOOKING HISTORY</h3>
+                <div className="bh-timeline">
+                  {historyProfile.recentBookings.length === 0 && <p>No bookings recorded.</p>}
+                  {historyProfile.recentBookings.map((b, idx) => {
+                    const isCancelled = b.status.toLowerCase() === "cancelled";
+                    const isActive = !["completed", "cancelled"].includes(b.status.toLowerCase());
+                    const dotClass = isCancelled ? "red" : isActive ? "blue" : "green";
+                    return (
+                      <div className="bh-timeline-item" key={b.id}>
+                        <div className="bh-timeline-left">
+                          <div className={`bh-dot ${dotClass}`} aria-hidden="true"></div>
+                          {idx < historyProfile.recentBookings.length - 1 && <div className="bh-line" />}
+                        </div>
+                        <div className="bh-timeline-card">
+                          <div className="bh-card-top">
+                            <div className="bh-card-id-route">
+                              <span className="bh-card-id tabular-nums">{b.id}</span>
+                              <span className="bh-card-route">{b.route}</span>
+                            </div>
+                            <span className="bh-card-date tabular-nums">{b.date}</span>
+                          </div>
+                          <div className="bh-card-bottom">
+                            <span className="bh-cargo-tag">
+                              {b.cargo || "General Cargo"}
+                            </span>
+                            <span className={`bh-booking-status ${b.status.toLowerCase()}`}>
                               {b.status}
                             </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* ===== BOOKING HISTORY MODAL ===== */}
-      {bookingHistoryModal && historyProfile && (
-        <div className="bh-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setBookingHistoryModal(null); }}>
-          <div
-            ref={bhModalRef}
-            className="bh-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="bh-modal-title"
-            tabIndex={-1}
-          >
-
-            {/* Modal Header */}
-            <div className="bh-modal-header">
-              <div className="bh-header-left">
-                <div className="bh-avatar-placeholder">
-                  {bookingHistoryModal.name.split(" ").map(n => n[0]).join("").slice(0,2)}
-                </div>
-                <div>
-                  <h2 id="bh-modal-title" className="bh-modal-title">{bookingHistoryModal.name}</h2>
-                  <p className="bh-modal-meta">
-                    <span className="bh-meta-id tabular-nums">ID: {historyProfile.id}</span>
-                    <span className="bh-meta-dot" aria-hidden="true">·</span>
-                    <span className={`bh-status-pill ${bookingHistoryModal.status.toLowerCase()}`}>{bookingHistoryModal.status}</span>
-                    <span className="bh-meta-dot" aria-hidden="true">·</span>
-                    <span className="bh-meta-count tabular-nums">{historyProfile.bookingSummary.total} total bookings</span>
-                  </p>
-                </div>
-              </div>
-              <button type="button" className="bh-close-btn" aria-label="Close booking history" onClick={() => setBookingHistoryModal(null)}><CloseIcon /></button>
-            </div>
-
-            {/* Summary Strip */}
-            <div className="bh-summary-strip">
-              <div className="bh-strip-card">
-                <span className="bh-strip-label">TOTAL</span>
-                <span className="bh-strip-value neutral tabular-nums">{historyProfile.bookingSummary.total}</span>
-              </div>
-              <div className="bh-strip-divider" />
-              <div className="bh-strip-card">
-                <span className="bh-strip-label">COMPLETED</span>
-                <span className="bh-strip-value green tabular-nums">{historyProfile.bookingSummary.completed}</span>
-              </div>
-              <div className="bh-strip-divider" />
-              <div className="bh-strip-card">
-                <span className="bh-strip-label">CANCELLED</span>
-                <span className="bh-strip-value red tabular-nums">{historyProfile.bookingSummary.cancelled}</span>
-              </div>
-              <div className="bh-strip-divider" />
-              <div className="bh-strip-card">
-                <span className="bh-strip-label">ACTIVE NOW</span>
-                <span className="bh-strip-value blue tabular-nums">{historyProfile.bookingSummary.activeNow}</span>
-              </div>
-            </div>
-
-            {/* Timeline Body */}
-            <div className="bh-body">
-              <h3 className="bh-section-label">BOOKING HISTORY</h3>
-              <div className="bh-timeline">
-                {historyProfile.recentBookings.length === 0 && <p>No bookings recorded.</p>}
-                {historyProfile.recentBookings.map((b, idx) => {
-                  const isCancelled = b.status.toLowerCase() === "cancelled";
-                  const isActive = !["completed", "cancelled"].includes(b.status.toLowerCase());
-                  const dotClass = isCancelled ? "red" : isActive ? "blue" : "green";
-                  return (
-                    <div className="bh-timeline-item" key={b.id}>
-                      <div className="bh-timeline-left">
-                        <div className={`bh-dot ${dotClass}`} aria-hidden="true"></div>
-                        {idx < historyProfile.recentBookings.length - 1 && <div className="bh-line" />}
-                      </div>
-                      <div className="bh-timeline-card">
-                        <div className="bh-card-top">
-                          <div className="bh-card-id-route">
-                            <span className="bh-card-id tabular-nums">{b.id}</span>
-                            <span className="bh-card-route">{b.route}</span>
+                            {b.deliveredAt && (
+                              <span className="bh-delivered-tag tabular-nums">Delivered: {b.deliveredAt}</span>
+                            )}
+                            {b.late && (
+                              <span className="bh-late-tag">{b.late}</span>
+                            )}
                           </div>
-                          <span className="bh-card-date tabular-nums">{b.date}</span>
-                        </div>
-                        <div className="bh-card-bottom">
-                          <span className="bh-cargo-tag">
-                            {b.cargo || "General Cargo"}
-                          </span>
-                          <span className={`bh-booking-status ${b.status.toLowerCase()}`}>
-                            {b.status}
-                          </span>
-                          {b.deliveredAt && (
-                            <span className="bh-delivered-tag tabular-nums">Delivered: {b.deliveredAt}</span>
-                          )}
-                          {b.late && (
-                            <span className="bh-late-tag">{b.late}</span>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </section>
+      <ReportExportModal
+        open={showExportModal && !loading && !error && exportMatches.length > 0}
+        onClose={() => setShowExportModal(false)}
+        reportType="Customers"
+        range={{ start: snapshotDate, end: snapshotDate }}
+        activeRangeLabel="Directory Snapshot"
+        reportData={{ customers: exportMatches, stats }}
+        filters={{
+          query: activeSearchQuery,
+          status: statusFilter !== "ALL" ? statusFilter : "",
+          sort: sort !== "newest" ? sort : "",
+          todayOnly: todayOnly ? "Today only" : "",
+        }}
+      />
     </MainLayout>
   );
 }

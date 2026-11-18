@@ -1544,39 +1544,64 @@ dialog.customer-edit-dialog {
   inset: 0;
   margin: auto;
   box-sizing: border-box;
-  border: 1px solid var(--border-subtle, #E2E8F0);
-  border-radius: var(--radius-lg, 12px);
   padding: 0;
-  width: min(600px, calc(100% - 32px));
-  max-width: calc(100% - 32px);
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px);
-  overflow: auto;
-  color: var(--text-primary, #0F172A);
+  border: none;
+  background: transparent;
+  width: min(620px, 95vw);
+  max-height: 90vh;
+  z-index: var(--z-modal, 9999);
+}
+
+dialog.customer-edit-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+.customer-page .customer-edit-dialog::backdrop,
+dialog.customer-edit-dialog::backdrop {
+  background: var(--bg-overlay, rgba(15, 23, 42, 0.50));
+  backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.customer-page .customer-edit-dialog form,
+dialog.customer-edit-dialog form {
+  position: relative;
   background: var(--bg-surface, #FFFFFF);
+  border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-modal, 0 20px 40px rgba(15, 23, 42, 0.16));
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  color: var(--text-primary, #0F172A);
 }
 
 .customer-page .customer-edit-dialog .cp-modal-header,
 dialog.customer-edit-dialog .cp-modal-header {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 10;
   background: var(--bg-surface, #FFFFFF);
-}
-
-.customer-page .customer-edit-dialog::backdrop,
-dialog.customer-edit-dialog::backdrop {
-  background: var(--bg-overlay, rgba(15, 23, 42, 0.50));
+  flex-shrink: 0;
 }
 
 :is(.customer-page, .customer-edit-dialog) .customer-edit-body {
-  padding: var(--space-6, 24px);
+  padding: var(--space-5, 20px) var(--space-6, 24px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
 }
 
 :is(.customer-page, .customer-edit-dialog) .customer-edit-body > p {
-  margin: 0 0 var(--space-5, 20px);
+  margin: 0;
   font-size: var(--text-body, 0.875rem);
+  line-height: 1.5;
   color: var(--text-secondary, #475569);
 }
 
@@ -1612,11 +1637,14 @@ dialog.customer-edit-dialog::backdrop {
 :is(.customer-page, .customer-edit-dialog) .customer-edit-footer {
   position: sticky;
   bottom: 0;
-  background: var(--bg-surface, #FFFFFF);
+  z-index: 10;
+  flex-shrink: 0;
+  background: var(--bg-canvas, #F8FAFC);
   padding: var(--space-4, 16px) var(--space-6, 24px);
   border-top: 1px solid var(--border-subtle, #E2E8F0);
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--space-3, 12px);
 }
@@ -1914,15 +1942,21 @@ dialog.customer-add-dialog {
   padding: 0;
   border: none;
   background: transparent;
-  width: min(580px, 95vw);
+  width: min(620px, 95vw);
   max-height: 90vh;
   z-index: var(--z-modal, 9999);
+}
+
+dialog.customer-add-dialog:modal {
+  overscroll-behavior: contain;
 }
 
 .customer-page .customer-add-dialog::backdrop,
 dialog.customer-add-dialog::backdrop {
   background: var(--bg-overlay, rgba(15, 23, 42, 0.50));
   backdrop-filter: blur(2px);
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .customer-page .customer-add-dialog form,
@@ -1938,18 +1972,51 @@ dialog.customer-add-dialog form {
   border: 1px solid var(--border-subtle, #E2E8F0);
 }
 
+:is(.customer-page, .customer-add-dialog) .cp-modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-surface, #FFFFFF);
+  flex-shrink: 0;
+}
+
 :is(.customer-page, .customer-add-dialog) .customer-add-body {
   padding: var(--space-5, 20px) var(--space-6, 24px);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4, 16px);
+  gap: var(--space-5, 20px);
 }
 
 :is(.customer-page, .customer-add-dialog) .customer-add-description {
   margin: 0;
   font-size: var(--text-body, 0.875rem);
   line-height: 1.5;
+  color: var(--text-secondary, #475569);
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-form-section {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-section-legend {
+  width: 100%;
+  padding: 0 0 var(--space-2, 8px) 0;
+  margin: 0 0 var(--space-1, 4px) 0;
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
+  font-size: var(--text-caption, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-secondary, #475569);
 }
 
@@ -1964,6 +2031,25 @@ dialog.customer-add-dialog form {
   color: var(--status-danger-text, #B91C1C);
   font-size: var(--text-compact, 0.8125rem);
   font-weight: 500;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-duplicate-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2, 8px);
+  padding: 10px 12px;
+  background: var(--status-warning-bg, #FEF3C7);
+  border: 1px solid var(--status-warning-border, #FDE68A);
+  border-radius: var(--radius-md, 8px);
+  color: var(--status-warning-text, #B45309);
+  font-size: var(--text-compact, 0.8125rem);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-duplicate-callout svg {
+  margin-top: 2px;
+  flex-shrink: 0;
 }
 
 :is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-add-grid,
@@ -2002,7 +2088,7 @@ dialog.customer-add-dialog form {
 :is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-form-field input,
 :is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .cp-input {
   width: 100%;
-  min-height: var(--control-height, 40px);
+  min-height: var(--touch-target, 44px);
   padding: 8px 12px;
   border: 1px solid var(--border-control, #CBD5E1);
   border-radius: var(--radius-sm, 6px);
@@ -2012,6 +2098,68 @@ dialog.customer-add-dialog form {
   font-family: inherit;
   box-sizing: border-box;
   transition: border-color var(--duration-fast, 150ms);
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: var(--touch-target, 44px);
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface, #FFFFFF);
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: border-color var(--duration-fast, 150ms) ease;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap:hover:not(:has(input:disabled)) {
+  border-color: var(--border-control-hover, #94A3B8);
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap:has(input:focus-visible) {
+  outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #1D4ED8);
+  outline-offset: var(--focus-ring-offset, 2px);
+  border-color: var(--color-accent-cobalt, #1D4ED8);
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap:has(input:disabled) {
+  background: var(--bg-surface-subtle, #F1F5F9);
+  opacity: var(--disabled-opacity, 0.55);
+  cursor: not-allowed;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  background: var(--bg-surface-subtle, #F1F5F9);
+  border-right: 1px solid var(--border-subtle, #E2E8F0);
+  color: var(--text-secondary, #475569);
+  font-size: var(--text-compact, 0.8125rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap input {
+  border: none;
+  border-radius: 0;
+  min-height: calc(var(--touch-target, 44px) - 2px);
+  flex: 1;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap input:focus-visible {
+  outline: none;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-phone-input-wrap input:disabled {
+  background: transparent;
+  opacity: 1;
 }
 
 :is(.customer-page, .customer-add-dialog, .customer-edit-dialog) .customer-form-field input::placeholder,
@@ -2029,6 +2177,10 @@ dialog.customer-add-dialog form {
 }
 
 :is(.customer-page, .customer-add-dialog) .customer-add-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  flex-shrink: 0;
   padding: var(--space-4, 16px) var(--space-6, 24px);
   border-top: 1px solid var(--border-subtle, #E2E8F0);
   background: var(--bg-canvas, #F8FAFC);

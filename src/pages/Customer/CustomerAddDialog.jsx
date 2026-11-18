@@ -1,5 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createCustomer } from "../../services/customerService";
+import PhAddressAutocomplete from "../../components/PhAddressAutocomplete/PhAddressAutocomplete";
+import {
+  searchBarangays,
+  searchCities,
+  searchProvinces,
+} from "../../utils/phAddress";
+import {
+  applyBarangaySelection,
+  applyCitySelection,
+  applyCityTextChange,
+  applyProvinceSelection,
+  applyProvinceTextChange,
+  findDuplicateCustomer,
+  formatPhMobileInput,
+  toFullPhPhone,
+} from "./customerFormUtils";
 
 const iconProps = {
   width: 16,
@@ -25,6 +41,14 @@ const AlertCircleIcon = () => (
     <circle cx="12" cy="12" r="10" />
     <line x1="12" y1="8" x2="12" y2="12" />
     <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const AlertTriangleIcon = () => (
+  <svg {...iconProps}>
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
 
@@ -77,17 +101,22 @@ const initialValues = {
   email: "",
   phone: "",
   notes: "",
-  address: "",
-  barangay: "",
-  city: "",
   province: "",
+  city: "",
+  barangay: "",
+  address: "",
 };
 
-export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
+export default function CustomerAddDialog({ onClose, onSaved, callerRole, existingCustomers = [] }) {
   const dialogRef = useRef(null);
   const locked = useRef(false);
   const alive = useRef(true);
-  const [values, setValues] = useState(initialValues);
+  const [formState, setFormState] = useState(() => ({
+    values: initialValues,
+    provinceCode: "",
+    cityCode: "",
+  }));
+  const { values, provinceCode: selectedProvinceCode, cityCode: selectedCityCode } = formState;
   const [createMobileAccount, setCreateMobileAccount] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -99,6 +128,37 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
 
   const dirty = Object.values(values).some((val) => val.trim() !== "") ||
     createMobileAccount || Boolean(password.trim());
+
+  const provinceOptions = useMemo(
+    () => searchProvinces(values.province),
+    [values.province]
+  );
+
+  const cityOptions = useMemo(
+    () => searchCities(values.city, {
+      provinceCode: selectedProvinceCode,
+      provinceName: values.province,
+    }),
+    [values.city, selectedProvinceCode, values.province]
+  );
+
+  const barangayOptions = useMemo(
+    () => searchBarangays(values.barangay, {
+      cityCode: selectedCityCode,
+      cityName: values.city,
+      provinceCode: selectedProvinceCode,
+      provinceName: values.province,
+    }),
+    [values.barangay, selectedCityCode, values.city, selectedProvinceCode, values.province]
+  );
+
+  const duplicateMatch = useMemo(
+    () => findDuplicateCustomer(existingCustomers, {
+      name: values.name,
+      phone: values.phone,
+    }),
+    [existingCustomers, values.name, values.phone]
+  );
 
   useEffect(() => {
     alive.current = true;
@@ -159,8 +219,10 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
     setSaving(true);
 
     try {
+      const normalizedPhone = toFullPhPhone(values.phone);
       const payload = {
         ...values,
+        phone: normalizedPhone,
         ...(createMobileAccount ? { password, confirmPassword } : {}),
       };
       const created = await createCustomer(payload, { callerRole });
@@ -181,8 +243,60 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
 
   const handleChange = (field) => (event) => {
     const val = event.target.value;
-    setValues((current) => ({ ...current, [field]: val }));
+    setFormState((current) => ({
+      ...current,
+      values: { ...current.values, [field]: val },
+    }));
   };
+
+  function handlePhoneChange(event) {
+    const formatted = formatPhMobileInput(event.target.value);
+    setFormState((current) => ({
+      ...current,
+      values: { ...current.values, phone: formatted },
+    }));
+  }
+
+  function handlePhonePaste(event) {
+    const pasted = event?.clipboardData?.getData?.("text");
+    if (typeof pasted === "string" && pasted.length > 0) {
+      event.preventDefault();
+      const formatted = formatPhMobileInput(pasted);
+      setFormState((current) => ({
+        ...current,
+        values: { ...current.values, phone: formatted },
+      }));
+    }
+  }
+
+  function handleProvinceChange(text) {
+    setFormState((current) => applyProvinceTextChange(current, text));
+  }
+
+  function handleProvinceSelect(option) {
+    setFormState((current) => applyProvinceSelection(current, option));
+  }
+
+  function handleCityChange(text) {
+    setFormState((current) => applyCityTextChange(current, text));
+  }
+
+  function handleCitySelect(option) {
+    setFormState((current) => applyCitySelection(current, option));
+  }
+
+  function handleBarangayChange(text) {
+    setFormState((current) => ({
+      ...current,
+      values: { ...current.values, barangay: text },
+    }));
+  }
+
+  function handleBarangaySelect(option) {
+    setFormState((current) => applyBarangaySelection(current, option));
+  }
+
+  const formattedDisplayPhone = values.phone ? `+63 ${values.phone}` : "";
 
   return (
     <dialog
@@ -225,123 +339,143 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
             </div>
           )}
 
-          <div className="customer-add-grid">
-            {/* Customer Name */}
-            <div className="customer-form-field customer-field-wide">
-              <label htmlFor="customer-add-name">
-                Customer Name <span className="field-required">*</span>
-              </label>
-              <input
-                id="customer-add-name"
-                name="name"
-                type="text"
-                required
-                autoFocus
-                placeholder="e.g. Juan dela Cruz or Acme Logistics"
-                disabled={saving}
-                value={values.name}
-                onChange={handleChange("name")}
-              />
+          {/* Group 1: Customer & Contact Details */}
+          <fieldset className="customer-form-section">
+            <legend className="customer-section-legend">1. Customer &amp; Contact Details</legend>
+            <div className="customer-add-grid">
+              {/* Customer Name */}
+              <div className="customer-form-field customer-field-wide">
+                <label htmlFor="customer-add-name">
+                  Customer Name <span className="field-required">*</span>
+                </label>
+                <input
+                  id="customer-add-name"
+                  name="name"
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Juan dela Cruz or Acme Logistics"
+                  disabled={saving}
+                  value={values.name}
+                  onChange={handleChange("name")}
+                />
+              </div>
+
+              {/* Email Address */}
+              <div className="customer-form-field">
+                <label htmlFor="customer-add-email">Contact Email</label>
+                <input
+                  id="customer-add-email"
+                  name="email"
+                  type="email"
+                  placeholder="e.g. billing@company.com"
+                  disabled={saving}
+                  value={values.email}
+                  onChange={handleChange("email")}
+                />
+              </div>
+
+              {/* Contact Phone */}
+              <div className="customer-form-field">
+                <label htmlFor="customer-add-phone">Contact Number</label>
+                <div className="customer-phone-input-wrap">
+                  <span className="customer-phone-prefix" aria-hidden="true">+63</span>
+                  <input
+                    id="customer-add-phone"
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="9XX XXX XXXX"
+                    disabled={saving}
+                    value={values.phone}
+                    onChange={handlePhoneChange}
+                    onPaste={handlePhonePaste}
+                  />
+                </div>
+              </div>
+
+              {/* Company / Notes */}
+              <div className="customer-form-field customer-field-wide">
+                <label htmlFor="customer-add-notes">Company / Billing Notes</label>
+                <input
+                  id="customer-add-notes"
+                  name="notes"
+                  type="text"
+                  placeholder="e.g. Corporate account, Net 30 terms, Warehouse B delivery"
+                  disabled={saving}
+                  value={values.notes}
+                  onChange={handleChange("notes")}
+                />
+              </div>
             </div>
 
-            {/* Email Address */}
-            <div className="customer-form-field">
-              <label htmlFor="customer-add-email">Contact Email</label>
-              <input
-                id="customer-add-email"
-                name="email"
-                type="email"
-                placeholder="e.g. billing@company.com"
-                disabled={saving}
-                value={values.email}
-                onChange={handleChange("email")}
-              />
-            </div>
+            {duplicateMatch && (
+              <div className="customer-duplicate-callout" role="status" aria-live="polite">
+                <AlertTriangleIcon />
+                <span>{duplicateMatch.message}</span>
+              </div>
+            )}
+          </fieldset>
 
-            {/* Contact Phone */}
-            <div className="customer-form-field">
-              <label htmlFor="customer-add-phone">Contact Number</label>
-              <input
-                id="customer-add-phone"
-                name="phone"
-                type="tel"
-                placeholder="e.g. 0917 123 4567"
-                disabled={saving}
-                value={values.phone}
-                onChange={handleChange("phone")}
-              />
-            </div>
-
-            {/* Company / Notes */}
-            <div className="customer-form-field customer-field-wide">
-              <label htmlFor="customer-add-notes">Company / Billing Notes</label>
-              <input
-                id="customer-add-notes"
-                name="notes"
-                type="text"
-                placeholder="e.g. Corporate account, Net 30 terms, Warehouse B delivery"
-                disabled={saving}
-                value={values.notes}
-                onChange={handleChange("notes")}
-              />
-            </div>
-
-            {/* Street Address */}
-            <div className="customer-form-field customer-field-wide">
-              <label htmlFor="customer-add-address">Street Address</label>
-              <input
-                id="customer-add-address"
-                name="address"
-                type="text"
-                placeholder="e.g. Unit 402 Emerald Tower, Ortigas Ave"
-                disabled={saving}
-                value={values.address}
-                onChange={handleChange("address")}
-              />
-            </div>
-
-            {/* Barangay */}
-            <div className="customer-form-field">
-              <label htmlFor="customer-add-barangay">Barangay</label>
-              <input
-                id="customer-add-barangay"
-                name="barangay"
-                type="text"
-                placeholder="e.g. San Antonio"
-                disabled={saving}
-                value={values.barangay}
-                onChange={handleChange("barangay")}
-              />
-            </div>
-
-            {/* City */}
-            <div className="customer-form-field">
-              <label htmlFor="customer-add-city">City / Municipality</label>
-              <input
-                id="customer-add-city"
-                name="city"
-                type="text"
-                placeholder="e.g. Pasig City"
-                disabled={saving}
-                value={values.city}
-                onChange={handleChange("city")}
-              />
-            </div>
-
-            {/* Province */}
-            <div className="customer-form-field customer-field-wide">
-              <label htmlFor="customer-add-province">Province / Region</label>
-              <input
+          {/* Group 2: Primary Address */}
+          <fieldset className="customer-form-section">
+            <legend className="customer-section-legend">2. Primary Address</legend>
+            <div className="customer-add-grid">
+              {/* Row 1: Province / Region & City / Municipality */}
+              <PhAddressAutocomplete
                 id="customer-add-province"
                 name="province"
-                type="text"
-                placeholder="e.g. Metro Manila"
+                label="Province / Region"
+                placeholder="e.g. Metro Manila or Nueva Ecija"
                 disabled={saving}
                 value={values.province}
-                onChange={handleChange("province")}
+                options={provinceOptions}
+                onChange={handleProvinceChange}
+                onSelect={handleProvinceSelect}
               />
+
+              <PhAddressAutocomplete
+                id="customer-add-city"
+                name="city"
+                label="City / Municipality"
+                placeholder="e.g. Pasig City or Cabanatuan City"
+                disabled={saving}
+                value={values.city}
+                options={cityOptions}
+                onChange={handleCityChange}
+                onSelect={handleCitySelect}
+              />
+
+              {/* Row 2: Barangay */}
+              <PhAddressAutocomplete
+                id="customer-add-barangay"
+                name="barangay"
+                label="Barangay"
+                className="customer-field-wide"
+                placeholder="e.g. San Antonio or Ugong"
+                disabled={saving}
+                value={values.barangay}
+                options={barangayOptions}
+                idleHint="Type a barangay name to search nationwide, or pick a Province / City above."
+                onChange={handleBarangayChange}
+                onSelect={handleBarangaySelect}
+              />
+
+              {/* Row 3: Street Address / Building / Landmark */}
+              <div className="customer-form-field customer-field-wide">
+                <label htmlFor="customer-add-address">Street Address / Building / Landmark</label>
+                <input
+                  id="customer-add-address"
+                  name="address"
+                  type="text"
+                  placeholder="e.g. Unit 402 Emerald Tower, Ortigas Ave"
+                  disabled={saving}
+                  value={values.address}
+                  onChange={handleChange("address")}
+                />
+              </div>
             </div>
-          </div>
+          </fieldset>
 
           {/* Customer Mobile Application Account (Credentials) */}
           <div className="customer-cred-box">
@@ -428,7 +562,7 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
                 <div className="customer-cred-notice">
                   <InfoIcon />
                   <span>
-                    The customer can sign in on Tanaw Mobile using either their contact email ({values.email ? `"${values.email}"` : "entered above"}) or contact number ({values.phone ? `"${values.phone}"` : "entered above"}).
+                    The customer can sign in on Tanaw Mobile using either their contact email ({values.email ? `"${values.email}"` : "entered above"}) or contact number ({formattedDisplayPhone ? `"${formattedDisplayPhone}"` : "entered above"}).
                   </span>
                 </div>
               </div>
@@ -508,4 +642,3 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole }) {
     </dialog>
   );
 }
-
