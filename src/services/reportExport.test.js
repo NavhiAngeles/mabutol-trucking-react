@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { reportCsv, generateReportPdf, downloadReport } from './reportExport.js';
+import { reportCsv, generateReportPdf, generateExcelWorkbook, downloadReport } from './reportExport.js';
 import { reportStructuredSections } from './reportCsvTables.js';
 import { buildShipmentReport } from './shipmentReport.js';
 import { buildDriverReport } from './driverReport.js';
@@ -191,4 +191,99 @@ test('downloadReport delegates between PDF and CSV formats correctly', () => {
     globalThis.Blob = originalBlob;
     globalThis.URL = originalURL;
   }
+});
+
+test('generateReportPdf and reportCsv honor paperSize, orientation, margins, includedSections, customTitle and includeHeader', () => {
+  const overviewModel = {
+    total: 5, completed: 3, delayed: 1, onTime: 75.0, timed: 4, revenue: 15420.5, missingAmounts: 0,
+    buckets: [{ date: '2026-10-01', completed: 3, delayed: 1, revenue: 15420.5 }],
+    compliance: { verified: 20, expiring: 2, attention: 1, pending: 1 }, complianceTotal: 24,
+    fleet: { total: 23, available: 20, inUse: 3, maintenance: 0, other: 0 }, overdueServiceRecords: 0,
+  };
+
+  // Portrait Legal/Folio with compact margins and custom title
+  const pdf = generateReportPdf('Overview', range, overviewModel, {}, {
+    paperSize: 'legal',
+    orientation: 'portrait',
+    margins: 'compact',
+    includedSections: { kpi: true, charts: false, table: true },
+    customTitle: 'Monthly Executive Summary',
+    includeHeader: false,
+  });
+  const width = pdf.internal.pageSize.getWidth();
+  const height = pdf.internal.pageSize.getHeight();
+  assert.ok(Math.abs(width - 215.9) < 1, 'Legal/Folio portrait width should be ~215.9mm');
+  assert.ok(Math.abs(height - 330.2) < 1, 'Legal/Folio portrait height should be ~330.2mm');
+
+  // CSV with includeHeader: false and kpi-only sections
+  const csv = reportCsv('Overview', range, overviewModel, {}, {
+    includeHeader: false,
+    includedSections: { kpi: true, charts: false, table: false },
+  });
+  assert.ok(!csv.includes('Generated at (Philippine time)'));
+  assert.ok(csv.includes('Completed charges'));
+  assert.ok(!csv.includes('Shipment volume by creation period'));
+  assert.ok(!csv.includes('Current fleet'));
+
+  // Clean single-header dataset CSV export
+  const datasetCsv = reportCsv('Overview', range, overviewModel, {}, { dataset: 'volume' });
+  const datasetRows = parse(datasetCsv);
+  assert.deepEqual(datasetRows[0], [
+    'Period start',
+    'Period end (inclusive)',
+    'Completed shipments',
+    'Delayed shipments',
+    'Completed charges (PHP)',
+  ]);
+  assert.equal(datasetRows[1][4], '15420.50');
+});
+
+test('generateExcelWorkbook creates multi-sheet .xlsx workbook with frozen headers, column widths, and currency formats', async () => {
+  const overviewModel = {
+    total: 5, completed: 3, delayed: 1, onTime: 75.0, timed: 4, revenue: 15420.5, missingAmounts: 0,
+    buckets: [{ date: '2026-10-01', completed: 3, delayed: 1, revenue: 15420.5 }],
+    drivers: [{ id: 'd1', full_name: 'Juan Dela Cruz', trips: 4, pct: 75 }],
+    compliance: { verified: 20, expiring: 2, attention: 1, pending: 1 }, complianceTotal: 24,
+    fleet: { total: 23, available: 20, inUse: 3, maintenance: 0, other: 0 }, overdueServiceRecords: 0,
+  };
+
+  const workbook = await generateExcelWorkbook('Overview', range, overviewModel, {}, {
+    includedSections: { kpi: true, charts: true, table: true },
+    includeHeader: true,
+  });
+
+  const sheetNames = workbook.worksheets.map(s => s.name);
+  assert.deepEqual(sheetNames, [
+    'Executive Summary',
+    'Shipment Volume',
+    'Driver Performance',
+    'Fleet & Compliance',
+  ]);
+
+  const volSheet = workbook.getWorksheet('Shipment Volume');
+  assert.equal(volSheet.views[0].ySplit, 1);
+  assert.equal(volSheet.getCell('E2').value, 15420.5);
+  assert.equal(volSheet.getCell('E2').numFmt, '#,##0.00');
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  assert.ok(buffer.byteLength > 3000, 'Generated .xlsx workbook buffer should be valid');
+});
+
+test('generateExcelWorkbook supports Customers directory multi-sheet workbook', async () => {
+  const customerModel = {
+    stats: { total: 2, activeThisMonth: 1, newThisWeek: 1, suspended: 1 },
+    customers: [
+      { customer_code: 'CUST-001', name: 'Alpha Logistics', email: 'alpha@example.com', phone: '09171234567', bookingCount: 4, lastBooking: '2026-10-20', memberSince: '2026-09-01', status: 'Active' },
+      { customer_code: 'CUST-002', name: 'Beta Trading', email: 'beta@example.com', phone: '09181234567', bookingCount: 0, lastBooking: 'Never', memberSince: '2026-10-15', status: 'Suspended' },
+    ],
+  };
+  const workbook = await generateExcelWorkbook('Customers', range, customerModel);
+  assert.deepEqual(workbook.worksheets.map(s => s.name), [
+    'Executive Summary',
+    'Status Breakdown',
+    'Customer Directory',
+  ]);
+  const dirSheet = workbook.getWorksheet('Customer Directory');
+  assert.equal(dirSheet.views[0].ySplit, 1);
+  assert.equal(dirSheet.getCell('B2').value, 'Alpha Logistics');
 });

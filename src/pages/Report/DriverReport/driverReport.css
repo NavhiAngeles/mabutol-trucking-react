@@ -73,37 +73,6 @@
   border-bottom: 1px solid var(--line);
 }
 
-.reports-page .dr-search {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 448px;
-  max-width: 100%;
-  height: 48px;
-  padding: 0 12px;
-  background: var(--tint-soft);
-  border-radius: 2px;
-  color: var(--subtle);
-}
-
-.reports-page .dr-search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  font: 400 14px "Inter", sans-serif;
-  color: var(--ink);
-}
-
-.reports-page .dr-search input:focus-visible {
-  outline: 2px solid #1D4ED8;
-  outline-offset: 2px;
-}
-
-.reports-page .dr-search input::placeholder {
-  color: #6b7280;
-}
-
 .reports-page .dr-topbar-right {
   display: flex;
   align-items: center;

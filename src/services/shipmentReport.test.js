@@ -65,7 +65,8 @@ test('ledger renders ten rows per page, filters/reset page, clamps after refresh
   const date = new Date().toISOString();
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
-  const scope = { ReportSchedule() {}, useLiveData: () => data, getShipmentReportRecords() {}, SHIPMENT_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildShipmentReport,
+  const scope = { ReportSchedule() {}, ReportExportModal() {}, useLiveData: () => data, getShipmentReportRecords() {}, SHIPMENT_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildShipmentReport,
+    SkeletonDonut() {}, SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {}, SkeletonTrendBars() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
@@ -78,26 +79,30 @@ test('ledger renders ten rows per page, filters/reset page, clamps after refresh
   assert.match(JSON.stringify(render()), /Loading shipment report/);
   data.loading = false; data.error = 'Denied';
   assert.match(JSON.stringify(render()), /Report data is unavailable/);
-  data.data = { shipments: Array.from({ length: 12 }, (_, i) => ({ id: String(i), status: 'completed', created_at: date, tracking_number: 'TRACK-' + i })), deliveries: [] };
+  data.data = { shipments: Array.from({ length: 12 }, (_, i) => ({ id: String(i), status: i === 11 ? 'delayed' : 'completed', created_at: date, tracking_number: 'TRACK-' + i })), deliveries: [] };
   let tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 10);
+  const topbar = find(tree, 'ReportTopbar')[0];
+  assert.ok(topbar, 'ReportTopbar is rendered');
+  assert.equal(find(topbar, 'input').length, 0, 'ReportTopbar has no search input');
   find(tree, 'button').find(b => b.children.includes('Next')).props.onClick();
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 2);
-  find(tree, 'input').find(input => input.props.type === 'search').props.onChange({ target: { value: 'TRACK-11' } });
+  find(tree, 'select')[0].props.onChange({ target: { value: 'delayed' } });
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 1);
   assert.match(JSON.stringify(tree), /Showing the last loaded snapshot/);
   data.data.shipments = []; assert.match(JSON.stringify(render()), /No shipments match/);
 });
 
-test('shipment page exports CSV and PDF via split button', async () => {
+test('shipment page opens ReportExportModal when Export Report is clicked', async () => {
   const { transformWithOxc } = await import('vite');
-  let exportedArgs = null;
   const data = { loading: false, data: { shipments: [], deliveries: [] }, error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = {
-    ReportSchedule() {}, useLiveData: () => data, getShipmentReportRecords() {}, SHIPMENT_REPORT_TABLES: [], reportRange,
+    ReportSchedule() {},
+    ReportExportModal: 'ReportExportModal',
+    useLiveData: () => data, getShipmentReportRecords() {}, SHIPMENT_REPORT_TABLES: [], reportRange,
     useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key),
-    downloadReport: (...args) => { exportedArgs = args; },
     buildShipmentReport,
+    SkeletonDonut() {}, SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {}, SkeletonTrendBars() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools',
     useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
@@ -110,20 +115,19 @@ test('shipment page exports CSV and PDF via split button', async () => {
   const render = () => { index = 0; return scope.Page(); };
   const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
 
-  // Primary CSV click
   let tree = render();
   const mainBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
-  mainBtn.props.onClick();
-  assert.equal(exportedArgs[0], 'Shipments');
-  assert.equal(exportedArgs[4], 'csv');
+  assert.ok(mainBtn.children.some(c => String(c).includes('Export Report')));
+  assert.equal(find(tree, 'ReportExportModal')[0].props.open, false);
 
-  // Toggle dropdown
-  const toggleBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-toggle'));
-  toggleBtn.props.onClick();
+  mainBtn.props.onClick();
   tree = render();
-  const pdfItem = find(tree, 'button').find(b => b.children && b.children.includes('Export PDF'));
-  assert.ok(pdfItem, 'Export PDF button rendered in dropdown menu');
-  pdfItem.props.onClick();
-  assert.equal(exportedArgs[0], 'Shipments');
-  assert.equal(exportedArgs[4], 'pdf');
+  const modalProps = find(tree, 'ReportExportModal')[0].props;
+  assert.equal(modalProps.open, true);
+  assert.equal(modalProps.reportType, 'Shipments');
+  assert.equal(modalProps.filters.status, 'all');
+
+  modalProps.onClose();
+  tree = render();
+  assert.equal(find(tree, 'ReportExportModal')[0].props.open, false);
 });

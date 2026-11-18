@@ -122,11 +122,12 @@ test('revenue report loader pushes Philippine date-bound filters for financial t
     ['maintenance_records', 'lte', 'completed_date', '2026-10-31'],
   ]);
 });
-test('page renders loading/stale errors, route pagination/search and applied custom dates', async () => {
+test('page renders loading/stale errors, route pagination and applied custom dates', async () => {
   const { transformWithOxc } = await import('vite');
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
-  const scope = { ReportSchedule() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildRevenueReport,
+  const scope = { ReportSchedule() {}, ReportExportModal() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildRevenueReport,
+    SkeletonBlock() {}, SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {}, SkeletonTrendBars() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
@@ -148,8 +149,6 @@ test('page renders loading/stale errors, route pagination/search and applied cus
   tree = render(); assert.equal(find(tree, 'ol').find(list => list.props['aria-label'] === 'Individual cost records').children.flat(Infinity).length, 1);
   find(tree, 'button').find(b => b.children.includes('Next')).props.onClick();
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 2);
-  find(tree, 'input').find(input => input.props.type === 'search').props.onChange({ target: { value: 'Route 11' } });
-  tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 1);
   assert.match(JSON.stringify(tree), /Showing the last loaded snapshot/);
   find(tree, 'button').find(b => b.children.includes('Custom Range')).props.onClick();
   tree = render();
@@ -164,16 +163,17 @@ test('page renders loading/stale errors, route pagination/search and applied cus
   assert.equal(state[3].start, '2020-01-01');
 });
 
-test('revenue page exports CSV and PDF via split button', async () => {
+test('revenue page opens ReportExportModal when Export Report is clicked', async () => {
   const { transformWithOxc } = await import('vite');
-  let exportedArgs = null;
   const data = { loading: false, data: empty(), error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = {
-    ReportSchedule() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange,
+    ReportSchedule() {},
+    ReportExportModal: 'ReportExportModal',
+    useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange,
     useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key),
-    downloadReport: (...args) => { exportedArgs = args; },
     buildRevenueReport,
+    SkeletonBlock() {}, SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {}, SkeletonTrendBars() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', Fragment: 'Fragment',
     useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
@@ -186,27 +186,25 @@ test('revenue page exports CSV and PDF via split button', async () => {
   const render = () => { index = 0; return scope.Page(); };
   const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
 
-  // Primary CSV click
   let tree = render();
   const mainBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
-  mainBtn.props.onClick();
-  assert.equal(exportedArgs[0], 'Revenue');
-  assert.equal(exportedArgs[4], 'csv');
+  assert.ok(mainBtn.children.includes('Export Report'));
+  assert.equal(find(tree, 'ReportExportModal')[0].props.open, false);
 
-  // Toggle dropdown
-  const toggleBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-toggle'));
-  toggleBtn.props.onClick();
+  mainBtn.props.onClick();
   tree = render();
-  const pdfItem = find(tree, 'button').find(b => b.children && b.children.includes('Export PDF'));
-  assert.ok(pdfItem, 'Export PDF button rendered in dropdown menu');
-  pdfItem.props.onClick();
-  assert.equal(exportedArgs[0], 'Revenue');
-  assert.equal(exportedArgs[4], 'pdf');
+  const modalProps = find(tree, 'ReportExportModal')[0].props;
+  assert.equal(modalProps.open, true);
+  assert.equal(modalProps.reportType, 'Revenue');
+  assert.equal(modalProps.filters, undefined);
+
+  modalProps.onClose();
+  tree = render();
+  assert.equal(find(tree, 'ReportExportModal')[0].props.open, false);
 });
 
-test('topbar search aligns placement, styling class, accessibility label and filters tables consistently', async () => {
+test('topbar omits search bar and renders route, customer, and cost tables consistently', async () => {
   const { transformWithOxc } = await import('vite');
-  let exportedArgs = null;
   const testData = {
     ...empty(),
     customers: [
@@ -225,10 +223,12 @@ test('topbar search aligns placement, styling class, accessibility label and fil
   const data = { loading: false, data: testData, error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = {
-    ReportSchedule() {}, useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange,
+    ReportSchedule() {},
+    ReportExportModal: 'ReportExportModal',
+    useLiveData: () => data, getRevenueReportRecords() {}, REVENUE_REPORT_TABLES: [], reportRange,
     useReportRange: (key, custom) => key === 'custom' ? custom : reportRange(key),
-    downloadReport: (...args) => { exportedArgs = args; },
     buildRevenueReport,
+    SkeletonBlock() {}, SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {}, SkeletonTrendBars() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools',
     useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
@@ -242,40 +242,21 @@ test('topbar search aligns placement, styling class, accessibility label and fil
   const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
 
   let tree = render();
-  // Verify topbar search placement and styling
   const topbar = find(tree, 'ReportTopbar')[0];
   assert.ok(topbar, 'ReportTopbar is rendered');
-  const searchLabel = find(topbar, 'label').find(l => l.props.className === 'rv-search');
-  assert.ok(searchLabel, 'Top bar contains label.rv-search');
-  const searchInput = find(searchLabel, 'input').find(i => i.props.type === 'search');
-  assert.ok(searchInput, 'Search input is present inside topbar');
-  assert.equal(searchInput.props['aria-label'], 'Search routes');
-  assert.equal(searchInput.props.placeholder, 'Search routes, customers, or cost records');
+  assert.equal(find(topbar, 'input').length, 0, 'ReportTopbar has no search input');
 
-  // Verify initial counts before search
   assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 2);
   const customerList = find(tree, 'div').find(d => d.props.className === 'customer-list');
   assert.equal(find(customerList, 'div').filter(d => d.props.className === 'customer-row').length, 2);
   const costList = find(tree, 'ol').find(l => l.props['aria-label'] === 'Individual cost records');
   assert.equal(find(costList, 'li').length, 2);
 
-  // Search for 'Manila'
-  searchInput.props.onChange({ target: { value: 'Manila' } });
-  tree = render();
-
-  // Route matches 'Manila North → Batangas Port'
-  assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 1);
-  assert.match(JSON.stringify(find(tree, 'tbody')[0]), /Manila North/);
-
-  // Cost matches 'Shell Manila'
-  const filteredCostList = find(tree, 'ol').find(l => l.props['aria-label'] === 'Individual cost records');
-  assert.equal(find(filteredCostList, 'li').length, 1);
-  assert.match(JSON.stringify(filteredCostList), /Shell Manila/);
-
-  // Export passes filtered data with { search: 'Manila' }
   const exportBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
   exportBtn.props.onClick();
-  assert.equal(exportedArgs[0], 'Revenue');
-  assert.equal(exportedArgs[3].search, 'Manila');
-  assert.equal(exportedArgs[2].routes.length, 1);
+  tree = render();
+  const modalProps = find(tree, 'ReportExportModal')[0].props;
+  assert.equal(modalProps.open, true);
+  assert.equal(modalProps.reportType, 'Revenue');
+  assert.equal(modalProps.reportData.routes.length, 2);
 });

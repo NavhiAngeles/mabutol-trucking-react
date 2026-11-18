@@ -1,6 +1,6 @@
 import ReportSchedule from '../../../components/ReportSchedule';
+import ReportExportModal from '../../../components/ReportExportModal';
 import { useReportRange } from '../../../hooks/useReportRange';
-import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from 'react-router-dom';
 import ReportTopbar from '../../../components/ReportTopbar';
@@ -9,12 +9,18 @@ import { reportRange } from '../../../services/reportOverview.js';
 import { buildShipmentReport } from '../../../services/shipmentReport.js';
 import { getShipmentReportRecords, SHIPMENT_REPORT_TABLES } from '../../../services/shipmentReportService';
 import MainLayout from "../../../layouts/mainLayout";
+import {
+  SkeletonDonut,
+  SkeletonListRows,
+  SkeletonStatValue,
+  SkeletonTableRows,
+  SkeletonTrendBars,
+} from '../../../components/Skeleton/Skeleton';
 import "./shipmentReport.css";
 import '../../../components/reportControls.css';
 
 /* ---------- Icons (inline, no extra dependency) ---------- */
 const paths = {
-  search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
   bell: <><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0" /></>,
   download: <><path d="M12 3v12m0 0-4-4m4 4 4-4" /><path d="M4 21h16" /></>,
   up: <><path d="m22 7-8.5 8.5-5-5L2 17" /><path d="M16 7h6v6" /></>,
@@ -85,7 +91,6 @@ const formatTime = value => value && Number.isFinite(Date.parse(value)) ? new In
 
 /* ---------- Page ---------- */
 export default function ShipmentReport() {
-  const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [customRange, setCustomRange] = useState(null);
   const [rangeError, setRangeError] = useState('');
@@ -93,10 +98,9 @@ export default function ShipmentReport() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [showCustomPicker, setShowCustomPicker] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [page, setPage] = useState(1);
   const customPickerRef = useRef(null);
-  const exportMenuRef = useRef(null);
 
   const range = useReportRange(activeRange, customRange);
   const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
@@ -108,14 +112,10 @@ export default function ShipmentReport() {
       if (customPickerRef.current && !customPickerRef.current.contains(e.target)) {
         setShowCustomPicker(false);
       }
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
-        setShowExportMenu(false);
-      }
     }
     function handleEscape(e) {
       if (e.key === "Escape") {
         setShowCustomPicker(false);
-        setShowExportMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -140,8 +140,9 @@ export default function ShipmentReport() {
     setPage(1);
   };
 
-  const report = buildShipmentReport(live.data?.shipments || [], live.data?.deliveries || [], range, search, status);
+  const report = buildShipmentReport(live.data?.shipments || [], live.data?.deliveries || [], range, '', status);
   const hasData = !!live.data;
+  const initialLoading = live.loading && !hasData;
   const b = report.breakdown;
   const total = report.total;
   const dateLabel = range.start + ' – ' + range.end;
@@ -158,12 +159,7 @@ export default function ShipmentReport() {
   return (
     <MainLayout><div className="reports-page">
       {/* Topbar */}
-      <ReportTopbar>
-        <label className="sr-search" htmlFor="sr-search-input">
-          <Icon name="search" size={18} />
-          <input id="sr-search-input" type="search" placeholder="Search shipments, customers, routes, drivers" aria-label="Search shipments" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
-        </label>
-        </ReportTopbar>
+      <ReportTopbar />
 
       <section className="sr-content">
         {/* Header */}
@@ -174,53 +170,14 @@ export default function ShipmentReport() {
           </div>
           <div className="sr-actions">
             <button className="sr-btn sr-btn-secondary" onClick={live.refresh}>Refresh</button>
-            <div className="report-export-split" ref={exportMenuRef}>
-              <button
-                type="button"
-                className="sr-btn sr-btn-primary report-export-main"
-                disabled={!live.data || !!live.error}
-                onClick={() => downloadReport('Shipments', range, report, { search, status }, 'csv')}
-              >
-                Export CSV
-              </button>
-              <button
-                type="button"
-                className="sr-btn sr-btn-primary report-export-toggle"
-                disabled={!live.data || !!live.error}
-                aria-label="Export format options"
-                aria-haspopup="true"
-                aria-expanded={showExportMenu}
-                onClick={() => setShowExportMenu(prev => !prev)}
-              >
-                ▾
-              </button>
-              {showExportMenu && (
-                <div className="report-export-menu" role="menu">
-                  <button
-                    type="button"
-                    className="report-export-menu-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setShowExportMenu(false);
-                      downloadReport('Shipments', range, report, { search, status }, 'csv');
-                    }}
-                  >
-                    Export CSV
-                  </button>
-                  <button
-                    type="button"
-                    className="report-export-menu-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setShowExportMenu(false);
-                      downloadReport('Shipments', range, report, { search, status }, 'pdf');
-                    }}
-                  >
-                    Export PDF
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              className="sr-btn sr-btn-primary report-export-main"
+              disabled={!live.data || !!live.error}
+              onClick={() => setShowExportModal(true)}
+            >
+              Export Report
+            </button>
             <ReportSchedule type="Shipments" />
           </div>
         </div>
@@ -263,7 +220,7 @@ export default function ShipmentReport() {
         </div>
 
 </div>
-<p className="report-scope-note">Shipments created in the selected dates (Philippine time), using current status. Search and status filters apply to totals, charts and ledger. On-time rates use {hasData ? report.timed : 'N/A'} completed shipments with both arrival timestamps.</p>
+<p className="report-scope-note">Shipments created in the selected dates (Philippine time), using current status. Status filter applies to totals, charts and ledger. On-time rates use {hasData ? report.timed : 'N/A'} completed shipments with both arrival timestamps.</p>
         {live.loading && <p role="status">Loading shipment report…</p>}
         {live.error && <p role="alert">Unable to refresh the report. {hasData ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
         {/* Stats */}
@@ -275,7 +232,7 @@ export default function ShipmentReport() {
                 <span className="sr-stat-icon"><Icon name={s.icon} size={13} /></span>
               </div>
               <div className="sr-stat-value">
-                <strong>{s.value}</strong>
+                <strong>{initialLoading ? <SkeletonStatValue width="68px" height={28} /> : s.value}</strong>
 
               </div>
             </div>
@@ -283,6 +240,21 @@ export default function ShipmentReport() {
         </div>
 
         {/* Analytics */}
+        {initialLoading && (
+          <div className="sr-analytics" aria-hidden="true">
+            <div className="sr-card sr-chart-card">
+              <h2>Shipment Status</h2>
+              <SkeletonDonut size={184} />
+              <SkeletonListRows rows={3} variant="bar" />
+            </div>
+            <div className="sr-card sr-chart-card">
+              <div className="sr-trend-head">
+                <h2>Delivery Performance Trend</h2>
+              </div>
+              <SkeletonTrendBars count={7} />
+            </div>
+          </div>
+        )}
         {hasData && <div className="sr-analytics">
           <div className="sr-card sr-chart-card">
             <h2>Shipment Status</h2>
@@ -333,7 +305,12 @@ export default function ShipmentReport() {
                 </tr>
               </thead>
               <tbody>
-                {report.rows.length === 0 ? (
+                {initialLoading ? (
+                  <SkeletonTableRows
+                    rows={5}
+                    columns={["short", "text", "text", "badge", "short", "short", "short", "short"]}
+                  />
+                ) : report.rows.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="sr-empty">
                       {!hasData ? 'Report data is not loaded.' : 'No shipments match this date range and filters.'}
@@ -381,6 +358,15 @@ export default function ShipmentReport() {
           </div>
         </div>
       </section>
+      <ReportExportModal
+        open={showExportModal && !!live.data && !live.error}
+        onClose={() => setShowExportModal(false)}
+        reportType="Shipments"
+        range={range}
+        activeRangeLabel={rangeTabs.find(([key]) => key === activeRange)?.[1] || 'Custom Range'}
+        reportData={report}
+        filters={{ status }}
+      />
     </div></MainLayout>
   );
 }

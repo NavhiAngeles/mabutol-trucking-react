@@ -1,6 +1,6 @@
 import ReportSchedule from '../../../components/ReportSchedule';
+import ReportExportModal from '../../../components/ReportExportModal';
 import { useReportRange } from '../../../hooks/useReportRange';
-import { downloadReport } from '../../../services/reportExport.js';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '../../../layouts/mainLayout';
@@ -9,6 +9,13 @@ import OperationsFeed from '../../Dashboard/OperationsFeed';
 import { useLiveData } from '../../../hooks/useLiveData';
 import { getReportOverview, REPORT_TABLES } from '../../../services/reportOverviewService';
 import { reportRange, summarizeOverview } from '../../../services/reportOverview.js';
+import {
+  SkeletonBlock,
+  SkeletonDonut,
+  SkeletonListRows,
+  SkeletonStatValue,
+  SkeletonTrendBars,
+} from '../../../components/Skeleton/Skeleton';
 import './overview.css';
 import '../../../components/reportControls.css';
 
@@ -32,10 +39,9 @@ export default function Overview() {
   const [customEnd, setCustomEnd] = useState('');
   const [custom, setCustom] = useState(null);
   const [showCustom, setShowCustom] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [rangeError, setRangeError] = useState('');
   const customRef = useRef(null);
-  const exportMenuRef = useRef(null);
 
   const range = useReportRange(activeRange, custom);
   const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
@@ -45,12 +51,10 @@ export default function Overview() {
   useEffect(() => {
     const outside = event => {
       if (!customRef.current?.contains(event.target)) setShowCustom(false);
-      if (!exportMenuRef.current?.contains(event.target)) setShowExportMenu(false);
     };
     const escape = event => {
       if (event.key === 'Escape') {
         setShowCustom(false);
-        setShowExportMenu(false);
       }
     };
     document.addEventListener('mousedown', outside);
@@ -76,12 +80,60 @@ export default function Overview() {
   return <MainLayout><div className="reports-page">
     <ReportTopbar />
     <section className="ov-content">
-      <div className="report-controls"><div className="ov-header"><div><h1>Reports: Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><div className="report-export-split" ref={exportMenuRef}><button type="button" className="ov-btn ov-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {}, 'csv')}>Export CSV</button><button type="button" className="ov-btn ov-btn-primary report-export-toggle" disabled={!live.data || !!live.error} aria-label="Export format options" aria-haspopup="true" aria-expanded={showExportMenu} onClick={() => setShowExportMenu(prev => !prev)}>▾</button>{showExportMenu && <div className="report-export-menu" role="menu"><button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {}, 'csv'); }}>Export CSV</button><button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Overview', range, { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue }, {}, 'pdf'); }}>Export PDF</button></div>}</div><ReportSchedule type="Overview" /></div></div>
+      <div className="report-controls"><div className="ov-header"><div><h1>Reports: Overview</h1><p>Track operational performance and key logistics metrics.</p></div><div className="ov-actions"><button className="ov-btn ov-btn-secondary" onClick={live.refresh}>Refresh</button><button type="button" className="ov-btn ov-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => setShowExportModal(true)}>Export Report</button><ReportSchedule type="Overview" /></div></div>
       <div className="ov-filters"><div className="ov-tabs">{ranges.map(([key, label]) => <button key={key} className={`ov-tab ${activeRange === key ? 'active' : ''}`} aria-pressed={activeRange === key} onClick={() => { setActiveRange(key); setShowCustom(false); }}>{label}</button>)}<div className="ov-custom-wrap" ref={customRef}><button className={`ov-tab ${activeRange === 'custom' ? 'active' : ''}`} aria-expanded={showCustom} onClick={() => setShowCustom(!showCustom)}>Custom Range</button>{showCustom && <form className="ov-popover" onSubmit={event => { event.preventDefault(); applyRange(); }}><div className="ov-field"><label htmlFor="ov-start">Start date</label><input id="ov-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} /></div><div className="ov-field"><label htmlFor="ov-end">End date</label><input id="ov-end" type="date" min={customStart} value={customEnd} onChange={e => setCustomEnd(e.target.value)} /></div>{rangeError && <p role="alert">{rangeError}</p>}<button className="ov-apply" type="submit">Apply</button></form>}</div></div><span className="ov-date-pill">{range.start} – {range.end} · Philippine time</span></div>
 </div>
       <p className="report-scope-note">Period metrics use shipments created in the selected dates (Philippine time) and their current status. Fleet and compliance show the current snapshot.</p>
       {live.loading && <p role="status">Loading report…</p>}
       {live.error && <p role="alert">Unable to refresh the report. {live.data ? 'Showing the last loaded snapshot.' : 'Report data is unavailable.'} <button onClick={live.refresh}>Retry</button></p>}
+      {live.loading && !report && (
+        <div aria-hidden="true">
+          <div className="ov-stats">
+            {['Total Shipments', 'On-Time Rate', 'Completed Charges', 'Current Compliance'].map((label) => (
+              <div className="ov-stat ov-accent-navy" key={label}>
+                <div className="ov-stat-top"><span className="ov-stat-label">{label}</span></div>
+                <div className="ov-stat-value"><SkeletonStatValue width="84px" height={28} /></div>
+                <p className="ov-stat-sub"><SkeletonBlock width="78%" height={12} /></p>
+              </div>
+            ))}
+          </div>
+          <div className="ov-charts">
+            <div className="ov-card ov-chart-card">
+              <div className="ov-chart-head"><div className="ov-chart-title"><h2>Shipment Volume</h2><p>Current completed and delayed status by creation date</p></div></div>
+              <SkeletonTrendBars count={7} />
+            </div>
+            <div className="ov-card ov-chart-card">
+              <div className="ov-chart-head"><div className="ov-chart-title"><h2>Completed Shipment Charges</h2><p>Recorded final amounts by shipment creation date</p></div></div>
+              <SkeletonTrendBars count={7} />
+            </div>
+          </div>
+          <div className="ov-bottom">
+            <div className="ov-card ov-drivers">
+              <div className="ov-card-head"><h2>Top Performing Drivers</h2></div>
+              <SkeletonListRows rows={3} variant="feed" />
+            </div>
+            <div className="ov-card ov-compliance">
+              <div className="ov-comp-head"><h2>Current Compliance</h2></div>
+              <div className="ov-comp-body"><SkeletonDonut size={156} /></div>
+              <SkeletonListRows rows={3} variant="bar" />
+            </div>
+            <div className="ov-lower">
+              <div className="ov-card ov-fleet">
+                <div className="ov-card-head"><h2>Current Fleet Summary</h2></div>
+                <div className="ov-fleet-grid">
+                  {['TOTAL FLEET', 'DISPATCH READY', 'ON TRIP / RESERVED', 'MAINTENANCE', 'OTHER', 'OVERDUE SERVICE RECORDS'].map((label) => (
+                    <div className="ov-tile" key={label}><span>{label}</span><SkeletonStatValue width="36px" height={24} /></div>
+                  ))}
+                </div>
+              </div>
+              <div className="ov-card ov-activity">
+                <div className="ov-card-head"><h2>Operations Feed</h2></div>
+                <SkeletonListRows rows={3} variant="feed" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {report && <>
         {!report.total && <p role="status">No shipments were created in this period.</p>}
         <div className="ov-stats">{stats.map(([label, value, sub]) => <div className="ov-stat ov-accent-navy" key={label}><div className="ov-stat-top"><span className="ov-stat-label">{label}</span></div><div className="ov-stat-value"><strong>{value}</strong></div><p className="ov-stat-sub">{sub}</p></div>)}</div>
@@ -91,5 +143,13 @@ export default function Overview() {
         <div className="ov-lower"><div className="ov-card ov-fleet"><div className="ov-card-head"><h2>Current Fleet Summary</h2><Link className="ov-link" to="/fleet">Manage Fleet</Link></div><div className="ov-fleet-grid">{[['TOTAL FLEET', live.data.resources.total], ['DISPATCH READY', live.data.resources.available], ['ON TRIP / RESERVED', live.data.resources.inUse], ['MAINTENANCE', live.data.resources.maintenance], ['OTHER', live.data.resources.other], ['OVERDUE SERVICE RECORDS', live.data.overdue]].map(([label, value]) => <div className="ov-tile" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></div><div className="ov-card ov-activity"><OperationsFeed /></div></div></div>
       </>}
     </section>
+    <ReportExportModal
+      open={showExportModal && !!live.data && !live.error}
+      onClose={() => setShowExportModal(false)}
+      reportType="Overview"
+      range={range}
+      activeRangeLabel={ranges.find(([key]) => key === activeRange)?.[1] || 'Custom Range'}
+      reportData={report ? { ...report, fleet: live.data.resources, overdueServiceRecords: live.data.overdue } : null}
+    />
   </div></MainLayout>;
 }

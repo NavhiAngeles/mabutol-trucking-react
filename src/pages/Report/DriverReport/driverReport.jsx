@@ -1,6 +1,6 @@
 import ReportSchedule from '../../../components/ReportSchedule';
+import ReportExportModal from '../../../components/ReportExportModal';
 import { useReportRange } from '../../../hooks/useReportRange';
-import { downloadReport } from '../../../services/reportExport.js';
 import { useState, useRef, useEffect, useCallback, Fragment } from "react";
 import { Link } from 'react-router-dom';
 import ReportTopbar from '../../../components/ReportTopbar';
@@ -9,6 +9,11 @@ import { reportRange } from '../../../services/reportOverview.js';
 import { buildDriverReport, DRIVER_STATUSES } from '../../../services/driverReport.js';
 import { getDriverReportRecords, DRIVER_REPORT_TABLES } from '../../../services/driverReportService';
 import MainLayout from "../../../layouts/mainLayout";
+import {
+  SkeletonListRows,
+  SkeletonStatValue,
+  SkeletonTableRows,
+} from '../../../components/Skeleton/Skeleton';
 import "./driverReport.css";
 import '../../../components/reportControls.css';
 
@@ -32,12 +37,6 @@ const Icon = ({ children, size = 18, sw = 2, ...rest }) => (
   </svg>
 );
 
-const SearchIcon = (p) => (
-  <Icon {...p}>
-    <circle cx="11" cy="11" r="7" />
-    <path d="m20 20-3.5-3.5" />
-  </Icon>
-);
 const ChevronRight = (p) => (
   <Icon {...p}>
     <path d="m9 6 6 6-6 6" />
@@ -106,7 +105,6 @@ const buildAxis = (max) => {
    PAGE
 ========================= */
 export default function DriverReport() {
-  const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [rangeError, setRangeError] = useState('');
   const [activeRange, setActiveRange] = useState("thisMonth");
@@ -114,31 +112,26 @@ export default function DriverReport() {
   const [customEnd, setCustomEnd] = useState("");
   const [appliedCustom, setAppliedCustom] = useState(null);
   const [showCustomPicker, setShowCustomPicker] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [page, setPage] = useState(1);
   const customPickerRef = useRef(null);
-  const exportMenuRef = useRef(null);
 
   const range = useReportRange(activeRange, appliedCustom);
   const memoCallback = typeof useCallback === 'function' ? useCallback : fn => fn;
   const loadData = memoCallback(() => getDriverReportRecords(range), [range.start, range.end]);
   const live = useLiveData(loadData, DRIVER_REPORT_TABLES);
 
-  // Close the custom range popover and export menu on outside click or Escape
+  // Close the custom range popover on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (customPickerRef.current && !customPickerRef.current.contains(e.target)) {
         setShowCustomPicker(false);
       }
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
-        setShowExportMenu(false);
-      }
     }
     function handleKey(e) {
       if (e.key === "Escape") {
         setShowCustomPicker(false);
-        setShowExportMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -163,8 +156,9 @@ export default function DriverReport() {
     setShowCustomPicker(false);
   };
 
-  const report = buildDriverReport(live.data || { drivers: [], shipments: [], deliveries: [], incidents: [] }, range, search, status);
+  const report = buildDriverReport(live.data || { drivers: [], shipments: [], deliveries: [], incidents: [] }, range, '', status);
   const hasData = !!live.data;
+  const initialLoading = live.loading && !hasData;
   const dateLabel = range.start + ' – ' + range.end;
   const incidentAxis = buildAxis(Math.max(1, ...report.incidents.map(i => i.count)));
   const emptyText = !hasData ? 'Report data is not loaded.' : 'No matching driver data for this selection.';
@@ -181,12 +175,7 @@ export default function DriverReport() {
     <MainLayout>
       <div className="dr-page dr-report-live reports-page">
         {/* Topbar */}
-        <ReportTopbar>
-          <label className="dr-search" htmlFor="dr-search-input">
-            <SearchIcon size={18} />
-            <input id="dr-search-input" type="search" placeholder="Search driver name or ID" aria-label="Search drivers" value={search} onChange={e => { setSearch(e.target.value); setPage(1); setExpandedId(null); }} />
-          </label>
-        </ReportTopbar>
+        <ReportTopbar />
 
         <section className="dr-content">
           {/* Header */}
@@ -198,16 +187,7 @@ export default function DriverReport() {
 
             <div className="dr-actions">
               <button className="dr-btn dr-btn-secondary" onClick={live.refresh}>Refresh</button>
-              <div className="report-export-split" ref={exportMenuRef}>
-                <button type="button" className="dr-btn dr-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => downloadReport('Drivers', range, report, { search, status }, 'csv')}>Export CSV</button>
-                <button type="button" className="dr-btn dr-btn-primary report-export-toggle" disabled={!live.data || !!live.error} aria-label="Export format options" aria-haspopup="true" aria-expanded={showExportMenu} onClick={() => setShowExportMenu(prev => !prev)}>▾</button>
-                {showExportMenu && (
-                  <div className="report-export-menu" role="menu">
-                    <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Drivers', range, report, { search, status }, 'csv'); }}>Export CSV</button>
-                    <button type="button" className="report-export-menu-item" role="menuitem" onClick={() => { setShowExportMenu(false); downloadReport('Drivers', range, report, { search, status }, 'pdf'); }}>Export PDF</button>
-                  </div>
-                )}
-              </div>
+              <button type="button" className="dr-btn dr-btn-primary report-export-main" disabled={!live.data || !!live.error} onClick={() => setShowExportModal(true)}>Export Report</button>
               <ReportSchedule type="Drivers" />
             </div>
           </div>
@@ -291,7 +271,7 @@ export default function DriverReport() {
                     </span>
                   </div>
                   <div className="dr-stat-bottom">
-                    <span className="dr-stat-value">{stat.value}</span>
+                    <span className="dr-stat-value">{initialLoading ? <SkeletonStatValue width="60px" height={28} /> : stat.value}</span>
 
                   </div>
                 </div>
@@ -308,7 +288,9 @@ export default function DriverReport() {
 
               </div>
 
-              {report.driverRates.length === 0 ? (
+              {initialLoading ? (
+                <SkeletonListRows rows={4} variant="bar" />
+              ) : report.driverRates.length === 0 ? (
                 <p className="dr-empty">{hasData ? 'No drivers have timed completed trips for this selection.' : emptyText}</p>
               ) : (
                 <>
@@ -343,7 +325,9 @@ export default function DriverReport() {
               </div>
 
               {hasData && report.unattributedIncidents > 0 && <p>{report.unattributedIncidents} incident(s) lack a matching delivery driver and are excluded from driver counts.</p>}
-              {report.incidents.length === 0 ? (
+              {initialLoading ? (
+                <SkeletonListRows rows={4} variant="bar" />
+              ) : report.incidents.length === 0 ? (
                 <p className="dr-empty">{hasData ? 'No attributed incidents for this selection.' : emptyText}</p>
               ) : (
                 <>
@@ -420,7 +404,12 @@ export default function DriverReport() {
                 </thead>
 
                 <tbody>
-                  {report.rows.length === 0 ? (
+                  {initialLoading ? (
+                    <SkeletonTableRows
+                      rows={5}
+                      columns={["action", "avatar-stack", "short", "text", "short", "short", "short", "badge"]}
+                    />
+                  ) : report.rows.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="dr-empty-row">
                         {emptyText}
@@ -548,6 +537,15 @@ export default function DriverReport() {
             )}
           </div>
         </section>
+        <ReportExportModal
+          open={showExportModal && !!live.data && !live.error}
+          onClose={() => setShowExportModal(false)}
+          reportType="Drivers"
+          range={range}
+          activeRangeLabel={RANGES.find(r => r.key === activeRange)?.label || 'Custom Range'}
+          reportData={report}
+          filters={{ status }}
+        />
       </div>
     </MainLayout>
   );

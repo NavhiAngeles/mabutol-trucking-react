@@ -1,0 +1,348 @@
+/* Unified Print & Preview Document Template */
+.rpd-document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rpd-page {
+  max-width: 100%;
+  height: auto;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #0F172A;
+  box-sizing: border-box;
+  overflow: visible;
+  page-break-after: always;
+  break-after: page;
+}
+
+.rpd-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.rpd-brand-banner {
+  background: #222831;
+  color: #FFFFFF;
+  border-bottom: 3px solid #00ADB5;
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.rpd-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rpd-logo-mark {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  background: #FFFFFF;
+  border-radius: 6px;
+  padding: 2px;
+  box-sizing: border-box;
+  display: block;
+  flex: none;
+}
+
+.rpd-brand-name {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #FFFFFF;
+  line-height: 1.1;
+}
+
+.rpd-brand-sub {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #00ADB5;
+  margin-top: 2px;
+}
+
+.rpd-brand-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rpd-banner-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.rpd-banner-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.625rem;
+  color: #CBD5E1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-banner-filters {
+  font-size: 0.625rem;
+  color: #00ADB5;
+  font-weight: 600;
+}
+
+.rpd-header-compact {
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.rpd-brand {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #222831;
+  margin-bottom: 4px;
+}
+
+.rpd-title {
+  margin: 0 0 6px;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.rpd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.6875rem;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-filters {
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  color: #475569;
+}
+
+.rpd-scope {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.rpd-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+}
+
+.rpd-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rpd-section-heading {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #222831;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* 4-Column Executive KPI Grid */
+.rpd-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rpd-kpi-card {
+  padding: 10px 12px;
+  border: 1px solid #E2E8F0;
+  border-top: 3px solid #00ADB5;
+  border-radius: 6px;
+  background: #FAF8F0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rpd-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.rpd-positive-badge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: #4F6B3A;
+  background: #EDF3E7;
+  border: 1px solid #A8B88A;
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rpd-kpi-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #475569;
+}
+
+.rpd-kpi-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0F172A;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-kpi-sub {
+  font-size: 0.625rem;
+  color: #64748B;
+  line-height: 1.3;
+}
+
+/* Crisp SVG Chart Block */
+.rpd-chart-block {
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 10px;
+  background: #FFFFFF;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rpd-svg-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.rpd-axis-text {
+  font-size: 9px;
+  fill: #64748B;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-bar-val {
+  font-size: 8.5px;
+  font-weight: 600;
+  fill: #222831;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Executive Tables */
+.rpd-table-card {
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  overflow-x: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rpd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-table thead {
+  display: table-header-group;
+}
+
+.rpd-table th {
+  background: #222831;
+  color: #FFFFFF;
+  font-weight: 600;
+  text-align: left;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.rpd-table td {
+  padding: 6px 8px;
+  border-top: 1px solid #E2E8F0;
+  color: #0F172A;
+}
+
+.rpd-table th.rpd-num,
+.rpd-table td.rpd-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-table tbody tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rpd-table tbody tr:nth-child(even) {
+  background: #FAF8F0;
+}
+
+.rpd-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.625rem;
+  color: #64748B;
+  font-variant-numeric: tabular-nums;
+}
+
+.rpd-empty {
+  padding: 32px 20px;
+  text-align: center;
+  border: 1px dashed #CBD5E1;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 0.8125rem;
+  background: #F8FAFC;
+}
+
+@media (max-width: 720px) {
+  .rpd-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media print {
+  .rpd-document {
+    gap: 0;
+  }
+
+  .rpd-page {
+    border: 0;
+    box-shadow: none;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+}

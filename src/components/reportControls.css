@@ -200,44 +200,6 @@
   flex: none;
 }
 
-.reports-page .reports-topbar :is(.sr-search, .dr-search, .rv-search) {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3, 12px);
-  width: 448px;
-  min-width: 0;
-  max-width: 100%;
-  height: var(--control-height, 40px);
-  padding: 0 var(--space-3, 12px);
-  border: 1px solid var(--border-control, #CBD5E1);
-  border-radius: var(--radius-sm, 6px);
-  background: var(--bg-surface, #FFFFFF);
-  color: var(--text-muted, #64748B);
-}
-
-.reports-page .reports-topbar :is(.sr-search, .dr-search, .rv-search):focus-within {
-  border-color: var(--color-accent-cobalt, #1D4ED8);
-  outline: var(--focus-ring-width, 2px) solid var(--color-accent-cobalt, #1D4ED8);
-  outline-offset: var(--focus-ring-offset, 2px);
-}
-
-.reports-page .reports-topbar input {
-  width: 100%;
-  min-width: 0;
-  color: var(--text-primary, #0F172A);
-  font: 400 var(--text-body, 0.875rem)/1.4 var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-}
-
-.reports-page .reports-topbar input::placeholder {
-  color: var(--text-muted, #64748B);
-}
-
-/* Parent search wrapper renders the visible cobalt focus ring via :focus-within. */
-.reports-page .reports-topbar input:focus-visible {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
-}
-
 .reports-page .reports-topbar :is(.icon-btn, .avatar) {
   font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
 }
@@ -295,10 +257,6 @@
 
   .reports-topbar-context {
     gap: var(--space-3, 12px);
-  }
-
-  .main .reports-page .reports-topbar :is(.sr-search, .dr-search, .rv-search) {
-    height: var(--touch-target, 44px);
   }
 
   .reports-page .report-controls :is(.ov-btn, .sr-btn, .dr-btn, .primary-btn, .secondary-btn, .report-schedule-button, .ov-tab, .sr-tab, .dr-tab, .filter) {

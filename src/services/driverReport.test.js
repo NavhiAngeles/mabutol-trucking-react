@@ -88,11 +88,12 @@ test('driver report loader pushes Philippine date-bound filters for shipments an
     ['delivery_incidents', 'lte', 'created_at', '2026-10-31T23:59:59.999+08:00'],
   ]);
 });
-test('driver page renders pagination, search/status resets, real expanded incidents and error states', async () => {
+test('driver page renders pagination, status resets, real expanded incidents and error states', async () => {
   const { transformWithOxc } = await import('vite');
   const data = { loading: true, data: null, error: null, refresh() {} };
   const state = []; let index = 0;
-  const scope = { ReportSchedule() {}, useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildDriverReport,
+  const scope = { ReportSchedule() {}, ReportExportModal() {}, useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange, useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key), downloadReport() {}, buildDriverReport,
+    SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', Fragment: 'Fragment', useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
     React: { Fragment: 'Fragment', createElement: (type, props, ...children) => ({ type, props: props || {}, children }) } };
@@ -106,9 +107,12 @@ test('driver page renders pagination, search/status resets, real expanded incide
   data.loading = false; data.error = 'Denied'; assert.match(JSON.stringify(render()), /Report data is unavailable/);
   data.data = { ...empty(), drivers: Array.from({ length: 12 }, (_, i) => ({ id: String(i), full_name: 'Driver ' + i, status: i === 11 ? 'off_duty' : 'available' })) };
   let tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 10);
+  const topbar = find(tree, 'ReportTopbar')[0];
+  assert.ok(topbar, 'ReportTopbar is rendered');
+  assert.equal(find(topbar, 'input').length, 0, 'ReportTopbar has no search input');
   find(tree, 'button').find(b => b.props['aria-label'] === 'Next page').props.onClick();
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 2);
-  find(tree, 'input').find(input => input.props.type === 'search').props.onChange({ target: { value: 'Driver 11' } });
+  find(tree, 'select')[0].props.onChange({ target: { value: 'off_duty' } });
   data.data.deliveries = [{ id: 'del', driver_id: '11', shipment_id: 's', status: 'delivered' }];
   data.data.incidents = [{ id: 'inc', delivery_id: 'del', shipment_id: 's', category: 'traffic', created_at: new Date().toISOString(), delay_minutes: 15 }];
   tree = render(); assert.equal(find(tree, 'tbody')[0].children.flat(Infinity).length, 1);
@@ -116,20 +120,21 @@ test('driver page renders pagination, search/status resets, real expanded incide
   find(tree, 'button').find(b => b.props['aria-label'] === 'Expand Driver 11').props.onClick({ stopPropagation() {} });
   tree = render(); assert.match(JSON.stringify(tree), /15 min reported delay/);
   assert.equal(find(tree, 'Link').find(l => l.children.includes('View shipment')).props.to, '/shipment?tab=all&record=s');
-  find(tree, 'select')[0].props.onChange({ target: { value: 'available' } });
+  find(tree, 'select')[0].props.onChange({ target: { value: 'maintenance' } });
   assert.match(JSON.stringify(render()), /No matching driver data/);
 });
 
-test('driver page exports CSV and PDF via split button', async () => {
+test('driver page opens ReportExportModal when Export Report is clicked', async () => {
   const { transformWithOxc } = await import('vite');
-  let exportedArgs = null;
   const data = { loading: false, data: empty(), error: null, refresh() {} };
   const state = []; let index = 0;
   const scope = {
-    ReportSchedule() {}, useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange,
+    ReportSchedule() {},
+    ReportExportModal: 'ReportExportModal',
+    useLiveData: () => data, getDriverReportRecords() {}, DRIVER_REPORT_TABLES: [], DRIVER_STATUSES, reportRange,
     useReportRange: (key, custom) => key === "custom" ? custom : reportRange(key),
-    downloadReport: (...args) => { exportedArgs = args; },
     buildDriverReport,
+    SkeletonListRows() {}, SkeletonStatValue() {}, SkeletonTableRows() {},
     Link: 'Link', MainLayout: 'Layout', ReportTopbar: 'ReportTopbar', OfficeTools: 'Tools', Fragment: 'Fragment',
     useRef: () => ({ current: null }), useEffect() {},
     useState(initial) { const i = index++; if (!(i in state)) state[i] = initial; return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }]; },
@@ -142,20 +147,19 @@ test('driver page exports CSV and PDF via split button', async () => {
   const render = () => { index = 0; return scope.Page(); };
   const find = (node, type) => !node || typeof node !== 'object' ? [] : [...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type))];
 
-  // Primary CSV click
   let tree = render();
   const mainBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-main'));
-  mainBtn.props.onClick();
-  assert.equal(exportedArgs[0], 'Drivers');
-  assert.equal(exportedArgs[4], 'csv');
+  assert.ok(mainBtn.children.includes('Export Report'));
+  assert.equal(find(tree, 'ReportExportModal')[0].props.open, false);
 
-  // Toggle dropdown
-  const toggleBtn = find(tree, 'button').find(b => b.props.className && b.props.className.includes('report-export-toggle'));
-  toggleBtn.props.onClick();
+  mainBtn.props.onClick();
   tree = render();
-  const pdfItem = find(tree, 'button').find(b => b.children && b.children.includes('Export PDF'));
-  assert.ok(pdfItem, 'Export PDF button rendered in dropdown menu');
-  pdfItem.props.onClick();
-  assert.equal(exportedArgs[0], 'Drivers');
-  assert.equal(exportedArgs[4], 'pdf');
+  const modalProps = find(tree, 'ReportExportModal')[0].props;
+  assert.equal(modalProps.open, true);
+  assert.equal(modalProps.reportType, 'Drivers');
+  assert.equal(modalProps.filters.status, 'all');
+
+  modalProps.onClose();
+  tree = render();
+  assert.equal(find(tree, 'ReportExportModal')[0].props.open, false);
 });

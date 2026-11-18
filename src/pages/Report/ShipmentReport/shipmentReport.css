@@ -49,37 +49,6 @@
   border-bottom: 1px solid var(--sr-border);
 }
 
-.reports-page .sr-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 400px;
-  max-width: 100%;
-  height: 40px;
-  padding: 0 14px;
-  border-radius: 6px;
-  background: #EDF1FD;
-  color: #64748B;
-}
-
-.reports-page .sr-search input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font: inherit;
-  font-size: 13.5px;
-  color: var(--sr-ink);
-}
-
-.reports-page .sr-search input:focus-visible {
-  outline: 2px solid #1D4ED8;
-  outline-offset: 2px;
-}
-
-.reports-page .sr-search input::placeholder {
-  color: #64748B;
-}
-
 .reports-page .sr-topbar-right {
   margin-left: auto;
   display: flex;
