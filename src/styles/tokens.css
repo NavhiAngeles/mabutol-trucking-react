@@ -57,7 +57,9 @@
   --disabled-opacity: 0.55;
 
   /* Typography */
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --text-landing-h1: clamp(1.875rem, 3.2vw, 2.75rem);
   --text-page-title: clamp(1.375rem, 1.8vw, 1.625rem);
   --text-section-title: 1.125rem;

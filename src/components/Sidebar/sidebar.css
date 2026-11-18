@@ -24,13 +24,23 @@
 .brand-icon {
   width: var(--touch-target, 44px);
   height: var(--touch-target, 44px);
-  background: var(--color-brand-navy, #0F2A52);
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E2E8F0);
   border-radius: var(--radius-md, 8px);
+  padding: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bg-surface, #FFFFFF);
+  overflow: hidden;
+  box-sizing: border-box;
   flex-shrink: 0;
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-text h2 {
@@ -143,10 +153,13 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-1, 4px) 0 var(--space-1-5, 6px) 44px;
+  padding: var(--space-1, 4px) 0 var(--space-1-5, 6px) 32px;
 }
 
 .submenu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
   min-height: var(--control-height, 40px);
   padding: var(--space-2, 8px) var(--space-3, 12px);
   font-size: var(--text-compact, 0.8125rem);
@@ -154,9 +167,14 @@
   color: var(--text-secondary, #475569);
   border-radius: var(--radius-sm, 6px);
   cursor: pointer;
+  white-space: nowrap;
   transition:
     background-color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1)),
     color var(--duration-fast, 150ms) var(--ease-standard, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.submenu-item svg {
+  flex-shrink: 0;
 }
 
 .submenu-item:hover {
@@ -175,6 +193,10 @@
   color: var(--color-brand-navy, #0F2A52);
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--color-accent-cobalt, #1D4ED8);
+}
+
+.submenu-item.active svg {
+  color: var(--color-accent-cobalt, #1D4ED8);
 }
 
 .sidebar-footer {

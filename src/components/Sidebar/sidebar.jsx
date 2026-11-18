@@ -5,6 +5,186 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
 import OfficeHelpDialog from "./OfficeHelpDialog";
 
+const SUBMENU_SVG_PROPS = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: "16",
+  height: "16",
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: "2",
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  "aria-hidden": "true",
+};
+
+const FLEET_SUBMENU = [
+  {
+    path: "/fleet/overview",
+    label: "Overview",
+    isCurrent: (isActive) => isActive("/fleet") || isActive("/fleet/overview"),
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <rect x="3" y="3" width="7" height="9" />
+        <rect x="14" y="3" width="7" height="5" />
+        <rect x="14" y="12" width="7" height="9" />
+        <rect x="3" y="16" width="7" height="5" />
+      </svg>
+    ),
+  },
+  {
+    path: "/fleet/vehicles",
+    label: "Vehicles",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <rect x="1" y="3" width="15" height="13" rx="2" />
+        <path d="M16 8h4l3 3v5h-7V8z" />
+        <circle cx="5.5" cy="18.5" r="2.5" />
+        <circle cx="18.5" cy="18.5" r="2.5" />
+      </svg>
+    ),
+  },
+  {
+    path: "/fleet/drivers",
+    label: "Drivers",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+      </svg>
+    ),
+  },
+  {
+    path: "/fleet/maintenance",
+    label: "Maintenance",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+      </svg>
+    ),
+  },
+];
+
+const REPORTS_SUBMENU = [
+  {
+    path: "/report/overview",
+    label: "Overview",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="12" y1="18" x2="12" y2="12" />
+        <line x1="8" y1="18" x2="8" y2="15" />
+        <line x1="16" y1="18" x2="16" y2="14" />
+      </svg>
+    ),
+  },
+  {
+    path: "/report/shipmentReport",
+    label: "Shipments",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    ),
+  },
+  {
+    path: "/report/driverReport",
+    label: "Drivers",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M5 20v-1a7 7 0 0 1 14 0v1" />
+      </svg>
+    ),
+  },
+  {
+    path: "/report/revenueReport",
+    label: "Revenue",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+        <polyline points="17 6 23 6 23 12" />
+      </svg>
+    ),
+  },
+];
+
+const SETTINGS_SUBMENU = [
+  {
+    path: "/settings/account",
+    label: "Account",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="10" r="3" />
+        <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+      </svg>
+    ),
+  },
+  {
+    path: "/settings/notification",
+    label: "Notifications",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    ),
+  },
+  {
+    path: "/settings/pricing",
+    label: "Pricing",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+      </svg>
+    ),
+  },
+  {
+    path: "/settings/complianceThreshold",
+    label: "Compliance thresholds",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <line x1="4" y1="21" x2="4" y2="14" />
+        <line x1="4" y1="10" x2="4" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12" y2="3" />
+        <line x1="20" y1="21" x2="20" y2="16" />
+        <line x1="20" y1="12" x2="20" y2="3" />
+        <line x1="1" y1="14" x2="7" y2="14" />
+        <line x1="9" y1="8" x2="15" y2="8" />
+        <line x1="17" y1="16" x2="23" y2="16" />
+      </svg>
+    ),
+  },
+  {
+    path: "/settings/userManagement",
+    label: "User management",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
+  {
+    path: "/settings/security",
+    label: "Security",
+    icon: (
+      <svg {...SUBMENU_SVG_PROPS}>
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    ),
+  },
+];
+
 export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClose }) {
   const navigate = useNavigate();
   const { clearAuth } = useAuth();
@@ -25,27 +205,37 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
   const isParentActive = (prefix) => pathname.startsWith(prefix.toLowerCase());
 
   const [prevPathname, setPrevPathname] = useState(pathname);
+  const [fleetOpen, setFleetOpen] = useState(() => isParentActive("/fleet"));
   const [reportsOpen, setReportsOpen] = useState(() => isParentActive("/report"));
   const [settingsOpen, setSettingsOpen] = useState(() => isParentActive("/settings"));
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
+  let currentFleetOpen = fleetOpen;
   let currentReportsOpen = reportsOpen;
   let currentSettingsOpen = settingsOpen;
 
   // Synchronize menu open states when the active route changes
   if (prevPathname !== pathname) {
     setPrevPathname(pathname);
-    if (isParentActive("/report")) {
+    if (isParentActive("/fleet")) {
+      currentFleetOpen = true;
+      currentReportsOpen = false;
+      currentSettingsOpen = false;
+    } else if (isParentActive("/report")) {
       currentReportsOpen = true;
+      currentFleetOpen = false;
       currentSettingsOpen = false;
     } else if (isParentActive("/settings")) {
       currentSettingsOpen = true;
+      currentFleetOpen = false;
       currentReportsOpen = false;
     } else {
+      currentFleetOpen = false;
       currentReportsOpen = false;
       currentSettingsOpen = false;
     }
+    setFleetOpen(currentFleetOpen);
     setReportsOpen(currentReportsOpen);
     setSettingsOpen(currentSettingsOpen);
   }
@@ -95,10 +285,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="brand-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
+            <img src="/tanaw-logo.png" alt="" width="44" height="44" className="brand-logo-img" />
           </div>
           <div className="brand-text">
             <h2>TANAW</h2>
@@ -144,17 +331,50 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             Shipments
           </button>
 
-          <button type="button"
-            className={`nav-item ${isActive("/fleet") ? "active" : ""}`}
-            onClick={() => handleNav("/fleet")}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="1" y="3" width="15" height="13" rx="2"/>
-              <path d="M16 8h4l3 3v5h-7V8z"/>
-              <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-            </svg>
-            Fleet Management
-          </button>
+          {/* Fleet Management Dropdown */}
+          <div className="nav-group">
+            <button type="button"
+              aria-expanded={currentFleetOpen}
+              aria-controls="sidebar-fleet"
+              className={`nav-item ${isParentActive("/fleet") || currentFleetOpen ? "active" : ""}`}
+              onClick={() => {
+                setFleetOpen(!currentFleetOpen);
+                setReportsOpen(false);
+                setSettingsOpen(false);
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="1" y="3" width="15" height="13" rx="2"/>
+                <path d="M16 8h4l3 3v5h-7V8z"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+              Fleet Management
+              <svg
+                className={`nav-chevron ${currentFleetOpen ? "open" : ""}`}
+                xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            {currentFleetOpen && (
+              <div id="sidebar-fleet" className="submenu">
+                {FLEET_SUBMENU.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    className={`submenu-item ${(item.isCurrent ? item.isCurrent(isActive) : isActive(item.path)) ? "active" : ""}`}
+                    onClick={() => handleNav(item.path)}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <button type="button"
             className={`nav-item ${isActive("/customer") ? "active" : ""}`}
@@ -189,6 +409,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               className={`nav-item ${isParentActive("/report") || currentReportsOpen ? "active" : ""}`}
               onClick={() => {
                 setReportsOpen(!currentReportsOpen);
+                setFleetOpen(false);
                 setSettingsOpen(false);
               }}
             >
@@ -209,10 +430,17 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             
             {currentReportsOpen && (
               <div id="sidebar-reports" className="submenu">
-                <button type="button" className={`submenu-item ${isActive("/report/overview") ? "active" : ""}`} onClick={() => handleNav("/report/overview")}>Overview</button>
-                <button type="button" className={`submenu-item ${isActive("/report/shipmentReport") ? "active" : ""}`} onClick={() => handleNav("/report/shipmentReport")}>Shipments</button>
-                <button type="button" className={`submenu-item ${isActive("/report/driverReport") ? "active" : ""}`} onClick={() => handleNav("/report/driverReport")}>Drivers</button>
-                <button type="button" className={`submenu-item ${isActive("/report/revenueReport") ? "active" : ""}`} onClick={() => handleNav("/report/revenueReport")}>Revenue</button>
+                {REPORTS_SUBMENU.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    className={`submenu-item ${isActive(item.path) ? "active" : ""}`}
+                    onClick={() => handleNav(item.path)}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -225,6 +453,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               className={`nav-item ${isParentActive("/settings") || currentSettingsOpen ? "active" : ""}`}
               onClick={() => {
                 setSettingsOpen(!currentSettingsOpen);
+                setFleetOpen(false);
                 setReportsOpen(false);
               }}
             >
@@ -245,12 +474,17 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
 
             {currentSettingsOpen && (
               <div id="sidebar-settings" className="submenu">
-                <button type="button" className={`submenu-item ${isActive("/settings/account") ? "active" : ""}`} onClick={() => handleNav("/settings/account")}>Account</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/notification") ? "active" : ""}`} onClick={() => handleNav("/settings/notification")}>Notifications</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/pricing") ? "active" : ""}`} onClick={() => handleNav("/settings/pricing")}>Pricing</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/complianceThreshold") ? "active" : ""}`} onClick={() => handleNav("/settings/complianceThreshold")}>Compliance thresholds</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/userManagement") ? "active" : ""}`} onClick={() => handleNav("/settings/userManagement")}>User management</button>
-                <button type="button" className={`submenu-item ${isActive("/settings/security") ? "active" : ""}`} onClick={() => handleNav("/settings/security")}>Security</button>
+                {SETTINGS_SUBMENU.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    className={`submenu-item ${isActive(item.path) ? "active" : ""}`}
+                    onClick={() => handleNav(item.path)}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>

@@ -22,6 +22,7 @@ async function screen(update, loadError = '') {
     useNavigate: () => path => routes.push(path),
     useAuth: () => ({ user: { id: 'own' } }),
     DeliveryConversationInbox: () => null,
+    SkeletonListRows: ({ rows, variant }) => ({ type: 'SkeletonListRows', props: { rows, variant }, children: [] }),
     useLiveData: () => ({ data: { name: 'Office', notifications: [{ id: 'notice', title: 'Update', body: '', shipment_id: 'shipment', created_at: '2026-10-24' }] }, error: loadError, refresh: () => { reloads++; } }),
     supabase: { from(table) {
       const call = { table, filters: [], inFilters: [] }; calls.push(call);
@@ -196,6 +197,7 @@ test('driver messages are excluded from notification bell and notify in Drivers 
     useNavigate: () => () => {},
     useAuth: () => ({ user: { id: 'own' } }),
     DeliveryConversationInbox: 'DeliveryConversationInbox',
+    SkeletonListRows: ({ rows, variant }) => ({ type: 'SkeletonListRows', props: { rows, variant }, children: [] }),
     useLiveData: () => ({
       data: {
         name: 'Office',
@@ -240,6 +242,7 @@ test('Notifications bell and Driver Messages dropdown panels are mutually exclus
     useNavigate: () => () => {},
     useAuth: () => ({ user: { id: 'own' } }),
     DeliveryConversationInbox: 'DeliveryConversationInbox',
+    SkeletonListRows: ({ rows, variant }) => ({ type: 'SkeletonListRows', props: { rows, variant }, children: [] }),
     useLiveData: () => ({
       data: {
         name: 'Office',

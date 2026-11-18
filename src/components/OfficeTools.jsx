@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { useLiveData } from '../hooks/useLiveData';
 import DeliveryConversationInbox from '../pages/Shipment/DeliveryConversationInbox';
+import { SkeletonListRows } from './Skeleton/Skeleton';
 import './OfficeTools.css';
 
 const TABLES = [
@@ -393,6 +394,7 @@ export default function OfficeTools() {
           </div>
           <div className="office-notifications-list">
             {loading && <p className="office-notification-state" role="status">Loading notifications…</p>}
+            {loading && !data && <SkeletonListRows rows={3} variant="feed" />}
             {(error || saveError) && (
               <p className="office-notification-error" role="alert">
                 {saveError || 'Unable to load notifications.'}{' '}

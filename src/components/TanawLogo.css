@@ -1,0 +1,67 @@
+.tanaw-brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+.tanaw-brand-badge {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background-color: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-md, 8px);
+  padding: 2px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.tanaw-brand-lockup.is-md .tanaw-brand-badge {
+  width: 38px;
+  height: 38px;
+}
+
+.tanaw-brand-lockup.is-sm .tanaw-brand-badge {
+  width: 32px;
+  height: 32px;
+}
+
+.tanaw-brand-lockup.is-lg .tanaw-brand-badge {
+  width: 46px;
+  height: 46px;
+}
+
+.tanaw-brand-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.tanaw-brand-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.tanaw-brand-wordmark {
+  font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--color-ink-slate, #0F172A);
+}
+
+.tanaw-brand-lockup.is-lg .tanaw-brand-wordmark {
+  font-size: 1.25rem;
+}
+
+.tanaw-brand-subtitle {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-secondary, #475569);
+}

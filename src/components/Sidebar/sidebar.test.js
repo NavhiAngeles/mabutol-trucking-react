@@ -73,13 +73,14 @@ test('sidebar actions are native buttons and disclosures expose expanded state a
   assert.ok(actions().every(n => n.type === 'button' && n.props.type === 'button'));
   named('Shipments').props.onClick(); assert.deepEqual(routes, ['/shipment']);
   named('Compliance').props.onClick(); assert.equal(routes.at(-1), '/compliance');
-  for (const label of ['Reports', 'Settings']) {
+  for (const label of ['Fleet Management', 'Reports', 'Settings']) {
     assert.equal(named(label).props['aria-expanded'], false);
     named(label).props.onClick();
     assert.equal(named(label).props['aria-expanded'], true);
     assert.equal(find(ui.render(), n => n.props.id === named(label).props['aria-controls']).length, 1);
     assert.ok(actions().every(n => n.type === 'button'));
   }
+  assert.equal(named('Fleet Management').props['aria-expanded'], false);
   assert.equal(named('Reports').props['aria-expanded'], false);
   named('Security').props.onClick(); assert.equal(routes.at(-1), '/settings/security');
   named('Settings').props.onClick();
@@ -100,17 +101,26 @@ test('sidebar automatically expands matching submenu on active route and synchro
   const actions = () => find(ui.render(), n => typeof n.props.onClick === 'function');
   const named = label => actions().find(n => n.children.includes(label));
 
-  // Initially on /report/overview: Reports should be expanded, Settings collapsed
+  // Initially on /report/overview: Reports should be expanded, Fleet Management and Settings collapsed
+  assert.equal(named('Fleet Management').props['aria-expanded'], false);
   assert.equal(named('Reports').props['aria-expanded'], true);
+  assert.equal(named('Settings').props['aria-expanded'], false);
+
+  // Navigate to /fleet/vehicles
+  currentPath = '/fleet/vehicles';
+  assert.equal(named('Fleet Management').props['aria-expanded'], true);
+  assert.equal(named('Reports').props['aria-expanded'], false);
   assert.equal(named('Settings').props['aria-expanded'], false);
 
   // Navigate to /settings/pricing
   currentPath = '/settings/pricing';
+  assert.equal(named('Fleet Management').props['aria-expanded'], false);
   assert.equal(named('Reports').props['aria-expanded'], false);
   assert.equal(named('Settings').props['aria-expanded'], true);
 
-  // Navigate to /dashboard (root route): both collapsed
+  // Navigate to /dashboard (root route): all collapsed
   currentPath = '/dashboard';
+  assert.equal(named('Fleet Management').props['aria-expanded'], false);
   assert.equal(named('Reports').props['aria-expanded'], false);
   assert.equal(named('Settings').props['aria-expanded'], false);
 });

@@ -1,0 +1,204 @@
+/* Shared TANAW Skeleton Primitives (DESIGN.md & tokens.css aligned) */
+
+.tanaw-skeleton {
+  display: inline-block;
+  background-color: var(--bg-surface-subtle, #F1F5F9);
+  border-radius: var(--radius-xs, 4px);
+  vertical-align: middle;
+  flex-shrink: 0;
+  animation: tanaw-skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+.tanaw-skeleton.is-xs {
+  border-radius: var(--radius-xs, 4px);
+}
+
+.tanaw-skeleton.is-sm {
+  border-radius: var(--radius-sm, 6px);
+}
+
+.tanaw-skeleton.is-md {
+  border-radius: var(--radius-md, 8px);
+}
+
+.tanaw-skeleton.is-lg {
+  border-radius: var(--radius-lg, 12px);
+}
+
+.tanaw-skeleton.is-circle {
+  border-radius: var(--radius-full, 9999px);
+}
+
+@keyframes tanaw-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.48;
+  }
+}
+
+.tanaw-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.tanaw-skeleton-avatar-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tanaw-skeleton-action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tanaw-skeleton-stat-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Dashboard Action Center & Fleet Blocker skeleton cards */
+.tanaw-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tanaw-skeleton-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background-color: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-md, 8px);
+}
+
+.tanaw-skeleton-feed-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tanaw-skeleton-feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-surface-subtle, #F1F5F9);
+}
+
+.tanaw-skeleton-feed-item:last-child {
+  border-bottom: 0;
+}
+
+.tanaw-skeleton-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tanaw-skeleton-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tanaw-skeleton-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Dashboard 7-day trend chart skeleton */
+.tanaw-skeleton-trend {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+  height: 150px;
+  padding: 12px 8px 0;
+}
+
+.tanaw-skeleton-trend-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 100%;
+}
+
+/* Donut / radial gauge skeleton for Reports */
+.tanaw-skeleton-donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.tanaw-skeleton-donut-ring {
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+  border: 18px solid var(--bg-surface-subtle, #F1F5F9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  animation: tanaw-skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+.tanaw-skeleton-chart-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0;
+}
+
+.tanaw-skeleton-chart-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  height: 170px;
+  padding: 14px 12px 0;
+  border-bottom: 1px solid var(--border-subtle, #E2E8F0);
+}
+
+.tanaw-skeleton-settings-card {
+  background-color: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tanaw-skeleton-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--bg-surface-subtle, #F1F5F9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tanaw-skeleton,
+  .tanaw-skeleton-donut-ring {
+    animation: none;
+  }
+}
