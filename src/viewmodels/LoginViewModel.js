@@ -8,6 +8,7 @@ export function useLoginViewModel() {
   const { completeSignIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [errors, setErrors] = useState({ email: "", password: "" });
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const submissionLocked = useRef(false);
@@ -34,6 +35,9 @@ export function useLoginViewModel() {
     setStatus("loading");
     try {
       const result = await signIn(trimmedEmail, loginPassword);
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("tanaw.keepSignedIn", keepSignedIn ? "true" : "false");
+      }
       completeSignIn(result);
       setStatus("success");
       navigate("/dashboard", { replace: true });
@@ -60,5 +64,22 @@ export function useLoginViewModel() {
     }
   }
 
-  return { email, setEmail, password, setPassword, errors, status, handleSubmit, handlePasswordChange, handleEmailChange, navigate };
+  function handleKeepSignedInChange(checked) {
+    setKeepSignedIn(Boolean(checked));
+  }
+
+  return {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    keepSignedIn,
+    errors,
+    status,
+    handleSubmit,
+    handlePasswordChange,
+    handleEmailChange,
+    handleKeepSignedInChange,
+    navigate,
+  };
 }

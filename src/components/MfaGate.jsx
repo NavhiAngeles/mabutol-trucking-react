@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { securityApi } from '../services/securityService';
+import WorkspaceLoadingScreen from './WorkspaceLoadingScreen';
 import './MfaGate.css';
 
 export default function MfaGate({ children }) {
@@ -88,16 +89,22 @@ export default function MfaGate({ children }) {
 
   if (status && !status.required) return children;
 
+  if (!status && !error) {
+    return (
+      <WorkspaceLoadingScreen
+        message="Checking security verification…"
+        detail="Confirming session protection before opening the dispatch console."
+      />
+    );
+  }
+
   return (
     <div className="mfa-page">
       <div className="mfa-container">
         {/* Tanaw Branding */}
         <div className="mfa-branding">
           <div className="mfa-logo" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
+            <img src="/tanaw-logo.png" alt="" width="44" height="44" className="mfa-logo-img" />
           </div>
           <div className="mfa-brand-text">
             <h1 className="mfa-brand-title">TANAW</h1>
@@ -117,17 +124,6 @@ export default function MfaGate({ children }) {
             <h2>Verify your sign-in</h2>
             <p className="mfa-header-desc">Multi-factor security verification</p>
           </div>
-
-          {/* Loading / Checking State */}
-          {!status && !error && (
-            <div className="mfa-status-card" role="status">
-              <div className="mfa-spinner" aria-hidden="true" />
-              <div className="mfa-status-info">
-                <strong>Checking authentication...</strong>
-                <p>Verifying session security and access permissions.</p>
-              </div>
-            </div>
-          )}
 
           {/* Error Alert */}
           {error && (
