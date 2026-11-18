@@ -96,7 +96,8 @@
   line-height: 1.5;
   color: #CBD5E1;
   text-align: center;
-  max-width: 460px;
+  max-width: 480px;
+  text-wrap: balance;
 }
 
 .mobile-showcase-role-desc strong {
@@ -111,6 +112,8 @@
   justify-content: center;
   align-items: center;
   padding: 10px 0 6px;
+  container-type: inline-size;
+  container-name: mobile-stage;
 }
 
 .mobile-showcase-spotlight {
@@ -985,11 +988,19 @@
   font-weight: 600;
 }
 
-/* Floating Layered Glassmorphic Callout Cards (flank phone on wide stage, stack cleanly otherwise) */
+/* Capability Callout Cards: 2-col grid below phone by default; flank phone only when stage is >= 740px wide */
+.mobile-callout-deck {
+  width: 100%;
+  max-width: 460px;
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .mobile-callout-card {
-  position: absolute;
-  z-index: 3;
-  width: 204px;
+  position: static;
+  width: 100%;
   padding: 12px 14px;
   background: rgba(30, 41, 59, 0.92);
   backdrop-filter: blur(12px);
@@ -1002,16 +1013,28 @@
   gap: 5px;
 }
 
-.mobile-callout-card.is-left {
-  top: 76px;
-  right: calc(50% + 162px);
-  left: auto;
-}
+@container mobile-stage (min-width: 740px) {
+  .mobile-callout-deck {
+    display: contents;
+  }
 
-.mobile-callout-card.is-right {
-  bottom: 64px;
-  left: calc(50% + 162px);
-  right: auto;
+  .mobile-callout-card {
+    position: absolute;
+    z-index: 3;
+    width: 204px;
+  }
+
+  .mobile-callout-card.is-left {
+    top: 76px;
+    right: calc(50% + 162px);
+    left: auto;
+  }
+
+  .mobile-callout-card.is-right {
+    bottom: 64px;
+    left: calc(50% + 162px);
+    right: auto;
+  }
 }
 
 .callout-badge {
@@ -1051,25 +1074,9 @@
   color: #CBD5E1;
 }
 
-/* Compact variant and narrower stages stack callouts below the phone so they never cover the UI */
-.mobile-showcase-compact .mobile-showcase-frame-wrap {
-  gap: 14px;
-}
-
-.mobile-showcase-compact .mobile-callout-card {
-  position: static;
-  width: 100%;
-  max-width: 340px;
-}
-
-@media (max-width: 820px) {
-  .mobile-showcase-frame-wrap {
-    gap: 14px;
-  }
-
-  .mobile-callout-card {
-    position: static;
-    width: 100%;
+@media (max-width: 520px) {
+  .mobile-callout-deck {
+    grid-template-columns: 1fr;
     max-width: 340px;
   }
 }

@@ -529,7 +529,7 @@ export default function MobileShowcase({ variant = "full" }) {
   );
 
   const renderFloatingCallouts = () => (
-    <>
+    <div className="mobile-callout-deck">
       {/* Left Floating Glassmorphic Card */}
       <aside className="mobile-callout-card is-left" aria-label="GPS Telemetry Capability">
         <span className="callout-badge is-telemetry">GPS TELEMETRY</span>
@@ -547,7 +547,7 @@ export default function MobileShowcase({ variant = "full" }) {
           Timestamped in PHT UTC+8 upon drop-off
         </p>
       </aside>
-    </>
+    </div>
   );
 
   if (isCompact) {
@@ -567,6 +567,24 @@ export default function MobileShowcase({ variant = "full" }) {
             <p className="mobile-showcase-role-desc">{currentRoleMeta.summary}</p>
           </div>
 
+          <div className="mobile-compact-callouts" aria-label="Key Mobile App Capabilities">
+            <aside className="mobile-compact-callout" aria-label="GPS Telemetry Capability">
+              <span className="callout-badge is-telemetry">GPS TELEMETRY</span>
+              <strong className="callout-title">Foreground Location Sync</strong>
+              <p className="callout-desc">
+                TRK-004 Verified &middot; Live route &amp; ETA updates
+              </p>
+            </aside>
+
+            <aside className="mobile-compact-callout" aria-label="Verified Proof of Delivery Capability">
+              <span className="callout-badge is-pod">VERIFIED POD</span>
+              <strong className="callout-title">Photo &amp; E-Signature Capture</strong>
+              <p className="callout-desc">
+                Timestamped in PHT UTC+8 upon drop-off
+              </p>
+            </aside>
+          </div>
+
           <div className="mobile-compact-actions">
             <Link to="/mobile-app" className="mobile-compact-cta">
               <span>Open Mobile App Guide &amp; APK</span>
@@ -579,7 +597,6 @@ export default function MobileShowcase({ variant = "full" }) {
           <div className="mobile-showcase-spotlight" aria-hidden="true" />
           <div className="mobile-showcase-frame-wrap">
             {renderPhoneFrame()}
-            {renderFloatingCallouts()}
           </div>
         </div>
       </article>
