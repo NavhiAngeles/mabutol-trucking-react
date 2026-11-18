@@ -1,79 +1,41 @@
-import { useCallback, useEffect, useState } from "react";
-import SettingsLayout from '../../../components/SettingsLayout';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  Banknote,
+  CheckCircle2,
+  Loader2,
+  Lock,
+  Package,
+  RotateCcw,
+  Truck,
+} from "lucide-react";
+import SettingsLayout from "../../../components/SettingsLayout";
 import {
   fetchPricingData,
   savePricing,
 } from "../../../services/pricingService";
 import { getCurrentPricingUser } from "../../../services/tollGateService";
 import TollGateManager from "./TollGateManager";
+import CurrencyRateInput from "./CurrencyRateInput";
 import { HANDLING_OPTIONS } from "../../../services/handlingPricing";
 import { SkeletonBlock, SkeletonTableRows } from "../../../components/Skeleton/Skeleton";
-import "./pricing.css";
-
-/* =========================
-   ICONS
-========================= */
-
-const Svg = ({ size = 20, children, ...rest }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-    {...rest}
-  >
-    {children}
-  </svg>
-);
-
-const WarningIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24">
-    <path d="M12 3L2 21h20L12 3z" fill="#EA580C" />
-    <rect
-      x="11"
-      y="9"
-      width="2"
-      height="6"
-      rx="1"
-      fill="#FFEDD5"
-    />
-    <circle cx="12" cy="17.7" r="1.2" fill="#FFEDD5" />
-  </svg>
-);
-
-const CashIcon = () => (
-  <Svg size={22}>
-    <rect x="2" y="6" width="20" height="12" rx="2" />
-    <circle cx="12" cy="12" r="2.6" />
-    <path d="M6 9.5v.01M18 14.5v.01" />
-  </Svg>
-);
-
-const BoxIcon = () => (
-  <Svg size={22}>
-    <rect x="3" y="3" width="18" height="5" rx="1" />
-    <path d="M5 8v12a1 1 0 001 1h12a1 1 0 001-1V8" />
-    <path d="M10 13h4" />
-  </Svg>
-);
-
-const TruckIcon = ({ size = 22 }) => (
-  <Svg size={size}>
-    <path d="M2 6a1 1 0 011-1h11v12H2z" />
-    <path d="M14 9h4l4 4v4h-8" />
-    <circle cx="7" cy="18" r="2" fill="#fff" />
-    <circle cx="18" cy="18" r="2" fill="#fff" />
-  </Svg>
-);
-
-/* =========================
-   SURCHARGE CONFIGURATION
-========================= */
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const SURCHARGES = HANDLING_OPTIONS;
 
@@ -91,17 +53,37 @@ const isValidAmount = (value) =>
   Number.isFinite(Number(value)) &&
   Number(value) >= 0;
 
-/* =========================
-   PRICING PAGE
-========================= */
+function getHandlingBadgeProps(id) {
+  if (id === "cold") {
+    return {
+      variant: "outline",
+      className:
+        "border-sky-200/80 bg-sky-50 text-sky-700 font-medium rounded-md",
+    };
+  }
+  if (id === "fragile" || id === "temp") {
+    return {
+      variant: "outline",
+      className:
+        "border-amber-200/80 bg-amber-50 text-amber-800 font-medium rounded-md",
+    };
+  }
+  return {
+    variant: "secondary",
+    className: "font-medium rounded-md",
+  };
+}
 
 export default function Pricing() {
   const [vehicles, setVehicles] = useState([]);
   const [rates, setRates] = useState({});
   const [fees, setFees] = useState(DEFAULT_FEES);
-  const [surcharges, setSurcharges] = useState(
-    DEFAULT_SURCHARGES
-  );
+  const [surcharges, setSurcharges] = useState(DEFAULT_SURCHARGES);
+  const [initialSnapshot, setInitialSnapshot] = useState({
+    fees: DEFAULT_FEES,
+    surcharges: DEFAULT_SURCHARGES,
+    rates: {},
+  });
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -122,44 +104,45 @@ export default function Pricing() {
 
       setVehicles(data.vehicles);
 
-      setRates(
-        Object.fromEntries(
-          data.vehicles.map((vehicle) => [
-            vehicle.id,
-            vehicle.pricing
-              ? String(vehicle.pricing.per_km_rate)
-              : "",
-          ])
-        )
+      const loadedRates = Object.fromEntries(
+        data.vehicles.map((vehicle) => [
+          vehicle.id,
+          vehicle.pricing ? String(vehicle.pricing.per_km_rate) : "",
+        ])
       );
 
       const settings = data.settings || {};
 
-      setFees({
+      const loadedFees = {
         minBooking:
           settings.minimum_booking_fee == null
             ? ""
             : String(settings.minimum_booking_fee),
-
         driver:
           settings.driver_allowance == null
             ? ""
             : String(settings.driver_allowance),
-      });
+      };
 
-      const savedSurcharges =
-        settings.handling_surcharges || {};
+      const savedSurcharges = settings.handling_surcharges || {};
 
-      setSurcharges(
-        Object.fromEntries(
-          SURCHARGES.map((item) => [
-            item.id,
-            savedSurcharges[item.id] == null
-              ? ""
-              : String(savedSurcharges[item.id]),
-          ])
-        )
+      const loadedSurcharges = Object.fromEntries(
+        SURCHARGES.map((item) => [
+          item.id,
+          savedSurcharges[item.id] == null
+            ? ""
+            : String(savedSurcharges[item.id]),
+        ])
       );
+
+      setRates(loadedRates);
+      setFees(loadedFees);
+      setSurcharges(loadedSurcharges);
+      setInitialSnapshot({
+        fees: loadedFees,
+        surcharges: loadedSurcharges,
+        rates: loadedRates,
+      });
     } catch (err) {
       console.error("Pricing load error:", err);
       setIsAdmin(false);
@@ -180,6 +163,57 @@ export default function Pricing() {
       active = false;
     };
   }, [loadPricing]);
+
+  const sortedVehicles = useMemo(() => {
+    return [...vehicles].sort((a, b) => {
+      const capA =
+        a.default_capacity_kg != null
+          ? Number(a.default_capacity_kg)
+          : Number.POSITIVE_INFINITY;
+      const capB =
+        b.default_capacity_kg != null
+          ? Number(b.default_capacity_kg)
+          : Number.POSITIVE_INFINITY;
+      if (capA !== capB) return capA - capB;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+  }, [vehicles]);
+
+  const dirtyCount = useMemo(() => {
+    let count = 0;
+
+    for (const key of Object.keys(DEFAULT_FEES)) {
+      if (
+        String(fees[key] ?? "").trim() !==
+        String(initialSnapshot.fees[key] ?? "").trim()
+      ) {
+        count += 1;
+      }
+    }
+
+    for (const item of SURCHARGES) {
+      if (
+        String(surcharges[item.id] ?? "").trim() !==
+        String(initialSnapshot.surcharges[item.id] ?? "").trim()
+      ) {
+        count += 1;
+      }
+    }
+
+    for (const vehicle of vehicles) {
+      if (!vehicle.pricing) continue;
+      if (
+        String(rates[vehicle.id] ?? "").trim() !==
+        String(initialSnapshot.rates[vehicle.id] ?? "").trim()
+      ) {
+        count += 1;
+      }
+    }
+
+    return count;
+  }, [fees, surcharges, rates, vehicles, initialSnapshot]);
+
+  const isDirty = dirtyCount > 0;
 
   const setFee = (key) => (event) => {
     if (!isAdmin) return;
@@ -214,6 +248,15 @@ export default function Pricing() {
     setSuccess("");
   };
 
+  const handleDiscard = () => {
+    if (saving) return;
+    setFees({ ...initialSnapshot.fees });
+    setSurcharges({ ...initialSnapshot.surcharges });
+    setRates({ ...initialSnapshot.rates });
+    setError("");
+    setSuccess("");
+  };
+
   const handleSave = async () => {
     if (!isAdmin || saving) return;
 
@@ -242,13 +285,13 @@ export default function Pricing() {
 
       await loadPricing();
 
-      setSuccess("Pricing changes saved to Supabase.");
+      setSuccess("Pricing changes saved.");
     } catch (err) {
       console.error("Pricing save error:", err);
 
       setError(
         `${err.message || "Unable to save pricing."} ` +
-          "Reload pricing before retrying if the save result is uncertain."
+        "Reload pricing before retrying if the save result is uncertain."
       );
     } finally {
       setSaving(false);
@@ -257,415 +300,515 @@ export default function Pricing() {
 
   return (
     <SettingsLayout>
-      <div className="pricing-page">
-        <section className="content">
-          {/* HEADER */}
-          <div className="page-header"><div>
-            <h1>Settings: Pricing &amp; Rates</h1>
-
-            <p>
-              Configure vehicle rates, fixed trip fees,
-              handling surcharges, and toll gate presets.
-            </p>
-          </div></div>
-
-          {/* ADMIN NOTICE */}
-          <div className="notice-box">
-            <div className="notice-title">
-              <WarningIcon />
-              <strong>Admin Notice</strong>
+      <section className="content mx-auto w-full max-w-[1440px]">
+        {/* PAGE HEADER */}
+        <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Settings: Pricing &amp; Rates
+              </h1>
+              {!loading && !isAdmin && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1 rounded-md font-medium text-muted-foreground"
+                >
+                  <Lock className="size-3" aria-hidden="true" />
+                  <span>Read-only</span>
+                </Badge>
+              )}
             </div>
-
-            <p>
-              Only active Admin accounts can modify Pricing
-              &amp; Rates. Other authenticated users have
-              read-only access where permitted by Supabase.
+            <p className="text-sm text-muted-foreground">
+              {!loading && !isAdmin
+                ? "View-only access. Contact an administrator to modify vehicle rates, fees, or toll tariffs."
+                : "Configure vehicle base rates, fixed trip fees, handling surcharges, and expressway toll tariffs."}
             </p>
           </div>
+        </header>
 
-          {/* ERROR */}
-          {error && (
+        {/* INLINE FEEDBACK */}
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 flex items-center gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div
+            role="status"
+            className="mb-6 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+          >
+            <CheckCircle2 className="size-4 shrink-0" aria-hidden="true" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <>
+            <p role="status" className="sr-only">
+              Loading pricing configuration...
+            </p>
             <div
-              role="alert"
-              style={{
-                padding: "12px 16px",
-                marginBottom: 16,
-                color: "#991b1b",
-                background: "#fee2e2",
-                borderRadius: 6,
-              }}
+              className="grid grid-cols-1 gap-6 xl:grid-cols-12"
+              aria-hidden="true"
             >
-              {error}
-            </div>
-          )}
+              <div className="space-y-6 xl:col-span-5">
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="text-base font-semibold">
+                      Fixed Trip Fees
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 px-6 py-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <SkeletonBlock width="45%" height={14} />
+                      <SkeletonBlock width={144} height={36} radius="sm" />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <SkeletonBlock width="50%" height={14} />
+                      <SkeletonBlock width={144} height={36} radius="sm" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-          {/* SUCCESS */}
-          {success && (
-            <div
-              role="status"
-              style={{
-                padding: "12px 16px",
-                marginBottom: 16,
-                color: "#166534",
-                background: "#dcfce7",
-                borderRadius: 6,
-              }}
-            >
-              {success}
-            </div>
-          )}
-
-          {loading ? (
-            <>
-              <p role="status">Loading pricing data from Supabase...</p>
-              <div className="pricing-grid" aria-hidden="true">
-                <div className="left-column">
-                  <div className="settings-card card-accent">
-                    <div className="card-header"><h2>Fixed Trip Fees</h2></div>
-                    <div className="form-grid">
-                      <div className="input-group"><SkeletonBlock width="58%" height={12} /><SkeletonBlock width="100%" height={40} radius="sm" /></div>
-                      <div className="input-group"><SkeletonBlock width="62%" height={12} /><SkeletonBlock width="100%" height={40} radius="sm" /></div>
-                    </div>
-                  </div>
-                  <div className="settings-card">
-                    <div className="card-header"><h2>Special Handling Surcharges</h2></div>
-                    <div className="pricing-table-scroll">
-                      <table className="pricing-table surcharge-table">
-                        <thead><tr><th>HANDLING TYPE</th><th>SURCHARGE AMOUNT (₱)</th><th className="ta-right">APPLIED AS</th></tr></thead>
-                        <tbody><SkeletonTableRows rows={5} columns={["badge", "short", "short"]} /></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div className="right-column">
-                  <div className="settings-card">
-                    <div className="card-header"><h2>Base Rate per Vehicle Type</h2></div>
-                    <div className="pricing-table-scroll">
-                      <table className="pricing-table vehicle-table">
-                        <thead><tr><th>VEHICLE TYPE</th><th>CAPACITY</th><th className="ta-right">RATE PER KM (₱)</th></tr></thead>
-                        <tbody><SkeletonTableRows rows={4} columns={["text", "short", "short"]} /></tbody>
-                      </table>
-                    </div>
-                  </div>
-                  <div className="settings-card">
-                    <div className="card-header"><h2>Toll Gate Rates</h2></div>
-                    <div className="toll-table-wrapper">
-                      <table className="pricing-table toll-table">
-                        <thead><tr><th>TOLL GATE</th><th>HIGHWAY</th><th>VEHICLE CLASS</th><th className="ta-right">FEE (₱)</th></tr></thead>
-                        <tbody><SkeletonTableRows rows={4} columns={["stack", "badge", "short", "short"]} /></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="text-base font-semibold">
+                      Special Handling Surcharges
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-0 py-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="px-6">Handling Type</TableHead>
+                          <TableHead className="px-3 text-right">
+                            Surcharge (₱)
+                          </TableHead>
+                          <TableHead className="px-6 text-right">
+                            Applied As
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <SkeletonTableRows
+                          rows={5}
+                          columns={["badge", "short", "short"]}
+                        />
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="pricing-grid">
-                {/* LEFT COLUMN */}
-                <div className="left-column">
-                  {/* FIXED TRIP FEES */}
-                  <div className="settings-card card-accent">
-                    <div className="card-header">
-                      <CashIcon />
-                      <h2>Fixed Trip Fees</h2>
-                    </div>
 
-                    <p className="card-desc">
-                      Configure the minimum booking fee and
-                      default driver allowance.
-                    </p>
+              <div className="space-y-6 xl:col-span-7">
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="text-base font-semibold">
+                      Base Rate per Vehicle Type
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-0 py-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="px-6">Vehicle Type</TableHead>
+                          <TableHead className="px-3">Max Capacity</TableHead>
+                          <TableHead className="px-6 text-right">
+                            Rate / km (₱)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <SkeletonTableRows
+                          rows={4}
+                          columns={["text", "short", "short"]}
+                        />
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
 
-                    <div className="form-grid">
-                      <div className="input-group">
-                        <label htmlFor="minBooking">
-                          MINIMUM BOOKING FEE
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="text-base font-semibold">
+                      Toll Gate Rates
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-0 py-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="px-6">Toll Gate</TableHead>
+                          <TableHead className="px-3">Highway</TableHead>
+                          <TableHead className="px-3">Vehicle Class</TableHead>
+                          <TableHead className="px-6 text-right">
+                            Fee (₱)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <SkeletonTableRows
+                          rows={4}
+                          columns={["stack", "badge", "short", "short"]}
+                        />
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
+              {/* LEFT COLUMN (xl:col-span-5) */}
+              <div className="space-y-6 xl:col-span-5">
+                {/* FIXED TRIP FEES */}
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+                      <Banknote
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <span>Fixed Trip Fees</span>
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Default booking minimums and driver trip allowances.
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="divide-y divide-border/60 px-6 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-4 py-4">
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <label
+                          htmlFor="minBooking"
+                          className="block text-sm font-medium text-foreground"
+                        >
+                          Minimum Booking Fee
                         </label>
-
-                        <div className="money-input">
-                          <span>₱</span>
-
-                          <input
-                            id="minBooking"
-                            type="text"
-                            inputMode="decimal"
-                            value={fees.minBooking}
-                            onChange={setFee("minBooking")}
-                            placeholder="0.00"
-                            readOnly={!isAdmin}
-                          />
-                        </div>
-
-                        <small>
-                          Applied when the calculated base
-                          rate falls below this amount.
-                        </small>
+                        <p className="text-xs text-muted-foreground">
+                          Applied when the calculated base rate falls below this
+                          amount.
+                        </p>
                       </div>
 
-                      <div className="input-group">
-                        <label htmlFor="driver">
-                          DRIVER ALLOWANCE PER TRIP
+                      <CurrencyRateInput
+                        id="minBooking"
+                        value={fees.minBooking}
+                        onChange={setFee("minBooking")}
+                        readOnly={!isAdmin}
+                        isDirty={
+                          String(fees.minBooking ?? "").trim() !==
+                          String(initialSnapshot.fees.minBooking ?? "").trim()
+                        }
+                        aria-label="Minimum Booking Fee"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-4 py-4">
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <label
+                          htmlFor="driver"
+                          className="block text-sm font-medium text-foreground"
+                        >
+                          Driver Allowance
                         </label>
-
-                        <div className="money-input">
-                          <span>₱</span>
-
-                          <input
-                            id="driver"
-                            type="text"
-                            inputMode="decimal"
-                            value={fees.driver}
-                            onChange={setFee("driver")}
-                            placeholder="0.00"
-                            readOnly={!isAdmin}
-                          />
-                        </div>
-
-                        <small>
-                          Default driver allowance per trip.
-                        </small>
+                        <p className="text-xs text-muted-foreground">
+                          Standard driver allowance added per dispatched trip.
+                        </p>
                       </div>
+
+                      <CurrencyRateInput
+                        id="driver"
+                        value={fees.driver}
+                        onChange={setFee("driver")}
+                        suffix="/ trip"
+                        readOnly={!isAdmin}
+                        isDirty={
+                          String(fees.driver ?? "").trim() !==
+                          String(initialSnapshot.fees.driver ?? "").trim()
+                        }
+                        aria-label="Driver Allowance per Trip"
+                      />
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
 
-                  {/* SURCHARGES */}
-                  <div className="settings-card">
-                    <div className="card-header">
-                      <BoxIcon />
-                      <h2>Special Handling Surcharges</h2>
-                    </div>
+                {/* SPECIAL HANDLING SURCHARGES */}
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+                      <Package
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <span>Special Handling Surcharges</span>
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Additional flat or per-kilometer charges for specialized
+                      cargo.
+                    </CardDescription>
+                  </CardHeader>
 
-                    <p className="card-desc card-desc-tight">
-                      Additional fees for cargo requiring
-                      special handling.
-                    </p>
+                  <CardContent className="px-0 py-0">
+                    <Table>
+                      <TableHeader className="bg-muted/40">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="px-6 py-2.5 text-xs font-medium text-muted-foreground">
+                            Handling Type
+                          </TableHead>
+                          <TableHead className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                            Surcharge (₱)
+                          </TableHead>
+                          <TableHead className="px-6 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                            Applied As
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
 
-                    <div className="pricing-table-scroll"><table className="pricing-table surcharge-table">
-                      <thead>
-                        <tr>
-                          <th>HANDLING TYPE</th>
-                          <th>SURCHARGE AMOUNT (₱)</th>
-                          <th className="ta-right">
-                            APPLIED AS
-                          </th>
-                        </tr>
-                      </thead>
+                      <TableBody>
+                        {SURCHARGES.map((item) => {
+                          const badgeProps = getHandlingBadgeProps(item.id);
+                          const itemDirty =
+                            String(surcharges[item.id] ?? "").trim() !==
+                            String(
+                              initialSnapshot.surcharges[item.id] ?? ""
+                            ).trim();
 
-                      <tbody>
-                        {SURCHARGES.map((item) => (
-                          <tr key={item.id}>
-                            <td>
-                              <span
-                                className={[
-                                  "tag",
-                                  item.strong
-                                    ? "tag-strong"
-                                    : "",
-                                  item.multiline
-                                    ? "tag-wrap"
-                                    : "",
-                                ].join(" ")}
-                              >
-                                {item.label}
-                              </span>
-                            </td>
-
-                            <td>
-                              <div className="peso-cell">
-                                <label htmlFor={`surcharge-${item.id}`} className="sr-only">{item.label} surcharge</label>
-                                <span>₱</span>
-
-                                <input
-                                  id={`surcharge-${item.id}`}
-                                  type="text"
-                                  inputMode="decimal"
-                                  aria-label={`${item.label} surcharge`}
-                                  value={
-                                    surcharges[item.id] ?? ""
-                                  }
-                                  onChange={setSurcharge(
-                                    item.id
-                                  )}
-                                  readOnly={!isAdmin}
-                                />
-                              </div>
-                            </td>
-
-                            <td className="ta-right applied-as">
-                              {item.appliedAs}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table></div>
-
-                    <p className="card-footnote">
-                      Surcharges are stored in Supabase
-                      system_settings.
-                    </p>
-                  </div>
-                </div>
-
-                {/* RIGHT COLUMN */}
-                <div className="right-column">
-                  {/* VEHICLE RATES */}
-                  <div className="settings-card">
-                    <div className="card-header">
-                      <TruckIcon />
-                      <h2>Base Rate per Vehicle Type</h2>
-                    </div>
-
-                    <p className="card-desc card-desc-tight">
-                      Vehicle rates and capacities loaded
-                      directly from Supabase.
-                    </p>
-
-                    <div className="pricing-table-scroll"><table className="pricing-table vehicle-table">
-                      <thead>
-                        <tr>
-                          <th>VEHICLE TYPE</th>
-                          <th>CAPACITY</th>
-                          <th className="ta-right">
-                            RATE PER KM (₱)
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {vehicles.map((vehicle) => (
-                          <tr key={vehicle.id}>
-                            <td>
-                              <div className="vehicle-name">
-                                <span className="vehicle-icon">
-                                  <TruckIcon size={24} />
-                                </span>
-
-                                <span>{vehicle.name}</span>
-                              </div>
-                            </td>
-
-                            <td className="muted-cell">
-                              {vehicle.default_capacity_kg != null
-                                ? `Up to ${Number(
-                                    vehicle.default_capacity_kg
-                                  ).toLocaleString(
-                                    "en-PH"
-                                  )} kg`
-                                : "Not specified"}
-                            </td>
-
-                            <td className="ta-right">
-                              {vehicle.pricing ? (
-                                <>
-                                  <label htmlFor={`vehicle-rate-${vehicle.id}`} className="sr-only">{vehicle.name} rate per km</label>
-                                  <input
-                                    id={`vehicle-rate-${vehicle.id}`}
-                                    className="rate-input"
-                                    type="text"
-                                    inputMode="decimal"
-                                    aria-label={`${vehicle.name} rate per km`}
-                                  value={
-                                    rates[vehicle.id] ?? ""
-                                  }
-                                  onChange={setRate(
-                                    vehicle.id
-                                  )}
-                                  readOnly={!isAdmin}
-                                  />
-                                </>
-                              ) : (
-                                <span
-                                  style={{
-                                    color: "#b45309",
-                                    fontSize: 12,
-                                  }}
+                          return (
+                            <TableRow
+                              key={item.id}
+                              className="transition-colors hover:bg-muted/40"
+                            >
+                              <TableCell className="px-6 py-3 whitespace-normal">
+                                <Badge
+                                  variant={badgeProps.variant}
+                                  className={badgeProps.className}
                                 >
-                                  No active rate
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                  {item.label}
+                                </Badge>
+                              </TableCell>
 
-                        {vehicles.length === 0 && (
-                          <tr>
-                            <td colSpan={3}>
-                              No vehicle types found.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table></div>
+                              <TableCell className="px-3 py-3 text-right">
+                                <label
+                                  htmlFor={`surcharge-${item.id}`}
+                                  className="sr-only"
+                                >
+                                  {item.label} surcharge
+                                </label>
+                                <CurrencyRateInput
+                                  id={`surcharge-${item.id}`}
+                                  value={surcharges[item.id] ?? ""}
+                                  onChange={setSurcharge(item.id)}
+                                  readOnly={!isAdmin}
+                                  isDirty={itemDirty}
+                                  aria-label={`${item.label} surcharge`}
+                                />
+                              </TableCell>
 
-                    <p className="card-footnote">
-                      Rates are stored in pricing_rates and
-                      linked to vehicle_types.
-                    </p>
-                  </div>
-
-                  {/* SUPABASE TOLL GATE MANAGEMENT */}
-                  <TollGateManager isAdmin={isAdmin} />
-                </div>
+                              <TableCell className="px-6 py-3 text-right text-xs font-medium text-muted-foreground tabular-nums">
+                                {item.perKm ? "+₱ / km" : "Flat / trip"}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               </div>
 
-              {/* PRICING SAVE BUTTONS */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: 12,
-                  marginTop: 28,
-                  paddingBottom: 24,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={loadPricing}
-                  disabled={saving}
-                  style={{
-                    padding: "12px 24px",
-                    border: "1px solid #0F2A52",
-                    borderRadius: 6,
-                    background: "#fff",
-                    color: "#0F2A52",
-                    cursor: saving
-                      ? "not-allowed"
-                      : "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  Reload
-                </button>
+              {/* RIGHT COLUMN (xl:col-span-7) */}
+              <div className="space-y-6 xl:col-span-7">
+                {/* BASE RATE PER VEHICLE TYPE */}
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+                      <Truck
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <span>Base Rate per Vehicle Type</span>
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Per-kilometer base rates ordered by maximum payload
+                      capacity.
+                    </CardDescription>
+                  </CardHeader>
 
-                {isAdmin && (
-                  <button
+                  <CardContent className="px-0 py-0">
+                    <Table>
+                      <TableHeader className="bg-muted/40">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="px-6 py-2.5 text-xs font-medium text-muted-foreground">
+                            Vehicle Type
+                          </TableHead>
+                          <TableHead className="px-3 py-2.5 text-xs font-medium text-muted-foreground">
+                            Capacity
+                          </TableHead>
+                          <TableHead className="px-6 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                            Rate / km (₱)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+
+                      <TableBody>
+                        {sortedVehicles.map((vehicle) => {
+                          const vehicleDirty =
+                            vehicle.pricing &&
+                            String(rates[vehicle.id] ?? "").trim() !==
+                            String(
+                              initialSnapshot.rates[vehicle.id] ?? ""
+                            ).trim();
+
+                          return (
+                            <TableRow
+                              key={vehicle.id}
+                              className="transition-colors hover:bg-muted/40"
+                            >
+                              <TableCell className="px-6 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/40 text-muted-foreground">
+                                    <Truck
+                                      className="size-4"
+                                      aria-hidden="true"
+                                    />
+                                  </span>
+                                  <span className="font-medium text-foreground">
+                                    {vehicle.name}
+                                  </span>
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="px-3 py-3">
+                                {vehicle.default_capacity_kg != null ? (
+                                  <Badge
+                                    variant="secondary"
+                                    className="rounded-md font-normal text-muted-foreground tabular-nums"
+                                  >
+                                    Up to{" "}
+                                    {Number(
+                                      vehicle.default_capacity_kg
+                                    ).toLocaleString("en-PH")}{" "}
+                                    kg
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">
+                                    Not specified
+                                  </span>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="px-6 py-3 text-right">
+                                {vehicle.pricing ? (
+                                  <>
+                                    <label
+                                      htmlFor={`vehicle-rate-${vehicle.id}`}
+                                      className="sr-only"
+                                    >
+                                      {vehicle.name} rate per km
+                                    </label>
+                                    <CurrencyRateInput
+                                      id={`vehicle-rate-${vehicle.id}`}
+                                      value={rates[vehicle.id] ?? ""}
+                                      onChange={setRate(vehicle.id)}
+                                      suffix="/ km"
+                                      readOnly={!isAdmin}
+                                      isDirty={Boolean(vehicleDirty)}
+                                      aria-label={`${vehicle.name} rate per km`}
+                                    />
+                                  </>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="rounded-md border-amber-200 bg-amber-50 font-medium text-amber-800"
+                                  >
+                                    No active rate
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+
+                        {sortedVehicles.length === 0 && (
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell
+                              colSpan={3}
+                              className="px-6 py-10 text-center text-sm text-muted-foreground"
+                            >
+                              No vehicle types found.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* TOLL GATE RATES */}
+                <TollGateManager />
+              </div>
+            </div>
+
+            {/* STICKY DIRTY-STATE SAVE BAR */}
+            {isAdmin && (isDirty || saving) && (
+              <div
+                role="region"
+                aria-label="Unsaved pricing changes"
+                className="sticky bottom-4 z-30 mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card/95 px-5 py-3.5 shadow-lg backdrop-blur-xs"
+              >
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span
+                    className="size-2 rounded-full bg-amber-500"
+                    aria-hidden="true"
+                  />
+                  <span className="font-medium text-foreground tabular-nums">
+                    {dirtyCount} unsaved {dirtyCount === 1 ? "change" : "changes"}
+                  </span>
+                  <span className="hidden text-muted-foreground sm:inline">
+                    — Review your rate updates before saving.
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleDiscard}
+                    disabled={saving}
+                    className="gap-1.5"
+                  >
+                    <RotateCcw className="size-3.5" aria-hidden="true" />
+                    <span>Discard</span>
+                  </Button>
+
+                  <Button
                     type="button"
                     onClick={handleSave}
                     disabled={saving}
-                    style={{
-                      padding: "12px 28px",
-                      border: "none",
-                      borderRadius: 6,
-                      background: saving
-                        ? "#64748b"
-                        : "#0F2A52",
-                      color: "#fff",
-                      cursor: saving
-                        ? "not-allowed"
-                        : "pointer",
-                      fontWeight: 600,
-                    }}
+                    className="gap-1.5"
                   >
-                    {saving
-                      ? "Saving..."
-                      : "Save Pricing Changes"}
-                  </button>
-                )}
+                    {saving && (
+                      <Loader2
+                        className="size-3.5 animate-spin"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span>{saving ? "Saving..." : "Save Changes"}</span>
+                  </Button>
+                </div>
               </div>
-            </>
-          )}
-        </section>
-      </div>
+            )}
+          </>
+        )}
+      </section>
     </SettingsLayout>
   );
 }
