@@ -12,6 +12,7 @@ test('feed renders loading, empty, stale errors and working refresh/history/reco
     refresh: () => refreshed++, openHistory: () => opened++, closeHistory() {}, previousPage() {}, nextPage() {}, refreshHistory() {} };
   const scope = { useOperationsFeed: () => data, useNavigate: () => path => navigated.push(path),
     useRef: () => ({ current: null }), useEffect() {}, absoluteEventTime, relativeEventTime,
+    SkeletonListRows: ({ rows, variant }) => ({ type: 'SkeletonListRows', props: { rows, variant }, children: [] }),
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
   };
   vm.createContext(scope);

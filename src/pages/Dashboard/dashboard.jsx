@@ -1,4 +1,3 @@
-import { useState } from "react";
 import OfficeTools from "../../components/OfficeTools";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getDashboardDetails, DASHBOARD_TABLES } from "../../services/dashboardDetailService";
@@ -10,6 +9,12 @@ import OperationsFeed from "./OperationsFeed";
 import { useDashboardViewModel } from "../../viewmodels/DashboardViewModel";
 import { snapshotStatus } from '../../services/snapshotStatus';
 import { comparisonLabel } from '../../services/operationalStats';
+import {
+  SkeletonBlock,
+  SkeletonListRows,
+  SkeletonStatValue,
+  SkeletonTrendBars,
+} from "../../components/Skeleton/Skeleton";
 
 /* ---- Inline icons (no external icon package required) ---- */
 const iconProps = {
@@ -21,13 +26,6 @@ const iconProps = {
   strokeLinejoin: "round",
   "aria-hidden": true,
 };
-
-const Search = (props) => (
-  <svg {...iconProps} {...props}>
-    <circle cx="11" cy="11" r="7" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-);
 
 const Truck = (props) => (
   <svg {...iconProps} {...props}>
@@ -64,7 +62,6 @@ const ClipboardList = (props) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
   const details = useLiveData(getDashboardDetails, DASHBOARD_TABLES);
   const shipmentTrends = details.data?.trends || [];
   const maxTrend = Math.max(1, ...shipmentTrends.map(d => d.value));
@@ -80,6 +77,9 @@ export default function Dashboard() {
     refresh,
   } = useDashboardViewModel();
 
+  const statsInitialLoading = loading && !stats;
+  const detailsInitialLoading = details.loading && !details.data;
+
   const cardProps = (path) => ({
     role: 'link', tabIndex: 0, onClick: () => navigate(path),
     onKeyDown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); navigate(path); } }
@@ -89,16 +89,6 @@ export default function Dashboard() {
     <MainLayout>
       {/* Topbar */}
       <header className="topbar dashboard-topbar">
-        <form className="search-wrap" onSubmit={event => { event.preventDefault(); navigate("/shipment?tab=all&q=" + encodeURIComponent(search.trim())); }}>
-          <label htmlFor="search" className="sr-only">Search shipments</label>
-          <Search className="search-icon" />
-          <input
-            type="text"
-            id="search"
-            placeholder="Search shipments…" aria-label="Search shipments" value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </form>
         <div className="topbar-right"><OfficeTools /></div>
       </header>
 
@@ -131,9 +121,11 @@ export default function Dashboard() {
                 <Truck />
               </div>
             </div>
-            <strong className="stat-value">{stats?.activeShipments ?? '--'}</strong>
+            <strong className="stat-value">
+              {statsInitialLoading ? <SkeletonStatValue width="56px" height={28} /> : (stats?.activeShipments ?? '--')}
+            </strong>
             <p className="stat-delta green">
-              {comparisonLabel(stats?.activeDelta ?? null)}
+              {statsInitialLoading ? <SkeletonBlock width="70%" height={12} /> : comparisonLabel(stats?.activeDelta ?? null)}
             </p>
           </div>
 
@@ -144,9 +136,11 @@ export default function Dashboard() {
                 <AlertTriangle />
               </div>
             </div>
-            <strong className="stat-value">{stats?.delayedShipments ?? '--'}</strong>
+            <strong className="stat-value">
+              {statsInitialLoading ? <SkeletonStatValue width="56px" height={28} /> : (stats?.delayedShipments ?? '--')}
+            </strong>
             <p className="stat-delta red">
-              {comparisonLabel(stats?.delayedDelta ?? null)}
+              {statsInitialLoading ? <SkeletonBlock width="66%" height={12} /> : comparisonLabel(stats?.delayedDelta ?? null)}
             </p>
           </div>
 
@@ -157,7 +151,9 @@ export default function Dashboard() {
                 <Truck />
               </div>
             </div>
-            <strong className="stat-value">{stats?.availableTrucks ?? '--'}</strong>
+            <strong className="stat-value">
+              {statsInitialLoading ? <SkeletonStatValue width="56px" height={28} /> : (stats?.availableTrucks ?? '--')}
+            </strong>
             <p className="stat-delta orange">Ready for dispatch</p>
           </div>
 
@@ -168,8 +164,16 @@ export default function Dashboard() {
                 <Clock />
               </div>
             </div>
-            <strong className="stat-value">{stats?.pendingDispatch ?? '--'}</strong>
-            <p className="stat-delta blue">{stats ? `${stats.awaitingAssignment} awaiting assignment · ${stats.awaitingDispatch} awaiting dispatch` : 'Booked or assigned, not departed'}</p>
+            <strong className="stat-value">
+              {statsInitialLoading ? <SkeletonStatValue width="56px" height={28} /> : (stats?.pendingDispatch ?? '--')}
+            </strong>
+            <p className="stat-delta blue">
+              {statsInitialLoading
+                ? <SkeletonBlock width="84%" height={12} />
+                : stats
+                  ? `${stats.awaitingAssignment} awaiting assignment · ${stats.awaitingDispatch} awaiting dispatch`
+                  : 'Booked or assigned, not departed'}
+            </p>
           </div>
         </div>
 
@@ -187,16 +191,25 @@ export default function Dashboard() {
             </div>
 
             {/* Performance & Analytics */}
-            <div className="analytics card">
+            <div className="analytics card" aria-busy={detailsInitialLoading}>
               <h2>Performance &amp; Analytics</h2>
               <div className="analytics-grid">
                 <div className="mini-stat">
                   <span>On-Time Delivery Rate</span>
-                  <strong>{details.data?.onTimeRate == null ? "--" : details.data.onTimeRate + "%"}</strong><small>Completed shipments with both arrival timestamps ({details.data?.timedDeliveries ?? 0})</small>
+                  <strong>
+                    {detailsInitialLoading
+                      ? <SkeletonBlock width="64px" height={24} />
+                      : details.data?.onTimeRate == null ? "--" : details.data.onTimeRate + "%"}
+                  </strong>
+                  <small>Completed shipments with both arrival timestamps ({details.data?.timedDeliveries ?? 0})</small>
                 </div>
                 <div className="mini-stat">
                   <span>Completed Today</span>
-                  <strong>{details.data?.completedToday ?? "--"}</strong>
+                  <strong>
+                    {detailsInitialLoading
+                      ? <SkeletonBlock width="48px" height={24} />
+                      : (details.data?.completedToday ?? "--")}
+                  </strong>
                 </div>
               </div>
 
@@ -205,35 +218,42 @@ export default function Dashboard() {
                 <span>Last 7 Days</span>
               </div>
 
-              <div className="trend-chart">
-                {shipmentTrends.map((d) => (
-                  <div className="trend-col" key={d.date} title={d.date + ": " + d.value + " shipments created"}>
-                    <span>{d.value}</span><div className="trend-dot" />
-                    <div
-                      className="trend-stem"
-                      style={{ height: `${(d.value / maxTrend) * 120}px` }}
-                    />
+              {detailsInitialLoading ? (
+                <SkeletonTrendBars />
+              ) : (
+                <>
+                  <div className="trend-chart">
+                    {shipmentTrends.map((d) => (
+                      <div className="trend-col" key={d.date} title={d.date + ": " + d.value + " shipments created"}>
+                        <span>{d.value}</span><div className="trend-dot" />
+                        <div
+                          className="trend-stem"
+                          style={{ height: `${(d.value / maxTrend) * 120}px` }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="trend-labels">
-                {shipmentTrends.map((d) => (
-                  <span key={d.day}>{d.day}</span>
-                ))}
-              </div>
+                  <div className="trend-labels">
+                    {shipmentTrends.map((d) => (
+                      <span key={d.day}>{d.day}</span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Right column */}
           <div className="col-right">
             {/* Action Center */}
-            <div className="right-panel">
+            <div className="right-panel" aria-busy={detailsInitialLoading}>
               <div className="right-panel-header">
                 <h2>Action Center</h2>
                 <p>Critical alerts &amp; items requiring attention</p>
               </div>
 
-              {details.data?.alerts.length === 0 && <p>No operational alerts.</p>}
+              {detailsInitialLoading && <SkeletonListRows rows={3} variant="alert" />}
+              {!detailsInitialLoading && details.data?.alerts.length === 0 && <p>No operational alerts.</p>}
               {details.data?.alerts.map(alert => (
                 <div className={"alert-card " + alert.color} key={alert.id}>
                   <div className={"alert-icon " + alert.color}><ClipboardList /></div>
@@ -246,39 +266,45 @@ export default function Dashboard() {
             </div>
 
             {/* Resource Snapshot */}
-            <div className="resources card">
+            <div className="resources card" aria-busy={detailsInitialLoading}>
               <h2>Resource Snapshot</h2>
               <p className="resource-label">Fleet Status</p>
 
-              <div className="resource-row">
-                <div className="resource-row-top">
-                  <span>Available</span>
-                  <strong>{resources?.available ?? "--"}</strong>
-                </div>
-                <div className="bar-track">
-                  <div className="bar-fill green" style={{ width: percent(resources?.available) }} />
-                </div>
-              </div>
+              {detailsInitialLoading ? (
+                <SkeletonListRows rows={3} variant="bar" />
+              ) : (
+                <>
+                  <div className="resource-row">
+                    <div className="resource-row-top">
+                      <span>Available</span>
+                      <strong>{resources?.available ?? "--"}</strong>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill green" style={{ width: percent(resources?.available) }} />
+                    </div>
+                  </div>
 
-              <div className="resource-row">
-                <div className="resource-row-top">
-                  <span>In Use</span>
-                  <strong>{resources?.inUse ?? "--"}</strong>
-                </div>
-                <div className="bar-track">
-                  <div className="bar-fill navy" style={{ width: percent(resources?.inUse) }} />
-                </div>
-              </div>
+                  <div className="resource-row">
+                    <div className="resource-row-top">
+                      <span>In Use</span>
+                      <strong>{resources?.inUse ?? "--"}</strong>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill navy" style={{ width: percent(resources?.inUse) }} />
+                    </div>
+                  </div>
 
-              <div className="resource-row">
-                <div className="resource-row-top">
-                  <span>Maintenance</span>
-                  <strong>{resources?.maintenance ?? "--"}</strong>
-                </div>
-                <div className="bar-track">
-                  <div className="bar-fill orange" style={{ width: percent(resources?.maintenance) }} />
-                </div>
-              </div>
+                  <div className="resource-row">
+                    <div className="resource-row-top">
+                      <span>Maintenance</span>
+                      <strong>{resources?.maintenance ?? "--"}</strong>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill orange" style={{ width: percent(resources?.maintenance) }} />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <p>Other / inactive: {resources?.other ?? "--"} · Total fleet: {resources?.total ?? "--"}</p>
               <div className="snapshot-secondary">
@@ -288,7 +314,11 @@ export default function Dashboard() {
                     <div className="driver-hours-icon">
                       <Clock />
                     </div>
-                    <strong>{details.data?.averageTripHours == null ? "--" : details.data.averageTripHours.toFixed(1) + "h"}</strong>
+                    <strong>
+                      {detailsInitialLoading
+                        ? <SkeletonBlock width="48px" height={22} />
+                        : details.data?.averageTripHours == null ? "--" : details.data.averageTripHours.toFixed(1) + "h"}
+                    </strong>
                     <span>Average departure to arrival</span>
                   </div>
                 </div>
@@ -298,15 +328,15 @@ export default function Dashboard() {
                   <div className="compliance-list">
                     <div className="compliance-row orange">
                       <span>Expiring</span>
-                      <span className="compliance-badge orange">{compliance?.expiring ?? "--"}</span>
+                      <span className="compliance-badge orange">{detailsInitialLoading ? <SkeletonBlock width="20px" height={14} /> : (compliance?.expiring ?? "--")}</span>
                     </div>
                     <div className="compliance-row red">
                       <span>Expired</span>
-                      <span className="compliance-badge red">{compliance?.expired ?? "--"}</span>
+                      <span className="compliance-badge red">{detailsInitialLoading ? <SkeletonBlock width="20px" height={14} /> : (compliance?.expired ?? "--")}</span>
                     </div>
                     <div className="compliance-row amber">
                       <span>Review</span>
-                      <span className="compliance-badge amber">{compliance?.review ?? "--"}</span>
+                      <span className="compliance-badge amber">{detailsInitialLoading ? <SkeletonBlock width="20px" height={14} /> : (compliance?.review ?? "--")}</span>
                     </div>
                   </div>
                   <button type="button" className="view-all-link" onClick={() => navigate("/fleet?view=compliance")}>View All →</button>

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOperationsFeed } from '../../viewmodels/OperationsFeedViewModel';
 import { absoluteEventTime, relativeEventTime } from '../../services/operationsFeed';
+import { SkeletonListRows } from '../../components/Skeleton/Skeleton';
 import './OperationsFeed.css';
 
 function EventList({ events, now, full = false }) {
@@ -55,6 +56,7 @@ export default function OperationsFeed() {
         </button>
       </div>
       {feed.loading && <p className="feed-desc" role="status">Refreshing activity…</p>}
+      {feed.loading && !feed.events.length && <SkeletonListRows rows={3} variant="feed" />}
       {feed.error && <p className="feed-error" role="alert">{feed.events.length ? 'Showing previously loaded activity. ' : ''}{feed.error} <button type="button" onClick={refresh} disabled={feed.loading}>Retry</button></p>}
       {!feed.loading && !feed.error && !feed.events.length && <p className="feed-desc">No operational activity yet.</p>}
       <EventList events={feed.events} now={now} />
@@ -75,6 +77,7 @@ export default function OperationsFeed() {
         </div>
         <div className="operations-history-body" aria-busy={history.loading}>
         {history.loading && <p role="status">Loading activity…</p>}
+        {history.loading && !history.events.length && <SkeletonListRows rows={5} variant="feed" />}
         {history.error && <p className="feed-error" role="alert">{history.events.length ? 'Showing previously loaded activity. ' : ''}{history.error} <button type="button" onClick={refreshHistory} disabled={history.loading}>Retry from latest</button></p>}
         {!history.loading && !history.error && !history.events.length && <p>No activity found.</p>}
         <EventList events={history.events} now={now} full />
