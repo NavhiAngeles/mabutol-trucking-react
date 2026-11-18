@@ -18,6 +18,8 @@ test('Compliance connects stable loader/table subscriptions, search filter, empt
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(value) { const i = index++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
     MainLayout: 'SharedLayout', OfficeTools: () => null, ComplianceDialog: 'ComplianceDialog',
+    SkeletonStatValue: ({ width, height }) => ({ type: 'SkeletonStatValue', props: { width, height }, children: [] }),
+    SkeletonTableRows: ({ rows, columns }) => ({ type: 'SkeletonTableRows', props: { rows, columns }, children: [] }),
     getDriverComplianceRows: loader, complianceDirectory, complianceCounts, filterCompliance,
     useLiveData(load, tables) {
       assert.equal(load, loader); assert.deepEqual(Array.from(tables), ['drivers', 'compliance_documents', 'system_settings']);
@@ -72,6 +74,8 @@ test('Compliance pagination slices 10 rows per page, resets to page 1 on search,
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(value) { const i = index++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
     MainLayout: 'SharedLayout', OfficeTools: () => null, ComplianceDialog: 'ComplianceDialog',
+    SkeletonStatValue: ({ width, height }) => ({ type: 'SkeletonStatValue', props: { width, height }, children: [] }),
+    SkeletonTableRows: ({ rows, columns }) => ({ type: 'SkeletonTableRows', props: { rows, columns }, children: [] }),
     getDriverComplianceRows: () => {}, complianceDirectory, complianceCounts, filterCompliance,
     useLiveData() {
       return { data: mockData, loading: false, error: null, refresh: () => {} };
@@ -191,6 +195,8 @@ test('Driver / Vehicle Compliance tab switcher toggles subscriptions, headers, t
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(value) { const i = index++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
     MainLayout: 'SharedLayout', OfficeTools: () => null, ComplianceDialog: 'ComplianceDialog',
+    SkeletonStatValue: ({ width, height }) => ({ type: 'SkeletonStatValue', props: { width, height }, children: [] }),
+    SkeletonTableRows: ({ rows, columns }) => ({ type: 'SkeletonTableRows', props: { rows, columns }, children: [] }),
     getDriverComplianceRows: driverLoader, getTruckComplianceRows: truckLoader,
     complianceDirectory, complianceCounts, filterCompliance,
     useLiveData(load, tables) {

@@ -7,6 +7,7 @@ import "./compliance.css";
 import { useLiveData } from "../../hooks/useLiveData";
 import { getDriverComplianceRows, getTruckComplianceRows } from "../../services/fleetService";
 import { complianceDirectory, complianceCounts, filterCompliance } from "../../services/complianceDirectory";
+import { SkeletonStatValue, SkeletonTableRows } from "../../components/Skeleton/Skeleton";
 
 const DRIVER_TABLES = ['drivers', 'compliance_documents', 'system_settings'];
 const TRUCK_TABLES = ['trucks', 'compliance_documents', 'system_settings'];
@@ -49,6 +50,7 @@ export default function Compliance() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount);
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const initialLoading = loading && !data;
 
   const handleTabChange = tab => {
     if (tab === activeTab) return;
@@ -165,7 +167,7 @@ export default function Compliance() {
           {metrics.map(([label, count, detail, cardClass]) => (
             <div className={`compliance-stat-card stat-card ${cardClass || ''}`} key={label}>
               <h4>{label}</h4>
-              <h2>{data ? count : 'N/A'}</h2>
+              <h2>{initialLoading ? <SkeletonStatValue width="44px" height={28} /> : data ? count : 'N/A'}</h2>
               <p>{detail}</p>
             </div>
           ))}
@@ -238,7 +240,7 @@ export default function Compliance() {
             </div>
           </div>
 
-          <div className="compliance-table-wrapper">
+          <div className="compliance-table-wrapper" aria-busy={loading}>
             <table className="compliance-table">
               <thead>
                 <tr>
@@ -262,6 +264,12 @@ export default function Compliance() {
               </thead>
 
               <tbody>
+                {initialLoading && (
+                  <SkeletonTableRows
+                    rows={6}
+                    columns={["avatar-stack", "badge", "badge", "badge", "badge", "short"]}
+                  />
+                )}
                 {paged.map(row => {
                   const entity = isVehicle ? row.truck : row.driver;
                   const entityId = entity?.id || '';
