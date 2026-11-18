@@ -25,8 +25,8 @@ test('category counts stay scoped to accessible fleet/readiness and tolerate mis
 });
 
 test('actual Fleet selector combines category/search/readiness, keeps counts stable and falls back after a category disappears', () => {
-  const source = fs.readFileSync(new URL('./fleet.jsx', import.meta.url), 'utf8');
-  const body = source.slice(source.indexOf('const categoryTrucks ='), source.indexOf('const filteredTruckCompliance ='));
+  const source = fs.readFileSync(new URL('./FleetVehiclesView.jsx', import.meta.url), 'utf8');
+  const body = source.slice(source.indexOf('const categoryTrucks ='), source.indexOf('const vehiclePageCount ='));
   const run = new Function('trucks', 'vehicleCategory', 'vehicleSearch', 'readyOnly', 'readyIds', 'trucksLoading', 'fleet', 'vehicleTypes', 'vehicleCategories', 'vehicleCategoryId', body + '\nreturn {filteredTrucks,categories,activeCategory,categoryCountsUnavailable};');
   const trucks = [
     { id: 'a', plate_number: 'VAN-1', vehicle_types: { id: 'van', name: 'Closed Van' } },
@@ -41,4 +41,3 @@ test('actual Fleet selector combines category/search/readiness, keeps counts sta
   assert.equal(select('all', '', false, null, true).categoryCountsUnavailable, true);
   assert.equal(select('drop', '', false, null, false, trucks.slice(0, 2)).activeCategory, 'all');
 });
- 

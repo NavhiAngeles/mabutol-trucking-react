@@ -313,6 +313,130 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
     </dialog>
   );
 }
+
+export function AssignDriverModal({ truck, drivers = [], onClose, onAssigned }) {
+  const [driverId, setDriverId] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const guard = useRef(false);
+  const dialog = useDialog(onClose, busy);
+
+  const selectedDriver = drivers.find((d) => d.id === driverId);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (guard.current) return;
+    if (!driverId) {
+      setError('Select an available driver to assign.');
+      return;
+    }
+    guard.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      await saveFleetRecord(
+        'truck',
+        truck,
+        {
+          ...truck,
+          assigned_driver_id: driverId,
+          vehicle_type_id: truck.vehicle_types?.id || truck.vehicle_type_id || '',
+        },
+        { categories: truck.cargoCategories?.map((c) => c.id) || [] }
+      );
+      onAssigned(selectedDriver?.full_name || 'Driver', truck.plate_number);
+    } catch (err) {
+      setError(err.message || 'Unable to assign driver.');
+    } finally {
+      guard.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <dialog
+      ref={dialog.ref}
+      onCancel={dialog.onCancel}
+      className="fleet-dialog fleet-assign-dialog"
+      aria-labelledby="assign-driver-title"
+    >
+      <div className="fleet-dialog-header">
+        <div className="fleet-dialog-title-group">
+          <div className="fleet-dialog-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="8.5" cy="7" r="4" />
+              <polyline points="17 11 19 13 23 9" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="assign-driver-title" className="fleet-dialog-title">Assign driver</h3>
+            <p className="fleet-dialog-subtitle">
+              {truck.plate_number}
+              {truck.model ? ` · ${truck.model}` : ''}
+              {truck.vehicle_types?.name ? ` · ${truck.vehicle_types.name}` : ''}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="fleet-dialog-close-btn"
+          onClick={onClose}
+          disabled={busy}
+          aria-label="Close"
+          title="Close"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="fleet-dialog-form">
+        <div className="fleet-dialog-body">
+          {error && (
+            <div className="error-message fleet-dialog-error" role="alert">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+          <div className="form-group">
+            <label htmlFor="assign-driver-select">AVAILABLE DRIVER</label>
+            <select
+              id="assign-driver-select"
+              value={driverId}
+              disabled={busy || drivers.length === 0}
+              onChange={(e) => {
+                setDriverId(e.target.value);
+                setError('');
+              }}
+            >
+              <option value="">{drivers.length === 0 ? 'No available drivers' : 'Select an available driver...'}</option>
+              {drivers.map((driver) => (
+                <option key={driver.id} value={driver.id}>
+                  {driver.full_name}{driver.license_number ? ` (${driver.license_number})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="fleet-dialog-actions">
+          <button type="button" className="btn-secondary" disabled={busy} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={busy || drivers.length === 0}>
+            {busy ? 'Assigning...' : 'Assign driver'}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
 function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
   const types = kind === 'truck' ? TRUCK_COMPLIANCE_DOC_TYPES : DRIVER_COMPLIANCE_DOC_TYPES;
   const [form, setForm] = useState(() => ({

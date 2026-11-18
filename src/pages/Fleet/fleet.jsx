@@ -1,22 +1,31 @@
 // fleet.jsx
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { getDispatchReadyTruckIds, subscribeToDashboardChanges } from '../../services/dashboardService';
 import MainLayout from "../../layouts/mainLayout";
 import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
-import { FleetEditor, ComplianceDialog, FleetModal, FleetDiscardDialog, FleetDeleteDialog } from "./FleetDialogs";
+import { FleetEditor, AssignDriverModal, ComplianceDialog, FleetModal, FleetDiscardDialog, FleetDeleteDialog } from "./FleetDialogs";
 import { isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
-import MaintenancePanel from "./MaintenancePanel";
-import { vehicleCategories, vehicleCategoryId } from './vehicleCategories';
+import FleetOverview from "./FleetOverview";
+import FleetVehiclesView from "./FleetVehiclesView";
+import FleetDriversView from "./FleetDriversView";
+import FleetMaintenanceView from "./FleetMaintenanceView";
 import { validateComplianceFile } from "../../services/fleetWorkspaceService";
 
-const PAGE_SIZE = 10;
-
 export default function Fleet() {
+  const location = useLocation();
   const [params, setParams] = useSearchParams();
   const readyOnly = params.get('availability') === 'dispatch-ready';
+  const viewParam = params.get('view');
+  const pathname = location.pathname.toLowerCase();
+  const activeSubView = (() => {
+    if (pathname === "/fleet/vehicles" || readyOnly) return "vehicles";
+    if (pathname === "/fleet/drivers") return "drivers";
+    if (pathname === "/fleet/maintenance" || viewParam === "maintenance") return "maintenance";
+    return "overview";
+  })();
   const [readyIds, setReadyIds] = useState(null);
   const [readyError, setReadyError] = useState('');
   useEffect(() => {
@@ -39,6 +48,7 @@ export default function Fleet() {
 
   const fleet = useFleetViewModel();
   const [editing, setEditing] = useState(null);
+  const [assignDriverTarget, setAssignDriverTarget] = useState(null);
   const [complianceTarget, setComplianceTarget] = useState(null);
   // ViewModel State & Actions
   const {
@@ -54,13 +64,9 @@ export default function Fleet() {
     drivers,
     driversLoading,
 
-    // Maintenance table
-
-    // Compliance
+    // Compliance status lookups for inline row badges
     truckComplianceRows,
-    truckComplianceLoading,
     driverComplianceRows,
-    driverComplianceLoading,
 
     // Modal lookups
     vehicleTypes,
@@ -135,20 +141,10 @@ export default function Fleet() {
     };
   }, []);
 
-  // Tab and Subview States
-  const [vehicleTab, setVehicleTab] = useState(() => params.get("view") === "compliance" ? "compliance" : "details");
-  const [driverTab, setDriverTab] = useState(() => params.get("view") === "compliance" ? "compliance" : "details");
-
-
-  // Search Filter & Pagination States
-  const [vehicleSearch, setVehicleSearch] = useState("");
-  const [vehicleCategory, setVehicleCategory] = useState('all');
-  const [vehiclePage, setVehiclePage] = useState(1);
-  const [vehicleComplianceSearch, setVehicleComplianceSearch] = useState("");
-  const [vehicleCompliancePage, setVehicleCompliancePage] = useState(1);
-  const [driverSearch, setDriverSearch] = useState("");
-  const [driverPage, setDriverPage] = useState(1);
-  const [driverCompliancePage, setDriverCompliancePage] = useState(1);
+  const handleCloseMenu = useCallback(() => {
+    setOpenMenuId(null);
+    setMenuPosition(null);
+  }, []);
 
   // Multi-step Modal States
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
@@ -197,29 +193,6 @@ export default function Fleet() {
     orFile: null,
     crFile: null,
   });
-
-  // Helpers
-  const formatDate = (dateStr) => {
-    if (!dateStr) return "N/A";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "short", day: "2-digit", year: "numeric" });
-    } catch {
-      return dateStr;
-    }
-  };
-
-  useEffect(() => {
-    if (params.get('view') === 'maintenance') document.getElementById('fleet-maintenance')?.scrollIntoView({ behavior: 'smooth' });
-  }, [params]);
-
-  const getDocBadgeClass = (state) => {
-    if (state === "critical") return "doc-pill doc-critical";
-    if (state === "valid") return "doc-pill doc-success";
-    if (state === "expiring_soon" || state === "pending_review") return "doc-pill doc-warning";
-    return "doc-pill doc-warning";
-  };
 
   // Handler functions for modal open / form reset
   const resetDriverForm = () => {
@@ -404,61 +377,6 @@ export default function Fleet() {
     }
   };
 
-  // Filtered Lists
-  const categoryTrucks = readyOnly ? trucks.filter(truck => readyIds?.has(truck.id)) : trucks;
-  const categories = vehicleCategories(categoryTrucks, vehicleTypes);
-  const activeCategory = categories.some(category => category.id === vehicleCategory) ? vehicleCategory : 'all';
-  const categoryCountsUnavailable = trucksLoading || (readyOnly && !readyIds) || (fleet.error && !fleet.hasData);
-  const filteredTrucks = categoryTrucks.filter((truck) => {
-    if (activeCategory !== 'all' && vehicleCategoryId(truck) !== activeCategory) return false;
-    if (!vehicleSearch.trim()) return true;
-    const q = vehicleSearch.trim().toLowerCase();
-    return (
-      truck.plate_number?.toLowerCase().includes(q) ||
-      truck.model?.toLowerCase().includes(q) ||
-      truck.vehicle_types?.name?.toLowerCase().includes(q) ||
-      truck.drivers?.full_name?.toLowerCase().includes(q)
-    );
-  });
-
-  const filteredTruckCompliance = truckComplianceRows.filter((row) => {
-    if (!vehicleComplianceSearch.trim()) return true;
-    const q = vehicleComplianceSearch.toLowerCase();
-    return (
-      row.truck?.plate_number?.toLowerCase().includes(q) ||
-      row.truck?.model?.toLowerCase().includes(q)
-    );
-  });
-
-  const filteredDrivers = drivers.filter((driver) => {
-    if (!driverSearch.trim()) return true;
-    const q = driverSearch.toLowerCase();
-    return (
-      driver.full_name?.toLowerCase().includes(q) ||
-      driver.contact_number?.toLowerCase().includes(q) ||
-      driver.license_number?.toLowerCase().includes(q) ||
-      (driver.assignedTrucks || (driver.assignedTruck ? [driver.assignedTruck] : [])).some(truck => truck.plate_number?.toLowerCase().includes(q))
-    );
-  });
-
-  // Client Pagination Slices
-  const vehiclePageCount = Math.max(1, Math.ceil(filteredTrucks.length / PAGE_SIZE));
-  const currentVehiclePage = Math.min(vehiclePage, vehiclePageCount);
-  const pagedTrucks = filteredTrucks.slice((currentVehiclePage - 1) * PAGE_SIZE, currentVehiclePage * PAGE_SIZE);
-
-  const vehicleCompliancePageCount = Math.max(1, Math.ceil(filteredTruckCompliance.length / PAGE_SIZE));
-  const currentVehicleCompliancePage = Math.min(vehicleCompliancePage, vehicleCompliancePageCount);
-  const pagedTruckCompliance = filteredTruckCompliance.slice((currentVehicleCompliancePage - 1) * PAGE_SIZE, currentVehicleCompliancePage * PAGE_SIZE);
-
-  const driverPageCount = Math.max(1, Math.ceil(filteredDrivers.length / PAGE_SIZE));
-  const currentDriverPage = Math.min(driverPage, driverPageCount);
-  const pagedDrivers = filteredDrivers.slice((currentDriverPage - 1) * PAGE_SIZE, currentDriverPage * PAGE_SIZE);
-
-  const filteredDriverCompliance = driverComplianceRows.filter(row => !driverSearch.trim() || row.driver.full_name.toLowerCase().includes(driverSearch.trim().toLowerCase()));
-  const driverCompliancePageCount = Math.max(1, Math.ceil(filteredDriverCompliance.length / PAGE_SIZE));
-  const currentDriverCompliancePage = Math.min(driverCompliancePage, driverCompliancePageCount);
-  const pagedDriverCompliance = filteredDriverCompliance.slice((currentDriverCompliancePage - 1) * PAGE_SIZE, currentDriverCompliancePage * PAGE_SIZE);
-
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -507,802 +425,92 @@ export default function Fleet() {
             </button>
           </div>
         )}
-        {fleet.error && <p role="alert">Could not refresh fleet records. {fleet.hasData ? 'Showing last loaded data.' : 'Data is unavailable.'} <button onClick={fleet.refresh}>Retry</button></p>}
-        {readyOnly && <p role="status">Dispatch-ready vehicles only. {readyError || (!readyIds ? 'Checking assignments and maintenance…' : `${readyIds.size} eligible vehicles`)} <button onClick={() => { setParams({}); setVehiclePage(1); }}>Show all vehicles</button></p>}
+        {fleet.error && <p role="alert">Could not refresh fleet records. {fleet.hasData ? 'Showing last loaded data.' : 'Data is unavailable.'} <button type="button" onClick={fleet.refresh}>Retry</button></p>}
 
-        {/* HEADER ACTIONS BLOCK */}
-        <div className="header-actions-row">
-          <div className="header-titles">
-            <h1>Fleet Management Overview</h1>
-            <p className="subtitle">MANAGE YOUR FLEET, DRIVERS, COMPLIANCE DOCUMENTS, AND MAINTENANCE SCHEDULES.</p>
-          </div>
-          <div className="action-buttons-group">
-            <button
-              type="button"
-              className="btn-fleet-refresh"
-              onClick={fleet.refresh}
-              disabled={fleet.loading}
-              title="Refresh fleet records"
-              aria-label="Refresh fleet"
-            >
-              <svg
-                className={`refresh-icon ${fleet.loading ? 'spinning' : ''}`}
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                <path d="M16 21h5v-5" />
-              </svg>
-              <span>{fleet.loading ? 'Refreshing…' : 'Refresh fleet'}</span>
-            </button>
-            <button className="btn-secondary" onClick={handleRegisterDriverClick}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-              <span>+ Register Driver</span>
-            </button>
-            <button className="btn-primary" onClick={handleAddVehicleClick}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-              <span>+ Add Vehicle</span>
-            </button>
-          </div>
-        </div>
-
-        {/* METRICS ROW */}
-        <div className="stats-grid">
-          <div className="metric-card border-slate">
-            <div className="metric-header">
-              <h4>TOTAL VEHICLES</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            </div>
-            <h2>{kpisLoading ? "N/A" : kpis.total ?? "N/A"}</h2>
-            <p className="growth-indicator positive"><span className="arrow">↗</span> <strong>Total Fleet</strong></p>
-          </div>
-          <div className="metric-card border-green">
-            <div className="metric-header">
-              <h4>AVAILABLE</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-            </div>
-            <h2>{kpisLoading ? "N/A" : kpis.available ?? "N/A"}</h2>
-            <p className="growth-indicator target">
-              {kpis.total > 0 ? `${Math.round((kpis.available / kpis.total) * 100)}% of total fleet` : "0% of total fleet"}
-            </p>
-          </div>
-          <div className="metric-card border-red">
-            <div className="metric-header">
-              <h4>IN MAINTENANCE</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            </div>
-            <h2>{kpisLoading ? "N/A" : kpis.maintenance ?? "N/A"}</h2>
-            <p className="growth-indicator ">Currently under maintenance</p>
-          </div>
-          <div className="metric-card border-blue-accent">
-            <div className="metric-header">
-              <h4>IN USE / RESERVED</h4>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-            </div>
-            <h2>{kpisLoading ? "N/A" : kpis.onTrip ?? "N/A"}</h2>
-            <p className="growth-indicator transit">Assigned or on shipment</p>
-          </div>
-        </div>
-
-        {/* ================= SECTION 1: VEHICLES SECTION ================= */}
-        <div className="section-tab-container">
-          <div className="section-titles">
-            <h3>Vehicles</h3>
-            <p className="section-subtitle">
-              {vehicleTab === "details" ? "REGISTERED FLEET VEHICLES AND OPERATIONAL STATUS." : "REGISTERED FLEET VEHICLES AND COMPLIANCE DOCUMENT STATUS."}
-            </p>
-          </div>
-          <div className="tab-pill-box">
-            <button
-              className={`tab-pill ${vehicleTab === "details" ? "active" : ""}`}
-              onClick={() => setVehicleTab("details")}
-              type="button"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              Details
-            </button>
-            <button
-              className={`tab-pill ${vehicleTab === "compliance" ? "active" : ""}`}
-              onClick={() => setVehicleTab("compliance")}
-              type="button"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              Compliance
-            </button>
-          </div>
-        </div>
-
-        {vehicleTab === "details" ? (
-          <>
-            <div className="table-filter-bar">
-              <div className="filter-search-wrapper">
-                <label htmlFor="fleetSearch" className="sr-only">Search vehicles</label>
-                <input
-                  type="text"
-                  id="fleetSearch"
-                  aria-label="Search vehicles"
-                  className="inner-search"
-                  placeholder="Search by plate, vehicle type..."
-                  value={vehicleSearch}
-                  onChange={(e) => {
-                    setVehicleSearch(e.target.value);
-                    setVehiclePage(1);
-                  }}
-                />
-              </div>
-            </div>
-            <nav className="fleet-vehicle-categories" aria-label="Vehicle categories">
-              {categories.map(category => <button key={category.id} type="button"
-                className={`fleet-vehicle-category${activeCategory === category.id ? ' active' : ''}`}
-                aria-pressed={activeCategory === category.id} aria-controls="fleet-vehicle-details"
-                onClick={() => {
-                  setVehicleCategory(category.id);
-                  setVehiclePage(1);
-                }}>
-                {category.label}<span className="fleet-category-count">{categoryCountsUnavailable ? 'N/A' : category.count}</span>
-              </button>)}
-            </nav>
-            <div className="fleet-table-scroll" id="fleet-vehicle-details"><table className="premium-table">
-              <thead>
-                <tr>
-                  <th>VEHICLE</th>
-                  <th>TYPE & CAPACITY</th>
-                  <th>CARGO COMPATIBILITY</th>
-                  <th>ASSIGNED DRIVER</th>
-                  <th>STATUS</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trucksLoading ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      Loading fleet vehicles...
-                    </td>
-                  </tr>
-                ) : filteredTrucks.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      {fleet.error ? "Vehicle data unavailable; retry above." : vehicleSearch.trim() || activeCategory !== 'all' ? "No vehicles match this category and search." : readyOnly ? "No dispatch-ready vehicles." : "No vehicles registered in fleet yet."}
-                    </td>
-                  </tr>
-                ) : (
-                  pagedTrucks.map((truck) => (
-                    <tr key={truck.id}>
-                      <td>
-                        <strong>{truck.plate_number}</strong>
-                        {truck.fleet_code && <span className="subtext" style={{ marginLeft: "6px" }}>({truck.fleet_code})</span>}
-                        <br />
-                        <span className="subtext">{[truck.model_year, truck.model].filter(Boolean).join(" ") || "N/A"}</span>
-                      </td>
-                      <td>
-                        {truck.vehicle_types?.name ?? "General Freight"}
-                        {truck.capacity_kg ? `, ${truck.capacity_kg.toLocaleString()} kg` : ""}
-                      </td>
-                      <td>
-                        {truck.cargoCategories && truck.cargoCategories.length > 0 ? (
-                          truck.cargoCategories.map((c) => (
-                            <span key={c.id} className="badge">
-                              {c.name.toUpperCase()}
-                            </span>
-                          ))
-                        ) : (
-                          <span style={{ color: "#64748B" }}>N/A</span>
-                        )}
-                      </td>
-                      <td>{truck.drivers?.full_name ?? <span style={{ color: "#64748B" }}>Unassigned</span>}</td>
-                      <td>
-                        {(truck.displayStatus || truck.status) === "on_trip" ? (
-                          <span className="status-pill status-transit">● IN TRANSIT</span>
-                        ) : (truck.displayStatus || truck.status) === "maintenance" ? (
-                          <span className="status-pill status-danger">● IN MAINTENANCE</span>
-                        ) : (truck.displayStatus || truck.status) === "available" ? (
-                          <span className="status-pill status-active">● AVAILABLE</span>
-                        ) : (
-                          <span className="status-pill status-warning">● {(truck.displayStatus || truck.status || "OFFLINE").replaceAll('_', ' ').toUpperCase()}</span>
-                        )}
-                      </td>
-                      <td className="fleet-actions-cell text-center">
-                        <div className="action-menu-wrapper" ref={openMenuId === `truck-${truck.id}` ? menuRef : null}>
-                          <button
-                            type="button"
-                            className="action-dots-btn"
-                            aria-label={`Actions for vehicle ${truck.plate_number}`}
-                            aria-expanded={openMenuId === `truck-${truck.id}`}
-                            onClick={(e) => handleOpenMenu(e, `truck-${truck.id}`)}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                              <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-                            </svg>
-                          </button>
-                          {openMenuId === `truck-${truck.id}` && (
-                            <div
-                              className="action-dropdown"
-                              role="menu"
-                              style={menuPosition ? {
-                                position: "fixed",
-                                top: menuPosition.top,
-                                bottom: menuPosition.bottom,
-                                right: menuPosition.right,
-                                left: "auto",
-                                zIndex: 9999,
-                              } : undefined}
-                            >
-                              <button
-                                type="button"
-                                className="dropdown-item"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                  setEditing({ kind: "truck", record: truck });
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                                <span>Edit vehicle</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="dropdown-item"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                  setComplianceTarget({ kind: "truck", entity: truck });
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                  <polyline points="14 2 14 8 20 8" />
-                                  <line x1="16" y1="13" x2="8" y2="13" />
-                                  <line x1="16" y1="17" x2="8" y2="17" />
-                                </svg>
-                                <span>Documents</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="dropdown-item danger"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                  setDeleteError("");
-                                  setDeleteTarget({ kind: "truck", record: truck });
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table></div>
-            <div className="table-pagination-footer" role="navigation" aria-label="Vehicles table pagination">
-              <span className="pagination-summary">
-                {filteredTrucks.length === 0
-                  ? "Showing 0 of 0 vehicles"
-                  : `Showing ${(currentVehiclePage - 1) * PAGE_SIZE + 1}–${Math.min(currentVehiclePage * PAGE_SIZE, filteredTrucks.length)} of ${filteredTrucks.length} vehicles`}
-              </span>
-              <nav className="pagination-controls-group" aria-label="Vehicles pages">
-                <button
-                  type="button"
-                  className="page-nav-btn page-nav-prev"
-                  disabled={trucksLoading || Boolean(fleet.error) || currentVehiclePage <= 1}
-                  onClick={() => setVehiclePage(currentVehiclePage - 1)}
-                  aria-label="Previous vehicles page"
-                >
-                  Previous
-                </button>
-                <span className="pagination-page-indicator" aria-live="polite">
-                  {`Page ${currentVehiclePage} of ${vehiclePageCount}`}
-                </span>
-                <button
-                  type="button"
-                  className="page-nav-btn page-nav-next"
-                  disabled={trucksLoading || Boolean(fleet.error) || currentVehiclePage >= vehiclePageCount}
-                  onClick={() => setVehiclePage(currentVehiclePage + 1)}
-                  aria-label="Next vehicles page"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="table-filter-bar">
-              <div className="filter-search-wrapper">
-                <label htmlFor="fleetVehicleComplianceSearch" className="sr-only">Search vehicle compliance</label>
-                <input
-                  id="fleetVehicleComplianceSearch"
-                  type="text"
-                  className="inner-search"
-                  placeholder="Search compliance by plate..."
-                  aria-label="Search vehicle compliance"
-                  value={vehicleComplianceSearch}
-                  onChange={(e) => {
-                    setVehicleComplianceSearch(e.target.value);
-                    setVehicleCompliancePage(1);
-                  }}
-                />
-              </div>
-            </div>
-            <div className="fleet-table-scroll"><table className="premium-table">
-              <thead>
-                <tr>
-                  <th>VEHICLE</th>
-                  <th>OR/CR REGISTRATION</th>
-                  <th>LTFRB PERMIT</th>
-                  <th>EMISSION TEST</th>
-                  <th>COMPLIANCE STATUS</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {truckComplianceLoading ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      Loading vehicle compliance records...
-                    </td>
-                  </tr>
-                ) : filteredTruckCompliance.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                      {fleet.error ? "Compliance data unavailable; retry above." : "No vehicle compliance records found."}
-                    </td>
-                  </tr>
-                ) : (
-                  pagedTruckCompliance.map((row) => {
-                    const orCrDoc = row.docs.find((d) => d.docType === "lto_registration");
-                    const ltfrbDoc = row.docs.find((d) => d.docType === "franchise_permit");
-                    const emissionDoc = row.docs.find((d) => d.docType === "emission_test");
-
-                    return (
-                      <tr key={row.truck.id}>
-                        <td>
-                          <strong>{row.truck.plate_number}</strong>
-                          <br />
-                          <span className="subtext">{[row.truck.model_year, row.truck.model].filter(Boolean).join(" ") || "N/A"}</span>
-                        </td>
-                        <td>
-                          <span className={getDocBadgeClass(orCrDoc?.badge?.state)}>
-                            {orCrDoc?.badge?.label ?? "Missing"}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={getDocBadgeClass(ltfrbDoc?.badge?.state)}>
-                            {ltfrbDoc?.badge?.label ?? "Missing"}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={getDocBadgeClass(emissionDoc?.badge?.state)}>
-                            {emissionDoc?.badge?.label ?? "Missing"}
-                          </span>
-                        </td>
-                        <td>
-                          {row.overallStatus === "verified" ? (
-                            <span className="status-pill status-active">● Verified</span>
-                          ) : (
-                            <span className="status-pill status-warning">● Attention</span>
-                          )}
-                        </td>
-                        <td className="fleet-actions-cell">
-                          <button
-                            type="button"
-                            className="fleet-btn-action fleet-btn-docs"
-                            onClick={() => setComplianceTarget({ kind: "truck", entity: row.truck })}
-                            title={`Manage documents for ${row.truck.plate_number}`}
-                          >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                              <line x1="16" y1="13" x2="8" y2="13" />
-                              <line x1="16" y1="17" x2="8" y2="17" />
-                            </svg>
-                            <span>Manage documents</span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table></div>
-            <div className="table-pagination-footer" role="navigation" aria-label="Vehicle compliance table pagination">
-              <span className="pagination-summary">
-                {filteredTruckCompliance.length === 0
-                  ? "Showing 0 of 0 records"
-                  : `Showing ${(currentVehicleCompliancePage - 1) * PAGE_SIZE + 1}–${Math.min(currentVehicleCompliancePage * PAGE_SIZE, filteredTruckCompliance.length)} of ${filteredTruckCompliance.length} records`}
-              </span>
-              <nav className="pagination-controls-group" aria-label="Vehicle compliance pages">
-                <button
-                  type="button"
-                  className="page-nav-btn page-nav-prev"
-                  disabled={truckComplianceLoading || Boolean(fleet.error) || currentVehicleCompliancePage <= 1}
-                  onClick={() => setVehicleCompliancePage(currentVehicleCompliancePage - 1)}
-                  aria-label="Previous vehicle compliance page"
-                >
-                  Previous
-                </button>
-                <span className="pagination-page-indicator" aria-live="polite">
-                  {`Page ${currentVehicleCompliancePage} of ${vehicleCompliancePageCount}`}
-                </span>
-                <button
-                  type="button"
-                  className="page-nav-btn page-nav-next"
-                  disabled={truckComplianceLoading || Boolean(fleet.error) || currentVehicleCompliancePage >= vehicleCompliancePageCount}
-                  onClick={() => setVehicleCompliancePage(currentVehicleCompliancePage + 1)}
-                  aria-label="Next vehicle compliance page"
-                >
-                  Next
-                </button>
-              </nav>
-            </div>
-          </>
+        {activeSubView === "overview" && (
+          <FleetOverview
+            fleet={fleet}
+            kpis={kpis}
+            kpisLoading={kpisLoading}
+            trucks={trucks}
+            trucksLoading={trucksLoading}
+            vehicleTypes={vehicleTypes}
+            drivers={drivers}
+            driversLoading={driversLoading}
+            truckComplianceRows={truckComplianceRows}
+            driverComplianceRows={driverComplianceRows}
+            onAssignDriver={(truck) => setAssignDriverTarget(truck)}
+            onOpenDocuments={(target) => setComplianceTarget(target)}
+            onRegisterDriver={handleRegisterDriverClick}
+            onAddVehicle={handleAddVehicleClick}
+          />
         )}
 
-        {/* ================= SECTION 2: DRIVERS SECTION ================= */}
-        <div className="section-tab-container" style={{ marginTop: "40px" }}>
-          <div className="section-titles">
-            <h3>Drivers</h3>
-            <p className="section-subtitle">
-              {driverTab === "details" ? "REGISTERED DRIVERS AND SYSTEM ROSTERS." : "DETAILED COMPLIANCE METRICS AND EXPIRY TRACKING."}
-            </p>
-          </div>
-          <div className="tab-pill-box">
-            <button
-              className={`tab-pill ${driverTab === "details" ? "active" : ""}`}
-              onClick={() => setDriverTab("details")}
-              type="button"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '4px' }}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              Details
-            </button>
-            <button
-              className={`tab-pill ${driverTab === "compliance" ? "active" : ""}`}
-              onClick={() => setDriverTab("compliance")}
-              type="button"
-            >
-              Compliance
-            </button>
-          </div>
-        </div>
-
-        <div className="table-filter-bar"><label htmlFor="fleetDriverSearch" className="sr-only">Search drivers</label><input id="fleetDriverSearch" className="inner-search" placeholder="Search drivers by name, phone or license…" aria-label="Search drivers" value={driverSearch} onChange={event => { setDriverSearch(event.target.value); setDriverPage(1); setDriverCompliancePage(1); }} /></div>
-        {driverTab === "details" ? (
-          <>
-            <div className="fleet-table-scroll"><table className="premium-table">
-            <thead>
-              <tr>
-                <th>DRIVER DETAILS</th>
-                <th>LICENSE INFORMATION</th>
-                <th>VEHICLE</th>
-                <th>CURRENT LOCATION</th>
-                <th>STATUS</th>
-                <th>COMPLIANCE</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {driversLoading ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    Loading drivers list...
-                  </td>
-                </tr>
-              ) : filteredDrivers.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    {fleet.error ? "Driver data unavailable; retry above." : driverSearch ? "No drivers matching search filter." : "No drivers registered yet."}
-                  </td>
-                </tr>
-              ) : (
-                pagedDrivers.map((driver) => {
-                  const complianceRow = driverComplianceRows.find((r) => r.driver.id === driver.id);
-                  const isVerified = complianceRow?.overallStatus === "verified";
-                  const assignedTrucks = driver.assignedTrucks || (driver.assignedTruck ? [driver.assignedTruck] : []);
-
-                  return (
-                    <tr key={driver.id}>
-                      <td>
-                        <strong>{driver.full_name}</strong>
-                        <br />
-                        <span className="subtext driver-contact">{driver.contact_number || "No contact"}</span>
-                      </td>
-                      <td>
-                        {driver.license_number || "N/A"}
-                        {driver.date_hired && (
-                          <>
-                            <br />
-                            <span className="subtext">Hired: {formatDate(driver.date_hired)}</span>
-                          </>
-                        )}
-                      </td>
-                      <td>
-                        {assignedTrucks.map(truck => <div key={truck.id}>{truck.model || "Truck"} ({truck.plate_number})</div>)}
-                        {driver.vehicleAssignmentUnavailable && <span className="subtext">Assigned vehicle unavailable</span>}
-                        {assignedTrucks.length === 0 && !driver.vehicleAssignmentUnavailable && (
-                          <span style={{ color: "#64748B" }}>Unassigned</span>
-                        )}
-                      </td>
-                      <td>{driver.location ? <><span>{driver.location.latitude.toFixed(4)}, {driver.location.longitude.toFixed(4)}</span><span className="subtext">{driver.location.stale ? "Last known GPS · " : "GPS · "}{new Date(driver.location.recorded_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</span></> : "No GPS report"}</td>
-                      <td>
-                        {driver.status === "on_route" || driver.status === "on_trip" ? (
-                          <span className="status-pill status-transit">ON ROUTE</span>
-                        ) : driver.status === "inactive" ? (
-                          <span className="status-pill status-danger">INACTIVE</span>
-                        ) : (
-                          <span className="status-pill status-active">{driver.reserved ? "RESERVED" : driver.status ? driver.status.toUpperCase() : "UNKNOWN"}</span>
-                        )}
-                      </td>
-                      <td>
-                        {isVerified ? (
-                          <span className="text-success">Verified</span>
-                        ) : (
-                          <span className="text-warning">Pending Review</span>
-                        )}
-                      </td>
-                      <td className="fleet-actions-cell text-center">
-                        <div className="action-menu-wrapper" ref={openMenuId === `driver-${driver.id}` ? menuRef : null}>
-                          <button
-                            type="button"
-                            className="action-dots-btn"
-                            aria-label={`Actions for driver ${driver.full_name}`}
-                            aria-expanded={openMenuId === `driver-${driver.id}`}
-                            onClick={(e) => handleOpenMenu(e, `driver-${driver.id}`)}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <circle cx="12" cy="5" r="1.5" fill="currentColor" />
-                              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                              <circle cx="12" cy="19" r="1.5" fill="currentColor" />
-                            </svg>
-                          </button>
-                          {openMenuId === `driver-${driver.id}` && (
-                            <div
-                              className="action-dropdown"
-                              role="menu"
-                              style={menuPosition ? {
-                                position: "fixed",
-                                top: menuPosition.top,
-                                bottom: menuPosition.bottom,
-                                right: menuPosition.right,
-                                left: "auto",
-                                zIndex: 9999,
-                              } : undefined}
-                            >
-                              <button
-                                type="button"
-                                className="dropdown-item"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                  setEditing({ kind: "driver", record: driver });
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                                <span>Edit driver</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="dropdown-item"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                  setComplianceTarget({ kind: "driver", entity: driver });
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                  <polyline points="14 2 14 8 20 8" />
-                                  <line x1="16" y1="13" x2="8" y2="13" />
-                                  <line x1="16" y1="17" x2="8" y2="17" />
-                                </svg>
-                                <span>Documents</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="dropdown-item danger"
-                                role="menuitem"
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                  setDeleteError("");
-                                  setDeleteTarget({ kind: "driver", record: driver });
-                                }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table></div>
-          <div className="table-pagination-footer" role="navigation" aria-label="Drivers table pagination">
-            <span className="pagination-summary">
-              {filteredDrivers.length === 0
-                ? "Showing 0 of 0 drivers"
-                : `Showing ${(currentDriverPage - 1) * PAGE_SIZE + 1}–${Math.min(currentDriverPage * PAGE_SIZE, filteredDrivers.length)} of ${filteredDrivers.length} drivers`}
-            </span>
-            <nav className="pagination-controls-group" aria-label="Drivers pages">
-              <button
-                type="button"
-                className="page-nav-btn page-nav-prev"
-                disabled={driversLoading || Boolean(fleet.error) || currentDriverPage <= 1}
-                onClick={() => setDriverPage(currentDriverPage - 1)}
-                aria-label="Previous drivers page"
-              >
-                Previous
-              </button>
-              <span className="pagination-page-indicator" aria-live="polite">
-                {`Page ${currentDriverPage} of ${driverPageCount}`}
-              </span>
-              <button
-                type="button"
-                className="page-nav-btn page-nav-next"
-                disabled={driversLoading || Boolean(fleet.error) || currentDriverPage >= driverPageCount}
-                onClick={() => setDriverPage(currentDriverPage + 1)}
-                aria-label="Next drivers page"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        </>
-        ) : (
-          <>
-            <div className="fleet-table-scroll"><table className="premium-table">
-            <thead>
-              <tr>
-                <th>DRIVER DETAILS</th>
-                <th>DRIVERS LICENCE</th>
-                <th>MEDICAL CERTIFICATE</th>
-                <th>NBI CLEARANCE</th>
-                <th>OVERALL STATUS</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {driverComplianceLoading ? (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    Loading driver compliance records...
-                  </td>
-                </tr>
-              ) : filteredDriverCompliance.length === 0 ? (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
-                    {fleet.error ? "Compliance data unavailable; retry above." : driverSearch.trim() ? "No driver compliance records matching search filter." : "No driver compliance records found."}
-                  </td>
-                </tr>
-              ) : (
-                pagedDriverCompliance.map((row) => {
-                  const licenseDoc = row.docs.find((d) => d.docType === "drivers_license");
-                  const medicalDoc = row.docs.find((d) => d.docType === "medical_certificate");
-                  const nbiDoc = row.docs.find((d) => d.docType === "nbi_clearance");
-
-                  return (
-                    <tr key={row.driver.id}>
-                      <td>
-                        <strong>{row.driver.full_name}</strong>
-                        <br />
-                        <span className="subtext">{row.driver.contact_number || "No contact"}</span>
-                      </td>
-                      <td>
-                        <span className={getDocBadgeClass(licenseDoc?.badge?.state)}>
-                          {licenseDoc?.badge?.label ?? "Missing"}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={getDocBadgeClass(medicalDoc?.badge?.state)}>
-                          {medicalDoc?.badge?.label ?? "Missing"}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={getDocBadgeClass(nbiDoc?.badge?.state)}>
-                          {nbiDoc?.badge?.label ?? "Missing"}
-                        </span>
-                      </td>
-                      <td>
-                        {row.overallStatus === "verified" ? (
-                          <span className="status-pill status-active">Verified</span>
-                        ) : (
-                          <span className="status-pill status-warning">Pending Review</span>
-                        )}
-                      </td>
-                      <td className="fleet-actions-cell">
-                        <button
-                          type="button"
-                          className="fleet-btn-action fleet-btn-docs"
-                          onClick={() => setComplianceTarget({ kind: "driver", entity: row.driver })}
-                          title={`Manage documents for ${row.driver.full_name}`}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <polyline points="14 2 14 8 20 8" />
-                            <line x1="16" y1="13" x2="8" y2="13" />
-                            <line x1="16" y1="17" x2="8" y2="17" />
-                          </svg>
-                          <span>Manage documents</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table></div>
-          <div className="table-pagination-footer" role="navigation" aria-label="Driver compliance table pagination">
-            <span className="pagination-summary">
-              {filteredDriverCompliance.length === 0
-                ? "Showing 0 of 0 records"
-                : `Showing ${(currentDriverCompliancePage - 1) * PAGE_SIZE + 1}–${Math.min(currentDriverCompliancePage * PAGE_SIZE, filteredDriverCompliance.length)} of ${filteredDriverCompliance.length} records`}
-            </span>
-            <nav className="pagination-controls-group" aria-label="Driver compliance pages">
-              <button
-                type="button"
-                className="page-nav-btn page-nav-prev"
-                disabled={driverComplianceLoading || Boolean(fleet.error) || currentDriverCompliancePage <= 1}
-                onClick={() => setDriverCompliancePage(currentDriverCompliancePage - 1)}
-                aria-label="Previous driver compliance page"
-              >
-                Previous
-              </button>
-              <span className="pagination-page-indicator" aria-live="polite">
-                {`Page ${currentDriverCompliancePage} of ${driverCompliancePageCount}`}
-              </span>
-              <button
-                type="button"
-                className="page-nav-btn page-nav-next"
-                disabled={driverComplianceLoading || Boolean(fleet.error) || currentDriverCompliancePage >= driverCompliancePageCount}
-                onClick={() => setDriverCompliancePage(currentDriverCompliancePage + 1)}
-                aria-label="Next driver compliance page"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        </>
+        {activeSubView === "vehicles" && (
+          <FleetVehiclesView
+            fleet={fleet}
+            trucks={trucks}
+            trucksLoading={trucksLoading}
+            vehicleTypes={vehicleTypes}
+            truckComplianceRows={truckComplianceRows}
+            readyOnly={readyOnly}
+            readyIds={readyIds}
+            readyError={readyError}
+            onClearReadyOnly={() => setParams({})}
+            onAddVehicle={handleAddVehicleClick}
+            onEditTruck={(truck) => setEditing({ kind: "truck", record: truck })}
+            onOpenDocuments={(truck) => setComplianceTarget({ kind: "truck", entity: truck })}
+            onDeleteTruck={(truck) => {
+              setDeleteError("");
+              setDeleteTarget({ kind: "truck", record: truck });
+            }}
+            openMenuId={openMenuId}
+            menuRef={menuRef}
+            menuPosition={menuPosition}
+            onOpenMenu={handleOpenMenu}
+            onCloseMenu={handleCloseMenu}
+          />
         )}
 
-        <MaintenancePanel fleet={fleet} />
+        {activeSubView === "drivers" && (
+          <FleetDriversView
+            fleet={fleet}
+            drivers={drivers}
+            driversLoading={driversLoading}
+            driverComplianceRows={driverComplianceRows}
+            onRegisterDriver={handleRegisterDriverClick}
+            onEditDriver={(driver) => setEditing({ kind: "driver", record: driver })}
+            onOpenDocuments={(driver) => setComplianceTarget({ kind: "driver", entity: driver })}
+            onDeleteDriver={(driver) => {
+              setDeleteError("");
+              setDeleteTarget({ kind: "driver", record: driver });
+            }}
+            openMenuId={openMenuId}
+            menuRef={menuRef}
+            menuPosition={menuPosition}
+            onOpenMenu={handleOpenMenu}
+            onCloseMenu={handleCloseMenu}
+          />
+        )}
+
+        {activeSubView === "maintenance" && (
+          <FleetMaintenanceView fleet={fleet} />
+        )}
 
       {editing && <FleetEditor key={editing.record.id} {...editing} fleet={fleet} onClose={() => setEditing(null)} onSaved={fleet.refresh} />}
+      {assignDriverTarget && (
+        <AssignDriverModal
+          key={assignDriverTarget.id}
+          truck={assignDriverTarget}
+          drivers={fleet.assignableDrivers || []}
+          onClose={() => setAssignDriverTarget(null)}
+          onAssigned={(driverName, plate) => {
+            setAssignDriverTarget(null);
+            setActionFeedback(`Driver ${driverName} assigned to ${plate}.`);
+            fleet.refresh();
+          }}
+        />
+      )}
       {complianceTarget && <ComplianceDialog key={complianceTarget.entity.id} {...complianceTarget} onClose={() => setComplianceTarget(null)} onSaved={fleet.refresh} />}
 
       {/* ================= REGISTER DRIVER MULTI-STEP MODAL ================= */}

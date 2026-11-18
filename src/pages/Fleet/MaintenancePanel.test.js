@@ -15,6 +15,7 @@ async function screen() {
   const scope = vm.createContext({ React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
     useState(initial) { const i = index++; if (!(i in states)) states[i] = typeof initial === 'function' ? initial() : initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     manilaDate, FleetEditor: 'FleetEditor',
+    SkeletonTableRows: ({ rows, columns }) => ({ type: 'SkeletonTableRows', props: { rows, columns }, children: [] }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = MaintenancePanel;', scope);
   return { record, fleet, refreshes: () => refreshes, render() { index = 0; return scope.render({ fleet }); } };

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FleetEditor } from './FleetDialogs';
 import { manilaDate } from '../../services/dashboardAnalytics.js';
+import { SkeletonTableRows } from '../../components/Skeleton/Skeleton';
 
 const PAGE_SIZE = 10;
 
@@ -130,6 +131,12 @@ export default function MaintenancePanel({ fleet }) {
                   </tr>
                 </thead>
                 <tbody>
+                  {fleet.loading && !filteredRecords.length && (
+                    <SkeletonTableRows
+                      rows={5}
+                      columns={["short", "stack", "short", "short", "stack", "badge", "action"]}
+                    />
+                  )}
                   {!fleet.loading && !filteredRecords.length && (
                     <tr>
                       <td colSpan="7" style={{ textAlign: "center", padding: "36px 20px", color: "#64748B" }}>

@@ -761,20 +761,23 @@ test("FleetDeleteDialog displays error banner and disables actions when isDeleti
 
 test("fleet.jsx has 3-dots action menu with Edit, Documents, and Delete in Vehicles and Drivers tables and mounts FleetDeleteDialog", () => {
   const fleetSource = fs.readFileSync(new URL("./fleet.jsx", import.meta.url), "utf8");
+  const menuSource = fs.readFileSync(new URL("./RowActionMenu.jsx", import.meta.url), "utf8");
+  const vehiclesSource = fs.readFileSync(new URL("./FleetVehiclesView.jsx", import.meta.url), "utf8");
+  const driversSource = fs.readFileSync(new URL("./FleetDriversView.jsx", import.meta.url), "utf8");
 
   // 3-dots action menu in Vehicles and Drivers tables
-  assert.ok(fleetSource.includes('className="action-menu-wrapper"'), "Must include action-menu-wrapper");
-  assert.ok(fleetSource.includes('className="action-dots-btn"'), "Must include action-dots-btn");
-  assert.ok(fleetSource.includes('aria-label={`Actions for vehicle ${truck.plate_number}`}'), "Must provide accessible title for vehicle 3-dots button");
-  assert.ok(fleetSource.includes('aria-label={`Actions for driver ${driver.full_name}`}'), "Must provide accessible title for driver 3-dots button");
+  assert.ok(menuSource.includes('className="action-menu-wrapper"'), "Must include action-menu-wrapper");
+  assert.ok(menuSource.includes('className="action-dots-btn"'), "Must include action-dots-btn");
+  assert.ok(vehiclesSource.includes('buttonAriaLabel={`Actions for vehicle ${truck.plate_number}`}'), "Must provide accessible title for vehicle 3-dots button");
+  assert.ok(driversSource.includes('buttonAriaLabel={`Actions for driver ${driver.full_name}`}'), "Must provide accessible title for driver 3-dots button");
 
   // Options inside action dropdown
-  assert.ok(fleetSource.includes("Edit vehicle"), "Must include Edit vehicle in dropdown");
-  assert.ok(fleetSource.includes("Edit driver"), "Must include Edit driver in dropdown");
-  assert.ok(fleetSource.includes("Documents"), "Must include Documents in dropdown");
-  assert.ok(fleetSource.includes('className="dropdown-item danger"'), "Must include Delete as danger dropdown item");
+  assert.ok(vehiclesSource.includes('editLabel="Edit vehicle"'), "Must include Edit vehicle in dropdown");
+  assert.ok(driversSource.includes('editLabel="Edit driver"'), "Must include Edit driver in dropdown");
+  assert.ok(menuSource.includes("Documents"), "Must include Documents in dropdown");
+  assert.ok(menuSource.includes('className="dropdown-item danger"'), "Must include Delete as danger dropdown item");
   assert.ok(fleetSource.includes("handleOpenMenu"), "Must invoke handleOpenMenu with dynamic viewport positioning");
-  assert.ok(fleetSource.includes("zIndex: 9999"), "Must place dropdown forward in front of all sections with high z-index");
+  assert.ok(menuSource.includes("zIndex: 9999"), "Must place dropdown forward in front of all sections with high z-index");
 
   // Mounts FleetDeleteDialog
   assert.ok(fleetSource.includes("<FleetDeleteDialog"), "Must mount FleetDeleteDialog");

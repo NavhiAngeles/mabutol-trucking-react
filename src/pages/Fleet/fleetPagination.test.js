@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 test('Fleet formats formatDate and driver location recorded_at in Philippine time Asia/Manila', () => {
-  const source = fs.readFileSync(new URL('./fleet.jsx', import.meta.url), 'utf8');
+  const source = fs.readFileSync(new URL('./FleetDriversView.jsx', import.meta.url), 'utf8');
 
   // Verify formatDate implementation
   assert.ok(
@@ -48,27 +48,25 @@ test('Fleet client pagination logic slices 10 items per page and computes page c
 });
 
 test('Fleet source contains client pagination footers and search reset triggers for Vehicles and Drivers', () => {
-  const source = fs.readFileSync(new URL('./fleet.jsx', import.meta.url), 'utf8');
+  const vehiclesSource = fs.readFileSync(new URL('./FleetVehiclesView.jsx', import.meta.url), 'utf8');
+  const driversSource = fs.readFileSync(new URL('./FleetDriversView.jsx', import.meta.url), 'utf8');
+  const paginationSource = fs.readFileSync(new URL('./PaginationFooter.jsx', import.meta.url), 'utf8');
 
   // PAGE_SIZE constant
-  assert.ok(source.includes('const PAGE_SIZE = 10;'), 'PAGE_SIZE should be 10');
+  assert.ok(vehiclesSource.includes('const PAGE_SIZE = 10;'), 'Vehicles PAGE_SIZE should be 10');
+  assert.ok(driversSource.includes('const PAGE_SIZE = 10;'), 'Drivers PAGE_SIZE should be 10');
 
   // Pagination states
-  assert.ok(source.includes('const [vehiclePage, setVehiclePage] = useState(1);'));
-  assert.ok(source.includes('const [vehicleCompliancePage, setVehicleCompliancePage] = useState(1);'));
-  assert.ok(source.includes('const [driverPage, setDriverPage] = useState(1);'));
-  assert.ok(source.includes('const [driverCompliancePage, setDriverCompliancePage] = useState(1);'));
+  assert.ok(vehiclesSource.includes('const [vehiclePage, setVehiclePage] = useState(1);'));
+  assert.ok(driversSource.includes('const [driverPage, setDriverPage] = useState(1);'));
 
   // Reset triggers
-  assert.ok(source.includes('setVehiclePage(1)'), 'vehicleSearch and category click should reset vehiclePage to 1');
-  assert.ok(source.includes('setVehicleCompliancePage(1)'), 'vehicleComplianceSearch should reset vehicleCompliancePage to 1');
-  assert.ok(source.includes('setDriverPage(1)'), 'driverSearch should reset driverPage to 1');
-  assert.ok(source.includes('setDriverCompliancePage(1)'), 'driverSearch should reset driverCompliancePage to 1');
+  assert.ok(vehiclesSource.includes('setVehiclePage(1)'), 'vehicleSearch and category click should reset vehiclePage to 1');
+  assert.ok(driversSource.includes('setDriverPage(1)'), 'driverSearch should reset driverPage to 1');
 
   // Pagination footers present
-  assert.ok(source.includes('aria-label="Vehicles table pagination"'));
-  assert.ok(source.includes('aria-label="Vehicle compliance table pagination"'));
-  assert.ok(source.includes('aria-label="Drivers table pagination"'));
-  assert.ok(source.includes('aria-label="Driver compliance table pagination"'));
+  assert.ok(paginationSource.includes('className="table-pagination-footer"'));
+  assert.ok(vehiclesSource.includes('paginationAriaLabel="Vehicles table pagination"'));
+  assert.ok(driversSource.includes('paginationAriaLabel="Drivers table pagination"'));
 });
 
