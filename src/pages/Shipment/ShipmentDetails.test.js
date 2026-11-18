@@ -31,6 +31,7 @@ async function mount(load) {
       const i = effectIndex++; const old = effects[i];
       if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
     }, fetchShipmentDetails: load, AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
+    SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
   const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, onClose: () => closes++ }); pending.forEach(run => run()); return tree; };
@@ -213,6 +214,7 @@ test('details forwards draftSuggestion to AssignmentManager when provided on ins
     },
     fetchShipmentDetails: async () => record,
     AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
+    SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
   const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1', draftSuggestion: draft }, onClose: () => { } }); pending.forEach(run => run()); return tree; };

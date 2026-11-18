@@ -3,6 +3,7 @@ import { supabase } from '../../services/supabaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { deliveryConversationService } from '../../services/deliveryConversationService';
 import DeliveryConversation from './DeliveryConversation';
+import { SkeletonListRows } from '../../components/Skeleton/Skeleton';
 import './deliveryWorkflow.css';
 import './deliveryConversation.css';
 
@@ -250,7 +251,12 @@ function Inbox(props = {}) {
                 <button type="button" onClick={triggerRefresh}>Retry</button>
               </p>
             )}
-            {!rows && !error && <p className="office-message-state conversation-empty" role="status">Loading driver messages…</p>}
+            {!rows && !error && (
+              <>
+                <p className="office-message-state conversation-empty" role="status">Loading driver messages…</p>
+                <SkeletonListRows rows={3} variant="feed" />
+              </>
+            )}
             {rows && visibleThreads.length === 0 && (
               <div className="office-message-state office-message-empty conversation-inbox-empty">
                 <svg className="empty-check-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

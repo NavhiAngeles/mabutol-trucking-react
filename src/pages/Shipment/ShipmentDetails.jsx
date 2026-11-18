@@ -4,6 +4,7 @@ import DeliveryOperations from './DeliveryOperations';
 import AssignmentManager from './AssignmentManager';
 import PaymentLedger from './PaymentLedger';
 import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
+import { SkeletonBlock } from '../../components/Skeleton/Skeleton';
 
 const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
 
@@ -128,6 +129,20 @@ export default function ShipmentDetails({ shipment, onClose }) {
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
           <span>{details ? 'Refreshing shipment details… Showing the last successfully loaded details.' : 'Loading current shipment details…'}</span>
+        </div>
+      )}
+      {loading && !details && !error && (
+        <div className="shipment-details-grid" aria-hidden="true">
+          {['Route & Schedule', 'Cargo & Vehicle', 'Customer & Booking', 'Financials & Tolls'].map((heading) => (
+            <div className="shipment-details-card" key={heading}>
+              <div className="shipment-card-header"><h3>{heading}</h3></div>
+              <div className="shipment-card-fields">
+                <div className="shipment-field-full tanaw-skeleton-stack"><SkeletonBlock width="38%" height={11} /><SkeletonBlock width="86%" height={14} /></div>
+                <div className="tanaw-skeleton-stack"><SkeletonBlock width="46%" height={11} /><SkeletonBlock width="72%" height={14} /></div>
+                <div className="tanaw-skeleton-stack"><SkeletonBlock width="52%" height={11} /><SkeletonBlock width="64%" height={14} /></div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
       {error && (

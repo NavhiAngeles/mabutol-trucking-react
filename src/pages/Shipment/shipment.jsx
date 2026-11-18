@@ -10,6 +10,7 @@ import ShipmentEditDialog from "./ShipmentEditDialog";
 import ShipmentCancellationDialog from "./ShipmentCancellationDialog";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
+import { SkeletonStatValue, SkeletonTableRows } from "../../components/Skeleton/Skeleton";
 import "./shipment.css";
 
 const svgProps = {
@@ -362,6 +363,10 @@ export default function Shipment() {
     </div>
   );
 
+  const initialLoading = isLoading && visibleShipments.length === 0 && stats.weeklyTrips === "\u2014";
+  const statValueOrSkeleton = (value, width = "56px") =>
+    initialLoading ? <SkeletonStatValue width={width} height={28} /> : value;
+
   return (
     <MainLayout>
       {/* TOPBAR */}
@@ -482,7 +487,7 @@ export default function Shipment() {
                   <p className="stat-label">Total Shipments</p>
                   <BoxesIcon className="stat-icon" />
                 </div>
-                <strong className="stat-value">{visibleShipments.length}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(visibleShipments.length)}</strong>
                 <p>Recorded in system</p>
               </div>
 
@@ -491,7 +496,7 @@ export default function Shipment() {
                   <p className="stat-label">In Transit</p>
                   <TruckIcon className="stat-icon text-transit" />
                 </div>
-                <strong className="stat-value">{stats.transitCount ?? 0}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.transitCount ?? 0)}</strong>
                 <p>Currently on the road</p>
               </div>
 
@@ -500,7 +505,7 @@ export default function Shipment() {
                   <p className="stat-label">Delayed</p>
                   <AlertTriangleIcon className="stat-icon text-delayed" />
                 </div>
-                <strong className="stat-value">{stats.delayedCount ?? 0}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.delayedCount ?? 0)}</strong>
                 <p className="text-danger-accent">
                   Requires attention
                 </p>
@@ -515,7 +520,7 @@ export default function Shipment() {
                   <p className="stat-label">In Transit</p>
                   <TruckIcon className="stat-icon text-transit" />
                 </div>
-                <strong className="stat-value">{stats.transitCount}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.transitCount)}</strong>
                 <p>Currently on the road</p>
               </div>
 
@@ -524,7 +529,7 @@ export default function Shipment() {
                   <p className="stat-label">Loading / Preparing</p>
                   <BoxesIcon className="stat-icon text-loading" />
                 </div>
-                <strong className="stat-value">{stats.loadingCount}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.loadingCount)}</strong>
                 <p>Awaiting dispatch</p>
               </div>
 
@@ -533,7 +538,7 @@ export default function Shipment() {
                   <p className="stat-label">Delayed</p>
                   <AlertTriangleIcon className="stat-icon text-delayed" />
                 </div>
-                <strong className="stat-value">{stats.delayedCount}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.delayedCount)}</strong>
                 <p className="text-danger-accent">
                   Requires attention
                 </p>
@@ -548,7 +553,7 @@ export default function Shipment() {
                   <p className="stat-label">Delayed Now</p>
                   <AlertTriangleIcon className="stat-icon text-delayed" />
                 </div>
-                <strong className="stat-value">{stats.delayedCount}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.delayedCount)}</strong>
                 <p>Requires attention</p>
               </div>
 
@@ -557,7 +562,7 @@ export default function Shipment() {
                   <p className="stat-label">Avg. Delay</p>
                   <ClockIcon className="stat-icon" />
                 </div>
-                <strong className="stat-value">{stats.avgDelayLabel}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.avgDelayLabel, "72px")}</strong>
                 <p>Across delayed shipments</p>
               </div>
 
@@ -566,8 +571,8 @@ export default function Shipment() {
                   <p className="stat-label">Worst Delay</p>
                   <HourglassIcon className="stat-icon text-delayed" />
                 </div>
-                <strong className="stat-value">{stats.worstDelay.label}</strong>
-                <p>{stats.worstDelay.id}</p>
+                <strong className="stat-value">{statValueOrSkeleton(stats.worstDelay.label, "72px")}</strong>
+                <p>{initialLoading ? "Checking delays…" : stats.worstDelay.id}</p>
               </div>
             </>
           )}
@@ -579,7 +584,7 @@ export default function Shipment() {
                   <p className="stat-label">Completed Today</p>
                   <CheckCircleIcon className="stat-icon" />
                 </div>
-                <strong className="stat-value">{stats.completedToday}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.completedToday)}</strong>
                 <p>Deliveries finished today</p>
               </div>
 
@@ -588,8 +593,8 @@ export default function Shipment() {
                   <p className="stat-label">On Time Fulfill</p>
                   <ClockIcon className="stat-icon" />
                 </div>
-                <strong className="stat-value">{stats.onTimeToday}</strong>
-                <p>{stats.onTimePct == null ? 'Timing unavailable' : `${stats.onTimePct}% of today's handoffs with known timing`}</p>
+                <strong className="stat-value">{statValueOrSkeleton(stats.onTimeToday)}</strong>
+                <p>{initialLoading ? "Checking delivery timing…" : stats.onTimePct == null ? 'Timing unavailable' : `${stats.onTimePct}% of today's handoffs with known timing`}</p>
               </div>
 
               <div className="stat-card late">
@@ -597,7 +602,7 @@ export default function Shipment() {
                   <p className="stat-label">Late Deliveries</p>
                   <AlertTriangleIcon className="stat-icon" />
                 </div>
-                <strong className="stat-value">{stats.lateToday}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.lateToday)}</strong>
                 <p>Delivered outside window</p>
               </div>
             </>
@@ -610,7 +615,7 @@ export default function Shipment() {
                   <p className="stat-label">Pending Review</p>
                   <FlagIcon className="stat-icon text-delayed" />
                 </div>
-                <strong className="stat-value">{visibleShipments.length}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(visibleShipments.length)}</strong>
                 <p>Needs manual review</p>
               </div>
 
@@ -619,7 +624,7 @@ export default function Shipment() {
                   <p className="stat-label">Avg. Age</p>
                   <ClockIcon className="stat-icon" />
                 </div>
-                <strong className="stat-value">{stats.avgReviewAgeLabel}</strong>
+                <strong className="stat-value">{statValueOrSkeleton(stats.avgReviewAgeLabel, "72px")}</strong>
                 <p>Since last update</p>
               </div>
 
@@ -639,7 +644,7 @@ export default function Shipment() {
               <p className="stat-label">This Week's Trips</p>
               <BarChartIcon className="stat-icon" />
             </div>
-            <strong className="stat-value">{String(stats.weeklyTrips ?? "").replace(/\u2014/g, "N/A")}</strong>
+            <strong className="stat-value">{isLoading && stats.weeklyTrips === "\u2014" ? <SkeletonStatValue width="56px" height={28} /> : String(stats.weeklyTrips ?? "").replace(/\u2014/g, "N/A")}</strong>
             <p>{stats.weeklyTrips === "\u2014" ? (isLoading ? "Loading count…" : "Count unavailable") : "Shipments created this week"}</p>
           </div>
         </div>
@@ -727,242 +732,275 @@ export default function Shipment() {
         )}
 
         {/* SHIPMENT TABLE */}
-        {!isLoading && (
-          <div className="shipment-table-card">
-            <div className="shipment-table-scroll">
-            <table className="shipment-table">
-              {currentTab === "completed" ? (
-                <>
-                  <thead>
-                    <tr>
-                      <th>Shipment ID</th>
-                      <th>Customer</th>
-                      <th>Route</th>
-                      <th>Driver &amp; Vehicle</th>
-                      <th>Target Delivery</th>
-                      <th>Actual Delivery</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
+        <div className="shipment-table-card" aria-busy={isLoading}>
+          <div className="shipment-table-scroll">
+          <table className="shipment-table">
+            {currentTab === "completed" ? (
+              <>
+                <thead>
+                  <tr>
+                    <th>Shipment ID</th>
+                    <th>Customer</th>
+                    <th>Route</th>
+                    <th>Driver &amp; Vehicle</th>
+                    <th>Target Delivery</th>
+                    <th>Actual Delivery</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
 
-                  <tbody>
-                    {pagedShipments.map((s) => (
-                      <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
-                        <td>
-                          <div className="cell-bold">
-                            {s.id}
-                          </div>
-                          <div className="cell-sub">
-                            {s.cargo}
-                          </div>
-                          <details className="shipment-driver-instructions">
-                            <summary>Driver instructions</summary>
-                            <p>{s.driverNotes || 'None recorded'}</p>
-                          </details>
-                        </td>
-
-                        <td>
-                          <div className="customer-cell">
-                            <div className="customer-avatar avatar-blue">
-                              {s.customerInitials || "?"}
+                <tbody>
+                  {isLoading && pagedShipments.length === 0 ? (
+                    <SkeletonTableRows
+                      rows={6}
+                      columns={[
+                        "stack",
+                        "avatar-stack",
+                        "text",
+                        "stack",
+                        "short",
+                        "short",
+                        "badge",
+                        "action",
+                      ]}
+                    />
+                  ) : (
+                    <>
+                      {pagedShipments.map((s) => (
+                        <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
+                          <td>
+                            <div className="cell-bold">
+                              {s.id}
                             </div>
+                            <div className="cell-sub">
+                              {s.cargo}
+                            </div>
+                            <details className="shipment-driver-instructions">
+                              <summary>Driver instructions</summary>
+                              <p>{s.driverNotes || 'None recorded'}</p>
+                            </details>
+                          </td>
+
+                          <td>
+                            <div className="customer-cell">
+                              <div className="customer-avatar avatar-blue">
+                                {s.customerInitials || "?"}
+                              </div>
+                              <div className="text-dark-bold">
+                                {s.customer}
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="location-cell" title={`${s.origin} → ${s.destination}`}>
+                            <div className="location-text">
+                              {s.origin}{" "}
+                              <span className="route-arrow">
+                                →
+                              </span>{" "}
+                              {s.destination}
+                            </div>
+                          </td>
+
+                          <td>
                             <div className="text-dark-bold">
-                              {s.customer}
+                              {s.driver}
                             </div>
-                          </div>
-                        </td>
+                            <div className="cell-sub">
+                              {s.fleet}
+                            </div>
+                          </td>
 
-                        <td className="location-cell" title={`${s.origin} → ${s.destination}`}>
-                          <div className="location-text">
-                            {s.origin}{" "}
-                            <span className="route-arrow">
-                              →
-                            </span>{" "}
-                            {s.destination}
-                          </div>
-                        </td>
+                          <td>{s.targetDelivery}</td>
 
-                        <td>
-                          <div className="text-dark-bold">
-                            {s.driver}
-                          </div>
-                          <div className="cell-sub">
-                            {s.fleet}
-                          </div>
-                        </td>
+                          <td className="text-dark-bold">
+                            {s.actualDelivery}
+                          </td>
 
-                        <td>{s.targetDelivery}</td>
+                          <td>
+                            <span className={`status ${s.deliveryStatus === 'UNKNOWN' ? 'unknown-timing' : 'transit'}`}>
+                              {s.deliveryStatus === 'UNKNOWN' ? (
+                                <svg {...svgProps} width="13" height="13">
+                                  <circle cx="12" cy="12" r="10" />
+                                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                              ) : (
+                                <CheckCircleIcon size={13} />
+                              )}{" "}
+                              {s.deliveryStatus}
+                            </span>
+                          </td>
 
-                        <td className="text-dark-bold">
-                          {s.actualDelivery}
-                        </td>
+                          <td>{renderMenu(s, true)}</td>
+                        </tr>
+                      ))}
 
-                        <td>
-                          <span className={`status ${s.deliveryStatus === 'UNKNOWN' ? 'unknown-timing' : 'transit'}`}>
-                            {s.deliveryStatus === 'UNKNOWN' ? (
-                              <svg {...svgProps} width="13" height="13">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                                <line x1="12" y1="17" x2="12.01" y2="17" />
-                              </svg>
-                            ) : (
-                              <CheckCircleIcon size={13} />
-                            )}{" "}
-                            {s.deliveryStatus}
-                          </span>
-                        </td>
-
-                        <td>{renderMenu(s, true)}</td>
-                      </tr>
-                    ))}
-
-                    {visibleShipments.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={8}
-                          style={{
-                            textAlign: "center",
-                            padding: "32px",
-                          }}
-                        >
-                          {error
-                            ? "Unable to load completed shipments."
-                            : "No completed shipments to show."}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </>
-              ) : (
-                <>
-                  <thead>
-                    <tr>
-                      <th>Shipment ID</th>
-                      <th>Origin</th>
-                      <th>Destination</th>
-                      <th>Status</th>
-                      <th>Assigned Driver</th>
-                      <th>
-                        {currentTab === "review"
-                          ? "Last Update"
-                          : "Estimated Delivery"}
-                      </th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {pagedShipments.map((s) => (
-                      <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
-                        <td>
-                          <div className="cell-bold">
-                            {s.id}
-                          </div>
-                          <div className="cell-sub">
-                            {s.cargo}
-                          </div>
-                          <details className="shipment-driver-instructions">
-                            <summary>Driver instructions</summary>
-                            <p>{s.driverNotes || 'None recorded'}</p>
-                          </details>
-                        </td>
-
-                        <td className="location-cell" title={s.origin}>
-                          <div className="location-text">
-                            {s.origin}
-                          </div>
-                          {s.originSub ? <div className="cell-sub">{s.originSub}</div> : null}
-                        </td>
-
-                        <td className="location-cell" title={s.destination}>
-                          <div className="location-text">
-                            {s.destination}
-                          </div>
-                          {s.destinationSub ? <div className="cell-sub">{s.destinationSub}</div> : null}
-                        </td>
-
-                        <td>
-                          <span
-                            className={`status ${statusClass(
-                              s.status
-                            )}`}
+                      {visibleShipments.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            style={{
+                              textAlign: "center",
+                              padding: "32px",
+                            }}
                           >
-                            ● {statusLabel(s.status)}
-                          </span>
-                        </td>
+                            {error
+                              ? "Unable to load completed shipments."
+                              : "No completed shipments to show."}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )}
+                </tbody>
+              </>
+            ) : (
+              <>
+                <thead>
+                  <tr>
+                    <th>Shipment ID</th>
+                    <th>Origin</th>
+                    <th>Destination</th>
+                    <th>Status</th>
+                    <th>Assigned Driver</th>
+                    <th>
+                      {currentTab === "review"
+                        ? "Last Update"
+                        : "Estimated Delivery"}
+                    </th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
 
-                        <td>
-                          <div className="text-dark-bold">
-                            {s.driver}
-                          </div>
-                          <div className="cell-sub">
-                            {s.fleet}
-                          </div>
-                        </td>
+                <tbody>
+                  {isLoading && pagedShipments.length === 0 ? (
+                    <SkeletonTableRows
+                      rows={6}
+                      columns={[
+                        "stack",
+                        "stack",
+                        "stack",
+                        "badge",
+                        "stack",
+                        "stack",
+                        "action",
+                      ]}
+                    />
+                  ) : (
+                    <>
+                      {pagedShipments.map((s) => (
+                        <tr key={s.dbId} className={openMenuId === s.dbId ? "row-menu-open" : ""}>
+                          <td>
+                            <div className="cell-bold">
+                              {s.id}
+                            </div>
+                            <div className="cell-sub">
+                              {s.cargo}
+                            </div>
+                            <details className="shipment-driver-instructions">
+                              <summary>Driver instructions</summary>
+                              <p>{s.driverNotes || 'None recorded'}</p>
+                            </details>
+                          </td>
 
-                        <td>
-                          <div className="text-dark-bold">
-                            {s.eta}
-                          </div>
-                          <div
-                            className={`status-sub-indicator ${
-                              s.etaNoteClass || ""
-                            }`}
+                          <td className="location-cell" title={s.origin}>
+                            <div className="location-text">
+                              {s.origin}
+                            </div>
+                            {s.originSub ? <div className="cell-sub">{s.originSub}</div> : null}
+                          </td>
+
+                          <td className="location-cell" title={s.destination}>
+                            <div className="location-text">
+                              {s.destination}
+                            </div>
+                            {s.destinationSub ? <div className="cell-sub">{s.destinationSub}</div> : null}
+                          </td>
+
+                          <td>
+                            <span
+                              className={`status ${statusClass(
+                                s.status
+                              )}`}
+                            >
+                              ● {statusLabel(s.status)}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="text-dark-bold">
+                              {s.driver}
+                            </div>
+                            <div className="cell-sub">
+                              {s.fleet}
+                            </div>
+                          </td>
+
+                          <td>
+                            <div className="text-dark-bold">
+                              {s.eta}
+                            </div>
+                            <div
+                              className={`status-sub-indicator ${
+                                s.etaNoteClass || ""
+                              }`}
+                            >
+                              {s.etaNote}
+                            </div>
+                          </td>
+
+                          <td>{renderMenu(s)}</td>
+                        </tr>
+                      ))}
+
+                      {visibleShipments.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            style={{
+                              textAlign: "center",
+                              padding: "32px",
+                            }}
                           >
-                            {s.etaNote}
-                          </div>
-                        </td>
-
-                        <td>{renderMenu(s)}</td>
-                      </tr>
-                    ))}
-
-                    {visibleShipments.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          style={{
-                            textAlign: "center",
-                            padding: "32px",
-                          }}
-                        >
-                          {error
-                            ? "Unable to load shipments."
-                            : `No ${activeConfig.label.toLowerCase()} shipments to show.`}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </>
-              )}
-            </table>
-            </div>
-
-            {/* TABLE FOOTER */}
-            <div className="table-pagination-footer">
-              <span className="pagination-summary">
-                {visibleShipments.length === 0
-                  ? "Showing 0"
-                  : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, visibleShipments.length)}`}{" "}
-                of {visibleShipments.length}{" "}
-                {activeConfig.label} Shipments
-              </span>
-
-              <nav className="pagination-controls-group" aria-label="Shipment pages">
-                <button type="button" className="page-nav-btn" disabled={page === 1}
-                  onClick={() => { setPage(page - 1); setOpenMenuId(null); }}>
-                  Previous
-                </button>
-                <span className="pagination-summary" aria-live="polite">Page {page} of {pageCount}</span>
-                <button type="button" className="page-nav-btn" disabled={page === pageCount}
-                  onClick={() => { setPage(page + 1); setOpenMenuId(null); }}>
-                  Next
-                </button>
-              </nav>
-            </div>
+                            {error
+                              ? "Unable to load shipments."
+                              : `No ${activeConfig.label.toLowerCase()} shipments to show.`}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )}
+                </tbody>
+              </>
+            )}
+          </table>
           </div>
-        )}
+
+          {/* TABLE FOOTER */}
+          <div className="table-pagination-footer">
+            <span className="pagination-summary">
+              {visibleShipments.length === 0
+                ? "Showing 0"
+                : `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, visibleShipments.length)}`}{" "}
+              of {visibleShipments.length}{" "}
+              {activeConfig.label} Shipments
+            </span>
+
+            <nav className="pagination-controls-group" aria-label="Shipment pages">
+              <button type="button" className="page-nav-btn" disabled={isLoading || page === 1}
+                onClick={() => { setPage(page - 1); setOpenMenuId(null); }}>
+                Previous
+              </button>
+              <span className="pagination-summary" aria-live="polite">Page {page} of {pageCount}</span>
+              <button type="button" className="page-nav-btn" disabled={isLoading || page === pageCount}
+                onClick={() => { setPage(page + 1); setOpenMenuId(null); }}>
+                Next
+              </button>
+            </nav>
+          </div>
+        </div>
 
       {/* CREATE SHIPMENT DRAWER */}
       {cancelShipment && <ShipmentCancellationDialog key={cancelShipment.dbId} shipment={cancelShipment}

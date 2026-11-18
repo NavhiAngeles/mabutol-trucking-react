@@ -20,6 +20,7 @@ async function mount(initialRows = rows, useThreadsMethod = false, defaultOpen =
     useRef(initial) { return { current: initial }; },
     useEffect(effect, next) { const i = ei++; if (!deps[i] || next.some((v, j) => v !== deps[i][j])) { effects.push(() => { cleanups[i]?.(); cleanups[i] = effect(); }); deps[i] = next; } },
     deliveryConversationService: () => serviceImpl, supabase: {}, DeliveryConversation: 'DeliveryConversation',
+    SkeletonListRows: ({ rows, variant }) => ({ type: 'SkeletonListRows', props: { rows, variant }, children: [] }),
     useAuth: () => ({ user: { id: 'office' } }), setInterval: () => 0, clearInterval() {},
   });
   const { code } = await transformWithOxc(fs.readFileSync(new URL('./DeliveryConversationInbox.jsx', import.meta.url), 'utf8'), 'DeliveryConversationInbox.jsx', { jsx: { runtime: 'classic' } });

@@ -3,6 +3,7 @@ import { fetchBookingRequest, reviewBookingRequest } from '../../services/shipme
 import OfficeQuoteForm from './OfficeQuoteForm';
 import ShipmentEditDialog from './ShipmentEditDialog';
 import VehicleSilhouette from '../../components/VehicleSilhouette/VehicleSilhouette';
+import { SkeletonBlock } from '../../components/Skeleton/Skeleton';
 import './deliveryWorkflow.css';
 
 const SafeVehicleSilhouette = typeof VehicleSilhouette !== 'undefined' ? VehicleSilhouette : () => null;
@@ -152,6 +153,33 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
           <span>Loading current request…</span>
+        </div>
+      )}
+      {loading && !request && !error && (
+        <div className="shipment-details-grid" aria-hidden="true">
+          <div className="shipment-details-card">
+            <div className="shipment-card-header"><h3>Cargo &amp; Vehicle</h3></div>
+            <div className="shipment-card-fields">
+              <div className="tanaw-skeleton-stack"><SkeletonBlock width="44%" height={11} /><SkeletonBlock width="78%" height={14} /></div>
+              <div className="tanaw-skeleton-stack"><SkeletonBlock width="42%" height={11} /><SkeletonBlock width="62%" height={14} /></div>
+              <div className="shipment-field-full tanaw-skeleton-stack"><SkeletonBlock width="48%" height={11} /><SkeletonBlock width="84%" height={14} /></div>
+            </div>
+          </div>
+          <div className="shipment-details-card">
+            <div className="shipment-card-header"><h3>Route &amp; Schedule</h3></div>
+            <div className="shipment-card-fields">
+              <div className="shipment-field-full tanaw-skeleton-stack"><SkeletonBlock width="38%" height={11} /><SkeletonBlock width="88%" height={14} /></div>
+              <div className="shipment-field-full tanaw-skeleton-stack"><SkeletonBlock width="44%" height={11} /><SkeletonBlock width="82%" height={14} /></div>
+              <div className="tanaw-skeleton-stack"><SkeletonBlock width="48%" height={11} /><SkeletonBlock width="64%" height={14} /></div>
+            </div>
+          </div>
+          <div className="shipment-details-card shipment-field-full">
+            <div className="shipment-card-header"><h3>Quotation &amp; Charges</h3></div>
+            <div className="shipment-card-fields">
+              <div className="tanaw-skeleton-stack"><SkeletonBlock width="46%" height={11} /><SkeletonBlock width="58%" height={16} /></div>
+              <div className="tanaw-skeleton-stack"><SkeletonBlock width="52%" height={11} /><SkeletonBlock width="58%" height={16} /></div>
+            </div>
+          </div>
         </div>
       )}
       {error && (

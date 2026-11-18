@@ -21,6 +21,7 @@ async function mount({ load = async () => request, save = async () => ({ id: 's'
     useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
     useEffect(effect) { if (!mounted) effects.push(effect); },
     fetchBookingRequest: load, reviewBookingRequest: save, OfficeQuoteForm:'OfficeQuoteForm', VehicleSilhouette: (props) => ({ type: 'VehicleSilhouette', props }),
+    SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
   });
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
   const render = () => { index = 0; refIndex = 0; return context.render({ shipment: { dbId: 's', id: 'BOOK-1', customer: 'Customer' }, onClose: () => closes++, onReviewed: result => reviewed.push(result) }); };
@@ -176,6 +177,7 @@ test('BookingReview contains keyboard Tab focus and restores launcher focus on c
     useEffect: effect => { effectCleanup = effect(); },
     fetchBookingRequest: async () => request, reviewBookingRequest: async () => ({ id: 's' }), OfficeQuoteForm: 'OfficeQuoteForm',
     VehicleSilhouette: () => null,
+    SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
   });
   vm.runInContext(compCode.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = BookingReview;', context);
   const vdom = context.render({ shipment: { dbId: 's', id: 'B-1' }, onClose: () => {}, onReviewed: () => {} });
