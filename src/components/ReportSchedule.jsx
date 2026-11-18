@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { reportSchedules } from '../services/reportScheduleService';
 import { snapshotReport } from '../services/reportSnapshots.js';
-import { downloadReport } from '../services/reportExport.js';
+import ReportExportModal from './ReportExportModal.jsx';
 import { useAuth } from '../context/AuthContext';
 import './ReportSchedule.css';
 
@@ -284,11 +284,16 @@ function SchedulePanel({ type }) {
   const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
+  const [exportTarget, setExportTarget] = useState(null);
   const lock = useRef(false);
   const triggerRef = useRef(null);
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
   const wasOpenRef = useRef(false);
+  const timeOpenRef = useRef(false);
+  timeOpenRef.current = timeOpen;
+  const exportOpenRef = useRef(false);
+  exportOpenRef.current = !!exportTarget;
 
   const openDialog = () => {
     previousFocusRef.current = typeof document !== 'undefined' ? document.activeElement : null;
@@ -298,6 +303,8 @@ function SchedulePanel({ type }) {
   const closeDialog = () => {
     setOpen(false);
     setTimeOpen(false);
+    setExportTarget(null);
+    setPage(0);
     setData(null);
     setError('');
     setNotice('');
@@ -329,7 +336,8 @@ function SchedulePanel({ type }) {
     reportSchedules.load(type, page).then(value => { if (!disposed) { setData(value); setError(''); } }).catch(err => { if (!disposed) setError(err.message); });
     const onKeyDown = event => {
       if (event.key === 'Escape' && !lock.current) {
-        if (timeOpen) {
+        if (exportOpenRef.current) return;
+        if (timeOpenRef.current) {
           setTimeOpen(false);
           return;
         }
@@ -345,7 +353,7 @@ function SchedulePanel({ type }) {
         document.removeEventListener('keydown', onKeyDown);
       }
     };
-  }, [open, type, page, reload, timeOpen]);
+  }, [open, type, page, reload]);
   async function act(action) {
     if (lock.current) return;
     lock.current = true; setBusy(true); setError(''); setNotice('');
@@ -353,7 +361,7 @@ function SchedulePanel({ type }) {
     catch (err) { setError(err.message); }
     finally { lock.current = false; setBusy(false); }
   }
-  const refresh = () => { setData(null); setReload(n => n + 1); };
+  const refresh = () => { setError(''); setData(null); setReload(n => n + 1); };
   const date = value => new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
   return <><button ref={triggerRef} type="button" className="report-schedule-button" onClick={openDialog}>Schedule Report</button>
     {open && <div className="report-schedule-backdrop" onClick={e => { if (e.target === e.currentTarget && !lock.current) closeDialog(); }}><section ref={dialogRef} tabIndex={-1} className="report-schedule-dialog" role="dialog" aria-modal="true" aria-labelledby="report-schedule-title">
@@ -442,7 +450,7 @@ function SchedulePanel({ type }) {
                     <small className="rs-row-meta">Generated {date(report.generated_at)}</small>
                     {report.status === 'failed' && <span className="rs-row-error" role="alert">{report.error_message}</span>}
                   </div>
-                  <button type="button" className="rs-btn rs-btn-secondary rs-btn-sm" disabled={busy || report.status !== 'ready'} onClick={() => act(async () => { const snapshot = await reportSchedules.read(report.id); downloadReport(type, { start: snapshot.period_start, end: snapshot.period_end }, snapshotReport(snapshot), { 'Snapshot captured at': snapshot.generated_at }); })}>Download CSV</button>
+                  <button type="button" className="rs-btn rs-btn-secondary rs-btn-sm" disabled={busy || report.status !== 'ready'} onClick={() => act(async () => { const snapshot = await reportSchedules.read(report.id); const reportData = snapshotReport(snapshot); setExportTarget({ range: { start: snapshot.period_start, end: snapshot.period_end }, reportData, filters: { 'Snapshot captured at': snapshot.generated_at } }); })}>Export</button>
                 </div>)}
               </div>}
         </>}
@@ -459,5 +467,16 @@ function SchedulePanel({ type }) {
         <button type="button" className="rs-btn rs-btn-secondary" disabled={busy} onClick={closeDialog}>Close</button>
       </footer>
     </section></div>}
+    {exportTarget && (
+      <ReportExportModal
+        open
+        onClose={() => setExportTarget(null)}
+        reportType={type}
+        range={exportTarget.range}
+        activeRangeLabel="Scheduled Snapshot"
+        reportData={exportTarget.reportData}
+        filters={exportTarget.filters}
+      />
+    )}
   </>;
 }
