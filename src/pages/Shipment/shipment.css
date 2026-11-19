@@ -1277,6 +1277,25 @@
   gap: 14px;
 }
 
+.shipment-page .assignment-fields-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shipment-page .assignment-field-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .shipment-page .assignment-fields-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .shipment-page .assignment-field-group {
   display: flex;
   flex-direction: column;
@@ -1410,12 +1429,13 @@
 }
 
 .shipment-page .assignment-submit-btn:disabled {
-  background: #CBD5E1;
-  color: #64748B;
+  background: #E2E8F0;
+  color: #334155;
+  border: 1px solid #CBD5E1;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-  opacity: 0.85;
+  opacity: 1;
 }
 
 .shipment-page .assignment-char-count {
@@ -1692,18 +1712,18 @@
 .shipment-page .shipment-details-assignments-section {
   background: #F8FAFC;
   border: 1px solid #E2E8F0;
-  border-radius: 10px;
-  padding: 14px 16px;
+  border-radius: 12px;
+  padding: 16px 18px;
   margin-bottom: 20px;
 }
 
-.shipment-page .shipment-details-assignments-section h3 {
+.shipment-page .shipment-details-assignments-section > h3 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #475569;
-  margin: 0 0 10px 0;
+  letter-spacing: 0.06em;
+  color: #334155;
+  margin: 0 0 12px 0;
 }
 
 .shipment-page .shipment-assignments-list {
@@ -1719,12 +1739,17 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   background: #FFFFFF;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #E2E8F0;
-  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #CBD5E1;
+  font-size: 13.5px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.shipment-page .shipment-assignment-item .status {
+  margin-left: auto;
 }
 
 .shipment-page .assignment-badge {

@@ -1,6 +1,7 @@
 import { fetchOperationalRows } from './dashboardService';
 import { calculateDashboardAnalytics, latestTracking } from './dashboardAnalytics.js';
 import { getComplianceConfiguration } from './complianceThresholdService';
+import { getOfficialVehicleModel, sanitizePlateNumber } from './officialVehicleModels.js';
 
 export const DASHBOARD_TABLES = [
   'shipments',
@@ -40,8 +41,8 @@ export async function getLiveTracking() {
     fetchOperationalRows('drivers', 'id,full_name').catch(() => []),
   ]);
 
-  const plates = new Map(trucks.map(t => [t.id, t.plate_number]));
-  const models = new Map(trucks.map(t => [t.id, t.model]));
+  const plates = new Map(trucks.map((t, index) => [t.id, sanitizePlateNumber(t.plate_number, index + 1)]));
+  const models = new Map(trucks.map((t, index) => [t.id, getOfficialVehicleModel(t, index)]));
   const shipmentsMap = new Map(shipments.map(s => [s.id, s]));
   const driversMap = new Map(drivers.map(d => [d.id, d.full_name]));
   const deliveriesMap = new Map(deliveries.map(d => [d.id, d]));

@@ -2,6 +2,7 @@
 import { supabase } from "./supabaseClient";
 import { fetchOperationalRows } from './dashboardService';
 import { pendingDeparture } from './operationalStats';
+import { sanitizePlateNumber } from './officialVehicleModels.js';
 
 const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at,driver:drivers(full_name),truck:trucks(plate_number)';
 
@@ -23,7 +24,13 @@ export async function fetchShipmentDetails(id) {
   if (shipmentResult.error) throw shipmentResult.error;
   if (deliveryResult.error) throw deliveryResult.error;
   if (!shipmentResult.data?.id) throw new Error('Shipment not found or access denied.');
-  return { ...shipmentResult.data, deliveries: deliveryResult.data || [] };
+  const formatPlate = plate => (typeof sanitizePlateNumber === 'function' ? sanitizePlateNumber(plate) : plate);
+  const deliveries = (deliveryResult.data || []).map(d =>
+    d?.truck?.plate_number
+      ? { ...d, truck: { ...d.truck, plate_number: formatPlate(d.truck.plate_number) } }
+      : d
+  );
+  return { ...shipmentResult.data, deliveries };
 }
 
 export async function fetchBookingRequest(id) {
@@ -334,7 +341,11 @@ export function mapShipmentRow(row) {
     assignmentId: row.assignment?.id ?? null,
     driver: row.assignment?.driver?.full_name ?? "Unassigned",
 
-    fleet: row.assignment?.truck?.plate_number ?? "—",
+    fleet: row.assignment?.truck?.plate_number
+      ? (typeof sanitizePlateNumber === 'function'
+        ? sanitizePlateNumber(row.assignment.truck.plate_number)
+        : row.assignment.truck.plate_number)
+      : "—",
 
     customer: customerName,
 

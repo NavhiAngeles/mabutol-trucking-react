@@ -88,53 +88,114 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
       else setActionNotice('Action completed successfully, but follow-up data is not fully refreshed. Retry the read-only refreshes before taking another action; this action was not repeated.');
     } finally {lock.current=false;setBusy(false);}
   };
-  return <section className="delivery-workflow-panel" aria-label="Delivery workflow">
-    <h3>Delivery timeline and review</h3>
-    {loadError && <p role="alert">{loadError}{data && ' Showing the last successfully loaded delivery records.'}</p>}
-    {actionError && <p role="alert">{actionError}</p>}
-    {actionNotice && <p role="status">{actionNotice}</p>}
-    <button type="button" disabled={busy || refreshing} onClick={()=>refresh()}>{refreshing ? 'Refreshing delivery workflow…' : loadError ? 'Retry delivery refresh' : 'Refresh delivery workflow'}</button>
-    {refreshing && <p role="status">{data ? 'Refreshing delivery records; the last successfully loaded snapshot remains visible.' : 'Loading delivery records…'}</p>}
-    {!data && loadError && <p role="status">Delivery records are unavailable until a refresh succeeds.</p>}
+  return <section className="delivery-workflow-panel delivery-ops-panel" aria-label="Delivery workflow">
+    <div className="delivery-ops-header">
+      <div className="delivery-ops-header-main">
+        <div className="delivery-ops-header-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+        <div>
+          <h3>Delivery timeline and review</h3>
+          <p className="delivery-ops-subtitle">Track milestones, proof documents, incidents, and trip expenses.</p>
+        </div>
+      </div>
+      <button type="button" className="delivery-ops-refresh-btn" disabled={busy || refreshing} onClick={()=>refresh()}>
+        {refreshing ? 'Refreshing delivery workflow…' : loadError ? 'Retry delivery refresh' : 'Refresh delivery workflow'}
+      </button>
+    </div>
+
+    {loadError && <p className="delivery-ops-alert is-error" role="alert">{loadError}{data && ' Showing the last successfully loaded delivery records.'}</p>}
+    {actionError && <p className="delivery-ops-alert is-error" role="alert">{actionError}</p>}
+    {actionNotice && <p className="delivery-ops-alert is-info" role="status">{actionNotice}</p>}
+    {refreshing && <p className="delivery-ops-alert is-info" role="status">{data ? 'Refreshing delivery records; the last successfully loaded snapshot remains visible.' : 'Loading delivery records…'}</p>}
+    {!data && loadError && <p className="delivery-ops-alert is-muted" role="status">Delivery records are unavailable until a refresh succeeds.</p>}
+
     {data && <>
-      <ol className="delivery-timeline">{data.events.map(event=><li key={event.id}><strong>{event.event_type.replaceAll('_',' ')}</strong><span>{time(event.occurred_at)}</span>{event.meta?.reason && <p>{event.meta.reason}</p>}</li>)}</ol>
-      {data.position && <p>Last GPS: {time(data.position.recorded_at)} · accuracy {data.position.accuracy_m ?? 'unknown'} m · {now-Date.parse(data.position.recorded_at)>300000?'Stale location':'Recent location'}</p>}
-      <h4>Recorded proof</h4>
-      {!data.documents.length && <p>No proof documents submitted.</p>}
-      {data.documents.map(doc=><button type="button" key={doc.id} disabled={busy} onClick={async()=>{try{setProof({url:await service.proofUrl(shipmentId,doc.id),label:`Attempt ${doc.proof_attempt} · ${doc.kind.replaceAll('_',' ')}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open recorded proof.');}}}>View attempt {doc.proof_attempt}: {doc.kind.replaceAll('_',' ')}</button>)}
-      {proof && <figure><figcaption>{proof.label}</figcaption><img className="delivery-proof-image" width="800" height="600" src={proof.url} alt={proof.label} /><button type="button" onClick={()=>setProof(null)}>Close private proof</button></figure>}
-      <label htmlFor={`delivery-ops-reason-${shipmentId}`}>Office review / resolution reason<textarea id={`delivery-ops-reason-${shipmentId}`} maxLength={1000} value={reason} disabled={busy || refreshRequired} onChange={event=>setReason(event.target.value)} /></label>
-      <h4>Incident evidence</h4>
-      {!data.incident_evidence?.length && <p>No incident photos submitted.</p>}
-      {data.incident_evidence?.map(photo=><div key={photo.id}>
-        <p>{data.incidents.find(incident=>incident.id===photo.incident_id)?.description || 'Incident report'}</p>
-        <button type="button" disabled={busy} onClick={async()=>{try{setProof({url:await service.evidenceUrl(shipmentId,'incident',photo.id),label:`Incident photo ${photo.slot}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open incident evidence.');}}}>View private incident photo {photo.slot}</button>
-      </div>)}
-      <h4>Trip expense review</h4>
-      {!data.expenses?.length && <p>No expenses submitted.</p>}
-      {data.expenses?.map(expense=><div key={expense.id} className="delivery-workflow-panel">
-        <p>{expense.description || expense.category} · {Number(expense.amount).toLocaleString('en-PH',{style:'currency',currency:'PHP'})} · {expense.status}</p>
-        <p>Submitted {time(expense.created_at)}{expense.reviewed_at && ` · Reviewed ${time(expense.reviewed_at)}`}</p>
-        {expense.review_reason && <p>Office feedback: {expense.review_reason}</p>}
-        {expense.receipt_path ? <button type="button" disabled={busy} onClick={async()=>{try{setProof({url:await service.evidenceUrl(shipmentId,'expense',expense.id),label:`Expense receipt · ${expense.description || expense.category}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open the expense receipt.');}}}>View private receipt</button> : <p>No receipt attached.</p>}
-        {expense.status==='pending' && <div className="booking-review-actions">
-          <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.reviewExpense(expense,'approved',reason))}>Approve expense</button>
-          <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.reviewExpense(expense,'rejected',reason))}>Reject expense</button>
-        </div>}
-      </div>)}
+      <div className="delivery-ops-subcard">
+        <div className="delivery-ops-subcard-head">
+          <h4>Workflow timeline</h4>
+          <span className="delivery-ops-count">{data.events.length}</span>
+        </div>
+        {data.events.length ? (
+          <ol className="delivery-timeline">{data.events.map(event=><li key={event.id}><strong>{event.event_type.replaceAll('_',' ')}</strong><span>{time(event.occurred_at)}</span>{event.meta?.reason && <p>{event.meta.reason}</p>}</li>)}</ol>
+        ) : (
+          <p className="delivery-ops-empty">No workflow events recorded yet.</p>
+        )}
+        {data.position && (
+          <p className={`delivery-gps-bar ${now-Date.parse(data.position.recorded_at)>300000?'is-stale':'is-recent'}`}>
+            Last GPS: {time(data.position.recorded_at)} · accuracy {data.position.accuracy_m ?? 'unknown'} m · {now-Date.parse(data.position.recorded_at)>300000?'Stale location':'Recent location'}
+          </p>
+        )}
+      </div>
+
+      <div className="delivery-ops-grid">
+        <div className="delivery-ops-subcard">
+          <h4>Recorded proof</h4>
+          {!data.documents.length && <p className="delivery-ops-empty">No proof documents submitted.</p>}
+          {data.documents.length > 0 && (
+            <div className="delivery-ops-btn-list">
+              {data.documents.map(doc=><button type="button" key={doc.id} disabled={busy} onClick={async()=>{try{setProof({url:await service.proofUrl(shipmentId,doc.id),label:`Attempt ${doc.proof_attempt} · ${doc.kind.replaceAll('_',' ')}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open recorded proof.');}}}>View attempt {doc.proof_attempt}: {doc.kind.replaceAll('_',' ')}</button>)}
+            </div>
+          )}
+        </div>
+
+        <div className="delivery-ops-subcard">
+          <h4>Incident evidence</h4>
+          {!data.incident_evidence?.length && <p className="delivery-ops-empty">No incident photos submitted.</p>}
+          {data.incident_evidence?.map(photo=><div key={photo.id} className="delivery-ops-item">
+            <p>{data.incidents.find(incident=>incident.id===photo.incident_id)?.description || 'Incident report'}</p>
+            <button type="button" disabled={busy} onClick={async()=>{try{setProof({url:await service.evidenceUrl(shipmentId,'incident',photo.id),label:`Incident photo ${photo.slot}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open incident evidence.');}}}>View private incident photo {photo.slot}</button>
+          </div>)}
+        </div>
+      </div>
+
+      {proof && <figure className="delivery-ops-proof-figure"><figcaption>{proof.label}</figcaption><img className="delivery-proof-image" width="800" height="600" src={proof.url} alt={proof.label} /><button type="button" onClick={()=>setProof(null)}>Close private proof</button></figure>}
+
+      <div className="delivery-ops-subcard">
+        <label htmlFor={`delivery-ops-reason-${shipmentId}`}>
+          Office review / resolution reason
+          <textarea
+            id={`delivery-ops-reason-${shipmentId}`}
+            maxLength={1000}
+            value={reason}
+            disabled={busy || refreshRequired}
+            placeholder="Record the reason before requesting proof correction, resolving an incident, reviewing expenses, or confirming no-show cancellation."
+            onChange={event=>setReason(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="delivery-ops-subcard">
+        <h4>Trip expense review</h4>
+        {!data.expenses?.length && <p className="delivery-ops-empty">No expenses submitted.</p>}
+        {data.expenses?.map(expense=><div key={expense.id} className="delivery-workflow-panel delivery-ops-nested-card">
+          <p className="delivery-ops-item-title">{expense.description || expense.category} · {Number(expense.amount).toLocaleString('en-PH',{style:'currency',currency:'PHP'})} · {expense.status}</p>
+          <p className="delivery-ops-meta">Submitted {time(expense.created_at)}{expense.reviewed_at && ` · Reviewed ${time(expense.reviewed_at)}`}</p>
+          {expense.review_reason && <p>Office feedback: {expense.review_reason}</p>}
+          {expense.receipt_path ? <button type="button" disabled={busy} onClick={async()=>{try{setProof({url:await service.evidenceUrl(shipmentId,'expense',expense.id),label:`Expense receipt · ${expense.description || expense.category}`});setActionError('');}catch(err){setActionError(err.message || 'Could not open the expense receipt.');}}}>View private receipt</button> : <p className="delivery-ops-empty">No receipt attached.</p>}
+          {expense.status==='pending' && <div className="booking-review-actions">
+            <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.reviewExpense(expense,'approved',reason))}>Approve expense</button>
+            <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.reviewExpense(expense,'rejected',reason))}>Reject expense</button>
+          </div>}
+        </div>)}
+      </div>
+
       {data.deliveries.filter(delivery=>delivery.status==='cancelled').map(delivery=><DeliveryConversation key={delivery.id} delivery={delivery} />)}
-      {data.deliveries.filter(delivery=>delivery.status!=='cancelled').map(delivery=><div key={delivery.id} className="delivery-workflow-panel">
+      {data.deliveries.filter(delivery=>delivery.status!=='cancelled').map(delivery=><div key={delivery.id} className="delivery-workflow-panel delivery-ops-nested-card">
         <DeliveryRouteReview delivery={delivery} actionBlocked={refreshRequired} onSaved={async()=>{requireFollowUpRefresh();setActionNotice('Route confirmation completed. Refreshing delivery records and shipment details…');setRevision(value=>value+1);const result=await onChanged?.({preserve:true});if(result!==false)markShipmentRefreshed();if(refreshRequiredRef.current)setActionNotice('Route confirmation succeeded, but follow-up data is not fully refreshed. Retry read-only refreshes before resubmitting the route.');}} />
         <DeliveryConversation delivery={delivery} />
-        <p>Delivery: {delivery.status.replaceAll('_',' ')} · Proof: {delivery.proof_review_status.replaceAll('_',' ')}</p>
+        <p className="delivery-ops-delivery-status">Delivery: {delivery.status.replaceAll('_',' ')} · Proof: {delivery.proof_review_status.replaceAll('_',' ')}</p>
         {delivery.proof_review_reason && <p>{delivery.proof_review_reason}</p>}
-        {delivery.pickup_arrived_at && <p>Pickup arrival {time(delivery.pickup_arrived_at)} · Grace ends {time(delivery.grace_ends_at)} · Wait threshold {time(delivery.auto_cancel_at)}</p>}
+        {delivery.pickup_arrived_at && <p className="delivery-ops-meta">Pickup arrival {time(delivery.pickup_arrived_at)} · Grace ends {time(delivery.grace_ends_at)} · Wait threshold {time(delivery.auto_cancel_at)}</p>}
         {shipmentStatus==='review' && delivery.proof_review_status==='pending_review' && <div className="booking-review-actions">
           <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.action(delivery,'request_correction',reason))}>Request corrected proof</button>
           <button type="button" className="btn-primary" disabled={busy || refreshRequired || data.incidents.some(incident=>!incident.resolved_at)} onClick={()=>run(()=>service.action(delivery,'complete'))}>Confirm delivery completion</button>
         </div>}
         {delivery.status==='assigned' && delivery.pickup_arrived_at && !delivery.customer_showed_at && <button type="button" disabled={busy || refreshRequired || reason.trim().length<5 || !delivery.auto_cancel_at || Date.parse(delivery.auto_cancel_at)>now} onClick={()=>run(()=>service.action(delivery,'cancel_no_show',reason))}>Confirm no-show cancellation</button>}
-        {data.incidents.filter(incident=>!incident.resolved_at).map(incident=><div key={incident.id}><p>{incident.category}: {incident.description} · {incident.delay_minutes ?? 0} minutes</p><button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.resolveIncident(incident,delivery,reason))}>Resolve incident</button></div>)}
+        {data.incidents.filter(incident=>!incident.resolved_at).map(incident=><div key={incident.id} className="delivery-ops-item"><p>{incident.category}: {incident.description} · {incident.delay_minutes ?? 0} minutes</p><button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.resolveIncident(incident,delivery,reason))}>Resolve incident</button></div>)}
       </div>)}
     </>}
   </section>;

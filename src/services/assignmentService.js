@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { sanitizePlateNumber } from './officialVehicleModels.js';
 
 export const DRIVER_DOCUMENTS = ['drivers_license', 'medical_certificate', 'nbi_clearance'];
 export const TRUCK_DOCUMENTS = ['lto_registration', 'franchise_permit', 'emission_test'];
@@ -63,7 +64,8 @@ export function buildAssignmentOptions(data, today) {
     else if (data.maintenance.some(row => row.truck_id === truck.id && row.status === 'in_progress')) reason = 'Active maintenance';
     else if (otherActive.some(row => row.truck_id === truck.id)) reason = 'Reserved by another delivery';
     else if (!compliant(latest, truck.id, TRUCK_DOCUMENTS, today)) reason = 'Compliance documents incomplete';
-    return { ...truck, eligible: !reason, reason };
+    const plate = typeof sanitizePlateNumber === 'function' ? sanitizePlateNumber(truck.plate_number) : truck.plate_number;
+    return { ...truck, plate_number: plate, eligible: !reason, reason };
   });
   return { shipment: data.shipment, current, blockedReason, drivers, trucks };
 }
