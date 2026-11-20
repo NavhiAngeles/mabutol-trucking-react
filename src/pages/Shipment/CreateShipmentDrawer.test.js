@@ -77,6 +77,9 @@ test('actual booking payload persists confirmed route geometry, toll fees, drive
   assert.equal(payload.driver_allowance, 650);
   assert.equal(payload.toll_fees, 211);
   assert.equal(payload.created_by, 'office-user-uuid');
+  assert.equal(payload.quoted_amount, 5200);
+  assert.equal(payload.override_amount, null);
+  assert.equal('final_amount' in payload, false);
   assert.equal(payload.route_duration_minutes, 60);
   assert.equal(payload.route_source, 'provider');
   assert.equal(payload.route_geometry.booking_pricing.toll_amount, 211);

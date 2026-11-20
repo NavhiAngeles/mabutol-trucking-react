@@ -230,3 +230,50 @@ test('createShipment gracefully recovers from schema cache missing column error'
   assert.equal(insertedPayloads[1].toll_fees, 100);
 });
 
+test('createShipment strips generated final_amount upfront and recovers from generated-column insert errors', async () => {
+  let attempt = 0;
+  const insertedPayloads = [];
+  const context = { console, supabase: {
+    from(table) {
+      const q = {
+        insert(payload) {
+          insertedPayloads.push({ ...payload });
+          return q;
+        },
+        select() { return q; }, eq() { return q; }, neq() { return q; },
+        async single() {
+          attempt++;
+          if (attempt === 1) {
+            return {
+              data: null,
+              error: { message: 'cannot insert a non-DEFAULT value into column "computed_col"', code: '428C9' }
+            };
+          }
+          return { data: { id: 's-gen', status: 'booked', final_amount: 2500 }, error: null };
+        },
+        async maybeSingle() { return { data: null, error: null }; }
+      };
+      assert.ok(['shipments', 'deliveries'].includes(table));
+      return q;
+    }
+  }};
+  vm.createContext(context);
+  const source = fs.readFileSync(new URL('./shipmentService.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.api = {createShipment};', context);
+  const result = await context.api.createShipment({
+    pickup_address: 'A',
+    dropoff_address: 'B',
+    quoted_amount: 2500,
+    override_amount: null,
+    final_amount: 2500,
+    computed_col: 123,
+  });
+  assert.equal(result.id, 's-gen');
+  assert.equal(result.final_amount, 2500);
+  assert.equal(attempt, 2);
+  assert.equal('final_amount' in insertedPayloads[0], false);
+  assert.equal(insertedPayloads[0].computed_col, 123);
+  assert.equal('computed_col' in insertedPayloads[1], false);
+});
+

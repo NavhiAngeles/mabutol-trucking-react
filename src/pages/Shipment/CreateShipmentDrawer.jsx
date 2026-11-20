@@ -1748,10 +1748,6 @@ export default function CreateShipmentDrawer({ isOpen, onClose, onCreated }) {
           form.overrideAmount.trim() !== ""
             ? Number(form.overrideAmount)
             : null,
-        final_amount:
-          form.overrideAmount.trim() !== ""
-            ? Number(form.overrideAmount)
-            : suggestedCharge,
 
         status: "booked",
         booking_source: "web",

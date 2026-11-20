@@ -120,16 +120,18 @@ export async function assignShipmentResources(shipmentId) {
 // A read failure after a successful insert must never invite a duplicate booking.
 export async function createShipment(payload) {
   let currentPayload = { ...payload };
+  delete currentPayload.final_amount;
   let { data, error } = await supabase.from('shipments').insert(currentPayload).select().single();
 
-  // Gracefully handle schema cache mismatches when optional columns are missing in remote schema cache
+  // Gracefully handle schema cache mismatches or generated columns on insert
   while (error) {
     const match = String(error.message || '').match(/Could not find the '(\w+)' column of 'shipments' in the schema cache/i)
       || String(error.message || '').match(/column ["']?(\w+)["']? of relation ["']?shipments["']? does not exist/i)
-      || String(error.details || '').match(/column ["']?(\w+)["']? of relation ["']?shipments["']? does not exist/i);
-    const missingColumn = match?.[1];
-    if (missingColumn && missingColumn in currentPayload) {
-      delete currentPayload[missingColumn];
+      || String(error.details || '').match(/column ["']?(\w+)["']? of relation ["']?shipments["']? does not exist/i)
+      || String(error.message || '').match(/cannot insert a non-DEFAULT value into column ["']?(\w+)["']?/i);
+    const rejectedColumn = match?.[1];
+    if (rejectedColumn && rejectedColumn in currentPayload) {
+      delete currentPayload[rejectedColumn];
       const retryResult = await supabase.from('shipments').insert(currentPayload).select().single();
       data = retryResult.data;
       error = retryResult.error;
