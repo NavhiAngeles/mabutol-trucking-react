@@ -56,3 +56,24 @@ export function vehicleFitsShipmentWeight(vehicle, weight) {
     truckCapacity <= cargoWeight + MAX_EXTRA_CAPACITY_KG
   );
 }
+
+export function classifyVehicleWeightFit(vehicle, weight) {
+  const cargoWeight = Number(weight);
+  const truckCapacity = Number(vehicle?.default_capacity_kg);
+
+  if (
+    weight === "" ||
+    weight === null ||
+    weight === undefined ||
+    !Number.isFinite(cargoWeight) ||
+    cargoWeight <= 0
+  ) {
+    return "missing_weight";
+  }
+
+  if (!vehicleCanCarry(vehicle, cargoWeight)) {
+    return "overweight";
+  }
+
+  return truckCapacity - cargoWeight <= 2000 ? "best_fit" : "oversized";
+}

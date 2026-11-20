@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { attachVehiclePricing, vehicleBaseRate, vehicleCanCarry, pricingDate, bookingDefaults } from "./vehiclePricing.js";
+import { attachVehiclePricing, vehicleBaseRate, vehicleCanCarry, classifyVehicleWeightFit, pricingDate, bookingDefaults } from "./vehiclePricing.js";
 const vehicle = { id: "vehicle-a", is_active: true, default_capacity_kg: 2500 };
 const rate = { id: "rate-a", vehicle_type_id: vehicle.id, is_active: true, effective_from: "2026-10-12", effective_to: null, per_km_rate: "45", min_charge: "2500" };
 const priced = { ...vehicle, pricing: rate };
@@ -29,6 +29,16 @@ test("uses actual capacity, blocks overweight and invalid capacities", () => {
   assert.equal(vehicleCanCarry(priced, 2500), true);
   assert.equal(vehicleCanCarry(priced, 2501), false);
   assert.equal(vehicleCanCarry({ ...priced, default_capacity_kg: null }, 1), false);
+});
+test("classifies vehicle weight fit without blocking bulky light FTL loads", () => {
+  const heavy = { id: "heavy", is_active: true, default_capacity_kg: 10000 };
+  assert.equal(classifyVehicleWeightFit(heavy, ""), "missing_weight");
+  assert.equal(classifyVehicleWeightFit(heavy, "0"), "missing_weight");
+  assert.equal(classifyVehicleWeightFit(heavy, "-5"), "missing_weight");
+  assert.equal(classifyVehicleWeightFit(heavy, "10001"), "overweight");
+  assert.equal(classifyVehicleWeightFit(heavy, "9000"), "best_fit");
+  assert.equal(classifyVehicleWeightFit(heavy, "8000"), "best_fit");
+  assert.equal(classifyVehicleWeightFit(heavy, "1500"), "oversized");
 });
 test("rejects missing/mismatched pricing and invalid distance or rates", () => {
   for (const distance of ["", null, -1, "bad", Infinity]) assert.equal(vehicleBaseRate(priced, distance), null);
