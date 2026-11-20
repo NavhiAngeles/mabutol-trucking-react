@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.114.0";
-import { chooseExpresswayRoute, expresswayCoverage, tollSections } from './tollRoute.js';
+import { chooseExpresswayRoute, expresswayCoverage, tollSections, valhallaResponseToOrsResult } from './tollRoute.js';
 import { metroManilaRoads } from './metroManilaRoads.js';
 import { northLuzonRoads } from './northLuzonRoads.js';
 import { southLuzonRoads } from './southLuzonRoads.js';
@@ -81,6 +81,19 @@ function decodePolyline(encoded, precision = 5) {
 
   return coordinates;
 }
+
+const isTransientProviderError = (error) => {
+  if (!error || error.name === "AbortError") return false;
+  const text = String(error.message || "");
+  return (
+    error.name === "TimeoutError" ||
+    error.name === "TypeError" ||
+    error instanceof TypeError ||
+    /error sending request|connection refused|tcp connect|os error 111|failed to fetch|networkerror|econnrefused|enotfound|timed out|timeout/i.test(
+      text
+    )
+  );
+};
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
@@ -177,57 +190,177 @@ Deno.serve(async (request) => {
         body: JSON.stringify(body),
       }
     );
-    let response = await requestProvider(providerBody);
-    // Hosted alternatives have a shorter distance limit than normal routes.
-    // Retry a standard fastest route on a rejected alternatives request, still
-    // requiring verified toll-expressway categories before returning success.
-    if (response.status === 400 && tollPreference === true) {
-      await response.text();
-      const standard = { ...providerBody };
-      delete standard.alternative_routes;
-      response = await requestProvider(standard);
-    }
+    const fetchProviderWithRetry = async (body) => {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const providerResponse = await requestProvider(body);
+          if (
+            ![502, 503, 504].includes(providerResponse.status) ||
+            attempt === 1
+          ) {
+            return providerResponse;
+          }
+        } catch (providerError) {
+          if (attempt === 1 || !isTransientProviderError(providerError)) {
+            throw providerError;
+          }
+        }
+        if (typeof setTimeout === "function") {
+          await new Promise((resolve) => setTimeout(resolve, 350));
+        }
+      }
+    };
 
-    const rawResponse = await response.text();
+    const requestValhallaFallback = async () => {
+      const valhallaBody = {
+        locations: [
+          { lon: pickup.lng, lat: pickup.lat },
+          { lon: destination.lng, lat: destination.lat },
+        ],
+        costing: "truck",
+        costing_options: {
+          truck: {
+            use_ferry: 0,
+            use_tolls: tollPreference === false ? 0 : 1,
+            use_highways: tollPreference === false ? 0.5 : 1,
+          },
+        },
+        ...(tollPreference === true ? { alternates: 2 } : {}),
+        units: "kilometers",
+      };
+      const valhallaResponse = await fetch(
+        "https://valhalla1.openstreetmap.de/route",
+        {
+          method: "POST",
+          signal: AbortSignal.timeout(15000),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(valhallaBody),
+        }
+      );
+      const valhallaText = await valhallaResponse.text();
+      let valhallaJson = null;
+      try {
+        valhallaJson = JSON.parse(valhallaText);
+      } catch {
+        return null;
+      }
+      if (!valhallaResponse.ok) {
+        if (
+          valhallaResponse.status === 400 &&
+          /no route|ferry|island|unreachable/i.test(
+            String(valhallaJson?.error || "")
+          )
+        ) {
+          return {
+            noRoadRoute: true,
+          };
+        }
+        return null;
+      }
+      const adapted = valhallaResponseToOrsResult(
+        valhallaJson,
+        decodePolyline,
+        luzonRoads
+      );
+      return adapted.routes?.length ? { result: adapted } : null;
+    };
 
-    let result;
+    let result = null;
+    let orsUnavailableError = null;
+    let response = null;
 
     try {
-      result = JSON.parse(rawResponse);
-    } catch {
-      return jsonResponse(
-        {
-          error: rawResponse ||
-            "Invalid response from OpenRouteService.",
-          upstreamStatus: response.status,
-        },
-        502
-      );
+      response = await fetchProviderWithRetry(providerBody);
+      // Hosted alternatives have a shorter distance limit than normal routes.
+      // Retry a standard fastest route on a rejected alternatives request, still
+      // requiring verified toll-expressway categories before returning success.
+      if (response.status === 400 && tollPreference === true) {
+        await response.text();
+        const standard = { ...providerBody };
+        delete standard.alternative_routes;
+        response = await fetchProviderWithRetry(standard);
+      }
+    } catch (providerError) {
+      if (!isTransientProviderError(providerError)) {
+        throw providerError;
+      }
+      orsUnavailableError = providerError;
     }
 
-    if (!response.ok) {
-      if(driverPreview)return jsonResponse({error:'Road preview provider unavailable. Reconnect and retry.'},502);
-      console.error("OpenRouteService error:", {
-        status: response.status,
-        message:
-          result?.error?.message ||
-          (typeof result?.error === "string" ? result.error : null) ||
-          result?.message ||
-          `Routing failed (${response.status}).`,
-      });
+    if (
+      orsUnavailableError ||
+      (response && [502, 503, 504].includes(response.status))
+    ) {
+      try {
+        const fallback = await requestValhallaFallback();
+        if (fallback?.noRoadRoute) {
+          return jsonResponse(
+            {
+              error:
+                "No road-only truck route was returned. Select the port's truck entrance or access road.",
+            },
+            422
+          );
+        }
+        if (fallback?.result) {
+          result = fallback.result;
+        }
+      } catch {
+        // Keep original provider error if fallback also fails.
+      }
+      if (!result && orsUnavailableError) {
+        throw orsUnavailableError;
+      }
+    }
 
-      return jsonResponse(
-        {
-          error:
+    if (!result) {
+      const rawResponse = await response.text();
+
+      try {
+        result = JSON.parse(rawResponse);
+      } catch {
+        return jsonResponse(
+          {
+            error:
+              rawResponse || "Invalid response from OpenRouteService.",
+            upstreamStatus: response.status,
+          },
+          502
+        );
+      }
+
+      if (!response.ok) {
+        if (driverPreview) {
+          return jsonResponse(
+            { error: "Road preview provider unavailable. Reconnect and retry." },
+            502
+          );
+        }
+        console.error("OpenRouteService error:", {
+          status: response.status,
+          message:
             result?.error?.message ||
             (typeof result?.error === "string" ? result.error : null) ||
             result?.message ||
             `Routing failed (${response.status}).`,
-          upstreamStatus: response.status,
-          details: result,
-        },
-        response.status
-      );
+        });
+
+        return jsonResponse(
+          {
+            error:
+              result?.error?.message ||
+              (typeof result?.error === "string" ? result.error : null) ||
+              result?.message ||
+              `Routing failed (${response.status}).`,
+            upstreamStatus: response.status,
+            details: result,
+          },
+          response.status
+        );
+      }
     }
 
     // Never label an ordinary road route as a toll expressway. ORS waycategory
@@ -363,6 +496,16 @@ Deno.serve(async (request) => {
       name: error instanceof Error ? error.name : "Error",
       message: error instanceof Error ? error.message : "Unable to calculate route.",
     });
+
+    if (isTransientProviderError(error)) {
+      return jsonResponse(
+        {
+          error:
+            "The truck routing service (OpenRouteService) is temporarily unreachable. Please wait a moment and try again.",
+        },
+        503
+      );
+    }
 
     return jsonResponse(
       {

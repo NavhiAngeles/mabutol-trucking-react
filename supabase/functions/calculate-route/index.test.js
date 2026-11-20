@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { automaticTollQuote } from '../../../src/services/tollPricing.js';
-function setup({role='admin',active=true,authError=false,providerStatus=200,preview=false,deliveryId,routeContext,accessError=false,geometry='_qbxA__haV_|Bo}@ozDo}@',routes,providerStatuses}={}) {
+function setup({role='admin',active=true,authError=false,providerStatus=200,preview=false,deliveryId,routeContext,accessError=false,geometry='_qbxA__haV_|Bo}@ozDo}@',routes,providerStatuses,fetchImpl}={}) {
  let handler,calls=0,sent;
- const context=vm.createContext({Request,Response,URL,AbortSignal,console:{error(){}},fetch:async(url,options)=>{calls++;sent=JSON.parse(options.body);const status=providerStatuses?.[calls-1] ?? providerStatus;return new Response(JSON.stringify(status===200?{routes:routes || [{summary:{distance:10000,duration:600},geometry,extras:{waycategory:{values:[[0,1,0]]}}}]}:{error:'Provider denied'}),{status});},
+ const context=vm.createContext({Request,Response,URL,AbortSignal,console:{error(){}},fetch:async(url,options)=>{calls++;sent=JSON.parse(options.body);if(fetchImpl)return fetchImpl({url,options,calls,sent});const status=providerStatuses?.[calls-1] ?? providerStatus;return new Response(JSON.stringify(status===200?{routes:routes || [{summary:{distance:10000,duration:600},geometry,extras:{waycategory:{values:[[0,1,0]]}}}]}:{error:'Provider denied'}),{status});},
   Deno:{env:{get:()=> 'fixture'},serve:callback=>{handler=callback;}},
   createClient:()=>({auth:{getUser:async()=>({data:{user:authError?null:{id:'office'}},error:authError})},rpc:async(name,args)=>({data:routeContext,error:accessError || args.p_delivery!=='own-delivery'}),from:()=>({select(){return this;},eq(){return this;},single:async()=>({data:{role,is_active:active}})})})});
  vm.runInContext(fs.readFileSync(new URL('./metroManilaRoads.js',import.meta.url),'utf8').replace(/^export /gm,''),context);
@@ -196,4 +196,41 @@ test('real CAVITEX Kawit and CALAX Silang routes identify South Luzon corridors 
 
  // Ambiguous duplicate rate fails closed
  assert.throws(() => automaticTollQuote(true, { toll_class: 'Class 2' }, calaxBody.geojson, [...calaxRates, { ...calaxRates[0], id: 'cal-dup' }]), /Multiple rates/);
+});
+
+test('retries once on transient OpenRouteService TCP connect failure, falls back to Valhalla when available, and returns friendly 503 if all providers fail', async () => {
+ const valhallaSample = {
+   trip: {
+     legs: [{
+       shape: '}_ilA~kb~U_cB_cB',
+       summary: { length: 3.42, time: 702, has_ferry: false, has_toll: false },
+       maneuvers: [{ street_names: ['Mel Lopez Boulevard'], begin_shape_index: 0, end_shape_index: 1, length: 3.42 }],
+     }],
+   },
+ };
+ const recovered = setup({
+   fetchImpl: async ({ url }) => {
+     if (String(url).includes('valhalla')) {
+       return new Response(JSON.stringify(valhallaSample), { status: 200 });
+     }
+     throw new TypeError('error sending request for url (https://api.heigit.org/openrouteservice/v2/directions/driving-hgv): client error (Connect): tcp connect error: Connection refused (os error 111)');
+   },
+ });
+ const okRes = await recovered.call('Bearer fixture', { usesTollRoad: false });
+ assert.equal(okRes.status, 200);
+ const okBody = await okRes.json();
+ assert.equal(okBody.roadOnlyVerified, true);
+ assert.equal(okBody.distanceKm, 3.4);
+
+ const api = setup({
+   fetchImpl: async () => {
+     throw new TypeError('error sending request for url (https://api.heigit.org/openrouteservice/v2/directions/driving-hgv): client error (Connect): tcp connect error: Connection refused (os error 111)');
+   },
+ });
+ const response = await api.call('Bearer fixture', { usesTollRoad: true });
+ assert.equal(api.calls(), 3);
+ assert.equal(response.status, 503);
+ const payload = await response.json();
+ assert.match(payload.error, /temporarily unreachable/i);
+ assert.doesNotMatch(payload.error, /api\.heigit\.org|os error 111|tcp connect/i);
 });

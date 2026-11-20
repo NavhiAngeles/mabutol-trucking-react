@@ -155,3 +155,111 @@ export function tollSections(route, decode, centerlines = []) {
   }
   return sections;
 }
+
+export function encodePolyline(coordinates, precision = 5) {
+  const factor = Math.pow(10, precision);
+  let prevLat = 0;
+  let prevLng = 0;
+  let output = "";
+  const encodeValue = (value) => {
+    let num = value < 0 ? ~(value << 1) : value << 1;
+    let chunk = "";
+    while (num >= 0x20) {
+      chunk += String.fromCharCode((0x20 | (num & 0x1f)) + 63);
+      num >>= 5;
+    }
+    chunk += String.fromCharCode(num + 63);
+    return chunk;
+  };
+  for (const [lng, lat] of coordinates || []) {
+    const rLat = Math.round(lat * factor);
+    const rLng = Math.round(lng * factor);
+    output += encodeValue(rLat - prevLat) + encodeValue(rLng - prevLng);
+    prevLat = rLat;
+    prevLng = rLng;
+  }
+  return output;
+}
+
+export function valhallaTripToOrsRoute(trip, decode, centerlines = []) {
+  const leg = trip?.legs?.[0];
+  if (!leg || typeof leg.shape !== "string") return null;
+  const coordinates = decode(leg.shape, 6);
+  const edgeCount = coordinates.length - 1;
+  if (edgeCount < 1) return null;
+
+  const edgeMasks = new Array(edgeCount).fill(0);
+  const steps = [];
+
+  for (const maneuver of leg.maneuvers || []) {
+    const start = Math.max(
+      0,
+      Math.min(edgeCount, Number(maneuver.begin_shape_index) || 0)
+    );
+    const end = Math.max(
+      start,
+      Math.min(edgeCount, Number(maneuver.end_shape_index) || start)
+    );
+    if (end <= start) continue;
+
+    const names = [
+      ...(maneuver.street_names || []),
+      ...(maneuver.begin_street_names || []),
+    ].filter(Boolean);
+    const stepName = names.join(" / ");
+    const code = highwayCode(stepName);
+    const isHighway = Boolean(maneuver.highway || maneuver.toll || code);
+    const isToll = Boolean(maneuver.toll || code);
+    const mask =
+      (maneuver.ferry ? 8 : 0) | (isHighway ? 1 : 0) | (isToll ? 2 : 0);
+
+    for (let i = start; i < end; i += 1) {
+      edgeMasks[i] = mask;
+    }
+    steps.push({ name: stepName || "-", way_points: [start, end] });
+  }
+
+  if (centerlines.length > 0) {
+    for (let i = 0; i < edgeCount; i += 1) {
+      if ((edgeMasks[i] & 1) !== 0 && (edgeMasks[i] & 2) === 0) {
+        if (mappedHighway(coordinates[i], coordinates[i + 1], centerlines)) {
+          edgeMasks[i] |= 2;
+        }
+      }
+    }
+  }
+
+  if (leg.summary?.has_ferry && !edgeMasks.some((mask) => (mask & 8) !== 0)) {
+    edgeMasks[0] |= 8;
+  }
+
+  const values = [];
+  for (let i = 0; i < edgeCount; ) {
+    const mask = edgeMasks[i];
+    let j = i + 1;
+    while (j < edgeCount && edgeMasks[j] === mask) j += 1;
+    values.push([i, j, mask]);
+    i = j;
+  }
+
+  return {
+    summary: {
+      distance: Number(leg.summary?.length || 0) * 1000,
+      duration: Number(leg.summary?.time || 0),
+    },
+    geometry: encodePolyline(coordinates, 5),
+    extras: { waycategory: { values } },
+    segments: [{ steps }],
+  };
+}
+
+export function valhallaResponseToOrsResult(valhallaJson, decode, centerlines = []) {
+  const trips = [
+    valhallaJson?.trip,
+    ...(valhallaJson?.alternates || []).map((alt) => alt?.trip),
+  ].filter(Boolean);
+  const routes = trips
+    .map((trip) => valhallaTripToOrsRoute(trip, decode, centerlines))
+    .filter(Boolean);
+  return { routes };
+}
