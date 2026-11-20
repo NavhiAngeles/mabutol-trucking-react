@@ -59,7 +59,11 @@ export default function Overview() {
   const range = useReportRange(activeRange, custom);
   const memoCallback = typeof useCallback === 'function' ? useCallback : (fn) => fn;
   const loadData = memoCallback(() => getReportOverview(range), [range.start, range.end]);
-  const live = useLiveData(loadData, REPORT_TABLES);
+  const live = useLiveData(loadData, REPORT_TABLES, {
+    cacheKey: `report:overview:${range.start || 'all'}:${range.end || 'all'}`,
+    staleTime: 30000,
+    pollInterval: 60000,
+  });
 
   const report = live.data && summarizeOverview(live.data, range);
   const initialLoading = live.loading && !report;

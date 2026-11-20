@@ -8,6 +8,7 @@ import './deliveryWorkflow.css';
 import './deliveryConversation.css';
 
 const service = deliveryConversationService(supabase);
+const inboxThreadsCache = new Map();
 
 function avatarInitials(name) {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -46,7 +47,7 @@ function formatMessagePreview(row, isUnread) {
 
 export default function DeliveryConversationInbox(props = {}) {
   const { user } = useAuth();
-  return user && <Inbox key={user.id} {...(props || {})} />;
+  return user && <Inbox key={user.id} userId={user.id} {...(props || {})} />;
 }
 
 function Inbox(props = {}) {
@@ -83,7 +84,9 @@ function Inbox(props = {}) {
     }
   };
 
-  const [rows, setRows] = useState(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
+  const cacheKey = props?.userId || 'default';
+  const cachedRows = inboxThreadsCache.get(cacheKey) || null;
+  const [rows, setRows] = useState(cachedRows), [error, setError] = useState(''), [revision, setRevision] = useState(0);
   const [selected, setSelected] = useState(null), [opened, setOpened] = useState([]), [refreshing, setRefreshing] = useState(false);
   const containerRef = useRef(null);
   const triggerRef = useRef(null);
@@ -153,12 +156,15 @@ function Inbox(props = {}) {
     const fetchThreads = typeof service.threads === 'function' ? service.threads() : service.unread();
     fetchThreads
       .then(result => {
+        const nextRows = Array.isArray(result) ? result : [];
+        inboxThreadsCache.set(cacheKey, nextRows);
         if (active) {
-          setRows(Array.isArray(result) ? result : []);
+          setRows(nextRows);
           setError('');
         }
       })
       .catch(err => {
+        inboxThreadsCache.delete(cacheKey);
         if (active) {
           setRows(null);
           setError(err.message);
@@ -168,18 +174,18 @@ function Inbox(props = {}) {
         if (active) setRefreshing(false);
       });
     return () => { active = false; };
-  }, [revision]);
+  }, [revision, cacheKey]);
 
   const unread = rows?.reduce((total, row) => total + Number(row.unread || 0), 0) || 0;
   const isRefreshing = refreshing || (!rows && !error);
   // Keep any session-opened threads accessible alongside persisted read & unread threads.
   const visibleThreads = rows
     ? [
-        ...rows,
-        ...opened
-          .filter(thread => !rows.some(row => `${row.delivery_id}:${row.driver_id}` === thread.key))
-          .map(thread => ({ ...thread, unread: 0 })),
-      ]
+      ...rows,
+      ...opened
+        .filter(thread => !rows.some(row => `${row.delivery_id}:${row.driver_id}` === thread.key))
+        .map(thread => ({ ...thread, unread: 0 })),
+    ]
     : [];
 
   return (
@@ -195,8 +201,8 @@ function Inbox(props = {}) {
         onClick={handleToggle}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2Z"/>
-          <path d="M7 9h10M7 13h6"/>
+          <path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2Z" />
+          <path d="M7 9h10M7 13h6" />
         </svg>
         {unread > 0 && <span className="office-unread-count" aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
       </button>

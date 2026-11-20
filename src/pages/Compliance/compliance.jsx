@@ -32,7 +32,12 @@ export default function Compliance() {
   const isVehicle = activeTab === "vehicle";
   const loader = isVehicle ? getTruckComplianceRows : getDriverComplianceRows;
   const tables = isVehicle ? TRUCK_TABLES : DRIVER_TABLES;
-  const { data, loading, error, refresh } = useLiveData(loader, tables);
+  const cacheKey = isVehicle ? "compliance:vehicle" : "compliance:driver";
+  const { data, loading, error, refresh } = useLiveData(loader, tables, {
+    cacheKey,
+    staleTime: 15000,
+    pollInterval: 30000,
+  });
 
   const rawRows = Array.isArray(data) ? data : [];
   const validRows = rawRows.filter(row => isVehicle ? Boolean(row.truck) : Boolean(row.driver));
@@ -87,7 +92,26 @@ export default function Compliance() {
             </p>
           </div>
           <div className="compliance-header-actions">
-            <div className="tab-pill-box compliance-tabs" role="tablist" aria-label="Compliance section">
+            <div
+              className="tab-pill-box compliance-tabs"
+              role="tablist"
+              aria-label="Compliance section"
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Home' && event.key !== 'End') return;
+                event.preventDefault();
+                const nextTab =
+                  event.key === 'Home'
+                    ? 'driver'
+                    : event.key === 'End'
+                      ? 'vehicle'
+                      : isVehicle
+                        ? 'driver'
+                        : 'vehicle';
+                handleTabChange(nextTab);
+                const targetId = nextTab === 'vehicle' ? '#vehicleComplianceTab' : '#driverComplianceTab';
+                event.currentTarget.querySelector?.(targetId)?.focus?.();
+              }}
+            >
               <button
                 type="button"
                 role="tab"

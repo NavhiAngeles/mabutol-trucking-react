@@ -64,9 +64,10 @@ export function useCustomerDirectory({ enabled = true, includeBookings = false, 
       clearTimeout(debounce);
       debounce = setTimeout(() => load(true), 250);
     };
-    const manualRefresh = () => load();
+    const manualRefresh = () => load(false);
+    const initialLoad = () => load(true);
     refreshRef.current = manualRefresh;
-    const initial = setTimeout(manualRefresh, 0);
+    const initial = setTimeout(initialLoad, 0);
     // Customers are not published to Realtime: polling is the schema-free fallback.
     const polling = setInterval(() => {
       if (typeof document === "undefined" || document.visibilityState !== "hidden") {
@@ -76,7 +77,7 @@ export function useCustomerDirectory({ enabled = true, includeBookings = false, 
     const visible = () => { if (document.visibilityState === "visible") queue(); };
     window.addEventListener("focus", queue);
     document.addEventListener("visibilitychange", visible);
-    const unsubscribe = includeBookings ? subscribeCustomerBookings(queue) : () => {};
+    const unsubscribe = includeBookings ? subscribeCustomerBookings(queue) : () => { };
     return () => {
       cancelled = true;
       clearTimeout(initial);
@@ -116,7 +117,7 @@ export function buildCustomerRows(customers, bookings) {
   }
 
   return customers.map(customer => {
-    const records = (grouped.get(customer.id) || []).slice().sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0));
+    const records = (grouped.get(customer.id) || []).toSorted((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0));
     const totalBookings = records.length;
     const bookingDates = new Array(totalBookings);
     for (let i = 0; i < totalBookings; i++) {

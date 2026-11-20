@@ -176,8 +176,20 @@ function ModernTimePicker({ id, value, onChange, disabled, open, onOpenChange })
         onOpenChange(false);
       }
     };
+    const handleEscape = event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onOpenChange(false);
+        triggerBtnRef.current?.focus?.();
+      }
+    };
     document.addEventListener('mousedown', handleOutside);
-    return () => document.removeEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, [open, onOpenChange]);
 
   return (
@@ -339,9 +351,28 @@ function SchedulePanel({ type }) {
         if (exportOpenRef.current) return;
         if (timeOpenRef.current) {
           setTimeOpen(false);
+          document.getElementById('report-schedule-time')?.focus?.();
           return;
         }
         closeDialog();
+      } else if (event.key === 'Tab' && dialogRef.current && !exportOpenRef.current) {
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll?.(
+            'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          ) || []
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey) {
+          if (document.activeElement === first || !dialogRef.current.contains?.(document.activeElement)) {
+            event.preventDefault();
+            last.focus?.();
+          }
+        } else if (document.activeElement === last || !dialogRef.current.contains?.(document.activeElement)) {
+          event.preventDefault();
+          first.focus?.();
+        }
       }
     };
     if (typeof document !== 'undefined') {
@@ -421,17 +452,17 @@ function SchedulePanel({ type }) {
           {!data.schedules.length
             ? <p className="rs-empty">No schedules yet. Choose a frequency and time above to create one.</p>
             : <div className="rs-list">
-                {data.schedules.map(schedule => <div className="report-schedule-row" key={schedule.id}>
-                  <div className="rs-row-main">
-                    <div className="rs-row-title">
-                      <span className="rs-cap">{schedule.frequency}</span> at <span className="rs-tabular">{schedule.local_time.slice(0, 5)}</span>
-                      <span className={`rs-badge ${schedule.enabled ? 'rs-badge-active' : 'rs-badge-paused'}`}>{schedule.enabled ? 'Active' : 'Paused'}</span>
-                    </div>
-                    <small className="rs-row-meta">{schedule.enabled ? `Next run: ${date(schedule.next_run_at)}` : 'Schedule paused'}</small>
+              {data.schedules.map(schedule => <div className="report-schedule-row" key={schedule.id}>
+                <div className="rs-row-main">
+                  <div className="rs-row-title">
+                    <span className="rs-cap">{schedule.frequency}</span> at <span className="rs-tabular">{schedule.local_time.slice(0, 5)}</span>
+                    <span className={`rs-badge ${schedule.enabled ? 'rs-badge-active' : 'rs-badge-paused'}`}>{schedule.enabled ? 'Active' : 'Paused'}</span>
                   </div>
-                  <button type="button" className="rs-btn rs-btn-secondary rs-btn-sm" disabled={busy} onClick={() => act(async () => { await reportSchedules.toggle(schedule); refresh(); })}>{schedule.enabled ? 'Pause' : 'Resume'}</button>
-                </div>)}
-              </div>}
+                  <small className="rs-row-meta">{schedule.enabled ? `Next run: ${date(schedule.next_run_at)}` : 'Schedule paused'}</small>
+                </div>
+                <button type="button" className="rs-btn rs-btn-secondary rs-btn-sm" disabled={busy} onClick={() => act(async () => { await reportSchedules.toggle(schedule); refresh(); })}>{schedule.enabled ? 'Pause' : 'Resume'}</button>
+              </div>)}
+            </div>}
 
           <div className="rs-section-header rs-section-header-spaced">
             <h3>Generated reports</h3>
@@ -439,20 +470,20 @@ function SchedulePanel({ type }) {
           {!data.reports.length
             ? <p className="rs-empty">No generated reports on this page.</p>
             : <div className="rs-list">
-                {data.reports.map(report => <div className="report-schedule-row" key={report.id}>
-                  <div className="rs-row-main">
-                    <div className="rs-row-title rs-tabular">
-                      {report.period_start} to {report.period_end}
-                      <span className={`rs-badge ${report.status === 'ready' ? 'rs-badge-active' : report.status === 'failed' ? 'rs-badge-failed' : 'rs-badge-paused'}`}>
-                        {report.status === 'ready' ? 'Ready' : report.status === 'failed' ? 'Failed' : 'Pending'}
-                      </span>
-                    </div>
-                    <small className="rs-row-meta">Generated {date(report.generated_at)}</small>
-                    {report.status === 'failed' && <span className="rs-row-error" role="alert">{report.error_message}</span>}
+              {data.reports.map(report => <div className="report-schedule-row" key={report.id}>
+                <div className="rs-row-main">
+                  <div className="rs-row-title rs-tabular">
+                    {report.period_start} to {report.period_end}
+                    <span className={`rs-badge ${report.status === 'ready' ? 'rs-badge-active' : report.status === 'failed' ? 'rs-badge-failed' : 'rs-badge-paused'}`}>
+                      {report.status === 'ready' ? 'Ready' : report.status === 'failed' ? 'Failed' : 'Pending'}
+                    </span>
                   </div>
-                  <button type="button" className="rs-btn rs-btn-secondary rs-btn-sm" disabled={busy || report.status !== 'ready'} onClick={() => act(async () => { const snapshot = await reportSchedules.read(report.id); const reportData = snapshotReport(snapshot); setExportTarget({ range: { start: snapshot.period_start, end: snapshot.period_end }, reportData, filters: { 'Snapshot captured at': snapshot.generated_at } }); })}>Export</button>
-                </div>)}
-              </div>}
+                  <small className="rs-row-meta">Generated {date(report.generated_at)}</small>
+                  {report.status === 'failed' && <span className="rs-row-error" role="alert">{report.error_message}</span>}
+                </div>
+                <button type="button" className="rs-btn rs-btn-secondary rs-btn-sm" disabled={busy || report.status !== 'ready'} onClick={() => act(async () => { const snapshot = await reportSchedules.read(report.id); const reportData = snapshotReport(snapshot); setExportTarget({ range: { start: snapshot.period_start, end: snapshot.period_end }, reportData, filters: { 'Snapshot captured at': snapshot.generated_at } }); })}>Export</button>
+              </div>)}
+            </div>}
         </>}
       </div>
 

@@ -105,7 +105,11 @@ export default function ShipmentReport() {
   const range = useReportRange(activeRange, customRange);
   const memoCallback = typeof useCallback === 'function' ? useCallback : (fn) => fn;
   const loadData = memoCallback(() => getShipmentReportRecords(range), [range.start, range.end]);
-  const live = useLiveData(loadData, SHIPMENT_REPORT_TABLES);
+  const live = useLiveData(loadData, SHIPMENT_REPORT_TABLES, {
+    cacheKey: `report:shipments:${range.start || 'all'}:${range.end || 'all'}`,
+    staleTime: 30000,
+    pollInterval: 60000,
+  });
 
   const handleRangeClick = (key) => {
     setActiveRange(key);

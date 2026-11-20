@@ -11,11 +11,34 @@ export default function RowActionMenu({
   onDelete,
 }) {
   return (
-    <div className="action-menu-wrapper" ref={isOpen ? menuRef : null}>
+    <div
+      className="action-menu-wrapper"
+      ref={isOpen ? menuRef : null}
+      onKeyDown={(e) => {
+        if (!isOpen) return;
+        const items = Array.from(e.currentTarget.querySelectorAll?.('[role="menuitem"]:not([disabled])') || []);
+        if (items.length === 0) return;
+        const currentIndex = items.indexOf(document.activeElement);
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          items[(currentIndex + 1) % items.length]?.focus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          items[(currentIndex - 1 + items.length) % items.length]?.focus();
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          items[0]?.focus();
+        } else if (e.key === "End") {
+          e.preventDefault();
+          items[items.length - 1]?.focus();
+        }
+      }}
+    >
       <button
         type="button"
         className="action-dots-btn"
         aria-label={buttonAriaLabel}
+        aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={(e) => onOpenMenu(e, menuKey)}
       >

@@ -5,6 +5,7 @@ import { pendingDeparture } from './operationalStats';
 import { sanitizePlateNumber } from './officialVehicleModels.js';
 
 const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at,driver:drivers(full_name),truck:trucks(plate_number)';
+export const SHIPMENT_LIST_COLUMNS = 'id,tracking_number,customer_id,billing_customer_id,status,booking_source,cargo_category_id,cargo_description,weight_kg,special_handling,requested_vehicle_type_id,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name)';
 
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
 
@@ -458,7 +459,7 @@ export async function fetchShipments() {
     );
 
     const [data, deliveries] = await Promise.all([
-      fetchOperationalRows('shipments', '*,customer:customers!customer_id(name)'), fetchShipmentAssignments(),
+      fetchOperationalRows('shipments', SHIPMENT_LIST_COLUMNS), fetchShipmentAssignments(),
     ]);
     const error = null;
 

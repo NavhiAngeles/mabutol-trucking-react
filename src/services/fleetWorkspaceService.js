@@ -4,6 +4,8 @@ import { fetchOperationalRows } from './dashboardService';
 import { dispatchReadyIds } from './operationalStats';
 import { latestTracking } from './dashboardAnalytics.js';
 
+const FLEET_TRACKING_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 export const FLEET_TABLES = ['trucks', 'drivers', 'deliveries', 'maintenance_records', 'compliance_documents', 'tracking_logs', 'vehicle_types', 'cargo_categories', 'truck_cargo_categories', 'system_settings'];
 export function fleetDisplayStatus(truck, deliveries, maintenanceRecords) {
   if (truck.status === 'maintenance' || maintenanceRecords.some(m => m.truck_id === truck.id && m.status === 'in_progress')) return 'maintenance';
@@ -14,10 +16,23 @@ export function fleetDisplayStatus(truck, deliveries, maintenanceRecords) {
   return truck.status;
 }
 export async function getFleetSnapshot() {
+  const trackingCutoff = new Date(Date.now() - FLEET_TRACKING_WINDOW_MS).toISOString();
+  const trucksPromise = getTrucks();
+  const driversPromise = getDrivers();
   const [trucks, drivers, maintenanceRecords, vehicleTypes, cargoCategories, truckComplianceRows, driverComplianceRows, deliveries, gps] = await Promise.all([
-    getTrucks(), getDrivers(), getMaintenanceRecords(), getVehicleTypes(), getCargoCategories(), getTruckComplianceRows(), getDriverComplianceRows(),
+    trucksPromise,
+    driversPromise,
+    getMaintenanceRecords(),
+    getVehicleTypes(),
+    getCargoCategories(),
+    getTruckComplianceRows({ trucks: trucksPromise }),
+    getDriverComplianceRows({ drivers: driversPromise }),
     fetchOperationalRows('deliveries', 'id,truck_id,driver_id,status'),
-    fetchOperationalRows('tracking_logs', 'id,delivery_id,truck_id,driver_id,latitude,longitude,recorded_at'),
+    fetchOperationalRows(
+      'tracking_logs',
+      'id,delivery_id,truck_id,driver_id,latitude,longitude,recorded_at',
+      query => query.gte('recorded_at', trackingCutoff)
+    ),
   ]);
   const locations = latestTracking(gps, deliveries);
   const reservedDrivers = new Set(deliveries.filter(d => ['assigned', 'loading', 'in_transit'].includes(d.status)).map(d => d.driver_id));

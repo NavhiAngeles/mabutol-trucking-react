@@ -412,7 +412,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.dashboard-page .resources > p {
+.dashboard-page .resources>p {
   font-size: var(--text-caption);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
@@ -1217,14 +1217,17 @@
   font-size: var(--text-caption);
 }
 
-.dashboard-page .dashboard-sync button {
+.dashboard-page .dashboard-sync button,
+.dashboard-page .dashboard-sync .dashboard-retry-btn {
   margin-left: 6px;
   padding: 6px 12px;
+  min-height: 32px;
   border: 1px solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   color: var(--text-primary);
   font: inherit;
+  font-size: var(--text-caption);
   font-weight: 600;
   cursor: pointer;
 }

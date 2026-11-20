@@ -3,38 +3,71 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { setImmediate } from 'node:timers';
-import { transformWithOxc } from 'vite';
+import { transformWithEsbuild } from 'vite';
 
 const find = (node, predicate) => !node || typeof node !== 'object' ? [] : [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
+const textOf = node => {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  return (node.children || []).flat(Infinity).map(textOf).join(' ');
+};
 const tick = () => new Promise(resolve => setImmediate(resolve));
+const Icon = name => props => ({ type: name, props: props || {}, children: [] });
 
 async function screen(kind, security = {}, account = {}) {
   const path = kind === 'gate' ? '../../../components/MfaGate.jsx' : './security.jsx';
   const source = fs.readFileSync(new URL(path, import.meta.url), 'utf8');
-  const { code } = await transformWithOxc(source, 'screen.jsx', { jsx: { runtime: 'classic' } });
+  const { code } = await transformWithEsbuild(source, 'screen.jsx', { loader: 'jsx', jsx: 'transform' });
   const states = [], refs = [], effects = [];
   let si = 0, ri = 0;
   const scope = vm.createContext({
-    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    React: {
+      createElement: (type, props, ...children) => {
+        if (typeof type === 'function') return type({ ...(props || {}), children });
+        return { type, props: props || {}, children };
+      },
+    },
     useState(initial) { const i = si++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
     useRef(value) { return refs[ri++] ||= { current: value }; }, useEffect(fn) { effects.push(fn); },
-    OfficeTools() {},
-    WorkspaceLoadingScreen(props) { return { type: 'WorkspaceLoadingScreen', props, children: [] }; },
+    OfficeTools() { },
+    WorkspaceLoadingScreen: function WorkspaceLoadingScreen(props) { return { type: WorkspaceLoadingScreen, props, children: [] }; },
     SkeletonBlock({ width, height }) { return { type: 'SkeletonBlock', props: { width, height }, children: [] }; },
+    AlertCircle: Icon('AlertCircle'),
+    CheckCircle2: Icon('CheckCircle2'),
+    KeyRound: Icon('KeyRound'),
+    LogOut: Icon('LogOut'),
+    RefreshCw: Icon('RefreshCw'),
+    ShieldAlert: Icon('ShieldAlert'),
+    ShieldCheck: Icon('ShieldCheck'),
+    X: Icon('X'),
+    Badge: ({ children, ...p }) => ({ type: 'span', props: p, children }),
+    Button: ({ children, ...p }) => ({ type: 'button', props: p, children }),
+    Card: ({ children, ...p }) => ({ type: 'div', props: p, children }),
+    CardContent: ({ children, ...p }) => ({ type: 'div', props: p, children }),
+    CardDescription: ({ children, ...p }) => ({ type: 'p', props: p, children }),
+    CardHeader: ({ children, ...p }) => ({ type: 'div', props: p, children }),
+    CardTitle: ({ children, ...p }) => ({ type: 'h2', props: p, children }),
+    Skeleton: props => ({ type: 'div', props, children: [] }),
     securityApi: { load: async () => ({ email: 'fixture@example.test', twoFactorEnabled: false, twoFactorPhone: '', factors: [] }), assurance: async () => ({ required: false, factors: [] }), ...security },
     accountApi: account,
   });
-  vm.runInContext(code.replace(/^import .*;$/gm, '').replace(/export default function/g, 'function') + `\nthis.component=${kind === 'gate' ? 'MfaGate' : 'SecurityDetails'};`, scope);
+  vm.runInContext(
+    code
+      .replace(/^import[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, '')
+      .replace(/^import\s+['"][^'"]+['"];?\s*$/gm, '')
+      .replace(/export default function/g, 'function') + `\nthis.component=${kind === 'gate' ? 'MfaGate' : 'SecurityDetails'};`,
+    scope
+  );
   const render = () => { si = ri = 0; return scope.component({ children: 'PROTECTED' }); };
   const first = render(); effects.slice().forEach(fn => fn()); await tick();
   return {
     render,
     first,
     open(label) {
-      const btn = find(render(), n => n.type === 'button' && (n.children.includes(label) || (n.children || []).some(c => typeof c === 'string' && c.includes(label))))[0];
+      const btn = find(render(), n => n.type === 'button' && textOf(n).includes(label))[0];
       if (btn) btn.props.onClick();
     },
-    submit() { return find(render(), n => n.type === 'form')[0].props.onSubmit({ preventDefault() {} }); },
+    submit() { return find(render(), n => n.type === 'form')[0].props.onSubmit({ preventDefault() { } }); },
     input(index, value) { find(render(), n => n.type === 'input' && !n.props.readOnly)[index].props.onChange({ target: { value } }); },
   };
 }
@@ -50,7 +83,7 @@ test('security loads real account and unknown history without invented devices o
 test('failed security load remains unknown and offers retry', async () => {
   const ui = await screen('security', { load: async () => { throw Error('Provider unavailable'); } });
   assert.ok(JSON.stringify(ui.render()).includes('Provider unavailable'));
-  assert.equal(find(ui.render(), n => n.type === 'button' && n.children.includes('Set Up 2FA')).length, 0);
+  assert.equal(find(ui.render(), n => n.type === 'button' && textOf(n).includes('Set Up 2FA')).length, 0);
 });
 
 test('password mismatch prevents request; backend failure leaves modal retryable', async () => {
@@ -69,7 +102,7 @@ test('password mismatch prevents request; backend failure leaves modal retryable
   assert.equal(find(ui.render(), n => n.type === 'fieldset')[0].props.disabled, false);
 });
 
-test('session revocation deduplicates and reports success only after confirmation', async () => {
+test('session revocation reports success only after confirmation', async () => {
   let resolve, calls = 0;
   const ui = await screen('security', {}, { revokeOthers: () => { calls++; return new Promise(yes => { resolve = yes; }); } });
   ui.open('Sign Out Other Sessions');

@@ -155,14 +155,14 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
     guard.current = true; setBusy(true); setError('');
     try { await saveFleetRecord(kind, record, form, { categories: kind === 'truck' ? categories : null }); onSaved(); onClose(); }
     catch (error) { setError(error.message); } finally { guard.current = false; setBusy(false); }
-  } 
+  }
 
   const field = (name, label, props = {}, wrapperClassName = '') => (
     <Field key={name} name={name} label={label} form={form} setForm={setForm} wrapperClassName={wrapperClassName} {...props} />
   );
 
   return (
-    <dialog {...dialog} className="fleet-dialog" aria-modal="true" aria-labelledby="fleet-editor-title">
+    <dialog {...dialog} className="fleet-dialog" aria-labelledby="fleet-editor-title">
       <div className="fleet-dialog-header">
         <div className="fleet-dialog-header-info">
           <div className="fleet-dialog-header-icon">
@@ -192,8 +192,8 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
               {kind === 'truck'
                 ? (record?.plate_number ? `Configure specifications for ${record.plate_number}` : 'Add vehicle technical specifications')
                 : kind === 'driver'
-                ? (record?.full_name ? `Update driver record for ${record.full_name}` : 'Configure driver details')
-                : 'Service and maintenance schedule record'}
+                  ? (record?.full_name ? `Update driver record for ${record.full_name}` : 'Configure driver details')
+                  : 'Service and maintenance schedule record'}
             </p>
           </div>
         </div>
@@ -795,8 +795,8 @@ export function FleetDiscardDialog({
         const destination = event.shiftKey && document.activeElement === buttons[0]
           ? buttons.at(-1)
           : !event.shiftKey && document.activeElement === buttons.at(-1)
-          ? buttons[0]
-          : null;
+            ? buttons[0]
+            : null;
         if (destination) {
           event.preventDefault();
           destination.focus();
@@ -882,8 +882,8 @@ export function FleetDeleteDialog({
         const destination = event.shiftKey && document.activeElement === buttons[0]
           ? buttons.at(-1)
           : !event.shiftKey && document.activeElement === buttons.at(-1)
-          ? buttons[0]
-          : null;
+            ? buttons[0]
+            : null;
         if (destination) {
           event.preventDefault();
           destination.focus();

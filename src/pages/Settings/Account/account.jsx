@@ -147,6 +147,24 @@ function AccountDetails() {
         setPasswords({ current: '', next: '', confirm: '' });
         setActionError('');
         restoreFocus();
+      } else if (event.key === 'Tab' && dialog) {
+        const focusable = Array.from(
+          dialog.querySelectorAll?.(
+            'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          ) || []
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey) {
+          if (document.activeElement === first || !dialog.contains?.(document.activeElement)) {
+            event.preventDefault();
+            last.focus?.();
+          }
+        } else if (document.activeElement === last || !dialog.contains?.(document.activeElement)) {
+          event.preventDefault();
+          first.focus?.();
+        }
       }
     };
     document.addEventListener('keydown', onKeyDown);

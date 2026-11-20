@@ -84,7 +84,11 @@ export default function DriverReport() {
   const range = useReportRange(activeRange, appliedCustom);
   const memoCallback = typeof useCallback === 'function' ? useCallback : (fn) => fn;
   const loadData = memoCallback(() => getDriverReportRecords(range), [range.start, range.end]);
-  const live = useLiveData(loadData, DRIVER_REPORT_TABLES);
+  const live = useLiveData(loadData, DRIVER_REPORT_TABLES, {
+    cacheKey: `report:drivers:${range.start || 'all'}:${range.end || 'all'}`,
+    staleTime: 30000,
+    pollInterval: 60000,
+  });
 
   const handleRangeClick = (key) => {
     setActiveRange(key);

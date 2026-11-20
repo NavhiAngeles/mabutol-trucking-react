@@ -189,6 +189,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
   const navigate = useNavigate();
   const { clearAuth } = useAuth();
   const logoutInFlight = useRef(false);
+  const logoutModalRef = useRef(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const location = useLocation();
@@ -253,6 +254,28 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         closeLogoutModal();
+      } else if (e.key === "Tab" && logoutModalRef.current) {
+        const buttons = Array.from(
+          logoutModalRef.current.querySelectorAll?.("button:not([disabled])") || []
+        );
+        if (buttons.length === 0) return;
+        const first = buttons[0];
+        const last = buttons[buttons.length - 1];
+        if (e.shiftKey) {
+          if (
+            document.activeElement === first ||
+            !logoutModalRef.current.contains?.(document.activeElement)
+          ) {
+            e.preventDefault();
+            last.focus?.();
+          }
+        } else if (
+          document.activeElement === last ||
+          !logoutModalRef.current.contains?.(document.activeElement)
+        ) {
+          e.preventDefault();
+          first.focus?.();
+        }
       }
     };
     if (typeof document !== "undefined") {
@@ -299,8 +322,8 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               aria-label="Close navigation sidebar"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           )}
@@ -313,8 +336,8 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             onClick={() => handleNav("/dashboard")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
             </svg>
             Dashboard
           </button>
@@ -324,9 +347,9 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             onClick={() => handleNav("/shipment")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/>
-              <rect x="9" y="11" width="14" height="10" rx="2"/>
-              <circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3" />
+              <rect x="9" y="11" width="14" height="10" rx="2" />
+              <circle cx="12" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
             </svg>
             Shipments
           </button>
@@ -344,9 +367,9 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="1" y="3" width="15" height="13" rx="2"/>
-                <path d="M16 8h4l3 3v5h-7V8z"/>
-                <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                <rect x="1" y="3" width="15" height="13" rx="2" />
+                <path d="M16 8h4l3 3v5h-7V8z" />
+                <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
               Fleet Management
               <svg
@@ -355,7 +378,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <polyline points="6 9 12 15 18 9"/>
+                <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
 
@@ -381,10 +404,10 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             onClick={() => handleNav("/customer")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             Customers
           </button>
@@ -394,7 +417,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
             onClick={() => handleNav("/compliance")}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 12l2 2 4-4"/><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/>
+              <path d="M9 12l2 2 4-4" /><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z" />
             </svg>
             Compliance
           </button>
@@ -414,8 +437,8 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
+                <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" />
+                <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
               Reports
               <svg
@@ -424,10 +447,10 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <polyline points="6 9 12 15 18 9"/>
+                <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
-            
+
             {currentReportsOpen && (
               <div id="sidebar-reports" className="submenu">
                 {REPORTS_SUBMENU.map((item) => (
@@ -458,8 +481,8 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0 1.51 1z"/>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0 1.51 1z" />
               </svg>
               Settings
               <svg
@@ -468,7 +491,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                 fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <polyline points="6 9 12 15 18 9"/>
+                <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
 
@@ -494,18 +517,18 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
         <div className="sidebar-footer">
           <button type="button" className="nav-item sidebar-help-button" aria-haspopup="dialog" aria-expanded={isHelpOpen} onClick={() => setIsHelpOpen(true)}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
             Help &amp; Operations Guide
           </button>
-          
+
           <button type="button" className="nav-item logout-button" onClick={() => { setLogoutError(""); setIsLogoutModalOpen(true); }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
             Log Out
           </button>
@@ -517,7 +540,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
       {/* Logout Confirmation Modal */}
       {isLogoutModalOpen && (
         <div className="logout-modal-backdrop">
-          <div className="logout-modal-box" role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-busy={isLoggingOut}>
+          <div ref={logoutModalRef} className="logout-modal-box" role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-busy={isLoggingOut}>
             <h3 id="logout-title">Confirm Log Out</h3>
             <p>Are you sure you want to log out?</p>
             {logoutError && <p role="alert">{logoutError}</p>}

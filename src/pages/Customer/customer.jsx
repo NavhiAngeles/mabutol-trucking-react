@@ -138,6 +138,7 @@ export default function Customer() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuPosition, setMenuPosition] = useState(null);
 
   useEffect(() => {
     if (!saveMessage) return;
@@ -195,40 +196,96 @@ export default function Customer() {
   ), [rows, filtered, query, activeSearchQuery, statusFilter, sort, todayOnly]);
   const [snapshotDate] = useState(() => new Date(Date.now() + 28800000).toISOString().slice(0, 10));
 
-  // Close dropdowns on outside click or Escape
+  // Close dropdowns on outside click, scroll, resize or Escape
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpenMenuId(null);
+        setMenuPosition(null);
       }
     }
+    function handleDismiss() {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    }
     function handleKeyDown(e) {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && menuRef.current) {
+        const trigger = menuRef.current.querySelector?.(".action-dots-btn");
         setOpenMenuId(null);
+        setMenuPosition(null);
+        trigger?.focus?.();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
+    window?.addEventListener?.("scroll", handleDismiss, true);
+    window?.addEventListener?.("resize", handleDismiss);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
+      window?.removeEventListener?.("scroll", handleDismiss, true);
+      window?.removeEventListener?.("resize", handleDismiss);
     };
   }, []);
 
-  // Lock body scroll and manage focus / Escape when profile or booking history modal is open
+  const handleToggleMenu = (custId, event) => {
+    if (openMenuId === custId) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+      return;
+    }
+    const rect = event?.currentTarget?.getBoundingClientRect?.();
+    if (rect) {
+      const winHeight = typeof window !== "undefined" ? window.innerHeight : 800;
+      const winWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
+      const spaceBelow = winHeight - rect.bottom;
+      const openUpward = spaceBelow < 190 && rect.top > 190;
+      setMenuPosition({
+        top: openUpward ? "auto" : `${rect.bottom + 4}px`,
+        bottom: openUpward ? `${winHeight - rect.top + 4}px` : "auto",
+        right: `${Math.max(12, winWidth - rect.right)}px`,
+      });
+    } else {
+      setMenuPosition(null);
+    }
+    setOpenMenuId(custId);
+  };
+
+  // Manage focus trap and Escape when profile or booking history modal is open
   useEffect(() => {
     if (!profileCustomerId && !historyCustomerId) return;
-    function handleModalEscape(e) {
-      if (e.key !== "Escape") return;
+    function handleModalKeyDown(e) {
       if (statusTarget || editing || showAddModal) return;
-      if (historyCustomerId) {
-        setHistoryCustomerId(null);
-      } else if (profileCustomerId) {
-        setProfileCustomerId(null);
+      if (e.key === "Escape") {
+        if (historyCustomerId) {
+          setHistoryCustomerId(null);
+        } else if (profileCustomerId) {
+          setProfileCustomerId(null);
+        }
+      } else if (e.key === "Tab") {
+        const dialog = historyCustomerId ? bhModalRef.current : cpModalRef.current;
+        if (!dialog) return;
+        const focusable = Array.from(
+          dialog.querySelectorAll?.(
+            'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          ) || []
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first || !dialog.contains?.(document.activeElement)) {
+            e.preventDefault();
+            last.focus?.();
+          }
+        } else if (document.activeElement === last || !dialog.contains?.(document.activeElement)) {
+          e.preventDefault();
+          first.focus?.();
+        }
       }
     }
-    document.addEventListener("keydown", handleModalEscape);
-    return () => document.removeEventListener("keydown", handleModalEscape);
+    document.addEventListener("keydown", handleModalKeyDown);
+    return () => document.removeEventListener("keydown", handleModalKeyDown);
   }, [profileCustomerId, historyCustomerId, statusTarget, editing, showAddModal]);
 
   const isProfileOpen = Boolean(profileModal);
@@ -260,20 +317,13 @@ export default function Customer() {
     hadModalOpenRef.current = Boolean(activeModalKey);
   }, [isProfileOpen, isHistoryOpen, profileCustomerId, historyCustomerId]);
 
-  useEffect(() => {
-    if (!isProfileOpen && !isHistoryOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prevOverflow; };
-  }, [isProfileOpen, isHistoryOpen]);
-
-
   const handleViewProfile = (cust, e) => {
     if (!previousFocusRef.current) {
       const trigger = e?.currentTarget?.closest?.(".action-menu-wrapper")?.querySelector?.(".action-dots-btn");
       previousFocusRef.current = trigger || (typeof document !== "undefined" ? document.activeElement : null);
     }
     setOpenMenuId(null);
+    setMenuPosition(null);
     setProfileModal(cust);
   };
 
@@ -283,6 +333,7 @@ export default function Customer() {
       previousFocusRef.current = trigger || (typeof document !== "undefined" ? document.activeElement : null);
     }
     setOpenMenuId(null);
+    setMenuPosition(null);
     setBookingHistoryModal(cust);
   };
 
@@ -420,23 +471,57 @@ export default function Customer() {
                       <span className={`status-badge ${cust.status.toLowerCase()}`}>{cust.status}</span>
                     </td>
                     <td className="text-center">
-                      <div className="action-menu-wrapper" ref={openMenuId === cust.id ? menuRef : null}>
+                      <div
+                        className="action-menu-wrapper"
+                        ref={openMenuId === cust.id ? menuRef : null}
+                        onKeyDown={(e) => {
+                          if (openMenuId !== cust.id) return;
+                          const items = Array.from(e.currentTarget.querySelectorAll?.('[role="menuitem"]:not([disabled])') || []);
+                          if (items.length === 0) return;
+                          const idx = items.indexOf(document.activeElement);
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            items[(idx + 1) % items.length]?.focus();
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            items[(idx - 1 + items.length) % items.length]?.focus();
+                          } else if (e.key === "Home") {
+                            e.preventDefault();
+                            items[0]?.focus();
+                          } else if (e.key === "End") {
+                            e.preventDefault();
+                            items[items.length - 1]?.focus();
+                          }
+                        }}
+                      >
                         <button
                           type="button"
                           className="action-dots-btn"
                           aria-label={`Actions for ${cust.name}`}
                           aria-haspopup="menu"
                           aria-expanded={openMenuId === cust.id}
-                          onClick={() => setOpenMenuId(openMenuId === cust.id ? null : cust.id)}
+                          onClick={(e) => handleToggleMenu(cust.id, e)}
                         >
                           <MoreVerticalIcon />
                         </button>
                         {openMenuId === cust.id && (
-                          <div className="action-dropdown" role="menu">
+                          <div
+                            className="action-dropdown"
+                            role="menu"
+                            style={menuPosition ? {
+                              position: "fixed",
+                              top: menuPosition.top,
+                              bottom: menuPosition.bottom,
+                              right: menuPosition.right,
+                              left: "auto",
+                              zIndex: 9999,
+                            } : undefined}
+                          >
                             {canEdit && <button type="button" role="menuitem" className="dropdown-item" onClick={() => {
                               const record = records.find(item => item.id === cust.id);
                               if (record) { setEditing({ customer: { ...record }, owner: user.id }); setSaveMessage(""); }
                               setOpenMenuId(null);
+                              setMenuPosition(null);
                             }}>Edit Customer</button>}
                             <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewProfile(cust, e)}>
                               View Profile
@@ -453,6 +538,7 @@ export default function Customer() {
                                   const record = records.find(item => item.id === cust.id);
                                   if (record) { setStatusTarget(record); setSaveMessage(""); }
                                   setOpenMenuId(null);
+                                  setMenuPosition(null);
                                 }}
                               >
                                 {cust.is_active ? "Suspend Account" : "Reactivate Account"}

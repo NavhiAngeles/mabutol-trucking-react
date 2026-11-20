@@ -1,11 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  KeyRound,
+  LogOut,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
 import SettingsLayout from '../../../components/SettingsLayout';
 import { useAuth } from '../../../context/AuthContext';
 import { accountApi } from '../../../services/accountService';
 import { securityApi } from '../../../services/securityService';
-import { SkeletonBlock } from '../../../components/Skeleton/Skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import './security.css';
 import '../../../components/accountSecurityDesign.css';
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Security() {
   const { user } = useAuth();
@@ -135,6 +157,20 @@ function SecurityDetails() {
       if (event.key === 'Escape' && !guard.current) {
         event.preventDefault();
         cancelRef.current?.();
+      } else if (event.key === 'Tab' && dialog) {
+        const focusable = Array.from(dialog.querySelectorAll?.(FOCUSABLE_SELECTOR) || []);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey) {
+          if (document.activeElement === first || !dialog.contains?.(document.activeElement)) {
+            event.preventDefault();
+            last.focus?.();
+          }
+        } else if (document.activeElement === last || !dialog.contains?.(document.activeElement)) {
+          event.preventDefault();
+          first.focus?.();
+        }
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -145,62 +181,146 @@ function SecurityDetails() {
   const phoneDisplay = snapshot?.twoFactorPhone || snapshot?.phone || '';
 
   return (
-    <>
-      <section className="content security-settings">
-        <div className="page-header">
-          <div>
-            <h1>Settings: Security</h1>
-            <p>Manage your password, Two-Factor Authentication (2FA), and signed-in sessions.</p>
-          </div>
+    <section className="content security-settings space-y-6">
+      <div className="page-header flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            Settings: Security
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your password, Two-Factor Authentication (2FA), and signed-in sessions.
+          </p>
         </div>
-        {notice && <p role="status" className="pw-success">{notice}</p>}
-        {loadError && <p role="alert" className="pw-error">{loadError} <button onClick={refresh}>Retry</button></p>}
-        {!snapshot && !loadError && (
-          <>
-            <p role="status">Loading security settings...</p>
-            <div className="security-card-grid" aria-hidden="true">
-              <div className="settings-card">
-                <h2>Authentication</h2>
-                <div className="security-row">
-                  <div className="tanaw-skeleton-stack"><SkeletonBlock width="42%" height={14} /><SkeletonBlock width="76%" height={12} /></div>
-                  <SkeletonBlock width={128} height={38} radius="sm" />
-                </div>
-                <div className="security-row">
-                  <div className="tanaw-skeleton-stack"><SkeletonBlock width="56%" height={14} /><SkeletonBlock width="84%" height={12} /></div>
-                  <SkeletonBlock width={116} height={38} radius="sm" />
-                </div>
-              </div>
-              <div className="settings-card">
-                <h2>Sessions</h2>
-                <div className="tanaw-skeleton-stack">
-                  <SkeletonBlock width="62%" height={13} />
-                  <SkeletonBlock width="88%" height={13} />
-                  <SkeletonBlock width="74%" height={13} />
-                </div>
-                <SkeletonBlock width={176} height={38} radius="sm" style={{ marginTop: 14 }} />
-              </div>
-              <div className="settings-card">
-                <h2>Login Activity</h2>
-                <div className="tanaw-skeleton-stack">
-                  <SkeletonBlock width="68%" height={13} />
-                  <SkeletonBlock width="80%" height={13} />
-                </div>
-                <SkeletonBlock width={164} height={36} radius="sm" style={{ marginTop: 14 }} />
-              </div>
-            </div>
-          </>
-        )}
-        {error && !modal && <p role="alert" className="pw-error">{error}</p>}
         {snapshot && (
-          <div className="security-card-grid">
-            <div className="settings-card">
-              <h2>Authentication</h2>
+          <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={busy}>
+            <RefreshCw className="size-3.5" data-icon="inline-start" aria-hidden="true" />
+            Refresh security settings
+          </Button>
+        )}
+      </div>
+
+      {notice && (
+        <div
+          role="status"
+          className="pw-success flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900"
+        >
+          <CheckCircle2 className="size-4 shrink-0 text-emerald-700" aria-hidden="true" />
+          <span>{notice}</span>
+        </div>
+      )}
+
+      {loadError && (
+        <div
+          role="alert"
+          className="pw-error flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
+            <span>{loadError}</span>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={refresh}>
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {!snapshot && !loadError && (
+        <>
+          <p role="status" className="text-sm text-muted-foreground">
+            Loading security settings...
+          </p>
+          <div className="security-card-grid" aria-hidden="true">
+            <Card className="settings-card bg-white ring-border">
+              <CardHeader className="border-b border-border/60 pb-4">
+                <CardTitle>Authentication</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div className="security-row">
+                  <div className="tanaw-skeleton-stack">
+                    <Skeleton className="h-3.5 w-2/5" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                  <Skeleton className="h-9 w-32 rounded-md" />
+                </div>
+                <div className="security-row">
+                  <div className="tanaw-skeleton-stack">
+                    <Skeleton className="h-3.5 w-3/5" />
+                    <Skeleton className="h-3 w-4/5" />
+                  </div>
+                  <Skeleton className="h-9 w-28 rounded-md" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="settings-card bg-white ring-border">
+              <CardHeader className="border-b border-border/60 pb-4">
+                <CardTitle>Sessions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                <Skeleton className="h-3.5 w-3/5" />
+                <Skeleton className="h-3.5 w-5/6" />
+                <Skeleton className="h-3.5 w-3/4" />
+                <Skeleton className="mt-2 h-9 w-44 rounded-md" />
+              </CardContent>
+            </Card>
+            <Card className="settings-card bg-white ring-border">
+              <CardHeader className="border-b border-border/60 pb-4">
+                <CardTitle>Login Activity</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                <Skeleton className="h-3.5 w-2/3" />
+                <Skeleton className="h-3.5 w-4/5" />
+                <Skeleton className="mt-2 h-9 w-40 rounded-md" />
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {error && !modal && (
+        <p role="alert" className="pw-error">
+          {error}
+        </p>
+      )}
+
+      {snapshot && (
+        <div className="security-card-grid">
+          <Card className="settings-card bg-white ring-border">
+            <CardHeader className="border-b border-border/60 pb-4">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle>Authentication</CardTitle>
+                <Badge
+                  variant="secondary"
+                  className={
+                    is2faActive
+                      ? 'rounded-sm border border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'rounded-sm border border-amber-200 bg-amber-50 text-amber-800'
+                  }
+                >
+                  {is2faActive ? (
+                    <>
+                      <ShieldCheck className="size-3" data-icon="inline-start" aria-hidden="true" />
+                      2FA Active
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert className="size-3" data-icon="inline-start" aria-hidden="true" />
+                      2FA Off
+                    </>
+                  )}
+                </Badge>
+              </div>
+              <CardDescription>Manage sign-in credentials and SMS verification.</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-2">
               <div className="security-row">
                 <div>
                   <strong>Password</strong>
                   <p>Password change date is unavailable.</p>
                 </div>
-                <button className="primary-btn" onClick={() => open('password')}>Update Password</button>
+                <Button type="button" onClick={() => open('password')}>
+                  <KeyRound className="size-4" data-icon="inline-start" aria-hidden="true" />
+                  Update Password
+                </Button>
               </div>
               <div className="security-row">
                 <div>
@@ -209,9 +329,19 @@ function SecurityDetails() {
                   <p>SMS verification codes delivered via TextBee are requested before office pages on future sign-ins.</p>
                 </div>
                 {is2faActive ? (
-                  <button className="danger-btn" disabled={busy} onClick={() => open('remove', snapshot.factors?.[0] || { id: 'sms' })}>Disable 2FA</button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={busy}
+                    onClick={() => open('remove', snapshot.factors?.[0] || { id: 'sms' })}
+                  >
+                    Disable 2FA
+                  </Button>
                 ) : (
-                  <button className="primary-btn" disabled={busy} onClick={() => open('enroll')}>Set Up 2FA</button>
+                  <Button type="button" disabled={busy} onClick={() => open('enroll')}>
+                    Set Up 2FA
+                  </Button>
                 )}
               </div>
               {snapshot.unsupported && <p>Another verified authentication method exists. Manage that method with your administrator.</p>}
@@ -221,134 +351,186 @@ function SecurityDetails() {
                     <strong>{factor.friendly_name || 'Authenticator app'}</strong>
                     <p>Verified</p>
                   </div>
-                  <button className="danger-btn" onClick={() => open('remove', factor)}>Remove authenticator</button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => open('remove', factor)}
+                  >
+                    Remove authenticator
+                  </Button>
                 </div>
               ))}
-            </div>
-            <div className="settings-card">
-              <h2>Sessions</h2>
-              <p>Signed in as {snapshot.email}.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="settings-card bg-white ring-border">
+            <CardHeader className="border-b border-border/60 pb-4">
+              <CardTitle>Sessions</CardTitle>
+              <CardDescription>Signed in as {snapshot.email}.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
               <p>Device, location, IP address, and individual session history are unavailable here.</p>
               <p>Signing out other sessions revokes their refresh tokens. Existing access tokens may remain valid until expiry.</p>
-              <button className="danger-btn" onClick={() => open('sessions')}>Sign Out Other Sessions</button>
-            </div>
-            <div className="settings-card">
-              <h2>Login Activity</h2>
-              <p>Last sign-in: {snapshot.lastSignIn ? new Date(snapshot.lastSignIn).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable'}</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => open('sessions')}
+              >
+                <LogOut className="size-4" data-icon="inline-start" aria-hidden="true" />
+                Sign Out Other Sessions
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="settings-card bg-white ring-border">
+            <CardHeader className="border-b border-border/60 pb-4">
+              <CardTitle>Login Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              <p className="tabular-nums">
+                Last sign-in: {snapshot.lastSignIn ? new Date(snapshot.lastSignIn).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Unavailable'}
+              </p>
               <p>Failed sign-ins and full login history are unavailable here.</p>
-              <button onClick={refresh} disabled={busy}>Refresh security settings</button>
-            </div>
-          </div>
-        )}
-        {modal && (
-          <div
-            className="pw-backdrop"
-            onClick={event => {
-              if (event.target === event.currentTarget && !busy) cancel();
-            }}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {modal && (
+        <div
+          className="pw-backdrop"
+          onClick={event => {
+            if (event.target === event.currentTarget && !busy) cancel();
+          }}
+        >
+          <form
+            ref={modalRef}
+            tabIndex={-1}
+            className="pw-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="security-dialog-title"
+            onClick={event => event.stopPropagation()}
+            onSubmit={submit}
           >
-            <form
-              ref={modalRef}
-              tabIndex={-1}
-              className="pw-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="security-dialog-title"
-              onClick={event => event.stopPropagation()}
-              onSubmit={submit}
-            >
-              <fieldset disabled={busy}>
-                <div className="pw-modal-header">
-                  <h2 id="security-dialog-title">
-                    {modal === 'password'
-                      ? 'Update Password'
-                      : modal === 'sessions'
+            <fieldset disabled={busy}>
+              <div className="pw-modal-header flex items-center justify-between gap-4">
+                <h2 id="security-dialog-title">
+                  {modal === 'password'
+                    ? 'Update Password'
+                    : modal === 'sessions'
                       ? 'Sign Out Other Sessions'
                       : modal === 'remove'
-                      ? 'Disable 2FA'
-                      : 'Set Up 2FA (TextBee SMS)'}
-                  </h2>
-                </div>
-                <div className="pw-modal-body">
-                  {modal === 'password' && (
-                    <>
-                      <label htmlFor="sec-pw-current">Current password<input id="sec-pw-current" className="pw-input" type="password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)} /></label>
-                      <label htmlFor="sec-pw-new">New password<input id="sec-pw-new" className="pw-input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} /></label>
-                      <label htmlFor="sec-pw-confirm">Confirm new password<input id="sec-pw-confirm" className="pw-input" type="password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} /></label>
-                    </>
-                  )}
-                  {modal === 'sessions' && (
-                    <p>Revoke other sessions for your account? This session will remain signed in. Existing access tokens may remain valid until expiry.</p>
-                  )}
-                  {modal === 'enroll' && !setup && (
-                    <>
-                      <p>Protect your account with SMS verification codes delivered via TextBee. Enter your Philippine mobile phone number below.</p>
-                      <label htmlFor="sec-mfa-phone">
-                        Philippine Mobile Number
-                        <input
-                          id="sec-mfa-phone"
-                          className="pw-input"
-                          type="tel"
-                          autoComplete="tel"
-                          required
-                          placeholder="09XXXXXXXXX or +639XXXXXXXXX"
-                          value={phone}
-                          onChange={e => setPhone(e.target.value)}
-                        />
-                      </label>
-                      <p className="security-subtext">A 6-digit verification code will be sent to this phone via TextBee SMS.</p>
-                    </>
-                  )}
-                  {modal === 'enroll' && setup && (
-                    <>
-                      <p>We sent a 6-digit verification code via TextBee SMS to <strong>{setup.phone || phone}</strong>. Enter the code below to complete 2FA setup.</p>
-                      {setup.qr && (
-                        <>
-                          <img className="security-qr" width="220" height="220" src={setup.qr} alt="Authenticator enrollment QR code" />
-                          <label htmlFor="sec-mfa-secret">Manual setup key<input id="sec-mfa-secret" className="pw-input" readOnly value={setup.secret || ''} autoComplete="off" /></label>
-                        </>
-                      )}
-                      <label htmlFor="sec-mfa-code">
-                        Verification code
-                        <input
-                          id="sec-mfa-code"
-                          className="pw-input"
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          pattern="[0-9]{6}"
-                          maxLength={6}
-                          required
-                          placeholder="123456"
-                          value={code}
-                          onChange={e => setCode(e.target.value)}
-                        />
-                      </label>
-                    </>
-                  )}
-                  {modal === 'remove' && (
-                    <p>Disable SMS Two-Factor Authentication for <strong>{phoneDisplay || 'your account'}</strong>? Your account will no longer require SMS verification codes when signing in.</p>
-                  )}
-                  {error && <p role="alert" className="pw-error">{error}</p>}
-                </div>
-                <div className="pw-modal-footer">
-                  <button className="pw-update-btn" type="submit">
-                    {busy
-                      ? 'Working...'
-                      : modal === 'enroll' && !setup
+                        ? 'Disable 2FA'
+                        : 'Set Up 2FA (TextBee SMS)'}
+                </h2>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-foreground"
+                  disabled={busy}
+                  onClick={cancel}
+                  aria-label="Close"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </Button>
+              </div>
+              <div className="pw-modal-body">
+                {modal === 'password' && (
+                  <>
+                    <label htmlFor="sec-pw-current">
+                      Current password
+                      <input id="sec-pw-current" className="pw-input" type="password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)} />
+                    </label>
+                    <label htmlFor="sec-pw-new">
+                      New password
+                      <input id="sec-pw-new" className="pw-input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
+                    </label>
+                    <label htmlFor="sec-pw-confirm">
+                      Confirm new password
+                      <input id="sec-pw-confirm" className="pw-input" type="password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} />
+                    </label>
+                  </>
+                )}
+                {modal === 'sessions' && (
+                  <p>Revoke other sessions for your account? This session will remain signed in. Existing access tokens may remain valid until expiry.</p>
+                )}
+                {modal === 'enroll' && !setup && (
+                  <>
+                    <p>Protect your account with SMS verification codes delivered via TextBee. Enter your Philippine mobile phone number below.</p>
+                    <label htmlFor="sec-mfa-phone">
+                      Philippine Mobile Number
+                      <input
+                        id="sec-mfa-phone"
+                        className="pw-input"
+                        type="tel"
+                        autoComplete="tel"
+                        required
+                        placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                      />
+                    </label>
+                    <p className="security-subtext">A 6-digit verification code will be sent to this phone via TextBee SMS.</p>
+                  </>
+                )}
+                {modal === 'enroll' && setup && (
+                  <>
+                    <p>We sent a 6-digit verification code via TextBee SMS to <strong>{setup.phone || phone}</strong>. Enter the code below to complete 2FA setup.</p>
+                    {setup.qr && (
+                      <>
+                        <img className="security-qr" width="220" height="220" src={setup.qr} alt="Authenticator enrollment QR code" />
+                        <label htmlFor="sec-mfa-secret">
+                          Manual setup key
+                          <input id="sec-mfa-secret" className="pw-input" readOnly value={setup.secret || ''} autoComplete="off" />
+                        </label>
+                      </>
+                    )}
+                    <label htmlFor="sec-mfa-code">
+                      Verification code
+                      <input
+                        id="sec-mfa-code"
+                        className="pw-input"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        required
+                        placeholder="123456"
+                        value={code}
+                        onChange={e => setCode(e.target.value)}
+                      />
+                    </label>
+                  </>
+                )}
+                {modal === 'remove' && (
+                  <p>Disable SMS Two-Factor Authentication for <strong>{phoneDisplay || 'your account'}</strong>? Your account will no longer require SMS verification codes when signing in.</p>
+                )}
+                {error && <p role="alert" className="pw-error">{error}</p>}
+              </div>
+              <div className="pw-modal-footer">
+                <Button type="button" variant="outline" onClick={cancel}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant={modal === 'remove' || modal === 'sessions' ? 'destructive' : 'default'}>
+                  {busy
+                    ? 'Working...'
+                    : modal === 'enroll' && !setup
                       ? 'Send Verification SMS'
                       : modal === 'enroll'
-                      ? 'Verify & Enable 2FA'
-                      : modal === 'remove'
-                      ? 'Disable 2FA'
-                      : 'Confirm'}
-                  </button>
-                  <button type="button" className="pw-cancel-btn" onClick={cancel}>Cancel</button>
-                </div>
-              </fieldset>
-            </form>
-          </div>
-        )}
-      </section>
-    </>
+                        ? 'Verify & Enable 2FA'
+                        : modal === 'remove'
+                          ? 'Disable 2FA'
+                          : 'Confirm'}
+                </Button>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+      )}
+    </section>
   );
 }

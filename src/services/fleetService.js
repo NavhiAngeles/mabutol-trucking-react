@@ -9,15 +9,48 @@ import { sanitizeTruck } from './officialVehicleModels.js';
 
 export { normalizeManilaDate, MANILA_TIMEZONE };
 
-async function allRows(table, columns, configure = q => q) {
-    const rows = [];
-    for (let offset = 0; ; offset += 500) {
-        const { data, error } = await configure(supabase.from(table).select(columns)).order("id").range(offset, offset + 499);
-        if (error) throw error;
-        if (!Array.isArray(data)) throw new Error("Invalid fleet response.");
-        rows.push(...data);
-        if (data.length < 500) return [...new Map(rows.map(row => [row.id, row])).values()];
+const STATIC_FLEET_CACHE_TTL_MS = 5 * 60 * 1000;
+const inFlightAllRows = new Map();
+const staticFleetCache = {
+    vehicleTypes: { data: null, cachedAt: 0, inFlight: null },
+    cargoCategories: { data: null, cachedAt: 0, inFlight: null },
+};
+
+export function clearFleetStaticCache() {
+    staticFleetCache.vehicleTypes = { data: null, cachedAt: 0, inFlight: null };
+    staticFleetCache.cargoCategories = { data: null, cachedAt: 0, inFlight: null };
+}
+
+function defaultAllRowsConfigure(q) {
+    return q;
+}
+
+async function allRows(table, columns, configure = defaultAllRowsConfigure) {
+    const isUnfiltered = configure === defaultAllRowsConfigure || configure == null;
+    const key = isUnfiltered ? `${table}:${columns}` : null;
+    if (key && inFlightAllRows.has(key)) {
+        return inFlightAllRows.get(key);
     }
+
+    const applyConfigure = typeof configure === "function" ? configure : defaultAllRowsConfigure;
+    const runFetch = async () => {
+        const rows = [];
+        for (let offset = 0; ; offset += 500) {
+            const { data, error } = await applyConfigure(supabase.from(table).select(columns)).order("id").range(offset, offset + 499);
+            if (error) throw error;
+            if (!Array.isArray(data)) throw new Error("Invalid fleet response.");
+            rows.push(...data);
+            if (data.length < 500) return [...new Map(rows.map(row => [row.id, row])).values()];
+        }
+    };
+
+    if (!key) return runFetch();
+
+    const promise = runFetch().finally(() => {
+        inFlightAllRows.delete(key);
+    });
+    inFlightAllRows.set(key, promise);
+    return promise;
 }
 
 /* ============================================================
@@ -441,24 +474,57 @@ export async function updateMaintenanceRecord(recordId, payload) {
  * ============================================================ */
 
 export async function getVehicleTypes() {
-    const { data, error } = await supabase
-        .from("vehicle_types")
-        .select("id, name")
-        .order("name", { ascending: true });
+    const cache = staticFleetCache.vehicleTypes;
+    if (cache.data && Date.now() - cache.cachedAt < STATIC_FLEET_CACHE_TTL_MS) {
+        return cache.data;
+    }
+    if (cache.inFlight) {
+        return cache.inFlight;
+    }
+    cache.inFlight = (async () => {
+        try {
+            const { data, error } = await supabase
+                .from("vehicle_types")
+                .select("id, name")
+                .order("name", { ascending: true });
 
-    if (error) throw error;
-    return data;
+            if (error) throw error;
+            cache.data = data;
+            cache.cachedAt = Date.now();
+            return data;
+        } finally {
+            cache.inFlight = null;
+        }
+    })();
+    return cache.inFlight;
 }
 
 export async function getCargoCategories() {
-    const { data, error } = await supabase
-        .from("cargo_categories")
-        .select("id, name, requires_special_handling")
-        .eq("is_active", true)
-        .order("name", { ascending: true });
+    const cache = staticFleetCache.cargoCategories;
+    if (cache.data && Date.now() - cache.cachedAt < STATIC_FLEET_CACHE_TTL_MS) {
+        return cache.data;
+    }
+    if (cache.inFlight) {
+        return cache.inFlight;
+    }
+    cache.inFlight = (async () => {
+        try {
+            const { data, error } = await supabase
+                .from("cargo_categories")
+                .select("id, name, requires_special_handling")
+                .eq("is_active", true)
+                .order("name", { ascending: true });
 
-    if (error) throw error;
-    return data ?? [];
+            if (error) throw error;
+            const result = data ?? [];
+            cache.data = result;
+            cache.cachedAt = Date.now();
+            return result;
+        } finally {
+            cache.inFlight = null;
+        }
+    })();
+    return cache.inFlight;
 }
 
 /* ============================================================
@@ -520,8 +586,11 @@ export async function getComplianceDocumentsForDriver(driverId) {
  */
 export async function getTruckComplianceRows(options = {}) {
     const now = typeof options === 'number' || options instanceof Date ? options : (options?.now ?? Date.now());
+    const trucksPromise = options?.trucks
+        ? Promise.resolve(options.trucks)
+        : allRows("trucks", "id, plate_number, model, model_year, capacity_kg, vehicle_type_id, vehicle_types ( id, name )");
     const [rawTrucks, docs, configuration] = await Promise.all([
-        allRows("trucks", "id, plate_number, model, model_year, capacity_kg, vehicle_type_id, vehicle_types ( id, name )"),
+        trucksPromise,
         allRows("compliance_documents", "*", q => q.not("truck_id", "is", null).in("doc_type", TRUCK_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
         getComplianceConfiguration(),
     ]);
@@ -550,8 +619,11 @@ export async function getTruckComplianceRows(options = {}) {
  */
 export async function getDriverComplianceRows(options = {}) {
     const now = typeof options === 'number' || options instanceof Date ? options : (options?.now ?? Date.now());
+    const driversPromise = options?.drivers
+        ? Promise.resolve(options.drivers)
+        : allRows("drivers", "id, full_name");
     const [drivers, docs, configuration] = await Promise.all([
-        allRows("drivers", "id, full_name"),
+        driversPromise,
         allRows("compliance_documents", "*", q => q.not("driver_id", "is", null).in("doc_type", DRIVER_COMPLIANCE_DOC_TYPES.map(d => d.docType))),
         getComplianceConfiguration(),
     ]);

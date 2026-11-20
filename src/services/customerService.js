@@ -26,7 +26,7 @@ let customerCachedData = null;
 let bookingCachedData = null;
 let customerCacheExpiry = 0;
 let bookingCacheExpiry = 0;
-const CACHE_TTL_MS = 2500;
+const CACHE_TTL_MS = 60000;
 
 export function clearCustomerCache() {
   customerInFlight = null;
@@ -608,8 +608,13 @@ export async function updateCustomer(customer, values) {
 
 let channelId = 0;
 export function subscribeCustomerBookings(onChange) {
+  const handleBookingChange = () => {
+    bookingCachedData = null;
+    bookingCacheExpiry = 0;
+    onChange();
+  };
   const channel = supabase.channel(`customer-bookings-${++channelId}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "shipments" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "shipments" }, handleBookingChange)
     .subscribe();
   return () => { supabase.removeChannel(channel); };
 }

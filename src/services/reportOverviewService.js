@@ -19,13 +19,15 @@ export async function getReportOverview(range = null) {
     ? query => query.gte('created_at', bounds.lowerIso).lte('created_at', bounds.upperIso)
     : query => query;
 
+  const driversPromise = fetchOperationalRows('drivers', 'id,full_name');
   const [shipments, deliveries, drivers, trucks, maintenance, truckCompliance, driverCompliance] = await Promise.all([
     fetchOperationalRows('shipments', 'id,status,created_at,estimated_arrival,actual_delivery_at,final_amount', shipmentFilter),
     fetchOperationalRows('deliveries', 'id,shipment_id,driver_id,truck_id,status'),
-    fetchOperationalRows('drivers', 'id,full_name'),
+    driversPromise,
     fetchOperationalRows('trucks', 'id,status'),
     fetchOperationalRows('maintenance_records', 'id,truck_id,status,scheduled_date'),
-    getTruckComplianceRows(), getDriverComplianceRows(),
+    getTruckComplianceRows(),
+    getDriverComplianceRows({ drivers: driversPromise }),
   ]);
   return { shipments, deliveries, drivers, compliance: [...truckCompliance, ...driverCompliance],
     resources: calculateDashboardAnalytics([], trucks, deliveries, maintenance, []).resources,

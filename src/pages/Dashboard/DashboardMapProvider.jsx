@@ -7,11 +7,12 @@ import DashboardTrackingMap from './DashboardTrackingMap';
 function MapSession({ children }) {
   const [host] = useState(() => document.createElement('div'));
   const [visited, setVisited] = useState(false);
+  const [slotActive, setSlotActive] = useState(false);
 
   return (
-    <DashboardMapContext.Provider value={{ host, activate: setVisited }}>
+    <DashboardMapContext.Provider value={{ host, activate: setVisited, setSlotActive }}>
       {children}
-      {visited && createPortal(<DashboardTrackingMap />, host)}
+      {visited && createPortal(<DashboardTrackingMap active={slotActive} />, host)}
     </DashboardMapContext.Provider>
   );
 }
@@ -25,13 +26,17 @@ export default function DashboardMapProvider({ children }) {
 
 export function DashboardMapSlot() {
   const slot = useRef(null);
-  const { host, activate } = useContext(DashboardMapContext);
+  const { host, activate, setSlotActive } = useContext(DashboardMapContext);
 
   useLayoutEffect(() => {
     slot.current.appendChild(host);
     activate(true);
-    return () => host.remove();
-  }, [host, activate]);
+    if (typeof setSlotActive === 'function') setSlotActive(true);
+    return () => {
+      if (typeof setSlotActive === 'function') setSlotActive(false);
+      host.remove();
+    };
+  }, [host, activate, setSlotActive]);
 
   return <div ref={slot} />;
 }

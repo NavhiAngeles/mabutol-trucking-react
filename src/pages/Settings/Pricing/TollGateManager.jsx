@@ -207,6 +207,18 @@ export default function TollGateManager() {
 
   useEffect(() => {
     if (!modalOpen || typeof document === "undefined") return;
+    const timer = setTimeout(() => {
+      const dialog = editDialogRef.current;
+      if (!dialog) return;
+      const firstFocusable = dialog.querySelector?.(
+        'select:not([disabled]), input:not([disabled]), button:not([disabled])'
+      );
+      if (firstFocusable && typeof firstFocusable.focus === "function") {
+        firstFocusable.focus();
+      } else if (typeof dialog.focus === "function") {
+        dialog.focus();
+      }
+    }, 0);
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -214,10 +226,35 @@ export default function TollGateManager() {
         if (!saving) {
           closeModal();
         }
+      } else if (event.key === "Tab" && editDialogRef.current) {
+        const focusable = Array.from(
+          editDialogRef.current.querySelectorAll?.(
+            'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          ) || []
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey) {
+          if (
+            document.activeElement === first ||
+            !editDialogRef.current.contains(document.activeElement)
+          ) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else if (
+          document.activeElement === last ||
+          !editDialogRef.current.contains(document.activeElement)
+        ) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [modalOpen, saving, closeModal]);
@@ -406,7 +443,10 @@ export default function TollGateManager() {
             last.focus();
           }
         } else {
-          if (document.activeElement === last) {
+          if (
+            document.activeElement === last ||
+            !deleteDialogRef.current.contains(document.activeElement)
+          ) {
             event.preventDefault();
             first.focus();
           }
@@ -649,6 +689,33 @@ export default function TollGateManager() {
                         <div
                           className="toll-action-menu-wrapper relative inline-flex justify-center"
                           ref={openMenuId === toll.id ? menuRef : null}
+                          onKeyDown={(e) => {
+                            if (openMenuId !== toll.id) return;
+                            const items = Array.from(
+                              e.currentTarget.querySelectorAll?.('[role="menuitem"]:not([disabled])') || []
+                            );
+                            if (items.length === 0) return;
+                            const currentIndex = items.indexOf(document.activeElement);
+                            if (e.key === "ArrowDown") {
+                              e.preventDefault();
+                              items[(currentIndex + 1) % items.length]?.focus();
+                            } else if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              items[(currentIndex - 1 + items.length) % items.length]?.focus();
+                            } else if (e.key === "Home") {
+                              e.preventDefault();
+                              items[0]?.focus();
+                            } else if (e.key === "End") {
+                              e.preventDefault();
+                              items[items.length - 1]?.focus();
+                            } else if (e.key === "Escape") {
+                              e.preventDefault();
+                              const dotsBtn = e.currentTarget.querySelector?.(".toll-action-dots-btn");
+                              setOpenMenuId(null);
+                              setMenuPosition(null);
+                              dotsBtn?.focus?.();
+                            }
+                          }}
                         >
                           <Button
                             type="button"
@@ -656,6 +723,7 @@ export default function TollGateManager() {
                             size="icon-sm"
                             className="toll-action-dots-btn text-muted-foreground hover:text-foreground"
                             aria-label={`Actions for toll gate ${toll.gate_name}`}
+                            aria-haspopup="menu"
                             aria-expanded={openMenuId === toll.id}
                             disabled={saving || deleting}
                             onClick={(e) => handleOpenMenu(e, toll.id)}

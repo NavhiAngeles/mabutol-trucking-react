@@ -2,8 +2,20 @@ import { supabase } from './supabaseClient';
 import { validateThresholds } from './complianceThresholds.js';
 
 export const COMPLIANCE_SETTING_KEY = 'compliance_thresholds';
+const COMPLIANCE_CONFIG_CACHE_TTL_MS = 60_000;
+
 export function complianceThresholdService(client = supabase) {
-  async function load() {
+  let cachedConfig = null;
+  let configCachedAt = 0;
+  let configInFlight = null;
+
+  function clearCache() {
+    cachedConfig = null;
+    configCachedAt = 0;
+    configInFlight = null;
+  }
+
+  async function fetchConfig() {
     const { data, error } = await client.from('system_settings').select('key,value,updated_at')
       .in('key', [COMPLIANCE_SETTING_KEY, 'compliance_threshold_days']);
     if (error || !Array.isArray(data)) throw new Error('Unable to load compliance thresholds. Please retry.');
@@ -13,6 +25,26 @@ export function complianceThresholdService(client = supabase) {
     if (!Number.isInteger(legacyDays) || legacyDays < 0 || legacyDays > 365) throw new Error('The existing compliance warning setting is invalid.');
     return { thresholds: current ? validateThresholds(current.value) : null, legacyDays, updatedAt: current?.updated_at || null };
   }
+
+  async function load({ force = false } = {}) {
+    if (!force && cachedConfig && Date.now() - configCachedAt < COMPLIANCE_CONFIG_CACHE_TTL_MS) {
+      return cachedConfig;
+    }
+    if (!force && configInFlight) {
+      return configInFlight;
+    }
+    configInFlight = fetchConfig()
+      .then(result => {
+        cachedConfig = result;
+        configCachedAt = Date.now();
+        return result;
+      })
+      .finally(() => {
+        configInFlight = null;
+      });
+    return configInFlight;
+  }
+
   async function save(value, snapshot) {
     const thresholds = validateThresholds(value);
     const { data: auth, error: authError } = await client.auth.getUser();
@@ -30,9 +62,11 @@ export function complianceThresholdService(client = supabase) {
     }
     const { data, error } = await query.select('key,value,updated_at').single();
     if (error || data?.key !== COMPLIANCE_SETTING_KEY || !data.updated_at) throw new Error('Save was not confirmed. Settings may have changed elsewhere. Reload and retry.');
+    clearCache();
     return { thresholds: validateThresholds(data.value), legacyDays: snapshot?.legacyDays ?? 30, updatedAt: data.updated_at };
   }
-  return { load, save };
+  return { load, save, clearCache };
 }
 export const complianceThresholdApi = complianceThresholdService();
+export const clearComplianceConfigCache = () => complianceThresholdApi.clearCache();
 export const getComplianceConfiguration = () => complianceThresholdApi.load();

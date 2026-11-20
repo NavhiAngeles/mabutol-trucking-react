@@ -165,7 +165,7 @@ export default function Pricing() {
   }, [loadPricing]);
 
   const sortedVehicles = useMemo(() => {
-    return [...vehicles].sort((a, b) => {
+    return vehicles.toSorted((a, b) => {
       const capA =
         a.default_capacity_kg != null
           ? Number(a.default_capacity_kg)

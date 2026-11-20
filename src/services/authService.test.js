@@ -48,3 +48,17 @@ test('rejected sign-in does not refresh the idle clock', async () => {
   assert.equal(signOuts(), 1);
 });
 
+test('signIn resolves immediately without waiting for recordDeviceSession network calls', async () => {
+  const { context } = load();
+  let recorded = false;
+  context.recordDeviceSession = () => new Promise(() => {
+    recorded = true;
+    // Intentionally never resolves to prove signIn is non-blocking
+  });
+
+  const result = await context.signIn('office@example.com', 'secret');
+  assert.equal(result.role, 'admin');
+  assert.equal(recorded, true);
+});
+
+

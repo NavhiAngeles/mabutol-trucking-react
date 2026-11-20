@@ -33,8 +33,13 @@ const disperse = typeof disperseTruckCoordinates === "function"
 
 const buildRoute = typeof buildRouteGeoJSON === "function" ? buildRouteGeoJSON : () => null;
 
-export default function DashboardTrackingMap() {
-  const tracking = useLiveData(getLiveTracking, DASHBOARD_TABLES);
+export default function DashboardTrackingMap(props = {}) {
+  const active = props?.active !== false;
+  const tracking = useLiveData(getLiveTracking, DASHBOARD_TABLES, {
+    cacheKey: 'dashboard:live-tracking',
+    staleTime: 5000,
+    enabled: active,
+  });
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const pickupMarkerRef = useRef(null);

@@ -62,7 +62,10 @@ const ClipboardList = (props) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const details = useLiveData(getDashboardDetails, DASHBOARD_TABLES);
+  const details = useLiveData(getDashboardDetails, DASHBOARD_TABLES, {
+    cacheKey: 'dashboard:details',
+    staleTime: 5000,
+  });
   const shipmentTrends = details.data?.trends || [];
   const maxTrend = Math.max(1, ...shipmentTrends.map(d => d.value));
   const resources = details.data?.resources;
@@ -107,11 +110,11 @@ export default function Dashboard() {
           <p className="dashboard-refresh-status dashboard-sync-note">Sections refresh independently; their times may differ.</p>
           <p className="dashboard-refresh-status">{snapshotStatus('Details (analytics, alerts and resources)', details.lastUpdated, details.error)}</p>
           {details.loading && <p role="status">Loading dashboard details…</p>}
-          {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button type="button" onClick={details.refresh}>Retry</button></p>}
+          {details.error && <p role="alert">Dashboard details could not refresh. {details.data ? 'Showing the last loaded data.' : ''} <button type="button" className="dashboard-retry-btn" onClick={details.refresh}>Retry</button></p>}
           {/* Stats */}
           <p className="dashboard-refresh-status">{snapshotStatus('Operational statistics', lastUpdated, error)}</p>
           {loading && <p role="status">Loading operational statistics…</p>}
-          {error && <p role="alert">Could not load statistics: {error} <button type="button" onClick={refresh}>Retry</button></p>}
+          {error && <p role="alert">Could not load statistics: {error} <button type="button" className="dashboard-retry-btn" onClick={refresh}>Retry</button></p>}
         </section>
         <div className="stats">
           <div className="stat-card green" {...cardProps('/shipment?tab=active')}>
@@ -339,7 +342,7 @@ export default function Dashboard() {
                       <span className="compliance-badge amber">{detailsInitialLoading ? <SkeletonBlock width="20px" height={14} /> : (compliance?.review ?? "--")}</span>
                     </div>
                   </div>
-                  <button type="button" className="view-all-link" onClick={() => navigate("/fleet?view=compliance")}>View All →</button>
+                  <button type="button" className="view-all-link" onClick={() => navigate("/compliance")}>View All →</button>
                 </div>
               </div>
             </div>

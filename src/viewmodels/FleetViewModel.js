@@ -5,7 +5,10 @@ import { getFleetSnapshot, FLEET_TABLES, saveFleetRecord, registerDriver, delete
 const EMPTY = { kpis: { total: null, available: null, maintenance: null, onTrip: null }, trucks: [], drivers: [], maintenanceRecords: [],
  vehicleTypes: [], assignableTrucks: [], assignableDrivers: [], cargoCategories: [], truckComplianceRows: [], driverComplianceRows: [] };
 export function useFleetViewModel() {
-  const live = useLiveData(getFleetSnapshot, FLEET_TABLES);
+  const live = useLiveData(getFleetSnapshot, FLEET_TABLES, {
+    cacheKey: 'fleet:snapshot',
+    staleTime: 5000,
+  });
   const state = live.data || EMPTY;
   const { refresh } = live;
   const [submitting, setSubmitting] = useState(null);

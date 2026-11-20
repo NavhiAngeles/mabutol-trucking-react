@@ -15,14 +15,12 @@
   min-width: 0;
 }
 
-.compliance-page :is(
-  a,
+.compliance-page :is(a,
   button,
   input,
   select,
   textarea,
-  [tabindex]:not([tabindex="-1"])
-):focus-visible {
+  [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #1D4ED8);
   outline-offset: var(--focus-ring-offset, 2px);
 }
@@ -71,10 +69,10 @@
   gap: 6px;
   padding: 6px 14px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #64748B;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -89,7 +87,7 @@
 .compliance-page .compliance-tabs .tab-pill.active {
   background-color: #FFFFFF;
   color: #0F172A;
-  font-weight: 600;
+  border-color: var(--border-control, #CBD5E1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -157,6 +155,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -220,10 +219,11 @@
 }
 
 @media (max-width: 640px) {
+
   .compliance-page .compliance-stats-grid,
-.compliance-page .stats-container,
-.compliance-page .stats,
-.compliance-page .stats.stats-container {
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .compliance-page .stats.stats-container {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
@@ -240,13 +240,7 @@
   position: relative !important;
   overflow: hidden !important;
   min-width: 0 !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
-}
-
-.compliance-page .compliance-stat-card:hover,
-.compliance-page .stat-card:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.08) !important;
+  transition: box-shadow 0.15s ease !important;
 }
 
 .compliance-page .compliance-stat-card::after,
@@ -260,19 +254,33 @@
 }
 
 .compliance-page .compliance-stat-card.compliant-card::after,
-.compliance-page .stat-card.compliant-card::after { background: #10B981 !important; }
+.compliance-page .stat-card.compliant-card::after {
+  background: #10B981 !important;
+}
+
 .compliance-page .compliance-stat-card.expiring-card::after,
-.compliance-page .stat-card.expiring-card::after { background: #F59E0B !important; }
+.compliance-page .stat-card.expiring-card::after {
+  background: #F59E0B !important;
+}
+
 .compliance-page .compliance-stat-card.expired-card::after,
-.compliance-page .stat-card.expired-card::after { background: #EF4444 !important; }
+.compliance-page .stat-card.expired-card::after {
+  background: #EF4444 !important;
+}
+
 .compliance-page .compliance-stat-card.review-card::after,
-.compliance-page .stat-card.review-card::after { background: #3B82F6 !important; }
+.compliance-page .stat-card.review-card::after {
+  background: #3B82F6 !important;
+}
+
 .compliance-page .compliance-stat-card.missing-card::after,
-.compliance-page .stat-card.missing-card::after { background: #8B5CF6 !important; }
+.compliance-page .stat-card.missing-card::after {
+  background: #B91C1C !important;
+}
 
 .compliance-page .compliance-stat-card h4,
 .compliance-page .stat-card h4 {
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 700 !important;
   color: #64748B !important;
   text-transform: uppercase !important;
@@ -287,6 +295,7 @@
 .compliance-page .stat-card h2 {
   font-size: 28px !important;
   font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
   color: #0F172A !important;
   margin: 0 0 6px 0 !important;
   line-height: 1 !important;
@@ -300,7 +309,7 @@
   line-height: 1.35 !important;
 }
 
-/* Info Banner Notice: automatically fades out after 5s */
+/* Info Banner Notice: user-dismissible via close button */
 .compliance-page .compliance-info-banner {
   display: flex;
   align-items: center;
@@ -315,9 +324,6 @@
   color: #475569;
   margin: 0 0 24px 0;
   line-height: 1.4;
-  overflow: hidden;
-  max-height: 80px;
-  animation: complianceBannerFadeOut 5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .compliance-page .compliance-info-banner .banner-content {
@@ -357,46 +363,6 @@
 .compliance-page .compliance-banner-close:hover {
   color: #0F172A;
   background-color: #E2E8F0;
-}
-
-@keyframes complianceBannerFadeOut {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 80px;
-    margin-bottom: 24px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    visibility: visible;
-  }
-  80% {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 80px;
-    margin-bottom: 24px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    visibility: visible;
-  }
-  95% {
-    opacity: 0;
-    transform: translateY(-4px);
-    max-height: 80px;
-    margin-bottom: 24px;
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-8px);
-    max-height: 0;
-    margin-bottom: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-width: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
 }
 
 /* Compliance Table Card */
@@ -484,7 +450,7 @@
 
 .compliance-page .compliance-table th {
   padding: 12px 20px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -650,6 +616,7 @@
   color: #15803D;
   border: 1px solid #BBF7D0;
 }
+
 .compliance-page .status.compliant::before {
   background: #15803D;
 }
@@ -659,6 +626,7 @@
   color: #B91C1C;
   border: 1px solid #FECACA;
 }
+
 .compliance-page .status.expired-status::before {
   background: #B91C1C;
 }
@@ -668,6 +636,7 @@
   color: #1E40AF;
   border: 1px solid #BFDBFE;
 }
+
 .compliance-page .status.review-status::before {
   background: #2563EB;
 }
@@ -676,10 +645,12 @@
 .compliance-page .compliance-updated-date {
   font-size: 12.5px;
 }
+
 .compliance-page .compliance-updated-date.has-date {
   color: #475569;
   font-weight: 500;
 }
+
 .compliance-page .compliance-updated-date.no-date {
   color: #64748B;
 }
@@ -796,16 +767,17 @@
    ========================================================================== */
 
 @media (max-width: 1024px) {
+
   .compliance-page .compliance-stats-grid,
-.compliance-page .stats-container,
-.compliance-page .stats,
-.compliance-page .stats.stats-container {
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .compliance-page .stats.stats-container {
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 12px !important;
   }
 
   .compliance-page .compliance-table-card,
-.compliance-page .compliance-table-container {
+  .compliance-page .compliance-table-container {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
   }
@@ -828,18 +800,19 @@
   }
 
   .compliance-page .compliance-stats-grid,
-.compliance-page .stats-container,
-.compliance-page .stats,
-.compliance-page .stats.stats-container {
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .compliance-page .stats.stats-container {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
 
 @media (max-width: 480px) {
+
   .compliance-page .compliance-stats-grid,
-.compliance-page .stats-container,
-.compliance-page .stats,
-.compliance-page .stats.stats-container {
+  .compliance-page .stats-container,
+  .compliance-page .stats,
+  .compliance-page .stats.stats-container {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
   }
@@ -852,18 +825,19 @@
 }
 
 @media (max-width: 640px) {
+
   .compliance-page .tab-pill,
-.compliance-page .btn-compliance-refresh,
-.compliance-page .compliance-banner-close,
-.compliance-page .table-search,
-.compliance-page .table-search-clear-btn,
-.compliance-page .page-nav-btn,
-.compliance-page .btn-retry {
+  .compliance-page .btn-compliance-refresh,
+  .compliance-page .compliance-banner-close,
+  .compliance-page .table-search,
+  .compliance-page .table-search-clear-btn,
+  .compliance-page .page-nav-btn,
+  .compliance-page .btn-retry {
     min-height: 44px;
   }
 
   .compliance-page .compliance-banner-close,
-.compliance-page .table-search-clear-btn {
+  .compliance-page .table-search-clear-btn {
     min-width: 44px;
   }
 }

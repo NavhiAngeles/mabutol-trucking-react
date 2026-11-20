@@ -27,8 +27,7 @@
 }
 
 /* Unified keyboard focus ring (R-32) */
-:is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) :is(
-  a,
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) :is(a,
   button,
   input,
   select,
@@ -54,8 +53,7 @@
   .customer-discard-keep,
   .customer-discard-confirm,
   .customer-cred-toggle-btn,
-  .customer-pwd-toggle
-):focus-visible {
+  .customer-pwd-toggle):focus-visible {
   outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #1D4ED8);
   outline-offset: var(--focus-ring-offset, 2px);
 }
@@ -169,6 +167,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -390,19 +389,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Prevent single-row action dropdown clipping inside scroll container without blocking pagination */
-.customer-page .customer-table-scroll:has(.action-dropdown) {
-  position: relative;
-  z-index: 2;
-  padding-bottom: 220px;
-  margin-bottom: -220px;
-  pointer-events: none;
-}
-
-.customer-page .customer-table-scroll:has(.action-dropdown) .customer-table {
-  pointer-events: auto;
-}
-
 .customer-page .customer-table {
   width: 100%;
   min-width: 720px;
@@ -620,6 +606,7 @@
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -668,12 +655,14 @@
   justify-content: center;
   padding: var(--space-4, 16px);
   animation: cpFadeIn var(--duration-fast, 150ms) ease;
+  overscroll-behavior: contain;
 }
 
 @keyframes cpFadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -691,6 +680,7 @@
   box-shadow: var(--shadow-modal, 0 20px 40px rgba(15, 23, 42, 0.16));
   animation: cpSlideUp 0.18s var(--ease-standard, ease);
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 @keyframes cpSlideUp {
@@ -698,6 +688,7 @@
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1193,6 +1184,7 @@
   justify-content: center;
   padding: var(--space-4, 16px);
   animation: cpFadeIn var(--duration-fast, 150ms) ease;
+  overscroll-behavior: contain;
 }
 
 .customer-page .bh-modal {
@@ -1207,6 +1199,7 @@
   box-shadow: var(--shadow-modal, 0 20px 40px rgba(15, 23, 42, 0.16));
   animation: cpSlideUp 0.18s var(--ease-standard, ease);
   overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .customer-page .bh-modal-header {
@@ -1598,7 +1591,7 @@ dialog.customer-edit-dialog .cp-modal-header {
   gap: var(--space-5, 20px);
 }
 
-:is(.customer-page, .customer-edit-dialog) .customer-edit-body > p {
+:is(.customer-page, .customer-edit-dialog) .customer-edit-body>p {
   margin: 0;
   font-size: var(--text-body, 0.875rem);
   line-height: 1.5;
@@ -1689,6 +1682,7 @@ dialog.customer-edit-dialog button:disabled {
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1787,7 +1781,7 @@ dialog.customer-status-dialog::backdrop {
   padding: var(--space-6, 24px);
 }
 
-:is(.customer-page, .customer-status-dialog) .customer-status-body > p {
+:is(.customer-page, .customer-status-dialog) .customer-status-body>p {
   margin: 0 0 var(--space-4, 16px);
   font-size: var(--text-body, 0.875rem);
   line-height: 1.5;
@@ -2240,6 +2234,7 @@ dialog.customer-add-dialog button:disabled {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -2263,6 +2258,7 @@ dialog.customer-add-dialog button:disabled {
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -2443,6 +2439,7 @@ dialog.customer-add-dialog button:disabled {
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -2527,6 +2524,7 @@ dialog.customer-add-dialog button:disabled {
 }
 
 @media (max-width: 768px) {
+
   .customer-page .cp-modal-header,
   .customer-page .bh-modal-header {
     padding: var(--space-4, 16px) var(--space-5, 20px);
@@ -2592,8 +2590,8 @@ dialog.customer-add-dialog button:disabled {
     width: 100%;
   }
 
-  .customer-page .customer-header-actions > .btn-add-customer,
-  .customer-page .customer-header-actions > .customer-export-container {
+  .customer-page .customer-header-actions>.btn-add-customer,
+  .customer-page .customer-header-actions>.customer-export-container {
     flex: 1 1 160px;
   }
 
@@ -2621,7 +2619,7 @@ dialog.customer-add-dialog button:disabled {
     width: 100%;
   }
 
-  .customer-page .filter-buttons > .filter-btn {
+  .customer-page .filter-buttons>.filter-btn {
     flex: 1 1 auto;
   }
 
@@ -2715,6 +2713,7 @@ dialog.customer-add-dialog button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog),
   :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) *,
   :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) *::before,

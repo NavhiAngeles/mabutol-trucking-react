@@ -26,15 +26,13 @@
   border: 0;
 }
 
-.shipment-page :is(
-  a,
+.shipment-page :is(a,
   button,
   input,
   select,
   textarea,
   summary,
-  [tabindex]:not([tabindex="-1"])
-):focus-visible {
+  [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: var(--focus-ring-width, 2px) solid var(--focus-ring-color, #1D4ED8);
   outline-offset: var(--focus-ring-offset, 2px);
 }
@@ -180,7 +178,7 @@
 .shipment-page .tab {
   padding: 8px 14px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #64748B;
   cursor: pointer;
   display: inline-flex;
@@ -203,7 +201,6 @@
 
 .shipment-page .tab.active {
   color: #0F172A;
-  font-weight: 600;
   border-bottom-color: #1D4ED8;
   background: transparent;
   box-shadow: none;
@@ -647,7 +644,10 @@
   color: #0F172A;
 }
 
-.shipment-page .pagination-controls-group .page-nav-btn { padding: 0 10px; }
+.shipment-page .pagination-controls-group .page-nav-btn {
+  padding: 0 10px;
+}
+
 .shipment-page .pagination-controls-group .page-nav-btn:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -878,6 +878,7 @@
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -997,6 +998,7 @@
 .shipment-page .retry-btn:hover {
   background: #FEE2E2;
 }
+
 .shipment-page .booking-review-backdrop {
   position: fixed;
   inset: 0;
@@ -1006,6 +1008,7 @@
   place-items: center;
   padding: 24px;
 }
+
 .shipment-page .booking-review-dialog {
   background: white;
   color: #1e293b;
@@ -1016,16 +1019,56 @@
   overflow: auto;
   overflow-wrap: anywhere;
 }
-.shipment-page .booking-review-dialog dt { font-weight: 600; margin-top: 12px; }
-.shipment-page .booking-review-dialog dd { margin: 4px 0; }
-.shipment-page .booking-review-dialog textarea { display: block; width: 100%; min-height: 80px; box-sizing: border-box; }
-.shipment-page .shipment-edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:16px; }
-.shipment-page .shipment-edit-grid label { display:grid; gap:6px; font-weight:600; }
+
+.shipment-page .booking-review-dialog dt {
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.shipment-page .booking-review-dialog dd {
+  margin: 4px 0;
+}
+
+.shipment-page .booking-review-dialog textarea {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.shipment-page .shipment-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.shipment-page .shipment-edit-grid label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
 .shipment-page .shipment-edit-grid input,
 .shipment-page .shipment-edit-grid select,
-.shipment-page .shipment-edit-grid textarea { width:100%; box-sizing:border-box; }
-.shipment-page .shipment-edit-wide { grid-column:1/-1; }
-@media (max-width:640px) {.shipment-page .shipment-edit-grid {grid-template-columns:1fr}.shipment-page .shipment-edit-wide {grid-column:auto}}
+.shipment-page .shipment-edit-grid textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.shipment-page .shipment-edit-wide {
+  grid-column: 1/-1;
+}
+
+@media (max-width:640px) {
+  .shipment-page .shipment-edit-grid {
+    grid-template-columns: 1fr
+  }
+
+  .shipment-page .shipment-edit-wide {
+    grid-column: auto
+  }
+}
 
 /* =============================================================================
    SHIPMENT EDIT DIALOG & FORM STYLING
@@ -1124,7 +1167,7 @@
   gap: 6px;
 }
 
-.shipment-page .shipment-edit-field > span {
+.shipment-page .shipment-edit-field>span {
   font-size: 12.5px;
   font-weight: 600;
   color: #334155;
@@ -1209,16 +1252,64 @@
   line-height: 1.45;
   word-break: break-word;
 }
-.shipment-page .booking-review-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 20px; }
-.shipment-page .booking-review-actions button { min-height: 40px; cursor: pointer; }
-.shipment-page .booking-review-actions button:disabled { cursor: not-allowed; opacity: .6; }
-.shipment-page .booking-review-dialog[aria-busy="true"] .booking-review-actions button:disabled { cursor: wait; }
-.shipment-page .shipment-driver-instructions { margin-top: 8px; max-width: 28rem; }
-.shipment-page .shipment-driver-instructions summary { cursor: pointer; color: #1d4ed8; }
-.shipment-page .shipment-driver-instructions p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; }
-.shipment-page .shipment-action-explanation { padding: 0 14px 10px; margin: 0; font-size: 12px; color: #64748b; white-space: normal; }
-.shipment-page .action-dropdown button:disabled { cursor: not-allowed; color: #64748b; background: transparent; }
-.shipment-page .shipment-details-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.shipment-page .booking-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.shipment-page .booking-review-actions button {
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.shipment-page .booking-review-actions button:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+.shipment-page .booking-review-dialog[aria-busy="true"] .booking-review-actions button:disabled {
+  cursor: wait;
+}
+
+.shipment-page .shipment-driver-instructions {
+  margin-top: 8px;
+  max-width: 28rem;
+}
+
+.shipment-page .shipment-driver-instructions summary {
+  cursor: pointer;
+  color: #1d4ed8;
+}
+
+.shipment-page .shipment-driver-instructions p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+
+.shipment-page .shipment-action-explanation {
+  padding: 0 14px 10px;
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  white-space: normal;
+}
+
+.shipment-page .action-dropdown button:disabled {
+  cursor: not-allowed;
+  color: #64748b;
+  background: transparent;
+}
+
+.shipment-page .shipment-details-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .shipment-page .assignment-manager {
   margin-top: 20px;
   padding: 20px;
@@ -1717,7 +1808,7 @@
   margin-bottom: 20px;
 }
 
-.shipment-page .shipment-details-assignments-section > h3 {
+.shipment-page .shipment-details-assignments-section>h3 {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -2583,8 +2674,9 @@
    ========================================================================== */
 
 @media (max-width: 1024px) {
+
   .shipment-page .shipment-stats,
-.shipment-page .stats {
+  .shipment-page .stats {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 14px;
   }
@@ -2627,8 +2719,9 @@
 }
 
 @media (max-width: 480px) {
+
   .shipment-page .shipment-stats,
-.shipment-page .stats {
+  .shipment-page .stats {
     grid-template-columns: 1fr !important;
     gap: 10px;
   }
@@ -2665,6 +2758,7 @@
 }
 
 @media (max-width: 640px) {
+
   .shipment-page .btn-primary,
   .shipment-page .control-btn,
   .shipment-page .tab,

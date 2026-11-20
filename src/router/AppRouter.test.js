@@ -109,3 +109,11 @@ test('WorkspaceLoadingScreen renders accessible status announcement and aria-hid
   const kpiCards = findNodes(rendered, n => typeof n.props?.className === 'string' && n.props.className.includes('workspace-loading-stat-card'));
   assert.equal(kpiCards.length, 4);
 });
+
+test('AppRouter keeps BrowserRouter and /login outside DashboardMapProvider so sign-in sessionKey updates never unmount the router', () => {
+  const routerSource = fs.readFileSync(new URL('./AppRouter.jsx', import.meta.url), 'utf8');
+  const appSource = fs.readFileSync(new URL('../App.jsx', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(appSource, /DashboardMapProvider/);
+  assert.match(routerSource, /<Route element=\{<DashboardMapProvider><WorkspaceSuspense \/><\/DashboardMapProvider>\}>/);
+});

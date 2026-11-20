@@ -29,12 +29,10 @@ function Conversation({ delivery, driver, trackingNumber, open: controlledOpen, 
   useEffect(() => { notifyRead.current = onRead; }, [onRead]);
   useEffect(() => {
     if (!open || !dialog.current) return;
-    const element = dialog.current, previous = document.activeElement, overflow = document.body.style.overflow;
+    const element = dialog.current, previous = document.activeElement;
     element.showModal();
-    document.body.style.overflow = 'hidden';
     return () => {
       element.close();
-      document.body.style.overflow = overflow;
       if (previous?.isConnected) previous.focus();
       else document.querySelector('.conversation-inbox-refresh')?.focus();
     };
@@ -114,39 +112,39 @@ function Conversation({ delivery, driver, trackingNumber, open: controlledOpen, 
       const bounds = event.currentTarget.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) close();
     }}>
-    {open && <div className="conversation-drawer-layout">
-      <header className="conversation-drawer-header">
-        <div className="conversation-header-top"><span className="conversation-eyebrow">DRIVER MESSAGES</span><button type="button" className="conversation-icon-button" aria-label="Close conversation" onClick={close}>×</button></div>
-        <div className="conversation-heading"><span className="conversation-avatar" aria-hidden="true">D</span><div><h2 id={`conversation-title-${delivery}`}>{trackingNumber || 'Delivery conversation'}</h2><p>Office ↔ Assigned driver</p></div></div>
-        <div className="conversation-header-meta"><span className="conversation-unread">{unread === null ? 'Unread unavailable' : `${unread} unread`}</span><span>Delivery messages · Philippine time</span></div>
-      </header>
-      <div className="conversation-toolbar">
-        <button type="button" disabled={busy} onClick={() => setRevision(value => value + 1)}><span aria-hidden="true">↻</span> Retry / refresh messages</button>
-        {before && <button type="button" disabled={busy} onClick={() => { setPage(null); setBefore(null); }}>Latest messages</button>}
-      </div>
-      <div className="conversation-history">
-      <p className="conversation-privacy">Only this delivery’s assigned driver and authorized office staff can access this conversation.</p>
-      {error && <p className="conversation-feedback conversation-feedback-error" role="alert">{error}</p>}{notice && <p className="conversation-feedback" role="status">{notice}</p>}
-      {!page && !error && <p className="conversation-empty" role="status">Loading messages…</p>}
-      {page && <>
-        {page.has_more && <button type="button" className="conversation-older" disabled={busy} onClick={() => { setBefore(page.messages[0].id); setPage(null); }}>Older messages</button>}
-        {!page.messages.length && <div className="conversation-empty"><strong>No messages yet.</strong><p>Send the driver an update about this delivery.</p></div>}
-        <ol className="conversation-message-list" aria-label="Conversation messages">{page.messages.map(message => <li key={message.id} className={`conversation-message ${message.sender_role === 'driver' ? 'from-driver' : 'from-office'}`}>
-          <div className="conversation-message-meta"><strong>{message.sender_role === 'driver' ? 'Driver' : 'Office'}</strong><time dateTime={message.created_at}>{time(message.created_at)}</time></div><p>{message.body}</p>
-        </li>)}</ol>
-      </>}
-      </div>
-      <footer className="conversation-composer">
-        {readError && <div className="conversation-feedback conversation-feedback-error" role="alert">{readError}<button type="button" onClick={() => setRevision(value => value + 1)}>Retry marking messages read</button></div>}
-        {page && !page.can_send && <p className="conversation-feedback">This delivery conversation is read-only.</p>}
-        <label htmlFor={`conversation-draft-${delivery}`}>Message to driver</label><textarea id={`conversation-draft-${delivery}`} placeholder="Write a delivery update…" rows={3} maxLength={4000} value={draft} disabled={busy || pending || !page?.can_send} onChange={event => setDraft(event.target.value)} />
-        {pending && <p className="conversation-feedback conversation-feedback-error">The last send is unconfirmed. Retry the same message to confirm it without creating a duplicate.</p>}
-        <div className="conversation-send-row"><span>For urgent help, use your normal emergency contact.</span><button type="button" className="conversation-send" disabled={busy || (!pending && (!draft.trim() || !page?.can_send))} onClick={() => run(async () => {
-        try { await sender.send(draft); } finally { if (alive.current) setPending(!!sender.pending); }
-        if (alive.current) { setDraft(''); setNotice('Message sent.'); setBefore(null); setRevision(value => value + 1); }
-      })}>{busy ? 'Working…' : pending ? 'Retry send' : 'Send message'}</button></div>
-      </footer>
-    </div>}
+      {open && <div className="conversation-drawer-layout">
+        <header className="conversation-drawer-header">
+          <div className="conversation-header-top"><span className="conversation-eyebrow">DRIVER MESSAGES</span><button type="button" className="conversation-icon-button" aria-label="Close conversation" onClick={close}>×</button></div>
+          <div className="conversation-heading"><span className="conversation-avatar" aria-hidden="true">D</span><div><h2 id={`conversation-title-${delivery}`}>{trackingNumber || 'Delivery conversation'}</h2><p>Office ↔ Assigned driver</p></div></div>
+          <div className="conversation-header-meta"><span className="conversation-unread">{unread === null ? 'Unread unavailable' : `${unread} unread`}</span><span>Delivery messages · Philippine time</span></div>
+        </header>
+        <div className="conversation-toolbar">
+          <button type="button" disabled={busy} onClick={() => setRevision(value => value + 1)}><span aria-hidden="true">↻</span> Retry / refresh messages</button>
+          {before && <button type="button" disabled={busy} onClick={() => { setPage(null); setBefore(null); }}>Latest messages</button>}
+        </div>
+        <div className="conversation-history">
+          <p className="conversation-privacy">Only this delivery’s assigned driver and authorized office staff can access this conversation.</p>
+          {error && <p className="conversation-feedback conversation-feedback-error" role="alert">{error}</p>}{notice && <p className="conversation-feedback" role="status">{notice}</p>}
+          {!page && !error && <p className="conversation-empty" role="status">Loading messages…</p>}
+          {page && <>
+            {page.has_more && <button type="button" className="conversation-older" disabled={busy} onClick={() => { setBefore(page.messages[0].id); setPage(null); }}>Older messages</button>}
+            {!page.messages.length && <div className="conversation-empty"><strong>No messages yet.</strong><p>Send the driver an update about this delivery.</p></div>}
+            <ol className="conversation-message-list" aria-label="Conversation messages">{page.messages.map(message => <li key={message.id} className={`conversation-message ${message.sender_role === 'driver' ? 'from-driver' : 'from-office'}`}>
+              <div className="conversation-message-meta"><strong>{message.sender_role === 'driver' ? 'Driver' : 'Office'}</strong><time dateTime={message.created_at}>{time(message.created_at)}</time></div><p>{message.body}</p>
+            </li>)}</ol>
+          </>}
+        </div>
+        <footer className="conversation-composer">
+          {readError && <div className="conversation-feedback conversation-feedback-error" role="alert">{readError}<button type="button" onClick={() => setRevision(value => value + 1)}>Retry marking messages read</button></div>}
+          {page && !page.can_send && <p className="conversation-feedback">This delivery conversation is read-only.</p>}
+          <label htmlFor={`conversation-draft-${delivery}`}>Message to driver</label><textarea id={`conversation-draft-${delivery}`} placeholder="Write a delivery update…" rows={3} maxLength={4000} value={draft} disabled={busy || pending || !page?.can_send} onChange={event => setDraft(event.target.value)} />
+          {pending && <p className="conversation-feedback conversation-feedback-error">The last send is unconfirmed. Retry the same message to confirm it without creating a duplicate.</p>}
+          <div className="conversation-send-row"><span>For urgent help, use your normal emergency contact.</span><button type="button" className="conversation-send" disabled={busy || (!pending && (!draft.trim() || !page?.can_send))} onClick={() => run(async () => {
+            try { await sender.send(draft); } finally { if (alive.current) setPending(!!sender.pending); }
+            if (alive.current) { setDraft(''); setNotice('Message sent.'); setBefore(null); setRevision(value => value + 1); }
+          })}>{busy ? 'Working…' : pending ? 'Retry send' : 'Send message'}</button></div>
+        </footer>
+      </div>}
     </dialog>
   </>;
 }

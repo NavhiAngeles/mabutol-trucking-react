@@ -19,7 +19,11 @@ test('shipment list retrieves linked customer names for display and search witho
     async fetchOperationalRows(table, columns) {
       calls.push(table);
       if (table === 'shipments') {
-        assert.equal(columns, '*,customer:customers!customer_id(name)');
+        assert.equal(columns.includes('route_geometry'), false);
+        assert.equal(
+          columns,
+          'id,tracking_number,customer_id,billing_customer_id,status,booking_source,cargo_category_id,cargo_description,weight_kg,special_handling,requested_vehicle_type_id,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name)'
+        );
         return shipments;
       }
       assert.equal(table, 'deliveries');

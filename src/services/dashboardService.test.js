@@ -5,21 +5,31 @@ import vm from 'node:vm';
 import { calculateOperationalStats, dispatchReadyIds } from './operationalStats.js';
 function service(tables = {}, fail = '') {
   const subscriptions = [], removed = [];
-  const context = { calculateOperationalStats, dispatchReadyIds, supabase: {
-    from(table) { const q = { select() { return q; }, order() { return q; }, async range(start, end) {
-      return table === fail ? { error: new Error('Permission denied') } : { data: (tables[table] || []).slice(start, end + 1) };
-    } }; return q; },
-    channel() { const c = { on(event, filter, callback) { subscriptions.push({ filter, callback }); return c; }, subscribe(callback) { callback('SUBSCRIBED'); return c; } }; return c; },
-    removeChannel(c) { removed.push(c); },
-  } };
+  let rangeCalls = 0;
+  const context = {
+    calculateOperationalStats, dispatchReadyIds, supabase: {
+      from(table) {
+        const q = {
+          select() { return q; }, order() { return q; }, async range(start, end) {
+            rangeCalls++;
+            return table === fail ? { error: new Error('Permission denied') } : { data: (tables[table] || []).slice(start, end + 1) };
+          }
+        }; return q;
+      },
+      channel() { const c = { on(event, filter, callback) { subscriptions.push({ filter, callback }); return c; }, subscribe(callback) { callback('SUBSCRIBED'); return c; } }; return c; },
+      removeChannel(c) { removed.push(c); },
+    }
+  };
   vm.createContext(context);
   const source = fs.readFileSync(new URL('./dashboardService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
-  vm.runInContext(source + '\nthis.api={getDashboardStats,getDispatchReadyTruckIds,subscribeToDashboardChanges};', context);
-  return { ...context.api, subscriptions, removed };
+  vm.runInContext(source + '\nthis.api={getDashboardStats,getDispatchReadyTruckIds,subscribeToDashboardChanges,fetchOperationalRows,clearOperationalCache};', context);
+  return { ...context.api, subscriptions, removed, getRangeCalls: () => rangeCalls };
 }
 test('service counts all pages and Fleet uses identical readiness logic', async () => {
-  const api = service({ shipments: Array.from({ length: 501 }, (_, id) => ({ id: String(id), status: 'assigned' })),
-    trucks: [{ id: 't', status: 'available' }], deliveries: [{ id: 'd', truck_id: 't', status: 'assigned' }] });
+  const api = service({
+    shipments: Array.from({ length: 501 }, (_, id) => ({ id: String(id), status: 'assigned' })),
+    trucks: [{ id: 't', status: 'available' }], deliveries: [{ id: 'd', truck_id: 't', status: 'assigned' }]
+  });
   const result = await api.getDashboardStats();
   assert.equal(result.activeShipments, 501); assert.equal(result.pendingDispatch, 501);
   assert.equal(result.availableTrucks, (await api.getDispatchReadyTruckIds()).length);
@@ -45,4 +55,26 @@ test('KPI navigation uses valid routes and destination filters consume URL param
   assert.ok(shipment.includes("params.get('tab')")); assert.ok(shipment.includes('ACTIVE_STATUSES.includes(s.rawStatus)'));
   const fleet = fs.readFileSync(new URL('../pages/Fleet/fleet.jsx', import.meta.url), 'utf8');
   assert.ok(fleet.includes("params.get('availability')")); assert.ok(fleet.includes('getDispatchReadyTruckIds'));
+});
+test('fetchOperationalRows deduplicates concurrent unfiltered calls and clearOperationalCache invalidates short-TTL cache', async () => {
+  const api = service({ trucks: [{ id: 't1', status: 'available' }] });
+  const [first, second] = await Promise.all([
+    api.fetchOperationalRows('trucks', 'id,status'),
+    api.fetchOperationalRows('trucks', 'id,status'),
+  ]);
+  assert.equal(first.length, 1);
+  assert.equal(first[0].id, 't1');
+  assert.equal(first[0].status, 'available');
+  assert.equal(second, first);
+  assert.equal(api.getRangeCalls(), 1);
+
+  await api.fetchOperationalRows('trucks', 'id,status');
+  assert.equal(api.getRangeCalls(), 1);
+
+  await api.fetchOperationalRows('trucks', 'id,status', q => q);
+  assert.equal(api.getRangeCalls(), 2);
+
+  api.clearOperationalCache('trucks');
+  await api.fetchOperationalRows('trucks', 'id,status');
+  assert.equal(api.getRangeCalls(), 3);
 });

@@ -56,9 +56,9 @@ export default function FleetVehiclesView({
   return (
     <>
       {readyOnly && (
-        <p role="status">
+        <p role="status" className="fleet-ready-banner">
           Dispatch-ready vehicles only. {readyError || (!readyIds ? "Checking assignments and maintenance…" : `${readyIds.size} eligible vehicles`)}{" "}
-          <button type="button" onClick={() => { onClearReadyOnly(); setVehiclePage(1); }}>
+          <button type="button" className="btn-secondary small" onClick={() => { onClearReadyOnly(); setVehiclePage(1); }}>
             Show all vehicles
           </button>
         </p>

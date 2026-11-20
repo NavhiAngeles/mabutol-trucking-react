@@ -26,9 +26,17 @@ export async function getDashboardDetails() {
   return calculateDashboardAnalytics(shipments, trucks, deliveries, maintenance, docs, Date.now(), configuration);
 }
 
+const TRACKING_WINDOW_MS = 24 * 60 * 60 * 1000;
+const ACTIVE_TRACKING_SHIPMENT_STATUSES = ['assigned', 'loading', 'in_transit', 'delayed'];
+
 export async function getLiveTracking() {
+  const trackingCutoff = new Date(Date.now() - TRACKING_WINDOW_MS).toISOString();
   const [rows, deliveries, trucks, shipments, drivers] = await Promise.all([
-    fetchOperationalRows('tracking_logs', 'id,delivery_id,driver_id,truck_id,latitude,longitude,recorded_at'),
+    fetchOperationalRows(
+      'tracking_logs',
+      'id,delivery_id,driver_id,truck_id,latitude,longitude,recorded_at',
+      query => query.gte('recorded_at', trackingCutoff)
+    ),
     fetchOperationalRows(
       'deliveries',
       'id,shipment_id,truck_id,driver_id,status,route_started_at,pickup_arrived_at,customer_showed_at,departed_at'
@@ -36,7 +44,8 @@ export async function getLiveTracking() {
     fetchOperationalRows('trucks', 'id,plate_number,model'),
     fetchOperationalRows(
       'shipments',
-      'id,tracking_number,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_geometry,distance_km,route_duration_minutes,status'
+      'id,tracking_number,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_geometry,distance_km,route_duration_minutes,status',
+      query => query.in('status', ACTIVE_TRACKING_SHIPMENT_STATUSES)
     ).catch(() => []),
     fetchOperationalRows('drivers', 'id,full_name').catch(() => []),
   ]);

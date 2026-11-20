@@ -3,11 +3,34 @@ import { securityApi } from '../services/securityService';
 import WorkspaceLoadingScreen from './WorkspaceLoadingScreen';
 import './MfaGate.css';
 
-export default function MfaGate({ children }) {
-  const [status, setStatus] = useState(null);
+const MFA_ASSURANCE_CACHE_TTL_MS = 60_000;
+const verifiedAssuranceCache = new Map();
+
+function clearMfaAssuranceCache(userId = null) {
+  if (userId) {
+    verifiedAssuranceCache.delete(userId);
+    return;
+  }
+  verifiedAssuranceCache.clear();
+}
+
+function readVerifiedAssurance(userId) {
+  if (!userId) return null;
+  const entry = verifiedAssuranceCache.get(userId);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt >= MFA_ASSURANCE_CACHE_TTL_MS) {
+    verifiedAssuranceCache.delete(userId);
+    return null;
+  }
+  return entry.data;
+}
+
+export default function MfaGate({ children, userId = null }) {
+  const initialStatus = readVerifiedAssurance(userId);
+  const [status, setStatus] = useState(initialStatus);
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
-  const [factorId, setFactorId] = useState('');
+  const [factorId, setFactorId] = useState(initialStatus?.factors?.[0]?.id || '');
   const [reload, setReload] = useState(0);
   const [busy, setBusy] = useState(false);
   const [resendNotice, setResendNotice] = useState('');
@@ -15,20 +38,27 @@ export default function MfaGate({ children }) {
 
   useEffect(() => {
     let disposed = false;
+    if (reload === 0 && readVerifiedAssurance(userId)) {
+      return () => { disposed = true; };
+    }
     securityApi.assurance().then(data => {
       if (!disposed) {
+        if (userId && data && data.required === false) {
+          verifiedAssuranceCache.set(userId, { data, cachedAt: Date.now() });
+        }
         setStatus(data);
         setFactorId(data.factors?.[0]?.id || '');
         setError('');
         if (data.required && data.twoFactorType === 'textbee_sms' && securityApi.sendChallengeSms) {
-          securityApi.sendChallengeSms().catch(() => {});
+          securityApi.sendChallengeSms().catch(() => { });
         }
       }
     }).catch(err => {
+      clearMfaAssuranceCache(userId);
       if (!disposed) setError(err.message);
     });
     return () => { disposed = true; };
-  }, [reload]);
+  }, [reload, userId]);
 
   async function submit(event) {
     event.preventDefault();
@@ -43,6 +73,7 @@ export default function MfaGate({ children }) {
       } else {
         await securityApi.verify(factorId || status?.factors?.[0]?.id || 'sms', code);
       }
+      clearMfaAssuranceCache(userId);
       setCode('');
       setStatus(null);
       setReload(n => n + 1);
@@ -78,6 +109,7 @@ export default function MfaGate({ children }) {
     guard.current = true;
     setBusy(true);
     try {
+      clearMfaAssuranceCache();
       await securityApi.signOut();
     } catch (err) {
       setError(err.message);
@@ -243,7 +275,7 @@ export default function MfaGate({ children }) {
               type="button"
               className="mfa-btn-secondary"
               disabled={busy}
-              onClick={() => { setStatus(null); setError(''); setReload(n => n + 1); }}
+              onClick={() => { clearMfaAssuranceCache(userId); setStatus(null); setError(''); setReload(n => n + 1); }}
             >
               <svg className="mfa-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />

@@ -19,7 +19,7 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/" replace />;
   }
 
-  return <MfaGate key={user.id}>{children}</MfaGate>;
+  return <MfaGate key={user.id} userId={user.id}>{children}</MfaGate>;
 }
 
 export default ProtectedRoute;

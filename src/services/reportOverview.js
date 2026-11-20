@@ -46,7 +46,7 @@ export function summarizeOverview(rows, range) {
     if (s.status === 'delayed') bucket.delayed++;
   }
   const assignments = new Map();
-  for (const d of [...rows.deliveries].sort((a, b) => String(a.id).localeCompare(String(b.id)))) {
+  for (const d of rows.deliveries.toSorted((a, b) => String(a.id).localeCompare(String(b.id)))) {
     if (!assignments.has(d.shipment_id) || d.status === 'delivered') assignments.set(d.shipment_id, d.driver_id);
   }
   const drivers = rows.drivers.map(driver => {
@@ -61,8 +61,10 @@ export function summarizeOverview(rows, range) {
     else if (states.includes('pending_review')) compliance.pending++;
     else compliance.expiring++;
   }
-  return { total: shipments.length, completed: completed.length, delayed: shipments.filter(s => s.status === 'delayed').length,
+  return {
+    total: shipments.length, completed: completed.length, delayed: shipments.filter(s => s.status === 'delayed').length,
     onTime: timed.length ? Math.round(timed.filter(onTime).length / timed.length * 1000) / 10 : null, timed: timed.length,
     revenue: completed.reduce((sum, s) => sum + (amount(s) ?? 0), 0), missingAmounts: completed.filter(s => amount(s) == null).length,
-    buckets, drivers, compliance, complianceTotal: rows.compliance.length };
+    buckets, drivers, compliance, complianceTotal: rows.compliance.length
+  };
 }

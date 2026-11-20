@@ -9,8 +9,10 @@
   --ink: #111827;
   --text: #1f2937;
   --muted: #6b7280;
-  --band: #eef0fc;          /* card header band */
-  --thead: #e7eaf9;         /* table header band */
+  --band: #eef0fc;
+  /* card header band */
+  --thead: #e7eaf9;
+  /* table header band */
   --line: #e5e7eb;
   --input-border: #b9bfcc;
   --orange: #f97316;
@@ -57,7 +59,7 @@
   min-width: 0;
   height: 100%;
   border: 0;
-background: transparent;
+  background: transparent;
   font: inherit;
   font-size: 16px;
   color: var(--ink);
@@ -301,7 +303,7 @@ background: transparent;
   height: 100%;
   padding: 0;
   border: 0;
-background: transparent;
+  background: transparent;
   font: inherit;
   font-size: 16px;
   color: var(--ink);
@@ -365,9 +367,17 @@ background: transparent;
 /* ---- Surcharges ---- */
 
 .settings-page .pricing-page .surcharge-table col,
-.settings-page .pricing-page .surcharge-table th:nth-child(1) { width: 38%; }
-.settings-page .pricing-page .surcharge-table th:nth-child(2) { width: 36%; }
-.settings-page .pricing-page .surcharge-table th:nth-child(3) { width: 26%; }
+.settings-page .pricing-page .surcharge-table th:nth-child(1) {
+  width: 38%;
+}
+
+.settings-page .pricing-page .surcharge-table th:nth-child(2) {
+  width: 36%;
+}
+
+.settings-page .pricing-page .surcharge-table th:nth-child(3) {
+  width: 26%;
+}
 
 .settings-page .pricing-page .surcharge-table th,
 .settings-page .pricing-page .surcharge-table td {
@@ -435,9 +445,17 @@ background: transparent;
 
 /* ---- Vehicles ---- */
 
-.settings-page .pricing-page .vehicle-table th:nth-child(1) { width: 40%; }
-.settings-page .pricing-page .vehicle-table th:nth-child(2) { width: 32%; }
-.settings-page .pricing-page .vehicle-table th:nth-child(3) { width: 28%; }
+.settings-page .pricing-page .vehicle-table th:nth-child(1) {
+  width: 40%;
+}
+
+.settings-page .pricing-page .vehicle-table th:nth-child(2) {
+  width: 32%;
+}
+
+.settings-page .pricing-page .vehicle-table th:nth-child(3) {
+  width: 28%;
+}
 
 .settings-page .pricing-page .vehicle-table th,
 .settings-page .pricing-page .vehicle-table td {
@@ -523,6 +541,8 @@ background: transparent;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-color: #64748b #f8fafc;
+  scrollbar-width: thin;
 }
 
 /* Table width */
@@ -534,11 +554,25 @@ background: transparent;
 }
 
 /* Balanced column widths */
-.settings-page .pricing-page .toll-table th:nth-child(1) { width: 300px; }
-.settings-page .pricing-page .toll-table th:nth-child(2) { width: 120px; }
-.settings-page .pricing-page .toll-table th:nth-child(3) { width: 130px; }
-.settings-page .pricing-page .toll-table th:nth-child(4) { width: 120px; }
-.settings-page .pricing-page .toll-table th:nth-child(5) { width: 190px; }
+.settings-page .pricing-page .toll-table th:nth-child(1) {
+  width: 300px;
+}
+
+.settings-page .pricing-page .toll-table th:nth-child(2) {
+  width: 120px;
+}
+
+.settings-page .pricing-page .toll-table th:nth-child(3) {
+  width: 130px;
+}
+
+.settings-page .pricing-page .toll-table th:nth-child(4) {
+  width: 120px;
+}
+
+.settings-page .pricing-page .toll-table th:nth-child(5) {
+  width: 190px;
+}
 
 /* Normal scrolling for all columns */
 .settings-page .pricing-page .toll-table th,
@@ -778,6 +812,7 @@ background: transparent;
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -862,24 +897,31 @@ background: transparent;
   outline-offset: 2px;
 }
 
-/* Scrollbar */
-.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar {
-  height: 8px;
+/* Scrollbar fallback for engines without standard scrollbar-color */
+@supports not (scrollbar-color: auto) {
+  .settings-page .pricing-page .toll-table-wrapper {
+    scrollbar-width: auto;
+  }
+
+  .settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb {
+    background: #64748b;
+    border-radius: 10px;
+  }
+
+  .settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+
+  .settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 10px;
+  }
 }
 
-.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-}
-
-.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-.settings-page .pricing-page .toll-table-wrapper::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-radius: 10px;
-}
 .settings-page .pricing-page .pricing-table-scroll {
   width: 100%;
   overflow-x: auto;
@@ -890,7 +932,9 @@ background: transparent;
   outline: 2px solid #1D4ED8;
   outline-offset: 2px;
 }
+
 @media (max-width: 640px) {
+
   .settings-page :is(.primary-btn, .secondary-btn, .danger-btn, .logout-btn, .ep-save-btn, .ep-cancel-btn, .pw-update-btn, .pw-cancel-btn, .um-refresh, .action-dots-btn, .toll-action-dots-btn, .add-toll-btn),
   .settings-page .um-pagination button {
     min-height: 44px;

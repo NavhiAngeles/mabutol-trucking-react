@@ -31,7 +31,9 @@ export async function signIn(email, password) {
   // sign the new session out immediately after login.
   markActivity();
   try {
-    await recordDeviceSession(supabase, data.user, { forceGeoRefresh: true });
+    if (typeof recordDeviceSession === 'function') {
+      void Promise.resolve(recordDeviceSession(supabase, data.user, { forceGeoRefresh: true })).catch(() => {});
+    }
   } catch {
     // Session metadata recording is best-effort and must not block sign-in.
   }

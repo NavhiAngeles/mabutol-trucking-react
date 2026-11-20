@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import WorkspaceLoadingScreen from "../components/WorkspaceLoadingScreen";
+import DashboardMapProvider from "../pages/Dashboard/DashboardMapProvider";
 import "./AppRouter.css";
 
 // Auth entry routes (kept static for instant landing TTI)
@@ -90,7 +91,7 @@ function AppRouter() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route element={<WorkspaceSuspense />}>
+          <Route element={<DashboardMapProvider><WorkspaceSuspense /></DashboardMapProvider>}>
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/shipment" element={<ProtectedRoute><Shipment /></ProtectedRoute>} />
             <Route path="/fleet" element={<ProtectedRoute><Fleet /></ProtectedRoute>} />

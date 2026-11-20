@@ -16,6 +16,28 @@ const TABLES = [
 ];
 
 const dismissedSyntheticIds = new Set();
+const USER_NAME_CACHE_TTL_MS = 300_000;
+const userNameCacheByClient = new WeakMap();
+
+function getCachedUserProfile(client, userId) {
+  const clientCache = userNameCacheByClient.get(client);
+  const entry = clientCache?.get(userId);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt >= USER_NAME_CACHE_TTL_MS) {
+    clientCache.delete(userId);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedUserProfile(client, userId, data) {
+  let clientCache = userNameCacheByClient.get(client);
+  if (!clientCache) {
+    clientCache = new Map();
+    userNameCacheByClient.set(client, clientCache);
+  }
+  clientCache.set(userId, { data, cachedAt: Date.now() });
+}
 
 function getPersistedReadIds(userId) {
   try {
@@ -55,6 +77,8 @@ async function loadOfficeTools(client = supabase) {
   const { data: { user }, error } = await client.auth.getUser();
   if (error || !user) throw new Error('Please sign in again.');
 
+  const cachedProfile = getCachedUserProfile(client, user.id);
+
   const [
     profileResult,
     notificationsResult,
@@ -62,7 +86,9 @@ async function loadOfficeTools(client = supabase) {
     incidentsResult,
     expensesResult,
   ] = await Promise.allSettled([
-    client.from('users').select('full_name').eq('id', user.id).single(),
+    cachedProfile
+      ? Promise.resolve({ data: cachedProfile, error: null })
+      : client.from('users').select('full_name').eq('id', user.id).single(),
     client
       .from('notifications')
       .select('id,title,body,shipment_id,read_at,created_at')
@@ -95,6 +121,9 @@ async function loadOfficeTools(client = supabase) {
   }
 
   const profile = profileResult.status === 'fulfilled' && !profileResult.value.error ? profileResult.value.data : null;
+  if (profile && !cachedProfile) {
+    setCachedUserProfile(client, user.id, profile);
+  }
   // Exclude any driver message notifications so they notify exclusively in Drivers Message
   const dbNotifications = (notificationsResult.status === 'fulfilled' && !notificationsResult.value.error && Array.isArray(notificationsResult.value.data)
     ? notificationsResult.value.data
@@ -195,7 +224,11 @@ async function loadOfficeTools(client = supabase) {
 export default function OfficeTools() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data, loading, error, refresh } = useLiveData(loadOfficeTools, TABLES);
+  const officeCacheKey = user?.id ? `office-tools:${user.id}` : 'office-tools';
+  const { data, loading, error, refresh } = useLiveData(loadOfficeTools, TABLES, {
+    cacheKey: officeCacheKey,
+    staleTime: 10000,
+  });
   const [open, setOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [locallyReadIds, setLocallyReadIds] = useState(new Set());

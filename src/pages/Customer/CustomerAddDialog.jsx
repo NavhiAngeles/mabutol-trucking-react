@@ -163,12 +163,9 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole, existi
   useEffect(() => {
     alive.current = true;
     const previous = document.activeElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     dialogRef.current?.showModal();
     return () => {
       alive.current = false;
-      document.body.style.overflow = overflow;
       previous?.focus();
     };
   }, []);

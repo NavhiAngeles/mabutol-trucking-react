@@ -240,6 +240,27 @@ export default function Shipment() {
     <div
       className={`action-menu-wrapper${openMenuId === shipment.dbId ? " menu-open" : ""}`}
       ref={openMenuId === shipment.dbId ? menuRef : null}
+      onKeyDown={(event) => {
+        if (openMenuId !== shipment.dbId) return;
+        const items = Array.from(
+          event.currentTarget.querySelectorAll?.('[role="menuitem"]:not([disabled])') || []
+        );
+        if (items.length === 0) return;
+        const currentIndex = items.indexOf(document.activeElement);
+        if (event.key === "ArrowDown") {
+          event.preventDefault();
+          items[(currentIndex + 1) % items.length]?.focus();
+        } else if (event.key === "ArrowUp") {
+          event.preventDefault();
+          items[(currentIndex - 1 + items.length) % items.length]?.focus();
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          items[0]?.focus();
+        } else if (event.key === "End") {
+          event.preventDefault();
+          items[items.length - 1]?.focus();
+        }
+      }}
     >
       {shipment.rawStatus === "booked" && !shipment.assignmentId && (
         <button
@@ -260,6 +281,7 @@ export default function Shipment() {
         type="button"
         className="action-btn"
         aria-label={`Actions for ${shipment.id}`}
+        aria-haspopup="menu"
         aria-expanded={openMenuId === shipment.dbId}
         onClick={(event) => toggleMenu(shipment.dbId, event)}
       >
@@ -279,6 +301,7 @@ export default function Shipment() {
       {openMenuId === shipment.dbId && (
         <div
           className="action-dropdown"
+          role="menu"
           style={
             menuPosition
               ? {
@@ -293,7 +316,7 @@ export default function Shipment() {
           }
         >
           {shipment.rawStatus === 'pending' && (
-            <button type="button" onClick={event => {
+            <button type="button" role="menuitem" onClick={event => {
               reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
               setReviewShipment(shipment); setOpenMenuId(null);
             }}>
@@ -305,13 +328,14 @@ export default function Shipment() {
             </button>
           )}
           {shipment.rawStatus === "booked" && !shipment.assignmentId && (
-            <button type="button" disabled={Boolean(assigningId)}
+            <button type="button" role="menuitem" disabled={Boolean(assigningId)}
               onClick={() => { handleAssign(shipment); setOpenMenuId(null); }}>
               {assigningId === shipment.dbId ? "Assigning…" : "Assign available driver & truck"}
             </button>
           )}
           <button
             type="button"
+            role="menuitem"
             onClick={event => {
               reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
               setDetailsShipment(shipment);
@@ -327,7 +351,7 @@ export default function Shipment() {
 
           {!completed && shipment.status !== "cancelled" && (
             <>
-              <button type="button" onClick={event => {
+              <button type="button" role="menuitem" onClick={event => {
                 reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
                 setEditShipment(shipment);
                 setOpenMenuId(null);
@@ -342,6 +366,7 @@ export default function Shipment() {
               {shipment.status !== "review" && (
                 <button
                   type="button"
+                  role="menuitem"
                   className="action-danger"
                   onClick={event => {
                     reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
@@ -402,13 +427,13 @@ export default function Shipment() {
         {assignmentMessage && (
           <div
             className={`shipment-feedback-banner ${assignmentMessage.toLowerCase().includes("could not") ||
-                assignmentMessage.toLowerCase().includes("error") ||
-                assignmentMessage.toLowerCase().includes("denied")
-                ? "is-error"
-                : assignmentMessage.toLowerCase().includes("no available") ||
-                  assignmentMessage.toLowerCase().includes("awaiting")
-                  ? "is-warning"
-                  : "is-success"
+              assignmentMessage.toLowerCase().includes("error") ||
+              assignmentMessage.toLowerCase().includes("denied")
+              ? "is-error"
+              : assignmentMessage.toLowerCase().includes("no available") ||
+                assignmentMessage.toLowerCase().includes("awaiting")
+                ? "is-warning"
+                : "is-success"
               }`}
             role="status"
           >
@@ -649,15 +674,39 @@ export default function Shipment() {
         </div>
 
         {/* SHIPMENT TABS */}
-        <div className="view-tabs" role="tablist" aria-label="Shipment views">
+        <div
+          className="view-tabs"
+          role="tablist"
+          aria-label="Shipment views"
+          onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+            event.preventDefault();
+            const currentIndex = Math.max(0, tabs.findIndex((t) => t.key === currentTab));
+            const nextIndex =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? tabs.length - 1
+                  : event.key === "ArrowRight"
+                    ? (currentIndex + 1) % tabs.length
+                    : (currentIndex - 1 + tabs.length) % tabs.length;
+            const nextTab = tabs[nextIndex];
+            if (!nextTab) return;
+            setCurrentTab(nextTab.key);
+            setOpenMenuId(null);
+            event.currentTarget.querySelector?.(`#shipment-tab-${nextTab.key}`)?.focus?.();
+          }}
+        >
           {tabs.map((tab) => (
             <button
               type="button"
               key={tab.key}
+              id={`shipment-tab-${tab.key}`}
               className={`tab ${currentTab === tab.key ? "active" : ""
                 }`}
               role="tab"
               aria-selected={currentTab === tab.key}
+              aria-controls="shipment-table-panel"
               onClick={() => {
                 setCurrentTab(tab.key);
                 setOpenMenuId(null);
@@ -729,7 +778,13 @@ export default function Shipment() {
         )}
 
         {/* SHIPMENT TABLE */}
-        <div className="shipment-table-card" aria-busy={isLoading}>
+        <div
+          id="shipment-table-panel"
+          className="shipment-table-card"
+          role="tabpanel"
+          aria-labelledby={`shipment-tab-${currentTab}`}
+          aria-busy={isLoading}
+        >
           <div className="shipment-table-scroll">
             <table className="shipment-table">
               {currentTab === "completed" ? (

@@ -83,6 +83,12 @@ export default function MainLayout({ children }) {
           aria-labelledby="idle-warning-title"
           aria-describedby="idle-warning-desc"
           className="idle-timeout-overlay"
+          onKeyDown={(e) => {
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              e.currentTarget.querySelector?.('.btn-stay-signed-in')?.focus?.();
+            }
+          }}
         >
           <div className="idle-timeout-dialog">
             <div className="idle-timeout-icon" aria-hidden="true">

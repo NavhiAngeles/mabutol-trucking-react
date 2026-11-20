@@ -83,7 +83,11 @@ export default function RevenueReport() {
   const range = useReportRange(activeRange, appliedCustom);
   const memoCallback = typeof useCallback === 'function' ? useCallback : (fn) => fn;
   const loadData = memoCallback(() => getRevenueReportRecords(range), [range.start, range.end]);
-  const live = useLiveData(loadData, REVENUE_REPORT_TABLES);
+  const live = useLiveData(loadData, REVENUE_REPORT_TABLES, {
+    cacheKey: `report:revenue:${range.start || 'all'}:${range.end || 'all'}`,
+    staleTime: 30000,
+    pollInterval: 60000,
+  });
 
   function applyCustom() {
     try {
