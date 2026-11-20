@@ -12,7 +12,7 @@ export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries',
 export async function fetchShipmentDetails(id) {
   const [initialShipmentResult, deliveryResult] = await Promise.all([
     supabase.from('shipments')
-      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
+      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,linehaul_amount,toll_amount,mobilization_fee,deadhead_km,quote_expires_at,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
       .eq('id', id).single(),
     supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id),
   ]);
@@ -36,7 +36,7 @@ export async function fetchShipmentDetails(id) {
 
 export async function fetchBookingRequest(id) {
   let { data, error } = await supabase.from('shipments')
-    .select('id,tracking_number,status,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,quoted_amount,override_amount,override_reason,special_handling,driver_notes,requested_vehicle_type_id,vehicle:vehicle_types(name)')
+    .select('id,tracking_number,status,booking_source,updated_at,pickup_address,dropoff_address,pickup_lat,pickup_lng,dropoff_lat,dropoff_lng,route_source,route_reason,route_geometry,route_duration_minutes,customer:customers!customer_id(name),cargo_description,weight_kg,distance_km,scheduled_departure,estimated_arrival,linehaul_amount,toll_amount,toll_fees,mobilization_fee,deadhead_km,quoted_amount,override_amount,override_reason,final_amount,quote_expires_at,special_handling,driver_notes,requested_vehicle_type_id,vehicle:vehicle_types(id,name,toll_class,min_lead_time_hours,loading_buffer_minutes)')
     .eq('id', id).single();
   if (error && (error.code === '42703' || String(error.message || '').includes('does not exist'))) {
     const fallback = await supabase.from('shipments')
@@ -46,26 +46,43 @@ export async function fetchBookingRequest(id) {
     error = fallback.error;
   }
   if (error) throw error;
-  if (data?.status !== 'pending') throw new Error('This request is no longer pending. Close and refresh the list.');
+  if (!['pending', 'quoted'].includes(data?.status)) {
+    throw new Error('This request is no longer pending or awaiting quote confirmation. Close and refresh the list.');
+  }
 
-  if (data && data.quoted_amount == null && data.requested_vehicle_type_id) {
+  if (data && data.requested_vehicle_type_id) {
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const [rateRes, settingsRes] = await Promise.all([
-        supabase.from('pricing_rates')
-          .select('per_km_rate, min_charge')
+      let rateRes = await supabase.from('pricing_rates')
+        .select('id, base_rate, per_km_rate, per_kg_rate, min_charge, free_deadhead_km, deadhead_per_km_rate')
+        .eq('vehicle_type_id', data.requested_vehicle_type_id)
+        .eq('is_active', true)
+        .lte('effective_from', today)
+        .order('effective_from', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (rateRes?.error && (rateRes.error.code === '42703' || String(rateRes.error.message || '').includes('does not exist'))) {
+        rateRes = await supabase.from('pricing_rates')
+          .select('id, base_rate, per_km_rate, per_kg_rate, min_charge')
           .eq('vehicle_type_id', data.requested_vehicle_type_id)
           .eq('is_active', true)
           .lte('effective_from', today)
           .order('effective_from', { ascending: false })
           .limit(1)
-          .maybeSingle(),
-        supabase.from('system_settings')
-          .select('key, value')
-          .in('key', ['minimum_booking_fee', 'handling_surcharges']),
-      ]);
+          .maybeSingle();
+      }
+
+      const settingsRes = await supabase.from('system_settings')
+        .select('key, value')
+        .in('key', ['minimum_booking_fee', 'handling_surcharges']);
+
       if (rateRes?.data) {
-        data.pricing_rate = rateRes.data;
+        data.pricing_rate = {
+          free_deadhead_km: 30,
+          deadhead_per_km_rate: 0,
+          ...rateRes.data,
+        };
       }
       if (settingsRes?.data) {
         const settingsMap = Object.fromEntries(settingsRes.data.map(item => [item.key, item.value]));
@@ -148,6 +165,7 @@ export async function createShipment(payload) {
 
 const STATUS_MAP = {
   pending: "pending",
+  quoted: "quoted",
   booked: "booked",
   confirmed: "loading",
   assigned: "assigned",
@@ -220,7 +238,7 @@ export function formatDayTime(value) {
 
   const difference = Math.round(
     (today.getTime() - target.getTime()) /
-      (1000 * 60 * 60 * 24)
+    (1000 * 60 * 60 * 24)
   );
 
   if (difference === 0) {
@@ -306,10 +324,10 @@ export function mapShipmentRow(row) {
   const delayMinutes =
     status === "delayed" && scheduledAt
       ? Math.max(
-          0,
-          (Date.now() - scheduledAt.getTime()) /
-            60000
-        )
+        0,
+        (Date.now() - scheduledAt.getTime()) /
+        60000
+      )
       : 0;
 
   const baseShipment = {
@@ -440,6 +458,12 @@ export function mapShipmentRow(row) {
     etaNoteClass = "text-warning-amber";
   }
 
+  if (rawStatus === "quoted") {
+    eta = formatDayTime(updatedAt);
+    etaNote = "Quoted · awaiting customer confirmation";
+    etaNoteClass = "text-quoted-blue";
+  }
+
   return {
     ...baseShipment,
     eta,
@@ -476,9 +500,11 @@ export async function fetchShipments() {
 
     const mappedShipments = (
       (data ?? []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-    ).map(row => mapShipmentRow({ ...row,
+    ).map(row => mapShipmentRow({
+      ...row,
       assignment: deliveries.find(d => d.shipment_id === row.id && d.status !== 'cancelled'),
-      pendingDispatch: pendingDeparture(row, deliveries) }));
+      pendingDispatch: pendingDeparture(row, deliveries)
+    }));
 
     console.log("Mapped shipments count:", mappedShipments.length);
 

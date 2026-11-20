@@ -750,3 +750,480 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
 .btn-review-return:hover {
   background: #1E40AF !important;
 }
+
+
+/* =============================================================================
+   FTL QUOTATION BUILDER & RANKED TRUCK DISPATCH COMPARISON
+   ============================================================================= */
+.ftl-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.ftl-quotation-builder {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  gap: 18px;
+}
+
+.ftl-builder-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.ftl-builder-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F2A52;
+  margin: 0 0 4px 0;
+}
+
+.ftl-builder-header p {
+  font-size: 13px;
+  color: #475569;
+  max-width: 620px;
+}
+
+.ftl-eta-callout {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  min-width: 190px;
+}
+
+.ftl-eta-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+.ftl-eta-callout strong {
+  font-size: 14px;
+  color: #0F172A;
+}
+
+.ftl-eta-sub {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.ftl-zone-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.ftl-zone-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ftl-zone-head h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.ftl-zone-step-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 4px;
+  color: #1D4ED8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ftl-route-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.ftl-route-controls-row > label {
+  flex: 1 1 220px;
+}
+
+.ftl-route-calc-action {
+  flex: 0 0 auto;
+}
+
+.ftl-inline-refresh-btn {
+  min-height: 44px !important;
+  padding: 8px 14px !important;
+  font-size: 13px;
+}
+
+.ftl-field-hint {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.ftl-inline-error {
+  margin: 4px 0 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #B91C1C;
+}
+
+.delivery-workflow-panel :is(:user-invalid, [aria-invalid="true"]) {
+  border-color: #B91C1C;
+  background-color: #FEF2F2;
+}
+
+.ftl-truck-status-msg {
+  font-size: 13px;
+  color: #475569;
+  padding: 8px 0;
+}
+
+.ftl-truck-list {
+  display: grid;
+  gap: 10px;
+}
+
+.delivery-workflow-panel button.ftl-truck-card {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  text-align: left;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.delivery-workflow-panel button.ftl-truck-card:hover:not(:disabled) {
+  border-color: #64748B;
+  background: #F8FAFC;
+}
+
+.delivery-workflow-panel button.ftl-truck-card.is-recommended:not(.is-selected) {
+  border-color: #93C5FD;
+}
+
+.delivery-workflow-panel button.ftl-truck-card.is-selected {
+  border-color: #1D4ED8;
+  background: #EFF6FF;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.16);
+}
+
+.ftl-truck-card-main {
+  display: grid;
+  gap: 3px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.ftl-truck-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ftl-truck-code {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.ftl-truck-plate {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  padding: 1px 6px;
+  background: #F1F5F9;
+  border-radius: 4px;
+}
+
+.ftl-top-match-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: #1D4ED8;
+  color: #FFFFFF;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ftl-truck-driver {
+  font-size: 12.5px;
+  color: #334155;
+}
+
+.ftl-truck-projected {
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.ftl-truck-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.ftl-truck-deadhead {
+  display: grid;
+  gap: 2px;
+  min-width: 108px;
+}
+
+.ftl-metric-caption {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748B;
+}
+
+.ftl-excess-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #B45309;
+}
+
+.ftl-within-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #047857;
+}
+
+.ftl-truck-feasibility {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  min-width: 160px;
+}
+
+.ftl-feasibility-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ftl-feasibility-badge.is-ready {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.ftl-feasibility-badge.is-tight {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.ftl-feasibility-badge.is-late {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.ftl-feasibility-detail {
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.ftl-deadhead-manual-row {
+  padding-top: 6px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.ftl-quote-ledger {
+  display: grid;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.ftl-ledger-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ftl-ledger-label {
+  display: grid;
+  gap: 2px;
+}
+
+.ftl-ledger-label strong {
+  font-size: 13.5px;
+  color: #0F172A;
+}
+
+.ftl-ledger-label span {
+  font-size: 12px;
+  color: #475569;
+}
+
+.ftl-ledger-amount {
+  font-size: 15px;
+  color: #0F172A;
+}
+
+.ftl-ledger-input-row {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ftl-mobilization-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ftl-mobilization-control input {
+  flex: 1 1 180px;
+}
+
+.delivery-workflow-panel button.ftl-secondary-mini-btn {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  background: #F8FAFC;
+}
+
+.ftl-ledger-row.is-subtotal {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.ftl-override-block {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.delivery-workflow-panel label.ftl-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.delivery-workflow-panel label.ftl-checkbox-row input[type="checkbox"] {
+  width: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+.ftl-override-inputs {
+  display: grid;
+  gap: 10px;
+}
+
+.ftl-validity-block {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.ftl-validity-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ftl-validity-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.delivery-workflow-panel button.ftl-preset-btn {
+  min-height: 44px;
+  min-width: 52px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.delivery-workflow-panel button.ftl-preset-btn.is-active {
+  background: #0F2A52;
+  border-color: #0F2A52;
+  color: #FFFFFF;
+}
+
+.delivery-workflow-panel input.ftl-valid-hours-input {
+  width: 110px;
+}
+
+.ftl-ledger-row.is-final {
+  padding: 10px 12px;
+  margin-top: 2px;
+  border-bottom: none;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+}
+
+.ftl-ledger-row.is-final strong {
+  display: block;
+  color: #0F2A52;
+  font-size: 14px;
+}
+
+.ftl-ledger-row.is-final span {
+  font-size: 12px;
+  color: #475569;
+}
+
+.ftl-final-price {
+  font-size: 18px !important;
+  color: #0F2A52 !important;
+}
+
+@media (max-width: 640px) {
+  .ftl-truck-feasibility {
+    justify-items: start;
+  }
+}

@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Banknote,
   CheckCircle2,
+  Clock,
   Loader2,
   Lock,
   Package,
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -77,12 +79,16 @@ function getHandlingBadgeProps(id) {
 export default function Pricing() {
   const [vehicles, setVehicles] = useState([]);
   const [rates, setRates] = useState({});
+  const [deadhead, setDeadhead] = useState({});
+  const [vehicleRules, setVehicleRules] = useState({});
   const [fees, setFees] = useState(DEFAULT_FEES);
   const [surcharges, setSurcharges] = useState(DEFAULT_SURCHARGES);
   const [initialSnapshot, setInitialSnapshot] = useState({
     fees: DEFAULT_FEES,
     surcharges: DEFAULT_SURCHARGES,
     rates: {},
+    deadhead: {},
+    vehicleRules: {},
   });
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -111,6 +117,30 @@ export default function Pricing() {
         ])
       );
 
+      const loadedDeadhead = Object.fromEntries(
+        data.vehicles.map((vehicle) => [
+          vehicle.id,
+          {
+            free_deadhead_km: vehicle.pricing
+              ? String(vehicle.pricing.free_deadhead_km ?? 30)
+              : "",
+            deadhead_per_km_rate: vehicle.pricing
+              ? String(vehicle.pricing.deadhead_per_km_rate ?? 0)
+              : "",
+          },
+        ])
+      );
+
+      const loadedVehicleRules = Object.fromEntries(
+        data.vehicles.map((vehicle) => [
+          vehicle.id,
+          {
+            min_lead_time_hours: String(vehicle.min_lead_time_hours ?? 24),
+            loading_buffer_minutes: String(vehicle.loading_buffer_minutes ?? 180),
+          },
+        ])
+      );
+
       const settings = data.settings || {};
 
       const loadedFees = {
@@ -136,12 +166,16 @@ export default function Pricing() {
       );
 
       setRates(loadedRates);
+      setDeadhead(loadedDeadhead);
+      setVehicleRules(loadedVehicleRules);
       setFees(loadedFees);
       setSurcharges(loadedSurcharges);
       setInitialSnapshot({
         fees: loadedFees,
         surcharges: loadedSurcharges,
         rates: loadedRates,
+        deadhead: loadedDeadhead,
+        vehicleRules: loadedVehicleRules,
       });
     } catch (err) {
       console.error("Pricing load error:", err);
@@ -201,17 +235,47 @@ export default function Pricing() {
     }
 
     for (const vehicle of vehicles) {
-      if (!vehicle.pricing) continue;
+      if (vehicle.pricing) {
+        if (
+          String(rates[vehicle.id] ?? "").trim() !==
+          String(initialSnapshot.rates[vehicle.id] ?? "").trim()
+        ) {
+          count += 1;
+        }
+        const currDh = deadhead[vehicle.id] || {};
+        const initDh = initialSnapshot.deadhead?.[vehicle.id] || {};
+        if (
+          String(currDh.free_deadhead_km ?? "").trim() !==
+          String(initDh.free_deadhead_km ?? "").trim()
+        ) {
+          count += 1;
+        }
+        if (
+          String(currDh.deadhead_per_km_rate ?? "").trim() !==
+          String(initDh.deadhead_per_km_rate ?? "").trim()
+        ) {
+          count += 1;
+        }
+      }
+
+      const currRules = vehicleRules[vehicle.id] || {};
+      const initRules = initialSnapshot.vehicleRules?.[vehicle.id] || {};
       if (
-        String(rates[vehicle.id] ?? "").trim() !==
-        String(initialSnapshot.rates[vehicle.id] ?? "").trim()
+        String(currRules.min_lead_time_hours ?? "").trim() !==
+        String(initRules.min_lead_time_hours ?? "").trim()
+      ) {
+        count += 1;
+      }
+      if (
+        String(currRules.loading_buffer_minutes ?? "").trim() !==
+        String(initRules.loading_buffer_minutes ?? "").trim()
       ) {
         count += 1;
       }
     }
 
     return count;
-  }, [fees, surcharges, rates, vehicles, initialSnapshot]);
+  }, [fees, surcharges, rates, deadhead, vehicleRules, vehicles, initialSnapshot]);
 
   const isDirty = dirtyCount > 0;
 
@@ -237,6 +301,34 @@ export default function Pricing() {
     setSuccess("");
   };
 
+  const setDeadheadField = (id, field) => (event) => {
+    if (!isAdmin) return;
+
+    setDeadhead((previous) => ({
+      ...previous,
+      [id]: {
+        ...(previous[id] || {}),
+        [field]: event.target.value,
+      },
+    }));
+
+    setSuccess("");
+  };
+
+  const setVehicleRuleField = (id, field) => (event) => {
+    if (!isAdmin) return;
+
+    setVehicleRules((previous) => ({
+      ...previous,
+      [id]: {
+        ...(previous[id] || {}),
+        [field]: event.target.value,
+      },
+    }));
+
+    setSuccess("");
+  };
+
   const setSurcharge = (id) => (event) => {
     if (!isAdmin) return;
 
@@ -253,6 +345,22 @@ export default function Pricing() {
     setFees({ ...initialSnapshot.fees });
     setSurcharges({ ...initialSnapshot.surcharges });
     setRates({ ...initialSnapshot.rates });
+    setDeadhead(
+      Object.fromEntries(
+        Object.entries(initialSnapshot.deadhead || {}).map(([id, val]) => [
+          id,
+          { ...val },
+        ])
+      )
+    );
+    setVehicleRules(
+      Object.fromEntries(
+        Object.entries(initialSnapshot.vehicleRules || {}).map(([id, val]) => [
+          id,
+          { ...val },
+        ])
+      )
+    );
     setError("");
     setSuccess("");
   };
@@ -263,12 +371,24 @@ export default function Pricing() {
     setError("");
     setSuccess("");
 
+    const activeDeadhead = typeof deadhead !== "undefined" ? deadhead : null;
+    const activeVehicleRules =
+      typeof vehicleRules !== "undefined" ? vehicleRules : null;
+
     const amounts = [
       ...Object.values(fees),
       ...Object.values(surcharges),
       ...vehicles
         .filter((vehicle) => vehicle.pricing)
-        .map((vehicle) => rates[vehicle.id]),
+        .flatMap((vehicle) => [
+          rates[vehicle.id],
+          ...(activeDeadhead
+            ? [
+                activeDeadhead[vehicle.id]?.free_deadhead_km ?? 30,
+                activeDeadhead[vehicle.id]?.deadhead_per_km_rate ?? 0,
+              ]
+            : []),
+        ]),
     ];
 
     if (!amounts.every(isValidAmount)) {
@@ -278,10 +398,40 @@ export default function Pricing() {
       return;
     }
 
+    if (activeVehicleRules) {
+      const ruleInvalid = vehicles.some((vehicle) => {
+        const entry = activeVehicleRules[vehicle.id];
+        if (!entry) return false;
+        const lead = Number(entry.min_lead_time_hours);
+        const buf = Number(entry.loading_buffer_minutes);
+        return (
+          String(entry.min_lead_time_hours ?? "").trim() === "" ||
+          String(entry.loading_buffer_minutes ?? "").trim() === "" ||
+          !Number.isInteger(lead) ||
+          lead < 0 ||
+          !Number.isInteger(buf) ||
+          buf < 0
+        );
+      });
+      if (ruleInvalid) {
+        setError(
+          "Please enter valid non-negative whole numbers for lead times and loading buffers."
+        );
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
-      await savePricing(vehicles, rates, fees, surcharges);
+      await savePricing(
+        vehicles,
+        rates,
+        fees,
+        surcharges,
+        activeDeadhead,
+        activeVehicleRules
+      );
 
       await loadPricing();
 
@@ -320,8 +470,8 @@ export default function Pricing() {
             </div>
             <p className="text-sm text-muted-foreground">
               {!loading && !isAdmin
-                ? "View-only access. Contact an administrator to modify vehicle rates, fees, or toll tariffs."
-                : "Configure vehicle base rates, fixed trip fees, handling surcharges, and expressway toll tariffs."}
+                ? "View-only access. Contact an administrator to modify vehicle rates, deadhead thresholds, equipment lead times, or expressway toll tariffs."
+                : "Configure FTL vehicle linehaul rates, deadhead mobilization thresholds, equipment lead times, fixed trip fees, and expressway toll tariffs."}
             </p>
           </div>
         </header>
@@ -409,7 +559,7 @@ export default function Pricing() {
                 <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
                   <CardHeader className="border-b border-border/60 px-6 py-5">
                     <CardTitle className="text-base font-semibold">
-                      Base Rate per Vehicle Type
+                      Vehicle Linehaul &amp; Deadhead Rates
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="px-0 py-0">
@@ -417,44 +567,16 @@ export default function Pricing() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="px-6">Vehicle Type</TableHead>
-                          <TableHead className="px-3">Max Capacity</TableHead>
-                          <TableHead className="px-6 text-right">
-                            Rate / km (₱)
-                          </TableHead>
+                          <TableHead className="px-3">Capacity</TableHead>
+                          <TableHead className="px-3 text-right">Rate / km (₱)</TableHead>
+                          <TableHead className="px-3 text-right">Free Deadhead</TableHead>
+                          <TableHead className="px-6 text-right">Mob / km (₱)</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <SkeletonTableRows
                           rows={4}
-                          columns={["text", "short", "short"]}
-                        />
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-
-                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
-                  <CardHeader className="border-b border-border/60 px-6 py-5">
-                    <CardTitle className="text-base font-semibold">
-                      Toll Gate Rates
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-0 py-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="px-6">Toll Gate</TableHead>
-                          <TableHead className="px-3">Highway</TableHead>
-                          <TableHead className="px-3">Vehicle Class</TableHead>
-                          <TableHead className="px-6 text-right">
-                            Fee (₱)
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <SkeletonTableRows
-                          rows={4}
-                          columns={["stack", "badge", "short", "short"]}
+                          columns={["text", "short", "short", "short", "short"]}
                         />
                       </TableBody>
                     </Table>
@@ -622,11 +744,152 @@ export default function Pricing() {
                     </Table>
                   </CardContent>
                 </Card>
+
+                {/* VEHICLE LEAD TIMES & LOADING BUFFERS */}
+                <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
+                  <CardHeader className="border-b border-border/60 px-6 py-5">
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+                      <Clock
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <span>Vehicle Lead Times &amp; Loading Buffers</span>
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Minimum advance booking window (hours) and combined loading/unloading buffer (minutes) per FTL truck class.
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="px-0 py-0">
+                    <div
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Vehicle lead times and loading buffer configuration"
+                      className="overflow-x-auto"
+                    >
+                      <Table>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead scope="col" className="px-6 py-2.5 text-xs font-medium text-muted-foreground">
+                              Vehicle Type
+                            </TableHead>
+                            <TableHead scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                              Min Lead Time (hrs)
+                            </TableHead>
+                            <TableHead scope="col" className="px-6 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                              Loading Buffer (mins)
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedVehicles.map((vehicle) => {
+                            const currRule = vehicleRules[vehicle.id] || {};
+                            const initRule =
+                              initialSnapshot.vehicleRules?.[vehicle.id] || {};
+                            const leadDirty =
+                              String(currRule.min_lead_time_hours ?? "").trim() !==
+                              String(initRule.min_lead_time_hours ?? "").trim();
+                            const bufDirty =
+                              String(currRule.loading_buffer_minutes ?? "").trim() !==
+                              String(initRule.loading_buffer_minutes ?? "").trim();
+
+                            return (
+                              <TableRow
+                                key={vehicle.id}
+                                className="transition-colors hover:bg-muted/40"
+                              >
+                                <TableCell className="px-6 py-3 font-medium text-foreground">
+                                  {vehicle.name}
+                                </TableCell>
+                                <TableCell className="px-3 py-3 text-right">
+                                  <label
+                                    htmlFor={`vehicle-lead-${vehicle.id}`}
+                                    className="sr-only"
+                                  >
+                                    {vehicle.name} minimum lead time hours
+                                  </label>
+                                  <div className="relative inline-flex w-28 items-center">
+                                    <Input
+                                      id={`vehicle-lead-${vehicle.id}`}
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={currRule.min_lead_time_hours ?? ""}
+                                      onChange={setVehicleRuleField(
+                                        vehicle.id,
+                                        "min_lead_time_hours"
+                                      )}
+                                      readOnly={!isAdmin}
+                                      aria-label={`${vehicle.name} minimum lead time hours`}
+                                      className={`h-9 w-full pr-9 text-right font-medium tabular-nums shadow-none ${
+                                        leadDirty && isAdmin
+                                          ? "border-primary/60 bg-primary/[0.02]"
+                                          : ""
+                                      } ${
+                                        !isAdmin
+                                          ? "cursor-default bg-muted/40 text-muted-foreground"
+                                          : ""
+                                      }`}
+                                    />
+                                    <span
+                                      aria-hidden="true"
+                                      className="pointer-events-none absolute right-2.5 text-xs text-muted-foreground select-none"
+                                    >
+                                      hr
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="px-6 py-3 text-right">
+                                  <label
+                                    htmlFor={`vehicle-buffer-${vehicle.id}`}
+                                    className="sr-only"
+                                  >
+                                    {vehicle.name} loading buffer minutes
+                                  </label>
+                                  <div className="relative inline-flex w-28 items-center">
+                                    <Input
+                                      id={`vehicle-buffer-${vehicle.id}`}
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={currRule.loading_buffer_minutes ?? ""}
+                                      onChange={setVehicleRuleField(
+                                        vehicle.id,
+                                        "loading_buffer_minutes"
+                                      )}
+                                      readOnly={!isAdmin}
+                                      aria-label={`${vehicle.name} loading buffer minutes`}
+                                      className={`h-9 w-full pr-10 text-right font-medium tabular-nums shadow-none ${
+                                        bufDirty && isAdmin
+                                          ? "border-primary/60 bg-primary/[0.02]"
+                                          : ""
+                                      } ${
+                                        !isAdmin
+                                          ? "cursor-default bg-muted/40 text-muted-foreground"
+                                          : ""
+                                      }`}
+                                    />
+                                    <span
+                                      aria-hidden="true"
+                                      className="pointer-events-none absolute right-2.5 text-xs text-muted-foreground select-none"
+                                    >
+                                      min
+                                    </span>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* RIGHT COLUMN (xl:col-span-7) */}
               <div className="space-y-6 xl:col-span-7">
-                {/* BASE RATE PER VEHICLE TYPE */}
+                {/* VEHICLE LINEHAUL & DEADHEAD RATES */}
                 <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
                   <CardHeader className="border-b border-border/60 px-6 py-5">
                     <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
@@ -634,121 +897,215 @@ export default function Pricing() {
                         className="size-4 text-muted-foreground"
                         aria-hidden="true"
                       />
-                      <span>Base Rate per Vehicle Type</span>
+                      <span>Vehicle Linehaul &amp; Deadhead Rates</span>
                     </CardTitle>
                     <CardDescription className="text-sm text-muted-foreground">
-                      Per-kilometer base rates ordered by maximum payload
-                      capacity.
+                      Per-kilometer linehaul tariffs, free empty deadhead thresholds, and mobilization surcharge rates per kilometer.
                     </CardDescription>
                   </CardHeader>
 
                   <CardContent className="px-0 py-0">
-                    <Table>
-                      <TableHeader className="bg-muted/40">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="px-6 py-2.5 text-xs font-medium text-muted-foreground">
-                            Vehicle Type
-                          </TableHead>
-                          <TableHead className="px-3 py-2.5 text-xs font-medium text-muted-foreground">
-                            Capacity
-                          </TableHead>
-                          <TableHead className="px-6 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                            Rate / km (₱)
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
+                    <div
+                      tabIndex={0}
+                      role="region"
+                      aria-label="Vehicle linehaul and deadhead rates"
+                      className="overflow-x-auto"
+                    >
+                      <Table>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow className="hover:bg-transparent">
+                            <TableHead scope="col" className="px-6 py-2.5 text-xs font-medium text-muted-foreground">
+                              Vehicle Type
+                            </TableHead>
+                            <TableHead scope="col" className="px-3 py-2.5 text-xs font-medium text-muted-foreground">
+                              Capacity
+                            </TableHead>
+                            <TableHead scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                              Rate / km (₱)
+                            </TableHead>
+                            <TableHead scope="col" className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                              Free Deadhead (km)
+                            </TableHead>
+                            <TableHead scope="col" className="px-6 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                              Mob Rate / km (₱)
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
 
-                      <TableBody>
-                        {sortedVehicles.map((vehicle) => {
-                          const vehicleDirty =
-                            vehicle.pricing &&
-                            String(rates[vehicle.id] ?? "").trim() !==
-                            String(
-                              initialSnapshot.rates[vehicle.id] ?? ""
-                            ).trim();
+                        <TableBody>
+                          {sortedVehicles.map((vehicle) => {
+                            const vehicleDirty =
+                              vehicle.pricing &&
+                              String(rates[vehicle.id] ?? "").trim() !==
+                              String(
+                                initialSnapshot.rates[vehicle.id] ?? ""
+                              ).trim();
+                            const currDh = deadhead[vehicle.id] || {};
+                            const initDh =
+                              initialSnapshot.deadhead?.[vehicle.id] || {};
+                            const freeDhDirty =
+                              vehicle.pricing &&
+                              String(currDh.free_deadhead_km ?? "").trim() !==
+                              String(initDh.free_deadhead_km ?? "").trim();
+                            const rateDhDirty =
+                              vehicle.pricing &&
+                              String(currDh.deadhead_per_km_rate ?? "").trim() !==
+                              String(initDh.deadhead_per_km_rate ?? "").trim();
 
-                          return (
-                            <TableRow
-                              key={vehicle.id}
-                              className="transition-colors hover:bg-muted/40"
-                            >
-                              <TableCell className="px-6 py-3">
-                                <div className="flex items-center gap-2.5">
-                                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/40 text-muted-foreground">
-                                    <Truck
-                                      className="size-4"
-                                      aria-hidden="true"
-                                    />
-                                  </span>
-                                  <span className="font-medium text-foreground">
-                                    {vehicle.name}
-                                  </span>
-                                </div>
-                              </TableCell>
+                            return (
+                              <TableRow
+                                key={vehicle.id}
+                                className="transition-colors hover:bg-muted/40"
+                              >
+                                <TableCell className="px-6 py-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/40 text-muted-foreground">
+                                      <Truck
+                                        className="size-4"
+                                        aria-hidden="true"
+                                      />
+                                    </span>
+                                    <span className="font-medium text-foreground">
+                                      {vehicle.name}
+                                    </span>
+                                  </div>
+                                </TableCell>
 
-                              <TableCell className="px-3 py-3">
-                                {vehicle.default_capacity_kg != null ? (
-                                  <Badge
-                                    variant="secondary"
-                                    className="rounded-md font-normal text-muted-foreground tabular-nums"
-                                  >
-                                    Up to{" "}
-                                    {Number(
-                                      vehicle.default_capacity_kg
-                                    ).toLocaleString("en-PH")}{" "}
-                                    kg
-                                  </Badge>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    Not specified
-                                  </span>
-                                )}
-                              </TableCell>
-
-                              <TableCell className="px-6 py-3 text-right">
-                                {vehicle.pricing ? (
-                                  <>
-                                    <label
-                                      htmlFor={`vehicle-rate-${vehicle.id}`}
-                                      className="sr-only"
+                                <TableCell className="px-3 py-3">
+                                  {vehicle.default_capacity_kg != null ? (
+                                    <Badge
+                                      variant="secondary"
+                                      className="rounded-md font-normal text-muted-foreground tabular-nums"
                                     >
-                                      {vehicle.name} rate per km
-                                    </label>
-                                    <CurrencyRateInput
-                                      id={`vehicle-rate-${vehicle.id}`}
-                                      value={rates[vehicle.id] ?? ""}
-                                      onChange={setRate(vehicle.id)}
-                                      suffix="/ km"
-                                      readOnly={!isAdmin}
-                                      isDirty={Boolean(vehicleDirty)}
-                                      aria-label={`${vehicle.name} rate per km`}
-                                    />
-                                  </>
-                                ) : (
-                                  <Badge
-                                    variant="outline"
-                                    className="rounded-md border-amber-200 bg-amber-50 font-medium text-amber-800"
-                                  >
-                                    No active rate
-                                  </Badge>
-                                )}
+                                      Up to{" "}
+                                      {Number(
+                                        vehicle.default_capacity_kg
+                                      ).toLocaleString("en-PH")}{" "}
+                                      kg
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                      Not specified
+                                    </span>
+                                  )}
+                                </TableCell>
+
+                                <TableCell className="px-3 py-3 text-right">
+                                  {vehicle.pricing ? (
+                                    <>
+                                      <label
+                                        htmlFor={`vehicle-rate-${vehicle.id}`}
+                                        className="sr-only"
+                                      >
+                                        {vehicle.name} rate per km
+                                      </label>
+                                      <CurrencyRateInput
+                                        id={`vehicle-rate-${vehicle.id}`}
+                                        value={rates[vehicle.id] ?? ""}
+                                        onChange={setRate(vehicle.id)}
+                                        suffix="/ km"
+                                        readOnly={!isAdmin}
+                                        isDirty={Boolean(vehicleDirty)}
+                                        aria-label={`${vehicle.name} rate per km`}
+                                      />
+                                    </>
+                                  ) : (
+                                    <Badge
+                                      variant="outline"
+                                      className="rounded-md border-amber-200 bg-amber-50 font-medium text-amber-800"
+                                    >
+                                      No active rate
+                                    </Badge>
+                                  )}
+                                </TableCell>
+
+                                <TableCell className="px-3 py-3 text-right">
+                                  {vehicle.pricing ? (
+                                    <>
+                                      <label
+                                        htmlFor={`vehicle-free-deadhead-${vehicle.id}`}
+                                        className="sr-only"
+                                      >
+                                        {vehicle.name} free deadhead km
+                                      </label>
+                                      <div className="relative inline-flex w-28 items-center">
+                                        <Input
+                                          id={`vehicle-free-deadhead-${vehicle.id}`}
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={currDh.free_deadhead_km ?? ""}
+                                          onChange={setDeadheadField(
+                                            vehicle.id,
+                                            "free_deadhead_km"
+                                          )}
+                                          readOnly={!isAdmin}
+                                          aria-label={`${vehicle.name} free deadhead km`}
+                                          className={`h-9 w-full pr-9 text-right font-medium tabular-nums shadow-none ${
+                                            freeDhDirty && isAdmin
+                                              ? "border-primary/60 bg-primary/[0.02]"
+                                              : ""
+                                          } ${
+                                            !isAdmin
+                                              ? "cursor-default bg-muted/40 text-muted-foreground"
+                                              : ""
+                                          }`}
+                                        />
+                                        <span
+                                          aria-hidden="true"
+                                          className="pointer-events-none absolute right-2.5 text-xs text-muted-foreground select-none"
+                                        >
+                                          km
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">N/A</span>
+                                  )}
+                                </TableCell>
+
+                                <TableCell className="px-6 py-3 text-right">
+                                  {vehicle.pricing ? (
+                                    <>
+                                      <label
+                                        htmlFor={`vehicle-deadhead-rate-${vehicle.id}`}
+                                        className="sr-only"
+                                      >
+                                        {vehicle.name} mobilization rate per km
+                                      </label>
+                                      <CurrencyRateInput
+                                        id={`vehicle-deadhead-rate-${vehicle.id}`}
+                                        value={currDh.deadhead_per_km_rate ?? ""}
+                                        onChange={setDeadheadField(
+                                          vehicle.id,
+                                          "deadhead_per_km_rate"
+                                        )}
+                                        suffix="/ km"
+                                        readOnly={!isAdmin}
+                                        isDirty={Boolean(rateDhDirty)}
+                                        aria-label={`${vehicle.name} mobilization rate per km`}
+                                      />
+                                    </>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">N/A</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+
+                          {sortedVehicles.length === 0 && (
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell
+                                colSpan={5}
+                                className="px-6 py-10 text-center text-sm text-muted-foreground"
+                              >
+                                No vehicle types found.
                               </TableCell>
                             </TableRow>
-                          );
-                        })}
-
-                        {sortedVehicles.length === 0 && (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell
-                              colSpan={3}
-                              className="px-6 py-10 text-center text-sm text-muted-foreground"
-                            >
-                              No vehicle types found.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -773,7 +1130,7 @@ export default function Pricing() {
                     {dirtyCount} unsaved {dirtyCount === 1 ? "change" : "changes"}
                   </span>
                   <span className="hidden text-muted-foreground sm:inline">
-                    — Review your rate updates before saving.
+                    Review your rate updates before saving.
                   </span>
                 </div>
 

@@ -48,3 +48,149 @@ test('Pricing Save calls only atomic service, reloads after success and retains 
     assert.equal(Boolean(state.success), !fail); assert.equal(Boolean(state.error), fail);
   }
 });
+
+
+test('savePricing persists deadhead thresholds and vehicle lead-time/buffer rules atomically when provided', async () => {
+  const calls = [];
+  const extendedVehicles = [
+    {
+      id: 'v',
+      name: 'Refrigerated Van',
+      min_lead_time_hours: 48,
+      loading_buffer_minutes: 180,
+      pricing: {
+        id: 'r',
+        per_km_rate: '45',
+        free_deadhead_km: '30',
+        deadhead_per_km_rate: '25',
+      },
+    },
+  ];
+  const save = service(async (name, payload) => {
+    calls.push([name, JSON.parse(JSON.stringify(payload))]);
+    return {
+      data: {
+        saved: true,
+        rates: payload.p_rates.length,
+        settings: 3,
+        ...(payload.p_vehicle_types
+          ? { vehicle_types: payload.p_vehicle_types.length }
+          : {}),
+      },
+    };
+  });
+
+  await save(
+    extendedVehicles,
+    { v: '45' },
+    fees,
+    surcharges,
+    { v: { free_deadhead_km: '40', deadhead_per_km_rate: '35' } },
+    { v: { min_lead_time_hours: '48', loading_buffer_minutes: '240' } }
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], 'save_pricing');
+  assert.deepEqual(calls[0][1].p_rates, [
+    {
+      id: 'r',
+      vehicle_type_id: 'v',
+      expected_rate: 45,
+      per_km_rate: 45,
+      expected_free_deadhead_km: 30,
+      free_deadhead_km: 40,
+      expected_deadhead_per_km_rate: 25,
+      deadhead_per_km_rate: 35,
+    },
+  ]);
+  assert.deepEqual(calls[0][1].p_vehicle_types, [
+    {
+      id: 'v',
+      expected_min_lead_time_hours: 48,
+      min_lead_time_hours: 48,
+      expected_loading_buffer_minutes: 180,
+      loading_buffer_minutes: 240,
+    },
+  ]);
+
+  await assert.rejects(
+    save(
+      extendedVehicles,
+      { v: '45' },
+      fees,
+      surcharges,
+      { v: { free_deadhead_km: '40', deadhead_per_km_rate: '35' } },
+      { v: { min_lead_time_hours: '12.5', loading_buffer_minutes: '240' } }
+    ),
+    /Invalid whole number/
+  );
+});
+
+
+test('savePricing requires 3-arg RPC and vehicle_types confirmation when deadhead fields change', async () => {
+  const deadheadVehicles = [
+    {
+      id: 'v',
+      name: 'Van',
+      capacity: '3000',
+      min_lead_time_hours: 24,
+      loading_buffer_minutes: 180,
+      pricing: { id: 'p', per_km_rate: 45, free_deadhead_km: 30, deadhead_per_km_rate: 0 },
+    },
+  ];
+  const calls = [];
+  const saveOk = service(async (fn, args) => {
+    calls.push({ fn, args });
+    return { data: { saved: true, rates: 1, settings: 3, vehicle_types: 0 }, error: null };
+  });
+
+  await saveOk(
+    deadheadVehicles,
+    { v: '45' },
+    fees,
+    surcharges,
+    { v: { free_deadhead_km: '40', deadhead_per_km_rate: '35' } },
+    { v: { min_lead_time_hours: '24', loading_buffer_minutes: '180' } }
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].fn, 'save_pricing');
+  assert.deepEqual(calls[0].args.p_vehicle_types, []);
+
+  const saveMissingRpc = service(async () => ({
+    data: null,
+    error: {
+      code: 'PGRST202',
+      message: 'Could not find the function public.save_pricing(p_rates, p_settings, p_vehicle_types) in the schema cache',
+    },
+  }));
+
+  await assert.rejects(
+    saveMissingRpc(
+      deadheadVehicles,
+      { v: '45' },
+      fees,
+      surcharges,
+      { v: { free_deadhead_km: '40', deadhead_per_km_rate: '35' } },
+      null
+    ),
+    /Database migration required/
+  );
+
+  const saveLegacyResponse = service(async () => ({
+    data: { saved: true, rates: 1, settings: 3 },
+    error: null,
+  }));
+
+  await assert.rejects(
+    saveLegacyResponse(
+      deadheadVehicles,
+      { v: '45' },
+      fees,
+      surcharges,
+      { v: { free_deadhead_km: '40', deadhead_per_km_rate: '35' } },
+      null
+    ),
+    /not confirmed/
+  );
+});

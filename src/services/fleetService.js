@@ -97,6 +97,34 @@ const TRUCK_SELECT = `
   status,
   odometer_km,
   notes,
+  home_base_location_id,
+  current_lat,
+  current_lng,
+  last_location_at,
+  next_available_address,
+  next_available_lat,
+  next_available_lng,
+  next_available_at,
+  created_at,
+  updated_at,
+  vehicle_types ( id, name ),
+  drivers:assigned_driver_id ( id, full_name, contact_number ),
+  home_base:home_base_location_id ( id, name, address ),
+  truck_cargo_categories ( cargo_categories ( id, name ) )
+`;
+
+const TRUCK_SELECT_LEGACY = `
+  id,
+  fleet_code,
+  plate_number,
+  model,
+  model_year,
+  capacity_kg,
+  vehicle_type_id,
+  assigned_driver_id,
+  status,
+  odometer_km,
+  notes,
   created_at,
   updated_at,
   vehicle_types ( id, name ),
@@ -104,9 +132,24 @@ const TRUCK_SELECT = `
   truck_cargo_categories ( cargo_categories ( id, name ) )
 `;
 
+const isMissingSchemaColumnError = (error) =>
+  Boolean(
+    error &&
+      (error.code === "42703" ||
+        error.code === "PGRST204" ||
+        error.code === "PGRST200" ||
+        /does not exist|schema cache|relationship/i.test(String(error.message || "")))
+  );
+
 /** Fetch all trucks with vehicle type + assigned driver + cargo categories joined in. */
 export async function getTrucks() {
-    const data = await allRows("trucks", TRUCK_SELECT, q => q.order("created_at", { ascending: false }));
+    let data;
+    try {
+        data = await allRows("trucks", TRUCK_SELECT, q => q.order("created_at", { ascending: false }));
+    } catch (error) {
+        if (!isMissingSchemaColumnError(error)) throw error;
+        data = await allRows("trucks", TRUCK_SELECT_LEGACY, q => q.order("created_at", { ascending: false }));
+    }
     return (data || []).map((t, index) => {
         const clean = typeof sanitizeTruck === 'function' ? sanitizeTruck(t, index) : t;
         return {
@@ -118,11 +161,21 @@ export async function getTrucks() {
 
 /** Fetch a single truck by id, joined the same way as getTrucks(). */
 export async function getTruckById(truckId) {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
         .from("trucks")
         .select(TRUCK_SELECT)
         .eq("id", truckId)
         .single();
+
+    if (error && isMissingSchemaColumnError(error)) {
+        const fallback = await supabase
+            .from("trucks")
+            .select(TRUCK_SELECT_LEGACY)
+            .eq("id", truckId)
+            .single();
+        data = fallback.data;
+        error = fallback.error;
+    }
 
     if (error) throw error;
     const clean = typeof sanitizeTruck === 'function' ? sanitizeTruck(data) : data;

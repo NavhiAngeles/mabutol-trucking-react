@@ -26,10 +26,14 @@ export async function fetchShipmentForEdit(id) {
   }
   if (shipmentError) throw shipmentError;
 
-  const [deliveries, vehicles] = await Promise.all([
+  const [deliveries, initialVehicles] = await Promise.all([
     supabase.from('deliveries').select('id,status,departed_at,route_started_at,pickup_arrived_at,customer_showed_at,grace_ends_at,auto_cancel_at').eq('shipment_id', id).neq('status', 'cancelled'),
-    supabase.from('vehicle_types').select('id,name,default_capacity_kg,is_active').eq('is_active', true).order('default_capacity_kg')
+    supabase.from('vehicle_types').select('id,name,default_capacity_kg,min_lead_time_hours,loading_buffer_minutes,is_active').eq('is_active', true).order('default_capacity_kg')
   ]);
+  let vehicles = initialVehicles;
+  if (vehicles.error && (vehicles.error.code === '42703' || String(vehicles.error.message || '').includes('does not exist'))) {
+    vehicles = await supabase.from('vehicle_types').select('id,name,default_capacity_kg,is_active').eq('is_active', true).order('default_capacity_kg');
+  }
   if (deliveries.error) throw deliveries.error;
   if (vehicles.error) throw vehicles.error;
 

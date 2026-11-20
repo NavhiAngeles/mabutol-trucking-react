@@ -136,7 +136,9 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
         <div className="shipment-details-header-main">
           <div className="shipment-details-title-row">
             <h2 id="booking-review-title">Review booking {shipment.id}</h2>
-            <span className="status review-pill">● PENDING REVIEW</span>
+            <span className={`status ${request?.status === 'quoted' ? 'quoted-pill' : 'review-pill'}`}>
+              {request?.status === 'quoted' ? '● QUOTED' : '● PENDING REVIEW'}
+            </span>
           </div>
           <p className="shipment-details-subtitle">
             Customer: <strong>{request?.customer?.name || shipment.customer || 'Not recorded'}</strong> · Dates and times in Philippine time.
@@ -311,6 +313,27 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
             </div>
             <div className="shipment-card-fields">
               <div>
+                <dt>Linehaul amount</dt>
+                <dd className="shipment-money-val">{request.linehaul_amount != null ? money(request.linehaul_amount) : 'Pending'}</dd>
+              </div>
+              <div>
+                <dt>Toll fees</dt>
+                <dd className="shipment-money-val">{money(request.toll_amount ?? request.toll_fees ?? 0)}</dd>
+              </div>
+              <div>
+                <dt>Mobilization fee</dt>
+                <dd className="shipment-money-val">
+                  {money(request.mobilization_fee ?? 0)}
+                  {Number(request.deadhead_km || 0) > 0 && (
+                    <span className="booking-review-quote-sub"> ({Number(request.deadhead_km).toFixed(1)} km deadhead)</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Quote expires</dt>
+                <dd>{request.quote_expires_at ? departure(request.quote_expires_at) : 'Not yet set'}</dd>
+              </div>
+              <div>
                 <dt>Quoted charge</dt>
                 <dd className="shipment-money-val">
                   {request.quoted_amount != null ? (
@@ -323,15 +346,17 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
                   ) : (
                     <span className="booking-review-pending-quote">
                       Pending route quotation
-                      <small className="booking-review-quote-sub">Save calculated quotation below</small>
+                      <small className="booking-review-quote-sub">Submit official quote below</small>
                     </span>
                   )}
                 </dd>
               </div>
               <div>
-                <dt>Accepted charge</dt>
+                <dt>Final / Accepted charge</dt>
                 <dd className="shipment-final-val">
-                  {request.override_amount != null ? (
+                  {request.final_amount != null ? (
+                    money(request.final_amount)
+                  ) : request.override_amount != null ? (
                     money(request.override_amount)
                   ) : request.quoted_amount != null ? (
                     money(request.quoted_amount)
@@ -378,7 +403,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
               <p>
                 {isPastDeparture
                   ? 'The scheduled departure for this booking is in the past. Deliveries cannot be quoted or approved for past departures. Click "Update departure date & time" above to set a future date first.'
-                  : 'This booking has no saved distance or quotation yet. Confirm the coordinates, click "Calculate provider route", and then click "Save calculated quotation" above. Once saved, the "Approve request" button will become active.'}
+                  : 'This booking has no saved distance or quotation yet. Confirm the coordinates, click "Calculate provider route", select a ranked truck, and click "Submit official quote" above. Once saved, the "Approve request" button will become active.'}
               </p>
             </div>
           </div>

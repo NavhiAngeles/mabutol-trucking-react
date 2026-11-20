@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchShipmentForEdit, saveShipmentEdit } from '../../services/shipmentEditService';
-import { parsePhilippineDeparture, validateDeparture } from './departureSchedule';
+import {
+  FTL_MAX_ADVANCE_DAYS,
+  departureLimits,
+  parsePhilippineDeparture,
+  resolveVehicleLeadTimeHours,
+  validateDeparture,
+} from './departureSchedule';
 import ShipmentDiscardDialog from './ShipmentDiscardDialog';
 
 const civil = value => value && Number.isFinite(Date.parse(value)) ? new Date(Date.parse(value) + 8 * 3600000).toISOString().slice(0, 16) : '';
@@ -42,8 +48,14 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [discard, setDiscard] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [editClock, setEditClock] = useState(() => Date.now());
   const dialog = useRef(null);
   const busy = useRef(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setEditClock(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -78,6 +90,15 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
   };
   const set = key => event => setDraft(value => ({ ...value, [key]: event.target.value }));
 
+  const selectedEditVehicle = record?.vehicles?.find(
+    v => v.id === (draft?.requested_vehicle_type_id || record?.requested_vehicle_type_id)
+  ) || null;
+  const editLeadTimeHours = resolveVehicleLeadTimeHours(selectedEditVehicle);
+  const editScheduleLimits = departureLimits(editClock, {
+    minLeadTimeHours: editLeadTimeHours,
+    maxAdvanceDays: FTL_MAX_ADVANCE_DAYS,
+  });
+
   const save = async () => {
     if (busy.current || !record || !draft || !dirty) return;
     setError('');
@@ -85,7 +106,11 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
     const changes = {};
     for(const key of record.policy.fields) {
       if (key === 'scheduled_departure') {
-        const problem = validateDeparture(draft.date,draft.time);
+        const baseProblem = validateDeparture(draft.date,draft.time);
+        const problem = baseProblem || validateDeparture(draft.date, draft.time, undefined, {
+          minLeadTimeHours: editLeadTimeHours,
+          maxAdvanceDays: FTL_MAX_ADVANCE_DAYS,
+        });
         if (problem) {
           setError(problem);
           return;
@@ -326,16 +351,36 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
               </div>
               <div className="shipment-edit-card-fields">
                 {record.policy.fields.includes('scheduled_departure') ? (
-                  <div className="shipment-edit-schedule-row">
-                    <label className="shipment-edit-field" htmlFor="shipment-edit-date">
-                      <span>Departure date</span>
-                      <input id="shipment-edit-date" className="shipment-edit-input" type="date" value={draft.date} onChange={set('date')} />
-                    </label>
-                    <label className="shipment-edit-field" htmlFor="shipment-edit-time">
-                      <span>Departure time (PST)</span>
-                      <input id="shipment-edit-time" className="shipment-edit-input" type="time" value={draft.time} onChange={set('time')} />
-                    </label>
-                  </div>
+                  <>
+                    <p className="booking-review-help-text shipment-field-full">
+                      Scheduled FTL departure requires at least {editLeadTimeHours} hours lead time and up to {FTL_MAX_ADVANCE_DAYS} days ahead (Asia/Manila).
+                    </p>
+                    <div className="shipment-edit-schedule-row">
+                      <label className="shipment-edit-field" htmlFor="shipment-edit-date">
+                        <span>Departure date</span>
+                        <input
+                          id="shipment-edit-date"
+                          className="shipment-edit-input"
+                          type="date"
+                          min={editScheduleLimits.earliestDate}
+                          max={editScheduleLimits.latestDate}
+                          value={draft.date}
+                          onChange={set('date')}
+                        />
+                      </label>
+                      <label className="shipment-edit-field" htmlFor="shipment-edit-time">
+                        <span>Departure time (PST)</span>
+                        <input
+                          id="shipment-edit-time"
+                          className="shipment-edit-input"
+                          type="time"
+                          min={draft.date === editScheduleLimits.earliestDate ? editScheduleLimits.earliestTime : undefined}
+                          value={draft.time}
+                          onChange={set('time')}
+                        />
+                      </label>
+                    </div>
+                  </>
                 ) : (
                   <div className="shipment-edit-readonly-field">
                     <span className="shipment-edit-field-label">Scheduled departure (Philippines)</span>

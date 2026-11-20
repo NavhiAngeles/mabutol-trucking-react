@@ -55,3 +55,52 @@ test("validation, picker limits and UTC saving are independent of host timezone"
     assert.equal(result.status, 0, `${timezone}: ${result.stderr}`);
   }
 });
+
+
+test("FTL lead-time enforcement blocks dates before now + min_lead_time_hours and past 14 days", async () => {
+  const {
+    FTL_MAX_ADVANCE_DAYS,
+    calculateEstimatedArrival,
+    resolveVehicleLeadTimeHours,
+  } = await import("./departureSchedule.js");
+
+  assert.equal(FTL_MAX_ADVANCE_DAYS, 14);
+  assert.equal(resolveVehicleLeadTimeHours({ name: "Closed Van" }), 24);
+  assert.equal(resolveVehicleLeadTimeHours({ name: "10-Wheeler Flatbed" }), 48);
+  assert.equal(resolveVehicleLeadTimeHours({ name: "Refrigerated Van" }), 48);
+  assert.equal(
+    resolveVehicleLeadTimeHours({ name: "Closed Van", min_lead_time_hours: 36 }),
+    36
+  );
+
+  // Reference time: 2026-10-13T10:30:45+08:00
+  const stdOpts = { minLeadTimeHours: 24, maxAdvanceDays: 14 };
+  assert.equal(
+    validateDeparture("2026-10-12", "10:00", now, stdOpts),
+    "Departure must be scheduled in the future."
+  );
+  assert.match(
+    validateDeparture("2026-10-14", "10:30", now, stdOpts),
+    /at least 24 hours in advance/
+  );
+  assert.equal(validateDeparture("2026-10-14", "10:31", now, stdOpts), "");
+  assert.match(
+    validateDeparture("2026-10-28", "10:30", now, stdOpts),
+    /more than 14 days in advance/
+  );
+
+  const reeferOpts = { minLeadTimeHours: 48, maxAdvanceDays: 14 };
+  assert.match(
+    validateDeparture("2026-10-15", "09:00", now, reeferOpts),
+    /at least 48 hours in advance/
+  );
+  assert.equal(validateDeparture("2026-10-15", "10:31", now, reeferOpts), "");
+
+  const limits24 = departureLimits(now, stdOpts);
+  assert.equal(limits24.earliestDate, "2026-10-14");
+  assert.equal(limits24.earliestTime, "10:31");
+  assert.equal(limits24.latestDate, "2026-10-27");
+
+  const eta = calculateEstimatedArrival("2026-10-15T02:00:00.000Z", 120, 180);
+  assert.equal(eta, "2026-10-15T07:00:00.000Z");
+});

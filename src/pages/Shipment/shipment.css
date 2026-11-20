@@ -732,6 +732,17 @@
   color: #92400E;
 }
 
+.shipment-page .status.quoted-pill {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.shipment-page .text-quoted-blue {
+  color: #1D4ED8;
+  font-weight: 600;
+}
+
 .shipment-page .status.cancelled-pill {
   background: #F1F5F9;
   color: #64748B;
@@ -1007,6 +1018,8 @@
   display: grid;
   place-items: center;
   padding: 24px;
+  overflow: hidden;
+  overscroll-behavior: contain;
 }
 
 .shipment-page .booking-review-dialog {
@@ -1018,6 +1031,7 @@
   max-height: 90vh;
   overflow: auto;
   overflow-wrap: anywhere;
+  overscroll-behavior: contain;
 }
 
 .shipment-page .booking-review-dialog dt {
@@ -1561,6 +1575,10 @@
   background: #FFFFFF;
   border-radius: 14px;
   box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.shipment-page .booking-review-dialog.shipment-details-dialog.booking-review-modal {
+  width: min(980px, 96vw);
 }
 
 .shipment-page .shipment-details-header {

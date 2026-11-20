@@ -21,6 +21,7 @@ const statusLabel = val =>
     review: 'REVIEW',
     completed: 'COMPLETED',
     pending: 'PENDING REVIEW',
+    quoted: 'QUOTED',
     booked: 'BOOKED',
     assigned: 'ASSIGNED',
     cancelled: 'CANCELLED',
@@ -33,6 +34,7 @@ const statusClass = val =>
     delayed: 'delayed-pill',
     review: 'review-pill',
     pending: 'review-pill',
+    quoted: 'quoted-pill',
     booked: 'loading-pill',
     assigned: 'loading-pill',
     completed: 'transit-pill',
@@ -291,6 +293,30 @@ export default function ShipmentDetails({ shipment, onClose }) {
               <h3>Financials & Tolls</h3>
             </div>
             <div className="shipment-card-fields">
+              {details.linehaul_amount != null && (
+                <div>
+                  <dt>Linehaul amount</dt>
+                  <dd className="shipment-money-val">{money(details.linehaul_amount)}</dd>
+                </div>
+              )}
+              {(details.mobilization_fee != null && Number(details.mobilization_fee) > 0) && (
+                <div>
+                  <dt>Mobilization fee</dt>
+                  <dd className="shipment-money-val">{money(details.mobilization_fee)}</dd>
+                </div>
+              )}
+              {(details.deadhead_km != null && Number(details.deadhead_km) > 0) && (
+                <div>
+                  <dt>Truck deadhead</dt>
+                  <dd>{Number(details.deadhead_km).toFixed(1)} km</dd>
+                </div>
+              )}
+              {details.quote_expires_at && (
+                <div>
+                  <dt>Quote valid until</dt>
+                  <dd>{timestamp(details.quote_expires_at)}</dd>
+                </div>
+              )}
               <div>
                 <dt>Quoted charge</dt>
                 <dd className="shipment-money-val">{money(details.quoted_amount)}</dd>
@@ -318,10 +344,10 @@ export default function ShipmentDetails({ shipment, onClose }) {
                     </dd>
                   </div>
                 </>
-              ) : (details.toll_fees != null && details.toll_fees > 0) ? (
+              ) : (details.toll_amount != null && Number(details.toll_amount) > 0) || (details.toll_fees != null && Number(details.toll_fees) > 0) ? (
                 <div>
                   <dt>Toll fees included in quote</dt>
-                  <dd>{money(details.toll_fees)}</dd>
+                  <dd>{money(details.toll_amount ?? details.toll_fees)}</dd>
                 </div>
               ) : null}
               {details.driver_allowance != null && (

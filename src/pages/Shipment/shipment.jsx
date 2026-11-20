@@ -218,6 +218,7 @@ export default function Shipment() {
       review: "REVIEW",
       completed: "COMPLETED",
       pending: "PENDING REVIEW",
+      quoted: "QUOTED",
       booked: "BOOKED",
       assigned: "ASSIGNED",
       cancelled: "CANCELLED",
@@ -231,6 +232,7 @@ export default function Shipment() {
       delayed: "delayed-pill",
       review: "review-pill",
       pending: "review-pill",
+      quoted: "quoted-pill",
       booked: "loading-pill",
       assigned: "loading-pill",
       cancelled: "cancelled-pill",
@@ -315,7 +317,7 @@ export default function Shipment() {
               : undefined
           }
         >
-          {shipment.rawStatus === 'pending' && (
+          {['pending', 'quoted'].includes(shipment.rawStatus) && (
             <button type="button" role="menuitem" onClick={event => {
               reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
               setReviewShipment(shipment); setOpenMenuId(null);
@@ -324,7 +326,7 @@ export default function Shipment() {
                 <path d="M9 11l3 3L22 4" />
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               </svg>
-              {' Review booking request'}
+              {shipment.rawStatus === 'quoted' ? ' Quote & Review' : ' Review booking request'}
             </button>
           )}
           {shipment.rawStatus === "booked" && !shipment.assignmentId && (

@@ -20,7 +20,7 @@ BEGIN
   END IF;
   SELECT * INTO request FROM public.shipments WHERE id=p_shipment FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Booking request not found or access denied'; END IF;
-  IF request.status <> 'pending' OR p_expected_updated_at IS NULL
+  IF request.status::text NOT IN ('pending','quoted') OR p_expected_updated_at IS NULL
      OR request.updated_at IS DISTINCT FROM p_expected_updated_at THEN
     RAISE EXCEPTION 'Request changed or was already reviewed. Reload before deciding.' USING ERRCODE='40001';
   END IF;
