@@ -22,7 +22,7 @@ const COMPARISON_ROWS = [
   {
     area: "POD & Reconciliation",
     before: "Next-day physical receipt returns delaying billing and reports",
-    after: "Instant photo + signature POD in UTC+8 feeding CSV and PDF exports",
+    after: "Same-day digital photo and signature POD in UTC+8 feeding CSV and PDF exports",
   },
 ];
 
@@ -32,14 +32,14 @@ const WORKFLOW_STAGES = [
     title: "Customer Booking & Quotation",
     surface: "Android App -> Web Dispatch",
     description:
-      "Shippers submit pickup and destination pins with cargo details on mobile; office staff review rates, minimum booking fees, and expressway tolls.",
-    artifactTitle: "Illustrative Booking & Quote Preview",
-    artifactStatus: "Pending Review",
+      "Shippers submit scheduled Full Truckload (FTL) bookings 24 to 48 hours ahead with pickup and destination pins; office dispatchers rank candidate trucks and issue itemized, office-verified quotations.",
+    artifactTitle: "Illustrative Scheduled FTL Quote Preview",
+    artifactStatus: "Office Quoted",
     artifactBadgeTone: "info",
     artifactRows: [
       { label: "Corridor Route", value: "Peñaranda, NE -> Balagtas / Metro Manila" },
-      { label: "Vehicle Class", value: "10-Wheeler Wing Van (FTL)" },
-      { label: "Expressway Matrix", value: "NLEX · SCTEX · TPLEX Toll Included" },
+      { label: "Vehicle Class", value: "10-Wheeler Wing Van (Scheduled FTL)" },
+      { label: "Quotation Basis", value: "Linehaul Tariff + Expressway Tolls + Optional Mobilization" },
     ],
   },
   {

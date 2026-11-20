@@ -9,7 +9,7 @@ const SERVICE_TIERS = [
     tag: "DEDICATED UNIT ALLOCATION",
     title: "Full Truckload (FTL)",
     description:
-      "Dedicated unit allocation for agricultural, industrial, and commercial cargo with direct point-to-point scheduling from Cabanatuan and Peñaranda across Luzon expressways.",
+      "Dedicated unit allocation for agricultural, industrial, and commercial cargo with advance FTL scheduling (24h to 48h lead time) and office-verified quotations from Cabanatuan and Peñaranda across Luzon expressways.",
     imageUrl:
       "https://images.unsplash.com/photo-1591768793355-74d04bb6608f?auto=format&fit=crop&w=1200&q=80",
     imageAlt: "Heavy flatbed cargo truck hauling wrapped agricultural and industrial freight along a highway",
@@ -174,9 +174,9 @@ export default function ServicesPage() {
       <section className="public-section" aria-label="Book freight via mobile app">
         <div className="public-callout-band">
           <div className="public-callout-copy">
-            <h2>Ready to Book a Shipment with Mabutol Trucking?</h2>
+            <h2>Ready to Schedule an FTL Shipment with Mabutol Trucking?</h2>
             <p>
-              Select your vehicle class, pin pickup and destination coordinates, and track active freight directly in the TANAW Android app.
+              Choose your vehicle class with required lead time, pin pickup and destination coordinates, and receive an office-verified quotation inside the TANAW Android app.
             </p>
           </div>
           <div className="public-callout-actions">

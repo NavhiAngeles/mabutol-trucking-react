@@ -8,6 +8,26 @@ import { SkeletonTableRows } from "../../components/Skeleton/Skeleton";
 
 const PAGE_SIZE = 10;
 
+function formatNextAvailableTime(truck, now = Date.now()) {
+  const iso = truck?.next_available_at;
+  if (!iso) {
+    const status = truck?.displayStatus || truck?.status;
+    return status === "available" ? "Ready for dispatch" : "Awaiting ETA";
+  }
+  const ts = Date.parse(iso);
+  if (!Number.isFinite(ts)) return "Awaiting ETA";
+  if (ts <= now + 60000) return "Available now";
+  const formatted = new Date(ts).toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `Est. ${formatted} PHT`;
+}
+
 export default function FleetVehiclesView({
   fleet,
   trucks,
@@ -43,9 +63,13 @@ export default function FleetVehiclesView({
     const q = vehicleSearch.trim().toLowerCase();
     return (
       truck.plate_number?.toLowerCase().includes(q) ||
+      truck.fleet_code?.toLowerCase().includes(q) ||
       truck.model?.toLowerCase().includes(q) ||
       truck.vehicle_types?.name?.toLowerCase().includes(q) ||
-      truck.drivers?.full_name?.toLowerCase().includes(q)
+      truck.drivers?.full_name?.toLowerCase().includes(q) ||
+      truck.next_available_address?.toLowerCase().includes(q) ||
+      truck.home_base?.address?.toLowerCase().includes(q) ||
+      truck.home_base?.name?.toLowerCase().includes(q)
     );
   });
 
@@ -67,7 +91,7 @@ export default function FleetVehiclesView({
       <div className="header-actions-row">
         <div className="header-titles">
           <h1>Vehicles</h1>
-          <p className="subtitle">REGISTERED FLEET VEHICLES AND OPERATIONAL STATUS.</p>
+          <p className="subtitle">REGISTERED FLEET VEHICLES AND PROJECTED CHAINED AVAILABILITY.</p>
         </div>
         <div className="action-buttons-group">
           <FleetRefreshButton loading={fleet.loading} onRefresh={fleet.refresh} />
@@ -91,7 +115,7 @@ export default function FleetVehiclesView({
             id="fleetSearch"
             aria-label="Search vehicles"
             className="inner-search"
-            placeholder="Search by plate, vehicle type..."
+            placeholder="Search by plate, vehicle type, driver, or next available area..."
             value={vehicleSearch}
             onChange={(e) => {
               setVehicleSearch(e.target.value);
@@ -126,28 +150,36 @@ export default function FleetVehiclesView({
       {trucksLoading && trucks.length === 0 && (
         <p role="status" className="fleet-panel-state">Loading fleet vehicles…</p>
       )}
-      <div className="fleet-table-scroll" id="fleet-vehicle-details" aria-busy={trucksLoading}>
+      <div
+        className="fleet-table-scroll"
+        id="fleet-vehicle-details"
+        tabIndex={0}
+        role="region"
+        aria-label="Fleet vehicles and projected chained availability"
+        aria-busy={trucksLoading}
+      >
         <table className="premium-table">
           <thead>
             <tr>
-              <th>VEHICLE</th>
-              <th>TYPE & CAPACITY</th>
-              <th>CARGO COMPATIBILITY</th>
-              <th>ASSIGNED DRIVER</th>
-              <th>STATUS</th>
-              <th>COMPLIANCE</th>
-              <th>ACTIONS</th>
+              <th scope="col">VEHICLE</th>
+              <th scope="col">TYPE &amp; CAPACITY</th>
+              <th scope="col">CARGO COMPATIBILITY</th>
+              <th scope="col">ASSIGNED DRIVER</th>
+              <th scope="col">STATUS</th>
+              <th scope="col">NEXT AVAILABLE / CHAINING</th>
+              <th scope="col">COMPLIANCE</th>
+              <th scope="col">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {trucksLoading && trucks.length === 0 ? (
               <SkeletonTableRows
                 rows={6}
-                columns={["stack", "text", "badge", "short", "badge", "short", "action"]}
+                columns={["stack", "text", "badge", "short", "badge", "stack", "short", "action"]}
               />
             ) : filteredTrucks.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
+                <td colSpan="8" style={{ textAlign: "center", padding: "28px", color: "#64748B" }}>
                   {fleet.error
                     ? "Vehicle data unavailable; retry above."
                     : vehicleSearch.trim() || activeCategory !== "all"
@@ -161,6 +193,12 @@ export default function FleetVehiclesView({
               pagedTrucks.map((truck) => {
                 const complianceRow = truckComplianceRows.find((r) => r.truck.id === truck.id);
                 const isVerified = complianceRow?.overallStatus === "verified";
+                const projectedLoc =
+                  truck.next_available_address ||
+                  truck.home_base?.address ||
+                  truck.home_base?.name ||
+                  "Home Base";
+                const projectedWhen = formatNextAvailableTime(truck);
 
                 return (
                   <tr key={truck.id}>
@@ -196,6 +234,12 @@ export default function FleetVehiclesView({
                       ) : (
                         <span className="status-pill status-warning">● {(truck.displayStatus || truck.status || "OFFLINE").replaceAll("_", " ").toUpperCase()}</span>
                       )}
+                    </td>
+                    <td className="fleet-next-avail-cell">
+                      <span className="fleet-next-avail-loc" title={projectedLoc}>
+                        {projectedLoc}
+                      </span>
+                      <span className="fleet-next-avail-time">{projectedWhen}</span>
                     </td>
                     <td>
                       {isVerified ? (

@@ -8,10 +8,11 @@ const APK_DOWNLOAD_URL =
 
 const CUSTOMER_FEATURES = [
   "Pin-accurate pickup and destination map selection",
-  "Instant or scheduled pickup time selection",
-  "Vehicle class selection matched to cargo weight",
-  "Live transit status and ETA tracking",
-  "In-app notifications for dispatch updates",
+  "Scheduled FTL pickup date and time selection with 24h to 48h equipment lead times",
+  "Office-verified quotations with itemized linehaul, toll, and mobilization breakdowns",
+  "Vehicle class selection matched to Full Truckload cargo weight",
+  "Live transit status and dynamic ETA tracking",
+  "In-app notifications for quotation and dispatch updates",
   "Recorded drop-off photo and digital signature POD inspection",
 ];
 
@@ -34,7 +35,7 @@ export default function MobileAppPage() {
           </span>
           <h1>TANAW Mobile for Customers &amp; Drivers</h1>
           <p className="public-page-subtitle">
-            Built natively for Android 7.0+ (minSdk 24) to connect Mabutol Trucking shippers and road drivers directly to the dispatch console.
+            Built natively for Android 7.0+ (minSdk 24) to connect Mabutol Trucking Full Truckload (FTL) shippers with scheduled booking intake, office-verified quotations, and road drivers.
           </p>
         </div>
       </section>

@@ -34,8 +34,8 @@ const PLATFORM_HALVES = [
     description:
       "Manage daily freight operations from one browser workspace built for dispatchers, fleet coordinators, and administrators.",
     highlights: [
-      "Shipment booking intake, truck capacity matching, and driver assignment",
-      "MapLibre route mapping with NLEX, SCTEX, and TPLEX expressway toll calculation",
+      "Scheduled FTL booking intake, ranked candidate truck selection, and driver assignment",
+      "Office-verified quotation builder separating linehaul tariffs, expressway tolls, and mobilization fees",
       "Driver and vehicle compliance tracking across LTFRB, OR/CR, and license expiry",
       "Operational and financial summaries exported directly to CSV and PDF",
     ],
@@ -50,7 +50,7 @@ const PLATFORM_HALVES = [
     description:
       "Connect shippers and road drivers directly to office dispatch through one companion Android APK.",
     highlights: [
-      "Customer freight booking requests with vehicle class selection",
+      "Scheduled Full Truckload (FTL) bookings with 24h to 48h equipment lead times and office-verified quotes",
       "Live GPS route tracking from Cabanatuan hub to destination bays",
       "In-transit driver milestone updates and trip-scoped messaging",
       "Digital Proof of Delivery capture with drop-off photo and recipient signature",
@@ -112,7 +112,7 @@ export default function Landing() {
               Dedicated Full Truckload (FTL) Freight Dispatch
             </h1>
             <p className="landing-hero-subtitle">
-              Mabutol Trucking coordinates dedicated Full Truckload (FTL) hauls from Peñaranda, Nueva Ecija across Central Luzon and Metro Manila with real-time GPS visibility and verified Proof of Delivery.
+              Mabutol Trucking coordinates scheduled Full Truckload (FTL) hauls from Peñaranda, Nueva Ecija across Central Luzon and Metro Manila with office-verified quotations, real-time GPS visibility, and digital Proof of Delivery.
             </p>
 
             <div className="landing-hero-ctas">

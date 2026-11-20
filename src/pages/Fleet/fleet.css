@@ -2928,3 +2928,42 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-size: 12px;
   min-height: 32px;
 }
+
+
+/* ==========================================================================
+   CHAINED DISPATCH NEXT AVAILABILITY CELL & SCROLLABLE TABLE REGION
+   ========================================================================== */
+.fleet-page .fleet-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.fleet-page .fleet-table-scroll:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+.fleet-page .fleet-next-avail-cell {
+  max-width: 240px;
+}
+
+.fleet-page .fleet-next-avail-loc {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fleet-page .fleet-next-avail-time {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #475569;
+}

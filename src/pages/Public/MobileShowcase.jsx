@@ -7,7 +7,7 @@ const ROLE_VIEWS = [
     id: "customer",
     label: "Customer App",
     headline: "Customer View",
-    summary: "Booking, Vehicle Class Selection, Live ETA & Digital POD Viewer",
+    summary: "Scheduled FTL Booking, Office Quote Breakdown, Live ETA & Digital POD Viewer",
   },
   {
     id: "driver",
