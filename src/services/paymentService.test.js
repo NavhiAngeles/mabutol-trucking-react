@@ -25,7 +25,7 @@ function setup(supabase = {}) {
       '\nthis.api={' +
       'PAYMENT_METHODS,PAYMENT_STATUS_LABELS,PAYMENT_STATUS_CLASSES,' +
       'formatPaymentMethod,formatPaymentStatus,formatPaymentCurrency,calculatePaymentTotals,' +
-      'fetchShipmentPayments,recordShipmentPayment,reviewShipmentPayment' +
+      'fetchShipmentPayments,recordShipmentPayment,reviewShipmentPayment,getPaymentReceiptUrl,subscribeToShipmentPayments' +
       '};',
     context
   );
@@ -37,6 +37,8 @@ test('formatPaymentMethod and formatPaymentStatus map values accurately', () => 
 
   assert.equal(api.formatPaymentMethod('cash'), 'Cash');
   assert.equal(api.formatPaymentMethod('gcash'), 'GCash');
+  assert.equal(api.formatPaymentMethod('bank_transfer'), 'Bank Transfer');
+  assert.equal(api.formatPaymentMethod('check'), 'Check');
   assert.equal(api.formatPaymentMethod('unknown_val'), 'unknown val');
 
   assert.equal(api.formatPaymentStatus('pending'), 'Pending Review');
@@ -278,5 +280,71 @@ test('reviewShipmentPayment validates inputs, optimistic concurrency, and calls 
       return true;
     }
   );
+});
+
+test('getPaymentReceiptUrl resolves signed URL via mobile_delivery_evidence_file and guards unsafe paths', async () => {
+  const calls = [];
+  const fakeSupabase = {
+    rpc: async (name, args) => {
+      calls.push(['rpc', name, args]);
+      return { data: 'del-1/payment-req-1.jpg', error: null };
+    },
+    storage: {
+      from: (bucket) => ({
+        createSignedUrl: async (path, ttl) => {
+          calls.push(['sign', bucket, path, ttl]);
+          return { data: { signedUrl: 'https://example.test/signed-receipt.jpg' }, error: null };
+        },
+      }),
+    },
+  };
+
+  const api = setup(fakeSupabase);
+  const url = await api.getPaymentReceiptUrl('ship-1', 'pay-1', null, fakeSupabase);
+  assert.equal(url, 'https://example.test/signed-receipt.jpg');
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), ['rpc', 'mobile_delivery_evidence_file', { p_shipment: 'ship-1', p_kind: 'payment', p_record: 'pay-1' }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[1])), ['sign', 'delivery-documents', 'del-1/payment-req-1.jpg', 300]);
+
+  const unsafeSupabase = {
+    rpc: async () => ({ data: '../secret.jpg', error: null }),
+    storage: fakeSupabase.storage,
+  };
+  await assert.rejects(() => api.getPaymentReceiptUrl('ship-1', 'pay-1', null, unsafeSupabase), /not found/);
+
+  const fallbackSupabase = {
+    rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'missing function' } }),
+    storage: fakeSupabase.storage,
+  };
+  const fallbackUrl = await api.getPaymentReceiptUrl('ship-1', 'pay-1', 'del-1/payment-fallback.jpg', fallbackSupabase);
+  assert.equal(fallbackUrl, 'https://example.test/signed-receipt.jpg');
+});
+
+test('subscribeToShipmentPayments subscribes to public.payments filtered by shipment_id and cleans up', () => {
+  let registered = null;
+  let removed = null;
+  const fakeChannel = {
+    on(eventType, filter, cb) {
+      registered = { eventType, filter, cb };
+      return fakeChannel;
+    },
+    subscribe() {
+      return fakeChannel;
+    },
+  };
+  const fakeSupabase = {
+    channel: () => fakeChannel,
+    removeChannel: (ch) => { removed = ch; },
+  };
+
+  const api = setup(fakeSupabase);
+  let called = 0;
+  const unsub = api.subscribeToShipmentPayments('ship-99', () => { called++; }, fakeSupabase);
+  assert.equal(registered.eventType, 'postgres_changes');
+  assert.equal(registered.filter.table, 'payments');
+  assert.equal(registered.filter.filter, 'shipment_id=eq.ship-99');
+  registered.cb();
+  assert.equal(called, 1);
+  unsub();
+  assert.equal(removed, fakeChannel);
 });
 

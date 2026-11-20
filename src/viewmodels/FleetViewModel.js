@@ -48,8 +48,26 @@ export function useFleetViewModel() {
       { doc_type: 'lto_registration', document_number: form.orNumber || null, remarks: 'OR copy', file: form.orFile },
       { doc_type: 'lto_registration', document_number: form.crNumber || null, remarks: 'CR copy', file: form.crFile },
     ].filter(doc => doc.document_number || doc.file);
-    return saveFleetRecord('truck', null, { plate_number: form.plateNumber.trim(), model: form.model.trim(), model_year: form.modelYear || null,
-      vehicle_type_id: form.type, capacity_kg: Number(form.capacity), assigned_driver_id: form.assignedDriver || null }, { categories: form.cargoCompatibility, documents: docs });
+    const toOptionalNumber = (raw) => {
+      if (raw === '' || raw == null) return null;
+      const trimmed = String(raw).trim();
+      return trimmed ? Number(trimmed) : null;
+    };
+    const axleCount = toOptionalNumber(form.axleCount);
+    return saveFleetRecord('truck', null, {
+      plate_number: form.plateNumber.trim(),
+      model: form.model.trim(),
+      model_year: form.modelYear || null,
+      vehicle_type_id: form.type,
+      capacity_kg: Number(form.capacity),
+      height_m: toOptionalNumber(form.heightM),
+      width_m: toOptionalNumber(form.widthM),
+      length_m: toOptionalNumber(form.lengthM),
+      tare_weight_kg: toOptionalNumber(form.tareWeightKg),
+      gross_weight_kg: toOptionalNumber(form.grossWeightKg),
+      axle_count: axleCount ?? 2,
+      assigned_driver_id: form.assignedDriver || null,
+    }, { categories: form.cargoCompatibility, documents: docs });
   });
   const submitNewDriver = form => submit('driver', () => registerDriver(form, [
     { doc_type: 'drivers_license', document_number: form.licenseNumber, expiry_date: form.licenseExpiry || null, file: form.licenseFile },

@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient';
 export const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
   { value: 'gcash', label: 'GCash' },
+  { value: 'bank_transfer', label: 'Bank Transfer' },
+  { value: 'check', label: 'Check' },
 ];
 
 export const PAYMENT_STATUS_LABELS = {
@@ -80,6 +82,8 @@ export async function fetchShipmentPayments(shipmentId) {
       reference_number,
       paid_at,
       proof_path,
+      rejection_reason,
+      client_request_id,
       notes,
       created_by,
       verified_by,
@@ -95,7 +99,7 @@ export async function fetchShipmentPayments(shipmentId) {
   if (error && (error.code === 'PGRST200' || error.code === '42703' || String(error.message || '').includes('relationship'))) {
     const fallback = await supabase
       .from('payments')
-      .select('id, shipment_id, amount, method, status, reference_number, paid_at, proof_path, notes, created_by, verified_by, verified_at, created_at, updated_at')
+      .select('id, shipment_id, amount, method, status, reference_number, paid_at, proof_path, rejection_reason, client_request_id, notes, created_by, verified_by, verified_at, created_at, updated_at')
       .eq('shipment_id', shipmentId)
       .order('created_at', { ascending: false });
 
@@ -195,4 +199,80 @@ export async function reviewShipmentPayment({
   }
 
   return data;
+}
+
+const isSafeStoragePath = (value) =>
+  typeof value === 'string' &&
+  value.length > 0 &&
+  !value.startsWith('/') &&
+  !value.split('/').includes('..');
+
+export async function getPaymentReceiptUrl(
+  shipmentId,
+  paymentId,
+  fallbackProofPath = null,
+  client = supabase
+) {
+  if (!shipmentId || !paymentId) {
+    throw new Error('Shipment ID and payment ID are required to view the receipt.');
+  }
+
+  let resolvedPath;
+  const { data: rpcPath, error: rpcError } = await client.rpc('mobile_delivery_evidence_file', {
+    p_shipment: shipmentId,
+    p_kind: 'payment',
+    p_record: paymentId,
+  });
+
+  if (rpcError) {
+    const missingRpc = rpcError.code === 'PGRST202' || rpcError.code === '42883';
+    if (missingRpc && isSafeStoragePath(fallbackProofPath)) {
+      resolvedPath = fallbackProofPath;
+    } else {
+      throw rpcError;
+    }
+  } else {
+    resolvedPath = rpcPath;
+  }
+
+  if (!isSafeStoragePath(resolvedPath)) {
+    throw new Error('Recorded payment receipt not found.');
+  }
+
+  const { data, error } = await client.storage
+    .from('delivery-documents')
+    .createSignedUrl(resolvedPath, 300);
+
+  if (error) throw error;
+  if (!data?.signedUrl) {
+    throw new Error('Could not generate a signed receipt link.');
+  }
+
+  return data.signedUrl;
+}
+
+export function subscribeToShipmentPayments(shipmentId, onChange, client = supabase) {
+  if (!shipmentId || typeof onChange !== 'function' || typeof client?.channel !== 'function') {
+    return () => { };
+  }
+
+  const channel = client
+    .channel(`shipment-payments-${shipmentId}-${Date.now()}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'payments',
+        filter: `shipment_id=eq.${shipmentId}`,
+      },
+      () => onChange()
+    )
+    .subscribe();
+
+  return () => {
+    if (typeof client.removeChannel === 'function') {
+      client.removeChannel(channel);
+    }
+  };
 }

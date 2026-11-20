@@ -2,11 +2,15 @@ import OfficeTools from "../../components/OfficeTools";
 import CustomerEditDialog from "./CustomerEditDialog";
 import CustomerStatusDialog from "./CustomerStatusDialog";
 import CustomerAddDialog from "./CustomerAddDialog";
+import AppealReviewDialog from "./AppealReviewDialog";
+import CustomerAppealsTab from "./CustomerAppealsTab";
+import StrikeStatusIndicator from "../../components/StrikeStatusIndicator/StrikeStatusIndicator";
 import { useAuth } from "../../context/AuthContext";
 import { useState, useRef, useEffect, useMemo } from "react";
 import MainLayout from "../../layouts/mainLayout";
 import "./customer.css";
 import { useCustomerDirectory, buildCustomerRows, customerStatistics, filterCustomerRows } from "../../viewmodels/CustomerViewModel";
+import { formatManilaDateTime } from "../../services/customerStandingService";
 import ReportExportModal from "../../components/ReportExportModal";
 import { SkeletonStatValue, SkeletonTableRows } from "../../components/Skeleton/Skeleton";
 
@@ -135,6 +139,8 @@ export default function Customer() {
   const canEdit = ["admin", "staff"].includes(role);
   const [editing, setEditing] = useState(null);
   const [statusTarget, setStatusTarget] = useState(null);
+  const [appealReview, setAppealReview] = useState(null);
+  const [activeTab, setActiveTab] = useState("directory");
   const [showAddModal, setShowAddModal] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -156,16 +162,37 @@ export default function Customer() {
   const previousFocusRef = useRef(null);
   const hadModalOpenRef = useRef(false);
   const activeModalKeyRef = useRef(null);
-  const { customers: records, bookings, loading, error, refresh } = useCustomerDirectory({ includeBookings: true });
+  const { customers: records, bookings, strikes, appeals, loading, error, refresh } = useCustomerDirectory({
+    includeBookings: true,
+    includeStanding: true,
+  });
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [strikeFilter, setStrikeFilter] = useState("ALL");
   const [sort, setSort] = useState("newest");
   const [todayOnly, setTodayOnly] = useState(false);
   const [requestedPage, setPage] = useState(1);
-  const rows = useMemo(() => buildCustomerRows(records, bookings), [records, bookings]);
+  const rows = useMemo(() => buildCustomerRows(records, bookings, strikes, appeals), [records, bookings, strikes, appeals]);
   const rowMap = useMemo(() => new Map(rows.map(row => [row.id, row])), [rows]);
   const stats = useMemo(() => customerStatistics(rows), [rows]);
+  const pendingAppealsCount = useMemo(
+    () => appeals.filter(item => String(item?.status || "").toLowerCase() === "pending").length,
+    [appeals]
+  );
+  const strikeFilterCounts = useMemo(() => {
+    let hasStrikes = 0;
+    let cooldown = 0;
+    let suspended = 0;
+    let reinstated = 0;
+    for (const r of rows) {
+      if ((r.noShowStrikeCount ?? 0) > 0) hasStrikes++;
+      if (r.standingStatus === "cooldown") cooldown++;
+      if (r.standingStatus === "suspended" || r.status === "SUSPENDED") suspended++;
+      if (r.standingStatus === "reinstated") reinstated++;
+    }
+    return { all: rows.length, hasStrikes, cooldown, suspended, reinstated };
+  }, [rows]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -175,7 +202,7 @@ export default function Customer() {
   }, [query]);
 
   const activeSearchQuery = query === "" ? "" : debouncedQuery;
-  const filtered = useMemo(() => filterCustomerRows(rows, { query: activeSearchQuery, status: statusFilter, sort, todayOnly }), [rows, activeSearchQuery, statusFilter, sort, todayOnly]);
+  const filtered = useMemo(() => filterCustomerRows(rows, { query: activeSearchQuery, status: statusFilter, strikeFilter, sort, todayOnly }), [rows, activeSearchQuery, statusFilter, strikeFilter, sort, todayOnly]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const page = Math.min(requestedPage, pageCount);
   const customers = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
@@ -191,9 +218,9 @@ export default function Customer() {
   const countLabel = value => loading ? <SkeletonStatValue width="48px" height={28} /> : error ? "--" : value;
   const exportMatches = useMemo(() => (
     query && query !== activeSearchQuery
-      ? filterCustomerRows(rows, { query, status: statusFilter, sort, todayOnly })
+      ? filterCustomerRows(rows, { query, status: statusFilter, strikeFilter, sort, todayOnly })
       : filtered
-  ), [rows, filtered, query, activeSearchQuery, statusFilter, sort, todayOnly]);
+  ), [rows, filtered, query, activeSearchQuery, statusFilter, strikeFilter, sort, todayOnly]);
   const [snapshotDate] = useState(() => new Date(Date.now() + 28800000).toISOString().slice(0, 10));
 
   // Close dropdowns on outside click, scroll, resize or Escape
@@ -388,21 +415,127 @@ export default function Customer() {
           <div className="stat-card suspended-cust"><p className="stat-label">SUSPENDED</p><p className="stat-value tabular-nums">{countLabel(stats.suspended)}</p></div>
         </div>
 
+        <div className="customer-view-tabs" role="tablist" aria-label="Customer views">
+          <button
+            type="button"
+            role="tab"
+            id="tab-customer-directory"
+            aria-selected={activeTab === "directory"}
+            className={`customer-view-tab ${activeTab === "directory" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("directory")}
+          >
+            <span>Customer Directory</span>
+            <span className="customer-tab-badge tabular-nums">{rows.length}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="tab-suspension-appeals"
+            aria-selected={activeTab === "appeals"}
+            className={`customer-view-tab ${activeTab === "appeals" ? "is-active" : ""}`}
+            onClick={() => setActiveTab("appeals")}
+          >
+            <span>Suspension Appeals</span>
+            <span className={`customer-tab-badge tabular-nums ${pendingAppealsCount > 0 ? "is-pending" : ""}`}>
+              {pendingAppealsCount}
+            </span>
+          </button>
+        </div>
+
         <div className="filter-action-bar">
           <div className="search-wrapper">
             <label htmlFor="customerSearch" className="sr-only">Search customers</label>
             <SearchIcon className="search-icon" />
-            <input type="text" id="customerSearch" aria-label="Search customers" className="table-search" placeholder="Search by customer ID, name, email, or phone..." value={query} onChange={event => changeSearch(event.target.value)} />
+            <input
+              type="text"
+              id="customerSearch"
+              aria-label="Search customers"
+              className="table-search"
+              placeholder={
+                activeTab === "appeals"
+                  ? "Search appeals by customer name, ID, contact, or reason..."
+                  : "Search by customer ID, name, email, or phone..."
+              }
+              value={query}
+              onChange={event => changeSearch(event.target.value)}
+            />
           </div>
-          <div className="filter-buttons">
-            <button type="button" className="filter-btn" onClick={() => { setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : "newest"); setPage(1); }} title="Cycle newest, name, and booking count">SORT: {sort.toUpperCase()} <SortIcon className="btn-icon" /></button>
-            <button type="button" className="filter-btn" aria-pressed={todayOnly} onClick={() => { setTodayOnly(value => !value); setPage(1); }} title="Customers whose latest booking was created today">TODAY {todayOnly ? <CheckIcon className="btn-icon" /> : <CalendarIcon className="btn-icon" />}</button>
-            <label htmlFor="customerStatusFilter" className="sr-only">Customer status</label>
-            <select id="customerStatusFilter" className="filter-btn" aria-label="Customer status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
-              <option value="ALL">All statuses</option><option value="ACTIVE">Active</option><option value="SUSPENDED">Suspended</option><option value="UNKNOWN">Unknown</option>
-            </select>
-          </div>
+          {activeTab === "directory" && (
+            <div className="filter-buttons">
+              <button
+                type="button"
+                className="filter-btn"
+                onClick={() => {
+                  setSort(sort === "newest" ? "name" : sort === "name" ? "bookings" : sort === "bookings" ? "strikes" : "newest");
+                  setPage(1);
+                }}
+                title="Cycle newest, name, booking count, and strikes"
+              >
+                SORT: {sort.toUpperCase()} <SortIcon className="btn-icon" />
+              </button>
+              <button type="button" className="filter-btn" aria-pressed={todayOnly} onClick={() => { setTodayOnly(value => !value); setPage(1); }} title="Customers whose latest booking was created today">TODAY {todayOnly ? <CheckIcon className="btn-icon" /> : <CalendarIcon className="btn-icon" />}</button>
+              <label htmlFor="customerStatusFilter" className="sr-only">Customer status</label>
+              <select id="customerStatusFilter" className="filter-btn" aria-label="Customer status" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
+                <option value="ALL">All statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="COOLDOWN">Cooldown</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="REINSTATED">Reinstated</option>
+                <option value="UNKNOWN">Unknown</option>
+              </select>
+            </div>
+          )}
         </div>
+
+        {activeTab === "directory" && (
+          <div className="strike-filter-bar" role="group" aria-label="Filter customers by no-show strike standing">
+            <button
+              type="button"
+              className={`strike-chip ${strikeFilter === "ALL" ? "is-active" : ""}`}
+              aria-pressed={strikeFilter === "ALL"}
+              onClick={() => { setStrikeFilter("ALL"); setPage(1); }}
+            >
+              <span>All Standing</span>
+              <span className="strike-chip-count tabular-nums">{strikeFilterCounts.all}</span>
+            </button>
+            <button
+              type="button"
+              className={`strike-chip ${strikeFilter === "HAS_STRIKES" ? "is-active" : ""}`}
+              aria-pressed={strikeFilter === "HAS_STRIKES"}
+              onClick={() => { setStrikeFilter("HAS_STRIKES"); setPage(1); }}
+            >
+              <span>Has Strikes (1+)</span>
+              <span className="strike-chip-count tabular-nums">{strikeFilterCounts.hasStrikes}</span>
+            </button>
+            <button
+              type="button"
+              className={`strike-chip ${strikeFilter === "COOLDOWN" ? "is-active" : ""}`}
+              aria-pressed={strikeFilter === "COOLDOWN"}
+              onClick={() => { setStrikeFilter("COOLDOWN"); setPage(1); }}
+            >
+              <span>Cooldown</span>
+              <span className="strike-chip-count tabular-nums">{strikeFilterCounts.cooldown}</span>
+            </button>
+            <button
+              type="button"
+              className={`strike-chip ${strikeFilter === "SUSPENDED" ? "is-active" : ""}`}
+              aria-pressed={strikeFilter === "SUSPENDED"}
+              onClick={() => { setStrikeFilter("SUSPENDED"); setPage(1); }}
+            >
+              <span>Suspended</span>
+              <span className="strike-chip-count tabular-nums">{strikeFilterCounts.suspended}</span>
+            </button>
+            <button
+              type="button"
+              className={`strike-chip ${strikeFilter === "REINSTATED" ? "is-active" : ""}`}
+              aria-pressed={strikeFilter === "REINSTATED"}
+              onClick={() => { setStrikeFilter("REINSTATED"); setPage(1); }}
+            >
+              <span>Reinstated</span>
+              <span className="strike-chip-count tabular-nums">{strikeFilterCounts.reinstated}</span>
+            </button>
+          </div>
+        )}
 
         {error && <div className="customer-load-error" role="alert">Unable to load customers: {error} <button type="button" className="filter-btn" onClick={refresh}>Retry</button></div>}
         {saveMessage && (
@@ -421,150 +554,215 @@ export default function Customer() {
             </button>
           </div>
         )}
-        <div className="customer-table-card" aria-busy={loading}>
-          {loading && <p className="sr-only" role="status">Loading customers...</p>}
-          <div className="customer-table-scroll">
-            <table className="customer-table">
-              <thead>
-                <tr>
-                  <th>CUSTOMER</th>
-                  <th>CONTACT NUMBER</th>
-                  <th>TOTAL BOOKINGS</th>
-                  <th>LAST BOOKING</th>
-                  <th>MEMBER SINCE</th>
-                  <th>STATUS</th>
-                  <th className="text-center">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <SkeletonTableRows
-                    rows={6}
-                    columns={[
-                      "avatar-stack",
-                      "text",
-                      "short",
-                      "short",
-                      "short",
-                      "badge",
-                      "action",
-                    ]}
-                  />
-                ) : error || customers.length === 0 ? (
-                  <tr><td colSpan={7} className="customer-table-message">{error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
-                ) : customers.map((cust) => (
-                  <tr key={cust.id}>
-                    <td>
-                      <div className="customer-info-cell">
-                        <div className="table-avatar" aria-hidden="true"></div>
-                        <div>
-                          <div className="cust-name">{cust.name}</div>
-                          <div className="cust-email">{cust.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td><span className="phone-cell tabular-nums"><PhoneIcon /> {cust.phone}</span></td>
-                    <td className="tabular-nums">{cust.bookings}</td>
-                    <td className="tabular-nums">{cust.lastBooking}</td>
-                    <td className="tabular-nums">{cust.memberSince}</td>
-                    <td>
-                      <span className={`status-badge ${cust.status.toLowerCase()}`}>{cust.status}</span>
-                    </td>
-                    <td className="text-center">
-                      <div
-                        className="action-menu-wrapper"
-                        ref={openMenuId === cust.id ? menuRef : null}
-                        onKeyDown={(e) => {
-                          if (openMenuId !== cust.id) return;
-                          const items = Array.from(e.currentTarget.querySelectorAll?.('[role="menuitem"]:not([disabled])') || []);
-                          if (items.length === 0) return;
-                          const idx = items.indexOf(document.activeElement);
-                          if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            items[(idx + 1) % items.length]?.focus();
-                          } else if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            items[(idx - 1 + items.length) % items.length]?.focus();
-                          } else if (e.key === "Home") {
-                            e.preventDefault();
-                            items[0]?.focus();
-                          } else if (e.key === "End") {
-                            e.preventDefault();
-                            items[items.length - 1]?.focus();
-                          }
-                        }}
-                      >
-                        <button
-                          type="button"
-                          className="action-dots-btn"
-                          aria-label={`Actions for ${cust.name}`}
-                          aria-haspopup="menu"
-                          aria-expanded={openMenuId === cust.id}
-                          onClick={(e) => handleToggleMenu(cust.id, e)}
-                        >
-                          <MoreVerticalIcon />
-                        </button>
-                        {openMenuId === cust.id && (
-                          <div
-                            className="action-dropdown"
-                            role="menu"
-                            style={menuPosition ? {
-                              position: "fixed",
-                              top: menuPosition.top,
-                              bottom: menuPosition.bottom,
-                              right: menuPosition.right,
-                              left: "auto",
-                              zIndex: 9999,
-                            } : undefined}
-                          >
-                            {canEdit && <button type="button" role="menuitem" className="dropdown-item" onClick={() => {
-                              const record = records.find(item => item.id === cust.id);
-                              if (record) { setEditing({ customer: { ...record }, owner: user.id }); setSaveMessage(""); }
-                              setOpenMenuId(null);
-                              setMenuPosition(null);
-                            }}>Edit Customer</button>}
-                            <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewProfile(cust, e)}>
-                              View Profile
-                            </button>
-                            <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewBookingHistory(cust, e)}>
-                              View Booking History
-                            </button>
-                            {canEdit && (
-                              <button
-                                type="button"
-                                role="menuitem"
-                                className={`dropdown-item ${cust.is_active ? "danger" : ""}`}
-                                onClick={() => {
-                                  const record = records.find(item => item.id === cust.id);
-                                  if (record) { setStatusTarget(record); setSaveMessage(""); }
-                                  setOpenMenuId(null);
-                                  setMenuPosition(null);
-                                }}
-                              >
-                                {cust.is_active ? "Suspend Account" : "Reactivate Account"}
-                              </button>
+        {activeTab === "appeals" ? (
+          <CustomerAppealsTab
+            appeals={appeals}
+            customersById={rowMap}
+            loading={loading}
+            error={error}
+            query={activeSearchQuery}
+            canEdit={canEdit}
+            onRefresh={refresh}
+            onOpenProfile={(cust) => setProfileModal(cust)}
+            onSelectReview={(appeal, customer, mode) => {
+              setSaveMessage("");
+              setAppealReview({ appeal, customer, mode });
+            }}
+          />
+        ) : (
+          <div className="customer-table-card" aria-busy={loading}>
+            {loading && <p className="sr-only" role="status">Loading customers...</p>}
+            <div className="customer-table-scroll" tabIndex={0} role="region" aria-label="Customer directory table">
+              <table className="customer-table">
+                <thead>
+                  <tr>
+                    <th>CUSTOMER</th>
+                    <th>CONTACT NUMBER</th>
+                    <th>TOTAL BOOKINGS</th>
+                    <th>LAST BOOKING</th>
+                    <th>MEMBER SINCE</th>
+                    <th className="text-center">STRIKE STATUS</th>
+                    <th>STATUS</th>
+                    <th className="text-center">ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <SkeletonTableRows
+                      rows={6}
+                      columns={[
+                        "avatar-stack",
+                        "text",
+                        "short",
+                        "short",
+                        "short",
+                        "short",
+                        "badge",
+                        "action",
+                      ]}
+                    />
+                  ) : error || customers.length === 0 ? (
+                    <tr><td colSpan={8} className="customer-table-message">{error ? "Customer data is unavailable." : records.length ? "No customers match your search or filters." : "No registered customers yet."}</td></tr>
+                  ) : customers.map((cust) => {
+                    const standingBadgeClass = cust.status === "SUSPENDED" || cust.standingStatus === "suspended"
+                      ? "suspended"
+                      : cust.standingStatus === "cooldown"
+                        ? "cooldown"
+                        : cust.standingStatus === "reinstated"
+                          ? "reinstated"
+                          : cust.status === "ACTIVE"
+                            ? "active"
+                            : "unknown";
+                    const standingBadgeText = cust.status === "SUSPENDED" || cust.standingStatus === "suspended"
+                      ? "SUSPENDED"
+                      : cust.standingStatus === "cooldown"
+                        ? "COOLDOWN"
+                        : cust.standingStatus === "reinstated"
+                          ? "REINSTATED"
+                          : cust.status;
+
+                    return (
+                      <tr key={cust.id}>
+                        <td>
+                          <div className="customer-info-cell">
+                            <div className="table-avatar" aria-hidden="true"></div>
+                            <div>
+                              <div className="cust-name">{cust.name}</div>
+                              <div className="cust-email">{cust.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span className="phone-cell tabular-nums"><PhoneIcon /> {cust.phone}</span></td>
+                        <td className="tabular-nums">{cust.bookings}</td>
+                        <td className="tabular-nums">{cust.lastBooking}</td>
+                        <td className="tabular-nums">{cust.memberSince}</td>
+                        <td className="text-center strike-status-cell">
+                          <StrikeStatusIndicator
+                            customer={cust}
+                            strikeCount={cust.noShowStrikeCount}
+                            onClick={() => setProfileModal(cust)}
+                          />
+                        </td>
+                        <td>
+                          <div className="standing-status-cell">
+                            <span className={`status-badge ${standingBadgeClass}`}>{standingBadgeText}</span>
+                            {cust.isCooldownActive && (
+                              <span className="standing-subtext tabular-nums">{cust.cooldownRemainingLabel}</span>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="text-center">
+                          <div
+                            className="action-menu-wrapper"
+                            ref={openMenuId === cust.id ? menuRef : null}
+                            onKeyDown={(e) => {
+                              if (openMenuId !== cust.id) return;
+                              const items = Array.from(e.currentTarget.querySelectorAll?.('[role="menuitem"]:not([disabled])') || []);
+                              if (items.length === 0) return;
+                              const idx = items.indexOf(document.activeElement);
+                              if (e.key === "ArrowDown") {
+                                e.preventDefault();
+                                items[(idx + 1) % items.length]?.focus();
+                              } else if (e.key === "ArrowUp") {
+                                e.preventDefault();
+                                items[(idx - 1 + items.length) % items.length]?.focus();
+                              } else if (e.key === "Home") {
+                                e.preventDefault();
+                                items[0]?.focus();
+                              } else if (e.key === "End") {
+                                e.preventDefault();
+                                items[items.length - 1]?.focus();
+                              }
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="action-dots-btn"
+                              aria-label={`Actions for ${cust.name}`}
+                              aria-haspopup="menu"
+                              aria-expanded={openMenuId === cust.id}
+                              onClick={(e) => handleToggleMenu(cust.id, e)}
+                            >
+                              <MoreVerticalIcon />
+                            </button>
+                            {openMenuId === cust.id && (
+                              <div
+                                className="action-dropdown"
+                                role="menu"
+                                style={menuPosition ? {
+                                  position: "fixed",
+                                  top: menuPosition.top,
+                                  bottom: menuPosition.bottom,
+                                  right: menuPosition.right,
+                                  left: "auto",
+                                  zIndex: 9999,
+                                } : undefined}
+                              >
+                                {canEdit && <button type="button" role="menuitem" className="dropdown-item" onClick={() => {
+                                  const record = records.find(item => item.id === cust.id);
+                                  if (record) { setEditing({ customer: { ...record }, owner: user.id }); setSaveMessage(""); }
+                                  setOpenMenuId(null);
+                                  setMenuPosition(null);
+                                }}>Edit Customer</button>}
+                                <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewProfile(cust, e)}>
+                                  View Profile
+                                </button>
+                                <button type="button" role="menuitem" className="dropdown-item" onClick={(e) => handleViewBookingHistory(cust, e)}>
+                                  View Booking History
+                                </button>
+                                {canEdit && cust.pendingAppeal && (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    className="dropdown-item"
+                                    onClick={() => {
+                                      setSaveMessage("");
+                                      setAppealReview({ appeal: cust.pendingAppeal, customer: cust, mode: "approve" });
+                                      setOpenMenuId(null);
+                                      setMenuPosition(null);
+                                    }}
+                                  >
+                                    Review Pending Appeal
+                                  </button>
+                                )}
+                                {canEdit && (
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    className={`dropdown-item ${cust.is_active ? "danger" : ""}`}
+                                    onClick={() => {
+                                      const record = records.find(item => item.id === cust.id);
+                                      if (record) { setStatusTarget(record); setSaveMessage(""); }
+                                      setOpenMenuId(null);
+                                      setMenuPosition(null);
+                                    }}
+                                  >
+                                    {cust.is_active ? "Suspend Account" : "Reactivate Account"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="table-pagination">
-            <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {loading || error ? "--" : filtered.length} customers</span>
-            <div className="pagination-controls">
-              <button type="button" className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page"><ChevronLeftIcon /></button>
-              {[...new Set([1, page - 1, page, page + 1, pageCount])].filter(number => number >= 1 && number <= pageCount).sort((a, b) => a - b).map(number => (
-                <button type="button" key={number} className={`page-number tabular-nums ${number === page ? "active" : ""}`} aria-current={number === page ? "page" : undefined} disabled={loading || Boolean(error)} onClick={() => setPage(number)}>{number}</button>
-              ))}
-              <button type="button" className="page-arrow" disabled={loading || Boolean(error) || page >= pageCount} onClick={() => setPage(page + 1)} aria-label="Next customer page"><ChevronRightIcon /></button>
+            <div className="table-pagination">
+              <span className="pagination-text">Showing {loading || error || !filtered.length ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {loading || error ? "--" : filtered.length} customers</span>
+              <div className="pagination-controls">
+                <button type="button" className="page-arrow" disabled={loading || Boolean(error) || page <= 1} onClick={() => setPage(page - 1)} aria-label="Previous customer page"><ChevronLeftIcon /></button>
+                {[...new Set([1, page - 1, page, page + 1, pageCount])].filter(number => number >= 1 && number <= pageCount).sort((a, b) => a - b).map(number => (
+                  <button type="button" key={number} className={`page-number tabular-nums ${number === page ? "active" : ""}`} aria-current={number === page ? "page" : undefined} disabled={loading || Boolean(error)} onClick={() => setPage(number)}>{number}</button>
+                ))}
+                <button type="button" className="page-arrow" disabled={loading || Boolean(error) || page >= pageCount} onClick={() => setPage(page + 1)} aria-label="Next customer page"><ChevronRightIcon /></button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
         {/* ===== CUSTOMER PROFILE MODAL ===== */}
         {canEdit && editing?.owner === user?.id && <CustomerEditDialog key={`${editing.owner}:${editing.customer.id}`} customer={editing.customer} existingCustomers={records} onClose={() => setEditing(null)} onSaved={() => {
           setEditing(null); setSaveMessage("Customer details saved successfully."); void refresh();
@@ -595,6 +793,25 @@ export default function Customer() {
             }}
           />
         )}
+        {canEdit && appealReview?.appeal && (
+          <AppealReviewDialog
+            key={`appeal:${appealReview.appeal.id}:${appealReview.mode}`}
+            appeal={appealReview.appeal}
+            customer={appealReview.customer}
+            mode={appealReview.mode}
+            strikeHistory={appealReview.customer?.strikeHistory || []}
+            onClose={() => setAppealReview(null)}
+            onReviewed={({ decision }) => {
+              setAppealReview(null);
+              setSaveMessage(
+                decision === "approved"
+                  ? "Suspension appeal approved. Customer standing is now Reinstated (existing strikes kept on record)."
+                  : "Suspension appeal rejected. Customer account remains suspended."
+              );
+              void refresh();
+            }}
+          />
+        )}
         {profileModal && profile && (
           <div className="cp-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setProfileModal(null); }}>
             <div
@@ -613,6 +830,11 @@ export default function Customer() {
                   <span className={`cp-status-pill ${profileModal.status.toLowerCase()}`}>
                     {profileModal.status}
                   </span>
+                  {profileModal.standingStatus !== "good" && (
+                    <span className={`status-badge ${profileModal.standingStatus}`}>
+                      Standing: {profileModal.standingLabel}
+                    </span>
+                  )}
                 </div>
                 <button type="button" className="cp-close-btn" aria-label="Close customer profile" onClick={() => setProfileModal(null)}><CloseIcon /></button>
               </div>
@@ -702,10 +924,128 @@ export default function Customer() {
                     )}
                   </div>
 
+                  {/* No-Show Standing & Appeals Card */}
+                  <div className="cp-status-card cp-standing-card">
+                    <div className="cp-standing-header">
+                      <h3 className="cp-section-label">NO-SHOW STANDING</h3>
+                      <span className={`status-badge ${profileModal.standingStatus === "good" ? "active" : profileModal.standingStatus}`}>
+                        {profileModal.standingLabel}
+                      </span>
+                    </div>
+
+                    <div className="cp-standing-indicator-row">
+                      <StrikeStatusIndicator
+                        customer={profileModal}
+                        strikeCount={profileModal.noShowStrikeCount}
+                        showCountText
+                      />
+                    </div>
+
+                    <dl className="cp-standing-meta">
+                      <div>
+                        <dt>Standing Policy</dt>
+                        <dd>
+                          {profileModal.isSuspended || profileModal.isStandingSuspended
+                            ? "Permanent booking suspension (mobile appeals allowed)."
+                            : profileModal.isCooldownActive
+                              ? `Cooldown active until ${formatManilaDateTime(profileModal.booking_cooldown_until)}.`
+                              : profileModal.isReinstated
+                                ? "Reinstated via approved appeal (strikes retained)."
+                                : "In good standing (3-strike no-show threshold)."}
+                        </dd>
+                      </div>
+                      {profileModal.suspended_at && (
+                        <div>
+                          <dt>Suspended At</dt>
+                          <dd className="tabular-nums">{formatManilaDateTime(profileModal.suspended_at)}</dd>
+                        </div>
+                      )}
+                      {profileModal.suspension_reason && (
+                        <div>
+                          <dt>Suspension Reason</dt>
+                          <dd>{profileModal.suspension_reason}</dd>
+                        </div>
+                      )}
+                      {profileModal.reinstated_at && (
+                        <div>
+                          <dt>Reinstated At</dt>
+                          <dd className="tabular-nums">{formatManilaDateTime(profileModal.reinstated_at)}</dd>
+                        </div>
+                      )}
+                    </dl>
+
+                    {profileModal.pendingAppeal && (
+                      <div className="cp-pending-appeal-box">
+                        <div className="cp-pending-appeal-title">Pending Appeal Submitted</div>
+                        <p className="cp-pending-appeal-reason">{profileModal.pendingAppeal.reason}</p>
+                        <div className="cp-pending-appeal-meta tabular-nums">
+                          Submitted {formatManilaDateTime(profileModal.pendingAppeal.created_at)}
+                          {profileModal.pendingAppeal.contact_number ? ` | Contact: ${profileModal.pendingAppeal.contact_number}` : ""}
+                        </div>
+                        {canEdit && (
+                          <div className="cp-pending-appeal-actions">
+                            <button
+                              type="button"
+                              className="btn-appeal-approve"
+                              onClick={() => {
+                                setSaveMessage("");
+                                setAppealReview({ appeal: profileModal.pendingAppeal, customer: profileModal, mode: "approve" });
+                              }}
+                            >
+                              Approve & Reinstate
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-appeal-reject"
+                              onClick={() => {
+                                setSaveMessage("");
+                                setAppealReview({ appeal: profileModal.pendingAppeal, customer: profileModal, mode: "reject" });
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
                 {/* RIGHT COLUMN */}
                 <div className="cp-right">
+
+                  {/* No-Show Strike History */}
+                  <div className="cp-strike-history-section">
+                    <div className="cp-section-title-row cp-strike-history-header">
+                      <h3 className="cp-section-label">NO-SHOW STRIKE HISTORY</h3>
+                      <span className="cp-strike-cumulative-note tabular-nums">
+                        {profileModal.noShowStrikeCount} {profileModal.noShowStrikeCount === 1 ? "strike" : "strikes"} (cumulative, never resets)
+                      </span>
+                    </div>
+                    {(!profileModal.strikeHistory || profileModal.strikeHistory.length === 0) ? (
+                      <p className="cp-strike-empty">No confirmed no-show strikes recorded for this customer.</p>
+                    ) : (
+                      <ul className="cp-strike-list">
+                        {profileModal.strikeHistory.map((strike) => (
+                          <li key={strike.id} className="cp-strike-item">
+                            <div className="cp-strike-item-top">
+                              <span className="cp-strike-num tabular-nums">Strike #{strike.strike_number}</span>
+                              {strike.trackingNumber && (
+                                <span className="cp-strike-tracking tabular-nums">{strike.trackingNumber}</span>
+                              )}
+                              <span className="cp-strike-role">{strike.confirmedByRole}</span>
+                              <span className="cp-strike-date tabular-nums">{formatManilaDateTime(strike.confirmed_at)}</span>
+                            </div>
+                            <div className="cp-strike-reason">{strike.reason || "Confirmed no-show"}</div>
+                            {strike.attempt_notes && (
+                              <div className="cp-strike-notes">Notes: {strike.attempt_notes}</div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
 
                   {/* Booking Summary */}
                   <div className="cp-section-title-row">

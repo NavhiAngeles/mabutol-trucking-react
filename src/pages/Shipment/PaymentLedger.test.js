@@ -117,8 +117,10 @@ async function mount({
       };
     },
     fetchShipmentPayments: mockFetchPayments,
+    getPaymentReceiptUrl: async () => 'https://example.test/receipt.jpg',
     recordShipmentPayment: mockRecordPayment,
     reviewShipmentPayment: mockReviewPayment,
+    subscribeToShipmentPayments: () => () => {},
     Intl,
     Date,
     Number,
@@ -336,4 +338,28 @@ test('Cancelled shipment disables Record Payment button', async () => {
   const recordBtn = find(tree, (n) => n.type === 'button' && textContent(n).includes('Record Payment'))[0];
   assert.ok(recordBtn, 'Record Payment button should exist');
   assert.equal(recordBtn.props.disabled, true, 'Record payment button must be disabled for cancelled shipments');
+});
+
+test('PaymentLedger renders View Receipt button for payments with proof_path and shows rejection_reason', async () => {
+  const paymentWithProof = {
+    id: 'p-proof',
+    shipment_id: 'ship-1',
+    amount: 7500,
+    method: 'bank_transfer',
+    status: 'rejected',
+    proof_path: 'del-1/payment-req-1.jpg',
+    rejection_reason: 'Blurry signature on slip',
+    created_at: '2026-11-20T08:00:00Z',
+    updated_at: '2026-11-20T08:05:00Z',
+  };
+
+  const ui = await mount({ paymentsList: [paymentWithProof] });
+  ui.render();
+  await tick();
+  const tree = ui.render();
+
+  const text = JSON.stringify(tree);
+  assert.ok(text.includes('Blurry signature on slip'));
+  const receiptBtn = find(tree, (n) => n.type === 'button' && textContent(n).includes('View Receipt'))[0];
+  assert.ok(receiptBtn, 'View Receipt button must render when proof_path is present');
 });

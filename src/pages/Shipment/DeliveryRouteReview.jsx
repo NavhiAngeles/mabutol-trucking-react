@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { routeConfirmation } from '../../services/deliveryRouteConfirmation';
+import { initialRouteProfile, routeConfirmation } from '../../services/deliveryRouteConfirmation';
 
 const fields=[['height','Truck height (m)'],['width','Truck width (m)'],['length','Truck length (m)'],['weight','Loaded gross weight (tonnes, including truck)'],['axleload','Maximum loaded axle weight (tonnes)']];
 export default function DeliveryRouteReview({delivery,onSaved,actionBlocked=false}) {
@@ -9,7 +9,8 @@ export default function DeliveryRouteReview({delivery,onSaved,actionBlocked=fals
   useEffect(()=>{let active=true;supabase.rpc('delivery_routing_context',{p_delivery:delivery.id}).then(({data,error:failure})=>{
     if(!active)return;if(failure){setError('Route records unavailable. Refresh to retry.');return;}
     setError('');setSaveNeedsRefresh(false);
-    setContext(data);setForm({...Object.fromEntries(['pickup_lat','pickup_lng','dropoff_lat','dropoff_lng'].map(key=>[key,data.shipment[key]??''])),...Object.fromEntries(fields.map(([key])=>[key,data.plan?.profile?.[key]??''])),hazmat:data.plan?.profile?.hazmat??'',reason:'',confirmed:false});
+    const profile=initialRouteProfile(data);
+    setContext(data);setForm({...Object.fromEntries(['pickup_lat','pickup_lng','dropoff_lat','dropoff_lng'].map(key=>[key,data.shipment[key]??''])),height:profile.height,width:profile.width,length:profile.length,weight:profile.weight,axleload:profile.axleload,prefilledFromTruck:profile.prefilledFromTruck,hazmat:data.plan?.profile?.hazmat??'',reason:'',confirmed:false});
   }).catch(()=>{if(active)setError('Route records unavailable. Refresh to retry.');});return()=>{active=false;};},[delivery.id,revision]);
   const save=async()=>{
     if(lock.current || actionBlocked || !form || !context)return;
@@ -25,6 +26,7 @@ export default function DeliveryRouteReview({delivery,onSaved,actionBlocked=fals
     <h4>Confirmed truck route</h4>
     <p>Use verified truck entrances and loaded vehicle measurements. No legacy pins are changed until you confirm and save. Quoted prices and the scheduled arrival remain unchanged.</p>
     {context?.plan && <p>Last confirmation: {new Date(context.plan.confirmed_at).toLocaleString('en-PH',{timeZone:'Asia/Manila'})} · {context.plan.reason}</p>}
+    {!context?.plan && form?.prefilledFromTruck && <p className="delivery-route-prefill-note">Pre-filled from {context?.truck?.plate_number ? `truck ${context.truck.plate_number}` : 'assigned truck specifications'}. Verify actual loaded dimensions and weights before confirming.</p>}
     {actionBlocked && <p role="status">Route updates are paused until delivery records and shipment details refresh successfully.</p>}
     {error && <p role="alert">{error}</p>}
     <button type="button" disabled={busy} onClick={()=>{setError('');setRevision(value=>value+1);}}>Reload truck route</button>

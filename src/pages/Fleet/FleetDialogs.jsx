@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { saveFleetRecord, validateComplianceFile, openComplianceFile } from '../../services/fleetWorkspaceService';
 import { getComplianceDocumentsForTruck, getComplianceDocumentsForDriver, TRUCK_COMPLIANCE_DOC_TYPES, DRIVER_COMPLIANCE_DOC_TYPES, getComplianceDocBadge } from '../../services/fleetService';
 import { useLiveData } from '../../hooks/useLiveData';
+import { validateTruckHgvSpecs } from './fleetDraftHelpers';
 
 const DOCUMENT_TABLES = ['compliance_documents'];
 
@@ -142,16 +143,42 @@ function Field({ label, name, form, setForm, options, wrapperClassName = '', ...
 }
 
 export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
-  const [form, setForm] = useState(() => kind === 'truck' ? { ...record, assigned_driver_id: record.drivers?.id || '', vehicle_type_id: record.vehicle_types?.id || '' }
-    : kind === 'driver' ? { ...record } : { truck_id: '', kind: 'preventive', status: 'scheduled', scheduled_date: '', description: '', vendor: '', cost: '', ...record });
+  const [form, setForm] = useState(() => kind === 'truck' ? {
+    ...record,
+    assigned_driver_id: record.drivers?.id || '',
+    vehicle_type_id: record.vehicle_types?.id || record.vehicle_type_id || '',
+    height_m: record.height_m ?? '',
+    width_m: record.width_m ?? '',
+    length_m: record.length_m ?? '',
+    tare_weight_kg: record.tare_weight_kg ?? '',
+    gross_weight_kg: record.gross_weight_kg ?? '',
+    axle_count: record.axle_count ?? 2,
+  } : kind === 'driver' ? { ...record } : { truck_id: '', kind: 'preventive', status: 'scheduled', scheduled_date: '', description: '', vendor: '', cost: '', ...record });
   const [categories, setCategories] = useState(() => record?.cargoCategories?.map(c => c.id) || []);
   const [busy, setBusy] = useState(false);
   const guard = useRef(false);
   const [error, setError] = useState('');
   const dialog = useDialog(onClose, busy);
+  const selectedVehicleType = kind === 'truck'
+    ? (fleet.vehicleTypes || []).find(t => t.id === form.vehicle_type_id)
+    : null;
 
   async function save(event) {
     event.preventDefault(); if (guard.current) return;
+    if (kind === 'truck') {
+      const hgvError = validateTruckHgvSpecs({
+        heightM: form.height_m,
+        widthM: form.width_m,
+        lengthM: form.length_m,
+        tareWeightKg: form.tare_weight_kg,
+        grossWeightKg: form.gross_weight_kg,
+        axleCount: form.axle_count,
+      });
+      if (hgvError) {
+        setError(hgvError);
+        return;
+      }
+    }
     guard.current = true; setBusy(true); setError('');
     try { await saveFleetRecord(kind, record, form, { categories: kind === 'truck' ? categories : null }); onSaved(); onClose(); }
     catch (error) { setError(error.message); } finally { guard.current = false; setBusy(false); }
@@ -265,38 +292,55 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
             </div>
 
             {kind === 'truck' && (
-              <div className="fleet-cargo-section">
-                <div className="fleet-cargo-section-header">
-                  <span className="fleet-cargo-section-title">Cargo Compatibility</span>
-                  <span className="fleet-cargo-section-desc">Categories supported by this vehicle</span>
-                </div>
-                {fleet.cargoCategories.length === 0 ? (
-                  <p className="fleet-empty-cargo">No cargo categories configured in settings.</p>
-                ) : (
-                  <div className="fleet-cargo-tags">
-                    {fleet.cargoCategories.map((c) => {
-                      const isChecked = categories.includes(c.id);
-                      return (
-                        <label htmlFor={`fleet-cargo-check-${c.id}`} className={`fleet-check ${isChecked ? 'is-checked' : ''}`} key={c.id}>
-                          <input
-                            id={`fleet-cargo-check-${c.id}`}
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) =>
-                              setCategories(
-                                e.target.checked
-                                  ? [...categories, c.id]
-                                  : categories.filter((id) => id !== c.id)
-                              )
-                            }
-                          />
-                          <span>{c.name}</span>
-                        </label>
-                      );
-                    })}
+              <>
+                <div className="fleet-cargo-section">
+                  <div className="fleet-cargo-section-header">
+                    <span className="fleet-cargo-section-title">HGV Dimensions & Weight (ORS Truck Routing)</span>
+                    <span className="fleet-cargo-section-desc">Used to pre-fill route compliance profiles</span>
                   </div>
-                )}
-              </div>
+                  <div className="form-grid">
+                    {field('height_m', 'Height (m)', { type: 'number', min: 0.01, max: 10, step: '0.01', placeholder: selectedVehicleType?.default_height_m ? String(selectedVehicleType.default_height_m) : 'e.g. 3.20' })}
+                    {field('width_m', 'Width (m)', { type: 'number', min: 0.01, max: 10, step: '0.01', placeholder: selectedVehicleType?.default_width_m ? String(selectedVehicleType.default_width_m) : 'e.g. 2.20' })}
+                    {field('length_m', 'Length (m)', { type: 'number', min: 0.01, max: 50, step: '0.01', placeholder: selectedVehicleType?.default_length_m ? String(selectedVehicleType.default_length_m) : 'e.g. 7.50' })}
+                    {field('tare_weight_kg', 'Tare weight (kg)', { type: 'number', min: 0, step: 'any', placeholder: 'e.g. 4200' })}
+                    {field('gross_weight_kg', 'Gross vehicle weight (kg)', { type: 'number', min: 1, step: 'any', placeholder: 'e.g. 10200' })}
+                    {field('axle_count', 'Axle count', { type: 'number', min: 2, max: 20, step: 1, placeholder: '2' })}
+                  </div>
+                </div>
+
+                <div className="fleet-cargo-section">
+                  <div className="fleet-cargo-section-header">
+                    <span className="fleet-cargo-section-title">Cargo Compatibility</span>
+                    <span className="fleet-cargo-section-desc">Categories supported by this vehicle</span>
+                  </div>
+                  {fleet.cargoCategories.length === 0 ? (
+                    <p className="fleet-empty-cargo">No cargo categories configured in settings.</p>
+                  ) : (
+                    <div className="fleet-cargo-tags">
+                      {fleet.cargoCategories.map((c) => {
+                        const isChecked = categories.includes(c.id);
+                        return (
+                          <label htmlFor={`fleet-cargo-check-${c.id}`} className={`fleet-check ${isChecked ? 'is-checked' : ''}`} key={c.id}>
+                            <input
+                              id={`fleet-cargo-check-${c.id}`}
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) =>
+                                setCategories(
+                                  e.target.checked
+                                    ? [...categories, c.id]
+                                    : categories.filter((id) => id !== c.id)
+                                )
+                              }
+                            />
+                            <span>{c.name}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </fieldset>
         </div>
@@ -355,8 +399,7 @@ export function AssignDriverModal({ truck, drivers = [], onClose, onAssigned }) 
 
   return (
     <dialog
-      ref={dialog.ref}
-      onCancel={dialog.onCancel}
+      {...dialog}
       className="fleet-dialog fleet-assign-dialog"
       aria-labelledby="assign-driver-title"
     >

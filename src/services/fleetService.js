@@ -92,6 +92,12 @@ const TRUCK_SELECT = `
   model,
   model_year,
   capacity_kg,
+  height_m,
+  width_m,
+  length_m,
+  tare_weight_kg,
+  gross_weight_kg,
+  axle_count,
   vehicle_type_id,
   assigned_driver_id,
   status,
@@ -107,7 +113,7 @@ const TRUCK_SELECT = `
   next_available_at,
   created_at,
   updated_at,
-  vehicle_types ( id, name ),
+  vehicle_types ( id, name, default_height_m, default_width_m, default_length_m ),
   drivers:assigned_driver_id ( id, full_name, contact_number ),
   home_base:home_base_location_id ( id, name, address ),
   truck_cargo_categories ( cargo_categories ( id, name ) )
@@ -536,10 +542,19 @@ export async function getVehicleTypes() {
     }
     cache.inFlight = (async () => {
         try {
-            const { data, error } = await supabase
+            let { data, error } = await supabase
                 .from("vehicle_types")
-                .select("id, name")
+                .select("id, name, default_capacity_kg, default_height_m, default_width_m, default_length_m")
                 .order("name", { ascending: true });
+
+            if (error && isMissingSchemaColumnError(error)) {
+                const fallback = await supabase
+                    .from("vehicle_types")
+                    .select("id, name")
+                    .order("name", { ascending: true });
+                data = fallback.data;
+                error = fallback.error;
+            }
 
             if (error) throw error;
             cache.data = data;

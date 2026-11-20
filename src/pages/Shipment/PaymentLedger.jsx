@@ -7,8 +7,10 @@ import {
   formatPaymentStatus,
   calculatePaymentTotals,
   fetchShipmentPayments,
+  getPaymentReceiptUrl,
   recordShipmentPayment,
   reviewShipmentPayment,
+  subscribeToShipmentPayments,
 } from '../../services/paymentService';
 
 const timestamp = (value) => {
@@ -56,14 +58,19 @@ export default function PaymentLedger({ shipment, onChanged }) {
   const [verifyBusy, setVerifyBusy] = useState(false);
   const [verifyError, setVerifyError] = useState('');
 
+  // State for signed receipt preview dialog
+  const [receiptModal, setReceiptModal] = useState(null);
+
   const shipmentId = shipment?.id;
   const isCancelled = shipment?.status === 'cancelled';
 
   const recordModalRef = useRef(null);
   const rejectModalRef = useRef(null);
   const verifyModalRef = useRef(null);
+  const receiptDialogRef = useRef(null);
   const recordTriggerRef = useRef(null);
   const reqSeq = useRef(0);
+  const receiptReqSeq = useRef(0);
 
   const amountInputId = useId();
   const methodSelectId = useId();
@@ -112,6 +119,61 @@ export default function PaymentLedger({ shipment, onChanged }) {
       seq.current++;
     };
   }, [shipmentId]);
+
+  useEffect(() => {
+    if (!shipmentId || typeof subscribeToShipmentPayments !== 'function') return undefined;
+    return subscribeToShipmentPayments(shipmentId, () => {
+      const req = ++reqSeq.current;
+      fetchShipmentPayments(shipmentId)
+        .then((data) => {
+          if (req !== reqSeq.current) return;
+          setPayments(data);
+          setError('');
+        })
+        .catch(() => {});
+    });
+  }, [shipmentId]);
+
+  useEffect(() => {
+    const dialog = receiptDialogRef.current;
+    if (!dialog) return undefined;
+
+    if (receiptModal) {
+      if (!dialog.open && typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      }
+    } else if (dialog.open && typeof dialog.close === 'function') {
+      dialog.close();
+    }
+
+    if (
+      !receiptModal ||
+      typeof HTMLDialogElement === 'undefined' ||
+      'closedBy' in HTMLDialogElement.prototype ||
+      typeof dialog.addEventListener !== 'function'
+    ) {
+      return undefined;
+    }
+
+    const isOutside = (e) => {
+      const r = dialog.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    let pressedOutside = false;
+    const onPointerDown = (e) => { pressedOutside = isOutside(e); };
+    const onPointerUp = (e) => {
+      if (pressedOutside && isOutside(e) && typeof dialog.close === 'function') {
+        dialog.close();
+      }
+      pressedOutside = false;
+    };
+    dialog.addEventListener('pointerdown', onPointerDown);
+    dialog.addEventListener('pointerup', onPointerUp);
+    return () => {
+      dialog.removeEventListener('pointerdown', onPointerDown);
+      dialog.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [receiptModal]);
 
   const totals = calculatePaymentTotals(shipment, payments);
 
@@ -211,6 +273,45 @@ export default function PaymentLedger({ shipment, onChanged }) {
     if (rejectBusy) return;
     setRejectingPayment(null);
     setRejectError('');
+  };
+
+  const openReceiptModal = async (payment) => {
+    if (!payment || !shipmentId) return;
+    const req = ++receiptReqSeq.current;
+    setReceiptModal({ payment, url: '', loading: true, error: '' });
+    if (typeof getPaymentReceiptUrl !== 'function') {
+      setReceiptModal({ payment, url: '', loading: false, error: 'Receipt viewer is unavailable.' });
+      return;
+    }
+    try {
+      const signedUrl = await getPaymentReceiptUrl(shipmentId, payment.id, payment.proof_path);
+      if (req !== receiptReqSeq.current) return;
+      setReceiptModal({ payment, url: signedUrl, loading: false, error: '' });
+    } catch (err) {
+      if (req !== receiptReqSeq.current) return;
+      setReceiptModal({
+        payment,
+        url: '',
+        loading: false,
+        error: err.message || 'Could not load signed payment receipt.',
+      });
+    }
+  };
+
+  const closeReceiptModal = () => {
+    receiptReqSeq.current++;
+    const dialog = receiptDialogRef.current;
+    if (dialog?.open && typeof dialog.close === 'function') {
+      dialog.close();
+    } else {
+      setReceiptModal(null);
+    }
+  };
+
+  const handleReceiptDialogClose = () => {
+    const dialog = receiptDialogRef.current;
+    if (dialog) dialog.returnValue = '';
+    setReceiptModal(null);
   };
 
   const confirmRejectPayment = async (e) => {
@@ -458,6 +559,11 @@ export default function PaymentLedger({ shipment, onChanged }) {
                     <td>
                       <div className="payment-cell-notes">
                         {p.notes ? <span className="payment-notes-text">{p.notes}</span> : <span className="payment-notes-empty">No notes</span>}
+                        {p.rejection_reason && !(p.notes || '').includes(p.rejection_reason) && (
+                          <div className="payment-rejection-reason">
+                            Rejection reason: {p.rejection_reason}
+                          </div>
+                        )}
                         <div className="payment-cell-meta">
                           By: {creator}
                           {verifier && ` · Verified: ${verifier}`}
@@ -465,30 +571,44 @@ export default function PaymentLedger({ shipment, onChanged }) {
                       </div>
                     </td>
                     <td className="text-right">
-                      {isPending ? (
-                        <div className="payment-actions-group">
+                      <div className="payment-actions-group">
+                        {p.proof_path && (
                           <button
                             type="button"
-                            className="btn-verify"
-                            onClick={() => openVerifyModal(p)}
-                            title="Verify and confirm this payment"
+                            className="btn-receipt"
+                            onClick={() => openReceiptModal(p)}
+                            title="View signed payment receipt"
                           >
-                            Verify
+                            View Receipt
                           </button>
-                          <button
-                            type="button"
-                            className="btn-reject"
-                            onClick={() => openRejectModal(p)}
-                            title="Reject pending payment with reason"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="payment-action-settled">
-                          {p.status === 'verified' ? 'Verified' : 'Processed'}
-                        </span>
-                      )}
+                        )}
+                        {isPending ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-verify"
+                              onClick={() => openVerifyModal(p)}
+                              title="Verify and confirm this payment"
+                            >
+                              Verify
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-reject"
+                              onClick={() => openRejectModal(p)}
+                              title="Reject pending payment with reason"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        ) : (
+                          !p.proof_path && (
+                            <span className="payment-action-settled">
+                              {p.status === 'verified' ? 'Verified' : 'Processed'}
+                            </span>
+                          )
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -576,13 +696,23 @@ export default function PaymentLedger({ shipment, onChanged }) {
 
                 <div className="payment-form-field">
                   <label htmlFor={referenceInputId}>
-                    {formMethod === 'gcash' ? 'GCash Reference Number *' : 'Receipt / Reference # (Optional)'}
+                    {['gcash', 'bank_transfer', 'check'].includes(formMethod)
+                      ? `${formatPaymentMethod(formMethod)} Reference # *`
+                      : 'Receipt / Reference # (Optional)'}
                   </label>
                   <input
                     id={referenceInputId}
                     type="text"
-                    required={formMethod === 'gcash'}
-                    placeholder={formMethod === 'gcash' ? 'e.g. 1002 9876 5432' : 'e.g. OR-887766 or Cash voucher #'}
+                    required={['gcash', 'bank_transfer', 'check'].includes(formMethod)}
+                    placeholder={
+                      formMethod === 'gcash'
+                        ? 'e.g. 1002 9876 5432'
+                        : formMethod === 'bank_transfer'
+                          ? 'e.g. INSTAPAY-998877'
+                          : formMethod === 'check'
+                            ? 'e.g. CHK-004512'
+                            : 'e.g. OR-887766 or Cash voucher #'
+                    }
                     value={formReference}
                     onChange={(e) => setFormReference(e.target.value)}
                     disabled={formBusy}
@@ -694,6 +824,22 @@ export default function PaymentLedger({ shipment, onChanged }) {
                 )}
                 . This will update the verified balance and mark the transaction as verified in the ledger.
               </p>
+              {verifyingPayment.proof_path && (
+                <div className="payment-verify-receipt-row">
+                  <button
+                    type="button"
+                    className="btn-receipt"
+                    disabled={verifyBusy}
+                    onClick={() => {
+                      const target = verifyingPayment;
+                      setVerifyingPayment(null);
+                      openReceiptModal(target);
+                    }}
+                  >
+                    View Signed Receipt
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="booking-review-actions">
@@ -818,6 +964,103 @@ export default function PaymentLedger({ shipment, onChanged }) {
           </div>
         </div>
       )}
+
+      {/* NATIVE MODAL DIALOG 4: SIGNED RECEIPT PREVIEW */}
+      <dialog
+        ref={receiptDialogRef}
+        className="payment-receipt-dialog"
+        aria-labelledby="receipt-preview-title"
+        closedby="any"
+        onClose={handleReceiptDialogClose}
+      >
+        {receiptModal && (
+          <div className="payment-receipt-dialog-body">
+            <div className="shipment-details-header">
+              <div className="shipment-details-header-main">
+                <h3 id="receipt-preview-title">Signed Payment Receipt</h3>
+                <p className="shipment-details-subtitle">
+                  {formatPaymentCurrency(receiptModal.payment.amount)} · {formatPaymentMethod(receiptModal.payment.method)}
+                  {receiptModal.payment.reference_number ? ` · Ref: ${receiptModal.payment.reference_number}` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shipment-details-close-x"
+                aria-label="Close receipt preview"
+                onClick={closeReceiptModal}
+                autoFocus
+              >
+                ✕
+              </button>
+            </div>
+
+            {receiptModal.loading && (
+              <div className="payment-receipt-state" role="status">
+                Loading signed receipt…
+              </div>
+            )}
+
+            {receiptModal.error && (
+              <div role="alert" className="shipment-details-error-msg">
+                <span>{receiptModal.error}</span>
+                <button
+                  type="button"
+                  className="btn-secondary btn-sm"
+                  onClick={() => openReceiptModal(receiptModal.payment)}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {receiptModal.url && !receiptModal.loading && (
+              <figure className="payment-receipt-figure">
+                <img
+                  src={receiptModal.url}
+                  alt={`Signed payment receipt for ${formatPaymentCurrency(receiptModal.payment.amount)} on ${shipment?.tracking_number || 'shipment'}`}
+                  className="payment-receipt-image"
+                />
+                <figcaption className="payment-receipt-caption">
+                  Submitted {timestamp(receiptModal.payment.paid_at || receiptModal.payment.created_at)}
+                  {receiptModal.payment.notes ? ` · ${receiptModal.payment.notes}` : ''}
+                </figcaption>
+              </figure>
+            )}
+
+            <div className="booking-review-actions">
+              <button type="button" className="btn-secondary" onClick={closeReceiptModal}>
+                Close
+              </button>
+              {receiptModal.payment.status === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    className="btn-reject"
+                    onClick={() => {
+                      const target = receiptModal.payment;
+                      closeReceiptModal();
+                      openRejectModal(target);
+                    }}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                      const target = receiptModal.payment;
+                      closeReceiptModal();
+                      openVerifyModal(target);
+                    }}
+                  >
+                    Verify Payment
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </dialog>
     </div>
   );
 }

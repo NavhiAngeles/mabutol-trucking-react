@@ -18,7 +18,7 @@ export function deliveryWorkflowService(client = supabase) {
   return {
     watch(shipmentId, changed) {
       const channel=client.channel(`office-delivery-${shipmentId}`);
-      for(const table of ['deliveries','shipments','tracking_logs','notifications','delivery_expenses','delivery_incidents','incident_attachments']) {
+      for(const table of ['deliveries','shipments','payments','tracking_logs','notifications','delivery_expenses','delivery_incidents','incident_attachments']) {
         channel.on('postgres_changes',{event:'*',schema:'public',table},changed);
       }
       channel.subscribe();
@@ -40,13 +40,47 @@ export function deliveryWorkflowService(client = supabase) {
       return { ...form, distance_km: data.distanceKm, duration_minutes: data.estimatedMinutes, source: 'provider', geometry: data.geojson };
     },
     async load(shipmentId) {
-      const [record, result] = await Promise.all([
+      const deliverySelectFull = 'id,driver_id,status,updated_at,proof_attempt,proof_review_status,proof_review_reason,route_started_at,pickup_arrived_at,customer_showed_at,grace_ends_at,auto_cancel_at,customer_on_way_at,no_show_confirmed_at';
+      const deliverySelectBase = 'id,driver_id,status,updated_at,proof_attempt,proof_review_status,proof_review_reason,route_started_at,pickup_arrived_at,customer_showed_at,grace_ends_at,auto_cancel_at';
+      const [record, initialResult] = await Promise.all([
         rpc('mobile_shipment_details', { p_shipment: shipmentId }),
-        client.from('deliveries').select('id,driver_id,status,updated_at,proof_attempt,proof_review_status,proof_review_reason,route_started_at,pickup_arrived_at,customer_showed_at,grace_ends_at,auto_cancel_at').eq('shipment_id', shipmentId).order('assigned_at', { ascending: false }),
+        client.from('deliveries').select(deliverySelectFull).eq('shipment_id', shipmentId).order('assigned_at', { ascending: false }),
       ]);
+      let result = initialResult;
+      if (result.error && /does not exist|42703|PGRST204|schema cache/i.test(`${result.error.code || ''} ${result.error.message || ''}`)) {
+        result = await client.from('deliveries').select(deliverySelectBase).eq('shipment_id', shipmentId).order('assigned_at', { ascending: false });
+      }
       if (result.error) throw result.error;
       const evidence = result.data?.length ? await rpc('mobile_driver_evidence', { p_shipment: shipmentId }) : { expenses: [], incident_evidence: [] };
       return { ...record, ...evidence, deliveries: result.data || [] };
+    },
+    confirmNoShow: async (delivery, reasonOrOptions, attemptNotesArg = '') => {
+      if (!delivery?.id) throw new Error('Delivery assignment is required.');
+      const opts = typeof reasonOrOptions === 'object' && reasonOrOptions !== null
+        ? reasonOrOptions
+        : { reason: reasonOrOptions, attemptNotes: attemptNotesArg };
+      const reason = String(opts.reason || '').trim() || null;
+      const attemptNotes = String(opts.attemptNotes || '').trim() || null;
+      const combinedNotes = [reason, attemptNotes].filter(Boolean).join(': ') || null;
+
+      if (reason) {
+        const threeArg = await client.rpc('confirm_no_show_cancellation', {
+          p_delivery_id: delivery.id,
+          p_attempt_notes: attemptNotes,
+          p_reason: reason,
+        });
+        if (!threeArg.error) return threeArg.data;
+        if (!/PGRST202|Could not find the function|function .* does not exist/i.test(`${threeArg.error.code || ''} ${threeArg.error.message || ''}`)) {
+          throw threeArg.error;
+        }
+      }
+
+      const { data, error } = await client.rpc('confirm_no_show_cancellation', {
+        p_delivery_id: delivery.id,
+        p_attempt_notes: combinedNotes,
+      });
+      if (error) throw error;
+      return data;
     },
     async proofUrl(shipmentId, documentId) {
       const details = await rpc('mobile_shipment_details', { p_shipment: shipmentId });

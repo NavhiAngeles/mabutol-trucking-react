@@ -9,6 +9,7 @@ import './OfficeTools.css';
 
 const TABLES = [
   'notifications',
+  'payments',
   'shipments',
   'delivery_incidents',
   'delivery_expenses',
@@ -85,13 +86,14 @@ async function loadOfficeTools(client = supabase) {
     mobileBookingsResult,
     incidentsResult,
     expensesResult,
+    pendingPaymentsResult,
   ] = await Promise.allSettled([
     cachedProfile
       ? Promise.resolve({ data: cachedProfile, error: null })
       : client.from('users').select('full_name').eq('id', user.id).single(),
     client
       .from('notifications')
-      .select('id,title,body,shipment_id,read_at,created_at')
+      .select('id,type,title,body,shipment_id,read_at,created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(30),
@@ -114,6 +116,13 @@ async function loadOfficeTools(client = supabase) {
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(5),
+    client
+      .from('payments')
+      .select('id,shipment_id,amount,method,proof_path,created_at')
+      .eq('status', 'pending')
+      .not('proof_path', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10),
   ]);
 
   if (profileResult.status === 'rejected' && notificationsResult.status === 'rejected') {
@@ -208,6 +217,30 @@ async function loadOfficeTools(client = supabase) {
           shipment_id: shipmentId,
           read_at: isRead ? exp.created_at : null,
           created_at: exp.created_at,
+        });
+      }
+    }
+  }
+
+  // 5. Pending driver payment verifications (fallback if DB payment notification is missing)
+  if (pendingPaymentsResult.status === 'fulfilled' && Array.isArray(pendingPaymentsResult.value.data)) {
+    for (const pay of pendingPaymentsResult.value.data) {
+      const key = `payment-${pay.id}`;
+      const isRead = persistedReads.has(key) || dismissedSyntheticIds.has(key);
+      const hasDbPaymentNotif = dbNotifications.some(
+        n => n.type === 'payment' && n.shipment_id === pay.shipment_id
+      );
+      const title = 'Payment verification required';
+      if (!hasDbPaymentNotif && !knownKeys.has(`${pay.shipment_id || ''}:${title}`)) {
+        combined.push({
+          id: key,
+          synthetic: true,
+          type: 'payment',
+          title,
+          body: `Driver submitted ₱${Number(pay.amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })} (${String(pay.method || '').replaceAll('_', ' ')}). Review signed receipt before departure.`,
+          shipment_id: pay.shipment_id,
+          read_at: isRead ? pay.created_at : null,
+          created_at: pay.created_at,
         });
       }
     }
@@ -454,10 +487,17 @@ export default function OfficeTools() {
             )}
             {data?.notifications.map(n => {
               const isRead = !!n.read_at || Boolean(locallyReadIds?.has && locallyReadIds.has(n.id));
+              const isPaymentAlert = n.type === 'payment';
               return (
-                <article key={n.id} className={`office-notification${isRead ? '' : ' office-notification-unread'}`}>
+                <article
+                  key={n.id}
+                  className={`office-notification${isRead ? '' : ' office-notification-unread'}${isPaymentAlert && !isRead ? ' office-notification-payment' : ''}`}
+                >
                   <div className="office-notification-title">
-                    <strong>{n.title}</strong>
+                    <div>
+                      {isPaymentAlert && <span className="office-notification-badge">Payment verification</span>}
+                      <strong>{n.title}</strong>
+                    </div>
                     {!isRead && <span className="office-notification-dot" aria-label="Unread" />}
                   </div>
                   {n.body && <p>{n.body}</p>}
@@ -473,11 +513,17 @@ export default function OfficeTools() {
                     </time>
                     <button
                       type="button"
-                      className="office-notification-action"
+                      className={`office-notification-action${isPaymentAlert ? ' office-notification-action-payment' : ''}`}
                       disabled={!!saving || (!n.shipment_id && isRead)}
                       onClick={() => markRead(n)}
                     >
-                      {saving === n.id ? 'Saving…' : n.shipment_id ? 'View shipment' : isRead ? 'Read' : 'Mark read'}
+                      {saving === n.id
+                        ? 'Saving…'
+                        : n.shipment_id
+                          ? (isPaymentAlert ? 'Verify payment' : 'View shipment')
+                          : isRead
+                            ? 'Read'
+                            : 'Mark read'}
                     </button>
                   </div>
                 </article>

@@ -1,3 +1,68 @@
+export function initialRouteProfile(context) {
+  const saved = context?.plan?.profile;
+  if (saved) {
+    return {
+      height: saved.height ?? '',
+      width: saved.width ?? '',
+      length: saved.length ?? '',
+      weight: saved.weight ?? '',
+      axleload: saved.axleload ?? '',
+      prefilledFromTruck: false,
+    };
+  }
+
+  const truck = context?.truck;
+  if (!truck) {
+    return {
+      height: '',
+      width: '',
+      length: '',
+      weight: '',
+      axleload: '',
+      prefilledFromTruck: false,
+    };
+  }
+
+  const cargoKg = Number(context?.shipment?.weight_kg) || 0;
+  const tareKg = Number(truck.tare_weight_kg);
+  const grossKg = Number(truck.gross_weight_kg);
+  let loadedTonnes = '';
+  if (Number.isFinite(tareKg) && tareKg > 0) {
+    const candidate = Number(((tareKg + cargoKg) / 1000).toFixed(2));
+    if (candidate * 1000 > cargoKg && candidate <= 200) {
+      loadedTonnes = candidate;
+    }
+  } else if (Number.isFinite(grossKg) && grossKg > cargoKg) {
+    const candidate = Number((grossKg / 1000).toFixed(2));
+    if (candidate <= 200) {
+      loadedTonnes = candidate;
+    }
+  }
+
+  const axles = Number(truck.axle_count);
+  let axleload = '';
+  if (loadedTonnes !== '' && Number.isFinite(axles) && axles >= 2) {
+    const candidate = Number((loadedTonnes / axles).toFixed(2));
+    if (candidate > 0 && candidate <= 100 && candidate <= loadedTonnes) {
+      axleload = candidate;
+    }
+  }
+
+  const height = truck.height_m ?? '';
+  const width = truck.width_m ?? '';
+  const length = truck.length_m ?? '';
+  const prefilledFromTruck = [height, width, length, loadedTonnes, axleload].some(v => v !== '' && v != null);
+
+  return {
+    height,
+    width,
+    length,
+    weight: loadedTonnes,
+    axleload,
+    prefilledFromTruck,
+  };
+}
+
 export function routeConfirmation(context,form) {
   if(!context?.delivery?.id || !context.delivery.updated_at || !context.shipment?.updated_at || form.confirmed!==true || form.reason?.trim().length<5 || form.reason.trim().length>1000)throw Error('Reload the assignment and confirm its pins, truck measurements and verification reason.');
   const pins=Object.fromEntries(['pickup_lat','pickup_lng','dropoff_lat','dropoff_lng'].map(key=>[key,form[key]==='' || form[key]==null?NaN:Number(form[key])]));

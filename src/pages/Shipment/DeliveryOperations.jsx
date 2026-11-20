@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { deliveryWorkflowService } from '../../services/deliveryWorkflowService';
+import { formatManilaDateTime, getPickupWaitState } from '../../services/customerStandingService';
 import './deliveryWorkflow.css';
 import DeliveryRouteReview from './DeliveryRouteReview';
 import DeliveryConversation from './DeliveryConversation';
+import NoShowConfirmDialog from './NoShowConfirmDialog';
 const service = deliveryWorkflowService();
 const time = value => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : 'Not recorded';
-export default function DeliveryOperations({ shipmentId, shipmentStatus, onChanged, shipmentRefreshVersion = 0 }) {
-  const [data,setData] = useState(null), [loadError,setLoadError] = useState(''), [actionError,setActionError] = useState(''), [actionNotice,setActionNotice] = useState(''), [refreshing,setRefreshing] = useState(false), [refreshRequired,setRefreshRequired] = useState(false), [reason,setReason] = useState(''), [busy,setBusy] = useState(false), [proof,setProof] = useState(null), [revision,setRevision] = useState(0);
+export default function DeliveryOperations({ shipmentId, shipmentStatus, customer = null, trackingNumber = '', onChanged, shipmentRefreshVersion = 0 }) {
+  const [data,setData] = useState(null), [loadError,setLoadError] = useState(''), [actionError,setActionError] = useState(''), [actionNotice,setActionNotice] = useState(''), [refreshing,setRefreshing] = useState(false), [refreshRequired,setRefreshRequired] = useState(false), [reason,setReason] = useState(''), [busy,setBusy] = useState(false), [proof,setProof] = useState(null), [revision,setRevision] = useState(0), [noShowTarget,setNoShowTarget] = useState(null);
   const lock = useRef(false);
   const loadSequence = useRef(0);
   const refreshRequiredRef = useRef(false);
@@ -73,11 +75,11 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
   }, [refresh, revision]);
   // Signed links expire after five minutes; never retain an apparently working stale viewer.
   useEffect(() => { if(!proof)return; const timer=setTimeout(()=>setProof(null),290000); return ()=>clearTimeout(timer); },[proof]);
-  const run = async operation => {
-    if(lock.current || refreshRequiredRef.current)return; lock.current=true;setBusy(true);setActionError('');setActionNotice('');
+  const run = async (operation, { rethrow = false } = {}) => {
+    if(lock.current || refreshRequiredRef.current)return false; lock.current=true;setBusy(true);setActionError('');setActionNotice('');
     try {
       try { await operation(); }
-      catch(err) { setActionError(err.message || 'Action failed. Refresh the records before trying again.'); await refresh(); return; }
+      catch(err) { setActionError(err.message || 'Action failed. Refresh the records before trying again.'); await refresh(); if (rethrow) throw err; return false; }
       requireFollowUpRefresh();
       setReason('');setProof(null);setActionNotice('Action completed. Refreshing delivery records and shipment details…');
       const [workflowLoaded, shipmentLoaded] = await Promise.all([
@@ -86,6 +88,7 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
       ]);
       if (workflowLoaded && shipmentLoaded && !refreshRequiredRef.current) setActionNotice('Action completed successfully. Delivery records and shipment details are current.');
       else setActionNotice('Action completed successfully, but follow-up data is not fully refreshed. Retry the read-only refreshes before taking another action; this action was not repeated.');
+      return true;
     } finally {lock.current=false;setBusy(false);}
   };
   return <section className="delivery-workflow-panel delivery-ops-panel" aria-label="Delivery workflow">
@@ -184,19 +187,72 @@ export default function DeliveryOperations({ shipmentId, shipmentStatus, onChang
       </div>
 
       {data.deliveries.filter(delivery=>delivery.status==='cancelled').map(delivery=><DeliveryConversation key={delivery.id} delivery={delivery} />)}
-      {data.deliveries.filter(delivery=>delivery.status!=='cancelled').map(delivery=><div key={delivery.id} className="delivery-workflow-panel delivery-ops-nested-card">
-        <DeliveryRouteReview delivery={delivery} actionBlocked={refreshRequired} onSaved={async()=>{requireFollowUpRefresh();setActionNotice('Route confirmation completed. Refreshing delivery records and shipment details…');setRevision(value=>value+1);const result=await onChanged?.({preserve:true});if(result!==false)markShipmentRefreshed();if(refreshRequiredRef.current)setActionNotice('Route confirmation succeeded, but follow-up data is not fully refreshed. Retry read-only refreshes before resubmitting the route.');}} />
-        <DeliveryConversation delivery={delivery} />
-        <p className="delivery-ops-delivery-status">Delivery: {delivery.status.replaceAll('_',' ')} · Proof: {delivery.proof_review_status.replaceAll('_',' ')}</p>
-        {delivery.proof_review_reason && <p>{delivery.proof_review_reason}</p>}
-        {delivery.pickup_arrived_at && <p className="delivery-ops-meta">Pickup arrival {time(delivery.pickup_arrived_at)} · Grace ends {time(delivery.grace_ends_at)} · Wait threshold {time(delivery.auto_cancel_at)}</p>}
-        {shipmentStatus==='review' && delivery.proof_review_status==='pending_review' && <div className="booking-review-actions">
-          <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.action(delivery,'request_correction',reason))}>Request corrected proof</button>
-          <button type="button" className="btn-primary" disabled={busy || refreshRequired || data.incidents.some(incident=>!incident.resolved_at)} onClick={()=>run(()=>service.action(delivery,'complete'))}>Confirm delivery completion</button>
-        </div>}
-        {delivery.status==='assigned' && delivery.pickup_arrived_at && !delivery.customer_showed_at && <button type="button" disabled={busy || refreshRequired || reason.trim().length<5 || !delivery.auto_cancel_at || Date.parse(delivery.auto_cancel_at)>now} onClick={()=>run(()=>service.action(delivery,'cancel_no_show',reason))}>Confirm no-show cancellation</button>}
-        {data.incidents.filter(incident=>!incident.resolved_at).map(incident=><div key={incident.id} className="delivery-ops-item"><p>{incident.category}: {incident.description} · {incident.delay_minutes ?? 0} minutes</p><button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.resolveIncident(incident,delivery,reason))}>Resolve incident</button></div>)}
-      </div>)}
+      {data.deliveries.filter(delivery=>delivery.status!=='cancelled').map(delivery => {
+        const waitState = getPickupWaitState(delivery, now);
+        return (
+          <div key={delivery.id} className="delivery-workflow-panel delivery-ops-nested-card">
+            <DeliveryRouteReview delivery={delivery} actionBlocked={refreshRequired} onSaved={async()=>{requireFollowUpRefresh();setActionNotice('Route confirmation completed. Refreshing delivery records and shipment details…');setRevision(value=>value+1);const result=await onChanged?.({preserve:true});if(result!==false)markShipmentRefreshed();if(refreshRequiredRef.current)setActionNotice('Route confirmation succeeded, but follow-up data is not fully refreshed. Retry read-only refreshes before resubmitting the route.');}} />
+            <DeliveryConversation delivery={delivery} />
+            <p className="delivery-ops-delivery-status">Delivery: {delivery.status.replaceAll('_',' ')} · Proof: {delivery.proof_review_status.replaceAll('_',' ')}</p>
+            {delivery.proof_review_reason && <p>{delivery.proof_review_reason}</p>}
+            {(delivery.pickup_arrived_at || delivery.no_show_confirmed_at || delivery.customer_showed_at) && (
+              <div className="delivery-wait-card">
+                <div className="delivery-wait-badges">
+                  {waitState.badgeLabel && (
+                    <span className={`pickup-wait-badge is-${waitState.tone}`}>{waitState.badgeLabel}</span>
+                  )}
+                  {waitState.subBadgeLabel && waitState.phase === 'grace_ended' && (
+                    <span className="pickup-wait-badge is-warning-outline">{waitState.subBadgeLabel}</span>
+                  )}
+                  {waitState.customerOnWay && (
+                    <span className="pickup-wait-badge is-on-way">Customer on their way</span>
+                  )}
+                </div>
+                <p className="delivery-ops-meta tabular-nums">
+                  Pickup arrival: {formatManilaDateTime(delivery.pickup_arrived_at)} | Grace ends: {formatManilaDateTime(waitState.graceEndsAt)} | Wait threshold: {formatManilaDateTime(waitState.autoCancelAt)}
+                </p>
+                {waitState.customerOnWay && (
+                  <p className="delivery-wait-on-way-note tabular-nums">
+                    Customer tapped "I'm On My Way" at {formatManilaDateTime(waitState.customerOnWayAt)}.
+                  </p>
+                )}
+                {waitState.detailLabel && <p className="delivery-wait-detail">{waitState.detailLabel}</p>}
+              </div>
+            )}
+            {shipmentStatus==='review' && delivery.proof_review_status==='pending_review' && <div className="booking-review-actions">
+              <button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.action(delivery,'request_correction',reason))}>Request corrected proof</button>
+              <button type="button" className="btn-primary" disabled={busy || refreshRequired || data.incidents.some(incident=>!incident.resolved_at)} onClick={()=>run(()=>service.action(delivery,'complete'))}>Confirm delivery completion</button>
+            </div>}
+            {waitState.canOfficeConfirmNoShow && (
+              <div className="booking-review-actions">
+                <button
+                  type="button"
+                  className="btn-danger"
+                  disabled={busy || refreshRequired}
+                  onClick={() => setNoShowTarget(delivery)}
+                >
+                  Confirm no-show cancellation
+                </button>
+              </div>
+            )}
+            {data.incidents.filter(incident=>!incident.resolved_at).map(incident=><div key={incident.id} className="delivery-ops-item"><p>{incident.category}: {incident.description} · {incident.delay_minutes ?? 0} minutes</p><button type="button" disabled={busy || refreshRequired || reason.trim().length<5} onClick={()=>run(()=>service.resolveIncident(incident,delivery,reason))}>Resolve incident</button></div>)}
+          </div>
+        );
+      })}
+      {noShowTarget && (
+        <NoShowConfirmDialog
+          delivery={noShowTarget}
+          trackingNumber={trackingNumber}
+          customer={customer}
+          defaultReason={reason}
+          onClose={() => setNoShowTarget(null)}
+          onSubmit={({ reason: modalReason, attemptNotes }) => run(
+            () => service.confirmNoShow(noShowTarget, { reason: modalReason, attemptNotes }),
+            { rethrow: true }
+          )}
+          onConfirmed={() => setNoShowTarget(null)}
+        />
+      )}
     </>}
   </section>;
 }

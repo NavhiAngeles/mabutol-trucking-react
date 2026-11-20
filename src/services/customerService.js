@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { supabase } from "./supabaseClient";
 
-const CUSTOMER_COLUMNS = "id, customer_code, user_id, name, email, phone, address, barangay, city, province, notes, is_active, created_at, updated_at";
+const BASE_CUSTOMER_COLUMNS = "id, customer_code, user_id, name, email, phone, address, barangay, city, province, notes, is_active, created_at, updated_at";
+const CUSTOMER_COLUMNS = `${BASE_CUSTOMER_COLUMNS}, no_show_strike_count, booking_cooldown_until, standing_status, suspended_at, suspension_reason, reinstated_at`;
 const BOOKING_COLUMNS = "id, customer_id, tracking_number, pickup_address, dropoff_address, cargo_description, status, created_at, estimated_arrival, actual_delivery_at";
 
 async function fetchAll(table, columns, filter = query => query) {
@@ -47,7 +48,17 @@ export function fetchCustomers({ force = false } = {}) {
   }
   customerInFlight = (async () => {
     try {
-      const data = await fetchAll("customers", CUSTOMER_COLUMNS);
+      let data;
+      try {
+        data = await fetchAll("customers", CUSTOMER_COLUMNS);
+      } catch (err) {
+        const text = `${err?.code || ""} ${err?.message || ""} ${err?.details || ""}`;
+        if (/does not exist|42703|PGRST204|schema cache/i.test(text)) {
+          data = await fetchAll("customers", BASE_CUSTOMER_COLUMNS);
+        } else {
+          throw err;
+        }
+      }
       customerCachedData = data;
       customerCacheExpiry = Date.now() + CACHE_TTL_MS;
       return data;

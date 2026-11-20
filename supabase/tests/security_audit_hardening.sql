@@ -73,13 +73,16 @@ BEGIN
   RETURNING id INTO v_truck_id;
 
   -- 3. Create test shipments
-  INSERT INTO public.shipments(customer_id, tracking_number, pickup_address, dropoff_address, weight_kg, status)
-  VALUES (v_customer_id, v_marker || '-shp1', 'Origin 1', 'Dest 1', 1000, 'assigned')
+  INSERT INTO public.shipments(customer_id, tracking_number, pickup_address, dropoff_address, weight_kg, quoted_amount, final_amount, status)
+  VALUES (v_customer_id, v_marker || '-shp1', 'Origin 1', 'Dest 1', 1000, 5000, 5000, 'assigned')
   RETURNING id INTO v_shipment_1;
 
   INSERT INTO public.shipments(customer_id, tracking_number, pickup_address, dropoff_address, weight_kg, status)
   VALUES (v_customer_id, v_marker || '-shp2', 'Origin 2', 'Dest 2', 1500, 'assigned')
   RETURNING id INTO v_shipment_2;
+
+  INSERT INTO public.payments(shipment_id, amount, method, status, paid_at, created_by, verified_by, verified_at)
+  VALUES (v_shipment_1, 5000, 'cash', 'verified', now(), v_admin, v_admin, now());
 
   -- 4. Create deliveries
   INSERT INTO public.deliveries(shipment_id, driver_id, truck_id, status)

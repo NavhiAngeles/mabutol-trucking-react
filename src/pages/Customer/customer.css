@@ -493,6 +493,18 @@
   border-color: var(--status-neutral-border, #E2E8F0);
 }
 
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) .status-badge.cooldown {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+:is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) .status-badge.reinstated {
+  background-color: #DBEAFE;
+  color: #1E40AF;
+  border-color: #BFDBFE;
+}
+
 .customer-page .text-center {
   text-align: center;
 }
@@ -1758,6 +1770,7 @@ dialog.customer-status-dialog {
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   overflow: auto;
+  overscroll-behavior: contain;
   color: var(--text-primary, #0F172A);
   background: var(--bg-surface, #FFFFFF);
   box-shadow: var(--shadow-modal, 0 20px 40px rgba(15, 23, 42, 0.16));
@@ -2712,12 +2725,609 @@ dialog.customer-add-dialog button:disabled {
   }
 }
 
+/* ===== NO-SHOW STRIKES, STANDING & APPEALS UI ===== */
+.customer-page .customer-table-scroll:focus-visible {
+  outline: 2px solid var(--color-accent-cobalt, #1D4ED8);
+  outline-offset: 2px;
+}
+
+.customer-page .customer-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-4, 16px);
+  padding: 4px;
+  border-radius: var(--radius-md, 8px);
+  background: #E2E8F0;
+}
+
+.customer-page .customer-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: #334155;
+  font-size: var(--text-body, 0.875rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.customer-page .customer-view-tab.is-active {
+  background: #FFFFFF;
+  color: var(--color-brand-navy, #0F2A52);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.customer-page .customer-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #E2E8F0;
+  color: #334155;
+}
+
+.customer-page .customer-view-tab.is-active .customer-tab-badge {
+  background: #EFF6FF;
+  color: #1E40AF;
+}
+
+.customer-page .customer-tab-badge.is-pending {
+  background: #B91C1C;
+  color: #FFFFFF;
+}
+
+.customer-page .strike-filter-bar,
+.customer-page .appeals-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-4, 16px);
+}
+
+.customer-page .strike-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.customer-page .strike-chip:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.customer-page .strike-chip.is-active {
+  background: var(--color-brand-navy, #0F2A52);
+  border-color: var(--color-brand-navy, #0F2A52);
+  color: #FFFFFF;
+}
+
+.customer-page .strike-chip-count {
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.customer-page .strike-chip.is-active .strike-chip-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+.customer-page .strike-status-cell {
+  vertical-align: middle;
+}
+
+.customer-page .standing-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.customer-page .standing-subtext {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #B45309;
+}
+
+/* Profile modal Standing & Strike History */
+.customer-page .cp-standing-card {
+  margin-top: var(--space-4, 16px);
+}
+
+.customer-page .cp-standing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.customer-page .cp-standing-header .cp-section-label {
+  margin: 0;
+}
+
+.customer-page .cp-standing-indicator-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+
+.customer-page .cp-standing-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.customer-page .cp-standing-meta > div {
+  display: grid;
+  gap: 2px;
+}
+
+.customer-page .cp-standing-meta dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748B;
+}
+
+.customer-page .cp-standing-meta dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #0F172A;
+  line-height: 1.4;
+}
+
+.customer-page .cp-pending-appeal-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid #FDE68A;
+  background: #FFFBEB;
+}
+
+.customer-page .cp-pending-appeal-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #92400E;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.customer-page .cp-pending-appeal-reason {
+  margin: 6px 0;
+  font-size: 0.8125rem;
+  color: #0F172A;
+  line-height: 1.45;
+}
+
+.customer-page .cp-pending-appeal-meta {
+  font-size: 0.75rem;
+  color: #64748B;
+}
+
+.customer-page .cp-pending-appeal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.customer-page .cp-strike-history-section {
+  margin-bottom: var(--space-5, 20px);
+}
+
+.customer-page .cp-strike-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.customer-page .cp-strike-cumulative-note {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.customer-page .cp-strike-empty {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.customer-page .cp-strike-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.customer-page .cp-strike-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid #FECACA;
+  background: #FEF2F2;
+}
+
+.customer-page .cp-strike-item-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.customer-page .cp-strike-num {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #991B1B;
+}
+
+.customer-page .cp-strike-tracking {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #0F172A;
+}
+
+.customer-page .cp-strike-role {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.customer-page .cp-strike-date {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.customer-page .cp-strike-reason {
+  font-size: 0.8125rem;
+  color: #0F172A;
+  font-weight: 500;
+}
+
+.customer-page .cp-strike-notes {
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+/* Suspension Appeals Queue Tab & Review Dialog */
+.customer-page .appeals-queue-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-page .appeals-empty-state {
+  padding: 32px 24px;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  background: #FFFFFF;
+  text-align: center;
+}
+
+.customer-page .appeals-empty-title {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.customer-page .appeals-empty-hint {
+  margin: 0 0 14px;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.customer-page .appeals-list {
+  display: grid;
+  gap: 14px;
+}
+
+.customer-page .appeal-card {
+  padding: 18px 20px;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  background: #FFFFFF;
+  display: grid;
+  gap: 12px;
+}
+
+.customer-page .appeal-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.customer-page .appeal-card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.customer-page .appeal-customer-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.customer-page .appeal-customer-code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #F1F5F9;
+  color: #334155;
+}
+
+.customer-page .appeal-status-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.customer-page .appeal-status-pill.is-pending {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.customer-page .appeal-status-pill.is-approved {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.customer-page .appeal-status-pill.is-rejected {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.customer-page .appeal-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.customer-page .appeal-card-strikes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.customer-page .appeal-strikes-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748B;
+}
+
+.customer-page .appeal-section-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748B;
+  margin-bottom: 4px;
+}
+
+.customer-page .appeal-reason-box {
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.customer-page .appeal-reason-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #0F172A;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.customer-page .appeal-strike-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.customer-page .appeal-strike-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+.customer-page .appeal-review-meta {
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.customer-page .appeal-admin-notes {
+  margin: 4px 0 0;
+  color: #0F172A;
+}
+
+.customer-page .appeal-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.customer-page .appeal-decision-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.customer-page .btn-appeal-approve,
+.customer-page .btn-appeal-reject {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.customer-page .btn-appeal-approve {
+  background: #15803D;
+  color: #FFFFFF;
+}
+
+.customer-page .btn-appeal-approve:hover {
+  background: #166534;
+}
+
+.customer-page .btn-appeal-reject {
+  background: #FFFFFF;
+  border-color: #FECACA;
+  color: #B91C1C;
+}
+
+.customer-page .btn-appeal-reject:hover {
+  background: #FEF2F2;
+}
+
+:is(.customer-page, .customer-appeal-dialog) .appeal-review-quote {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+:is(.customer-page, .customer-appeal-dialog) .appeal-review-quote-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748B;
+  margin-bottom: 4px;
+}
+
+:is(.customer-page, .customer-appeal-dialog) .appeal-review-quote p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #0F172A;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+:is(.customer-page, .customer-appeal-dialog) .appeal-policy-callout {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+:is(.customer-page, .customer-appeal-dialog) .appeal-policy-callout.is-reinstate {
+  background: #DBEAFE;
+  border: 1px solid #BFDBFE;
+  color: #1E40AF;
+}
+
+:is(.customer-page, .customer-appeal-dialog) .appeal-policy-callout.is-reject {
+  background: #FEE2E2;
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+@media (max-width: 767px) {
+  .customer-page .customer-view-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .customer-page .customer-view-tab,
+  .customer-page .strike-chip,
+  .customer-page .btn-appeal-approve,
+  .customer-page .btn-appeal-reject {
+    min-height: var(--touch-target, 44px);
+    justify-content: center;
+  }
+
+  .customer-page .appeal-card-strikes {
+    align-items: flex-start;
+  }
+
+  .customer-page .appeal-decision-btns,
+  .customer-page .cp-pending-appeal-actions {
+    width: 100%;
+  }
+
+  .customer-page .appeal-decision-btns button,
+  .customer-page .cp-pending-appeal-actions button {
+    flex: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
 
-  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog),
-  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) *,
-  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) *::before,
-  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog) *::after {
+  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog, .customer-appeal-dialog),
+  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog, .customer-appeal-dialog) *,
+  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog, .customer-appeal-dialog) *::before,
+  :is(.customer-page, .customer-add-dialog, .customer-edit-dialog, .customer-status-dialog, .customer-appeal-dialog) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

@@ -66,7 +66,15 @@ BEGIN
  PERFORM public.driver_record_position(delivery,sample,jsonb_build_object('lat',14.6,'lng',120.96,'accuracy',10,'recorded_at',now()));
  IF (SELECT count(*) FROM public.tracking_logs WHERE client_sample_id=sample)<>1 THEN RAISE EXCEPTION 'GPS replay duplicated';END IF;
  PERFORM public.driver_arrive_at_pickup(delivery,14.6,120.96);
- PERFORM public.driver_confirm_customer_showed(delivery);PERFORM public.driver_confirm_cargo_loaded(delivery);
+ PERFORM public.driver_confirm_customer_showed(delivery);
+ -- Verify full shipment payment before loading -> in_transit departure gate
+ EXECUTE 'RESET ROLE';
+ INSERT INTO public.payments(shipment_id,amount,method,status,paid_at,created_by,verified_by,verified_at)
+ SELECT id,final_amount,'cash','verified',now(),office,office,now() FROM public.shipments WHERE id=shipment;
+ PERFORM set_config('request.jwt.claim.sub',driver::text,true);
+ PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',driver,'role','authenticated')::text,true);
+ EXECUTE 'SET LOCAL ROLE authenticated';
+ PERFORM public.driver_confirm_cargo_loaded(delivery);
  PERFORM public.driver_report_incident(delivery,incident,'traffic','Fictional road delay',5);
  PERFORM public.driver_report_incident(delivery,incident,'traffic','Fictional road delay',5);
  BEGIN PERFORM public.driver_submit_pod(delivery,'Test Recipient',NULL,NULL);RAISE EXCEPTION 'Null proof accepted';EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'INVALID_POD_FILE' THEN RAISE;END IF;END;
@@ -135,13 +143,12 @@ BEGIN
  PERFORM public.process_no_shows();IF NOT EXISTS(SELECT 1 FROM public.deliveries WHERE id=delivery AND status='assigned') THEN RAISE EXCEPTION 'Unattended cancellation occurred';END IF;
  PERFORM set_config('request.jwt.claim.sub',driver::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',driver,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
  PERFORM public.mobile_driver_action(delivery,'no_show');PERFORM public.mobile_driver_action(delivery,'no_show');
- BEGIN PERFORM public.cancel_for_no_show(delivery);RAISE EXCEPTION 'Driver cancelled';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
+ IF NOT EXISTS(SELECT 1 FROM public.shipments WHERE id=shipment AND status='cancelled') OR NOT EXISTS(SELECT 1 FROM public.deliveries WHERE id=delivery AND status='cancelled') THEN RAISE EXCEPTION 'Driver no-show cancellation not synchronized';END IF;
+ BEGIN PERFORM public.cancel_for_no_show(delivery);RAISE EXCEPTION 'Driver cancelled via legacy stub';EXCEPTION WHEN insufficient_privilege THEN NULL;END;
  EXECUTE 'RESET ROLE';PERFORM set_config('request.jwt.claim.sub',office::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',office,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
  SELECT updated_at INTO version FROM public.deliveries WHERE id=delivery;
  BEGIN PERFORM public.office_delivery_action(delivery,version-interval '1 second','cancel_no_show','Verified no-show');RAISE EXCEPTION 'Stale cancellation accepted';EXCEPTION WHEN serialization_failure THEN NULL;END;
- PERFORM public.office_delivery_action(delivery,version,'cancel_no_show','Verified no-show after recorded wait');
- IF NOT EXISTS(SELECT 1 FROM public.shipments WHERE id=shipment AND status='cancelled') OR NOT EXISTS(SELECT 1 FROM public.deliveries WHERE id=delivery AND status='cancelled') THEN RAISE EXCEPTION 'Office cancellation not synchronized';END IF;
  EXECUTE 'RESET ROLE';
 END $no_show$;
 ROLLBACK;
-SELECT 'PASS: request/replay, server quote/stale versions, assignment, customer isolation, driver order/geofence, GPS dedup, incidents, proof/replay/correction history, completion, inactive/anon denial; early/repeated no-show, no automatic cancellation, stale/office cancellation; fixtures rolled back' result;
+SELECT 'PASS: request/replay, server quote/stale versions, assignment, customer isolation, driver order/geofence, GPS dedup, incidents, proof/replay/correction history, completion, inactive/anon denial; early/idempotent no-show cancellation, no automatic unattended cancellation, stale office guard; fixtures rolled back' result;

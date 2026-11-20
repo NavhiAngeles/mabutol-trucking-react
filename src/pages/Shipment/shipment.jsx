@@ -8,8 +8,10 @@ import BookingReview from "./BookingReview";
 import ShipmentDetails from "./ShipmentDetails";
 import ShipmentEditDialog from "./ShipmentEditDialog";
 import ShipmentCancellationDialog from "./ShipmentCancellationDialog";
+import NoShowConfirmDialog from "./NoShowConfirmDialog";
 import { useShipmentViewModel } from "../../viewmodels/ShipmentViewModel";
 import { assignShipmentResources } from "../../services/shipmentService";
+import { fetchShipmentStandingAndWaitOverlays, getPickupWaitState } from "../../services/customerStandingService";
 import { SkeletonStatValue, SkeletonTableRows } from "../../components/Skeleton/Skeleton";
 import "./shipment.css";
 
@@ -102,6 +104,13 @@ export default function Shipment() {
   const [detailsShipment, setDetailsShipment] = useState(null);
   const [editShipment, setEditShipment] = useState(null);
   const [cancelShipment, setCancelShipment] = useState(null);
+  const [noShowDialogTarget, setNoShowDialogTarget] = useState(null);
+  const [waitOverlays, setWaitOverlays] = useState(() => ({
+    waitByShipmentId: new Map(),
+    cancellationTypeByShipmentId: new Map(),
+    customerStandingByShipmentId: new Map(),
+  }));
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const [openMenuId, setOpenMenuId] = useState(null);
   const [menuPosition, setMenuPosition] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
@@ -128,6 +137,22 @@ export default function Shipment() {
     refresh,
     recordFilter,
   } = useShipmentViewModel();
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowTick(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!pagedShipments.length) return () => { active = false; };
+    fetchShipmentStandingAndWaitOverlays(pagedShipments)
+      .then((overlays) => {
+        if (active) setWaitOverlays(overlays);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [pagedShipments]);
 
   useEffect(() => {
     const onOutsideClick = (event) => {
@@ -383,6 +408,34 @@ export default function Shipment() {
                   {' Cancel shipment'}
                 </button>
               )}
+              {(() => {
+                const activeDelivery = waitOverlays.waitByShipmentId.get(shipment.dbId);
+                const waitState = activeDelivery ? getPickupWaitState(activeDelivery, nowTick) : null;
+                if (!waitState?.canOfficeConfirmNoShow) return null;
+                return (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="action-danger"
+                    onClick={event => {
+                      reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
+                      setNoShowDialogTarget({
+                        shipment,
+                        delivery: activeDelivery,
+                        customer: waitOverlays.customerStandingByShipmentId.get(shipment.dbId) || { name: shipment.customer },
+                      });
+                      setOpenMenuId(null);
+                    }}
+                  >
+                    <svg {...svgProps}>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    {' Confirm No-Show'}
+                  </button>
+                );
+              })()}
             </>
           )}
         </div>
@@ -981,6 +1034,30 @@ export default function Shipment() {
                               >
                                 ● {statusLabel(s.status)}
                               </span>
+                              {(() => {
+                                const overlayDelivery = waitOverlays.waitByShipmentId.get(s.dbId);
+                                const cancellationType = waitOverlays.cancellationTypeByShipmentId.get(s.dbId);
+                                const waitState = overlayDelivery ? getPickupWaitState(overlayDelivery, nowTick) : null;
+                                if (!waitState?.active && !(s.status === "cancelled" && cancellationType === "no_show")) {
+                                  return null;
+                                }
+                                return (
+                                  <div className="shipment-wait-badges">
+                                    {s.status === "cancelled" && cancellationType === "no_show" && (
+                                      <span className="pickup-wait-badge is-danger">No-Show Cancelled</span>
+                                    )}
+                                    {waitState?.active && waitState.badgeLabel && (
+                                      <span className={`pickup-wait-badge is-${waitState.tone}`}>{waitState.badgeLabel}</span>
+                                    )}
+                                    {waitState?.subBadgeLabel === "Booking at risk" && (
+                                      <span className="pickup-wait-badge is-warning-outline">Booking at risk</span>
+                                    )}
+                                    {waitState?.customerOnWay && (
+                                      <span className="pickup-wait-badge is-on-way">Customer on their way</span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
 
                             <td>
@@ -1062,6 +1139,23 @@ export default function Shipment() {
             setAssignmentMessage(`Shipment cancelled. Reservations released.${result.financial_review_required ? ' Existing payments require separate financial review.' : ' Recorded charges and payments are unchanged.'}`);
             setCancelShipment(null); reviewLauncher.current?.focus(); refresh();
           }} />}
+        {noShowDialogTarget && (
+          <NoShowConfirmDialog
+            key={`noshow:${noShowDialogTarget.delivery.id}`}
+            delivery={noShowDialogTarget.delivery}
+            trackingNumber={noShowDialogTarget.shipment.id}
+            customer={noShowDialogTarget.customer}
+            onClose={() => { setNoShowDialogTarget(null); reviewLauncher.current?.focus(); }}
+            onConfirmed={({ impact }) => {
+              setAssignmentMessage(
+                `No-show confirmed for ${noShowDialogTarget.shipment.id}. Strike ${impact.nextStrikeNumber} recorded on customer profile.`
+              );
+              setNoShowDialogTarget(null);
+              reviewLauncher.current?.focus();
+              refresh();
+            }}
+          />
+        )}
         {detailsShipment && <ShipmentDetails key={detailsShipment.dbId} shipment={detailsShipment}
           onClose={() => { setDetailsShipment(null); reviewLauncher.current?.focus(); }} />}
         {editShipment && <ShipmentEditDialog key={editShipment.dbId} shipment={editShipment}

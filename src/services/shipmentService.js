@@ -10,12 +10,22 @@ export const SHIPMENT_LIST_COLUMNS = 'id,tracking_number,customer_id,billing_cus
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
 
 export async function fetchShipmentDetails(id) {
-  const [initialShipmentResult, deliveryResult] = await Promise.all([
-    supabase.from('shipments')
-      .select('id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,linehaul_amount,toll_amount,mobilization_fee,deadhead_km,quote_expires_at,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)')
-      .eq('id', id).single(),
-    supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id),
+  const baseShipmentSelect = 'id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,linehaul_amount,toll_amount,mobilization_fee,deadhead_km,quote_expires_at,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)';
+  const extendedShipmentSelect = 'id,tracking_number,customer_id,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,toll_fees,linehaul_amount,toll_amount,mobilization_fee,deadhead_km,quote_expires_at,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancellation_type,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(id,name,no_show_strike_count,standing_status,booking_cooldown_until,suspended_at,suspension_reason,reinstated_at),vehicle:vehicle_types(name)';
+  const extendedDeliverySelect = `${ASSIGNMENT_COLUMNS},pickup_arrived_at,grace_ends_at,auto_cancel_at,customer_showed_at,customer_on_way_at,no_show_confirmed_at`;
+  const missingColumnRe = /does not exist|42703|PGRST204|schema cache/i;
+
+  let [initialShipmentResult, deliveryResult] = await Promise.all([
+    supabase.from('shipments').select(extendedShipmentSelect).eq('id', id).single(),
+    supabase.from('deliveries').select(extendedDeliverySelect).eq('shipment_id', id),
   ]);
+
+  if (initialShipmentResult.error && missingColumnRe.test(`${initialShipmentResult.error.code || ''} ${initialShipmentResult.error.message || ''}`)) {
+    initialShipmentResult = await supabase.from('shipments').select(baseShipmentSelect).eq('id', id).single();
+  }
+  if (deliveryResult.error && missingColumnRe.test(`${deliveryResult.error.code || ''} ${deliveryResult.error.message || ''}`)) {
+    deliveryResult = await supabase.from('deliveries').select(ASSIGNMENT_COLUMNS).eq('shipment_id', id);
+  }
   let shipmentResult = initialShipmentResult;
   if (shipmentResult.error && (shipmentResult.error.code === '42703' || String(shipmentResult.error.message || '').includes('does not exist'))) {
     shipmentResult = await supabase.from('shipments')

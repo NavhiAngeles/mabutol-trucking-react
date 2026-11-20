@@ -8,7 +8,7 @@ export function cancellationPolicy(shipment, now = Date.now()) {
   const rawStatus = String(shipment.status || '').trim().toLowerCase();
   const deliveries = (shipment.deliveries || []).filter(row => String(row?.status || '').trim().toLowerCase() !== 'cancelled');
 
-  if (['pending', 'booked', 'assigned'].includes(rawStatus) && !deliveries.length) {
+  if (['pending', 'quoted', 'booked', 'assigned'].includes(rawStatus) && !deliveries.length) {
     return { allowed: true };
   }
 
@@ -20,7 +20,7 @@ export function cancellationPolicy(shipment, now = Date.now()) {
     return Boolean(d.pickup_arrived_at) || Boolean(d.departed_at) || ['loading', 'in_transit', 'delivered'].includes(dStatus);
   });
 
-  if (isPast12Hours && !driverArrivedAtPickup && ['pending', 'booked', 'assigned', 'delayed'].includes(rawStatus) && deliveries.length <= 1) {
+  if (isPast12Hours && !driverArrivedAtPickup && ['pending', 'quoted', 'booked', 'assigned', 'delayed'].includes(rawStatus) && deliveries.length <= 1) {
     return {
       allowed: true,
       overdue12h: true,
@@ -51,7 +51,7 @@ export function cancellationPolicy(shipment, now = Date.now()) {
 
   return {
     allowed: false,
-    reason: `Only pending, booked, unstarted assigned shipments, or shipments 12+ hours past scheduled departure without pickup arrival can be cancelled here.`,
+    reason: `Only pending, quoted, booked, unstarted assigned shipments, or shipments 12+ hours past scheduled departure without pickup arrival can be cancelled here.`,
   };
 }
 

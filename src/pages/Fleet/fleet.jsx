@@ -7,7 +7,7 @@ import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
 import { FleetEditor, AssignDriverModal, ComplianceDialog, FleetModal, FleetDiscardDialog, FleetDeleteDialog } from "./FleetDialogs";
-import { isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
+import { INITIAL_VEHICLE_FORM, isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
 import FleetOverview from "./FleetOverview";
 import FleetVehiclesView from "./FleetVehiclesView";
 import FleetDriversView from "./FleetDriversView";
@@ -180,19 +180,10 @@ export default function Fleet() {
     nbiFile: null,
   });
 
-  const [vehicleForm, setVehicleForm] = useState({
-    plateNumber: "",
-    modelYear: "",
-    model: "",
-    type: "",
-    capacity: "",
+  const [vehicleForm, setVehicleForm] = useState(() => ({
+    ...INITIAL_VEHICLE_FORM,
     cargoCompatibility: [],
-    assignedDriver: "",
-    orNumber: "",
-    crNumber: "",
-    orFile: null,
-    crFile: null,
-  });
+  }));
 
   // Handler functions for modal open / form reset
   const resetDriverForm = () => {
@@ -221,17 +212,8 @@ export default function Fleet() {
 
   const resetVehicleForm = () => {
     setVehicleForm({
-      plateNumber: "",
-      modelYear: "",
-      model: "",
-      type: "",
-      capacity: "",
+      ...INITIAL_VEHICLE_FORM,
       cargoCompatibility: [],
-      assignedDriver: "",
-      orNumber: "",
-      crNumber: "",
-      orFile: null,
-      crFile: null,
     });
     setVehicleStep(1);
     setShowVehicleSuccess(false);
@@ -887,69 +869,98 @@ export default function Fleet() {
               <span>{vehicleError}</span>
             </div>
           )}
-          {vehicleStep === 1 && (
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="vehicle-form-plate-number">PLATE NUMBER *</label>
-                <input id="vehicle-form-plate-number" type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="vehicle-form-model-year">MODEL YEAR</label>
-                <input id="vehicle-form-model-year" type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="vehicle-form-model">MODEL *</label>
-                <input id="vehicle-form-model" type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="vehicle-form-type">VEHICLE TYPE *</label>
-                <select id="vehicle-form-type" value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
-                  <option value="">Select type...</option>
-                  {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="vehicle-form-capacity">MAX CARGO WEIGHT (KG) *</label>
-                <input id="vehicle-form-capacity" type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
-              </div>
+          {vehicleStep === 1 && (() => {
+            const selectedAddVehicleType = vehicleTypes.find(vt => vt.id === vehicleForm.type);
+            return (
+              <div className="form-grid">
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-plate-number">PLATE NUMBER *</label>
+                  <input id="vehicle-form-plate-number" type="text" placeholder="e.g. ABC 1234" value={vehicleForm.plateNumber} onChange={(e) => handleVehicleInputChange(e, 'plateNumber')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-model-year">MODEL YEAR</label>
+                  <input id="vehicle-form-model-year" type="text" placeholder="e.g. 2024" value={vehicleForm.modelYear} onChange={(e) => handleVehicleInputChange(e, 'modelYear')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-model">MODEL *</label>
+                  <input id="vehicle-form-model" type="text" placeholder="e.g. Isuzu Giga" value={vehicleForm.model} onChange={(e) => handleVehicleInputChange(e, 'model')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-type">VEHICLE TYPE *</label>
+                  <select id="vehicle-form-type" value={vehicleForm.type} onChange={(e) => handleVehicleInputChange(e, 'type')}>
+                    <option value="">Select type...</option>
+                    {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-capacity">MAX CARGO WEIGHT (KG) *</label>
+                  <input id="vehicle-form-capacity" type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
+                </div>
 
-              {/* ================= CARGO COMPATIBILITY DYNAMICALLY FROM DB ================= */}
-              <div className="form-group full-width">
-                <span className="cargo-title-label">CARGO COMPATIBILITY</span>
-                <div className="cargo-options-grid">
-                  {cargoCategories.length === 0 && <p>No cargo categories configured.</p>}
-                  {cargoCategories.map(c => ({ id: c.id, label: c.name })).map((option) => {
-                    const isSelected = vehicleForm.cargoCompatibility?.includes(option.id);
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={`cargo-option-btn ${isSelected ? "selected" : ""}`}
-                        onClick={() => handleCargoToggle(option.id)}
-                      >
-                        {isSelected && (
-                          <svg
-                            className="checkmark-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        )}
-                        {option.label}
-                      </button>
-                    );
-                  })}
+                <div className="form-divider-title">HGV Dimensions & Weight Limits (Optional)</div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-height-m">HEIGHT (M)</label>
+                  <input id="vehicle-form-height-m" type="number" step="0.01" min="0.01" max="10" placeholder={selectedAddVehicleType?.default_height_m ? String(selectedAddVehicleType.default_height_m) : "e.g. 3.20"} value={vehicleForm.heightM} onChange={(e) => handleVehicleInputChange(e, 'heightM')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-width-m">WIDTH (M)</label>
+                  <input id="vehicle-form-width-m" type="number" step="0.01" min="0.01" max="10" placeholder={selectedAddVehicleType?.default_width_m ? String(selectedAddVehicleType.default_width_m) : "e.g. 2.20"} value={vehicleForm.widthM} onChange={(e) => handleVehicleInputChange(e, 'widthM')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-length-m">LENGTH (M)</label>
+                  <input id="vehicle-form-length-m" type="number" step="0.01" min="0.01" max="50" placeholder={selectedAddVehicleType?.default_length_m ? String(selectedAddVehicleType.default_length_m) : "e.g. 7.50"} value={vehicleForm.lengthM} onChange={(e) => handleVehicleInputChange(e, 'lengthM')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-tare-weight-kg">TARE WEIGHT (KG)</label>
+                  <input id="vehicle-form-tare-weight-kg" type="number" step="any" min="0" placeholder="e.g. 4200" value={vehicleForm.tareWeightKg} onChange={(e) => handleVehicleInputChange(e, 'tareWeightKg')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-gross-weight-kg">GROSS VEHICLE WEIGHT (KG)</label>
+                  <input id="vehicle-form-gross-weight-kg" type="number" step="any" min="1" placeholder="e.g. 10200" value={vehicleForm.grossWeightKg} onChange={(e) => handleVehicleInputChange(e, 'grossWeightKg')} />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="vehicle-form-axle-count">AXLE COUNT</label>
+                  <input id="vehicle-form-axle-count" type="number" step="1" min="2" max="20" placeholder="2" value={vehicleForm.axleCount} onChange={(e) => handleVehicleInputChange(e, 'axleCount')} />
+                </div>
+
+                {/* ================= CARGO COMPATIBILITY DYNAMICALLY FROM DB ================= */}
+                <div className="form-group full-width">
+                  <span className="cargo-title-label">CARGO COMPATIBILITY</span>
+                  <div className="cargo-options-grid">
+                    {cargoCategories.length === 0 && <p>No cargo categories configured.</p>}
+                    {cargoCategories.map(c => ({ id: c.id, label: c.name })).map((option) => {
+                      const isSelected = vehicleForm.cargoCompatibility?.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`cargo-option-btn ${isSelected ? "selected" : ""}`}
+                          onClick={() => handleCargoToggle(option.id)}
+                        >
+                          {isSelected && (
+                            <svg
+                              className="checkmark-icon"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          )}
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {vehicleStep === 2 && (
             <div className="compliance-documents-view">

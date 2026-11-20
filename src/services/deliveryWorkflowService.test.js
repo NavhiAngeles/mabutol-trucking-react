@@ -60,3 +60,29 @@ test('office completion and incident resolution preserve optimistic versions and
   await service.resolveIncident({id:'i'},{id:'d',updated_at:'v2'},'Resolved');assert.equal(calls[1].args.p_expected,'v2');
   await assert.rejects(setup({rpcError:true}).service.action({id:'d',updated_at:'v'},'complete'),/denied/);
 });
+
+test('confirmNoShow calls confirm_no_show_cancellation and falls back cleanly from 3-arg to 2-arg on PGRST202', async () => {
+  const calls = [];
+  const client = {
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      if ('p_reason' in args) {
+        return { error: { code: 'PGRST202', message: 'Could not find the function public.confirm_no_show_cancellation' } };
+      }
+      return { data: { strike_number: 1, standing_status: 'cooldown' }, error: null };
+    },
+    from: () => ({ select: () => ({ eq: () => ({ order: async () => ({ data: [] }) }) }) }),
+    functions: { invoke: async () => ({}) },
+    storage: { from: () => ({ createSignedUrl: async () => ({ data: {} }) }) },
+  };
+  const context = vm.createContext({ supabase: client });
+  vm.runInContext(
+    fs.readFileSync(new URL('./deliveryWorkflowService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '') + '\nthis.service=deliveryWorkflowService();',
+    context
+  );
+  const res = await context.service.confirmNoShow({ id: 'del-9' }, { reason: 'Customer unreachable', attemptNotes: 'Called 3x' });
+  assert.equal(res.strike_number, 1);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].name, 'confirm_no_show_cancellation');
+  assert.equal(calls[1].args.p_attempt_notes, 'Customer unreachable: Called 3x');
+});

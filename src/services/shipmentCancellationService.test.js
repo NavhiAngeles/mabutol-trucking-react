@@ -13,10 +13,11 @@ const booked = { id: 's', status: 'booked', updated_at: 'version', deliveries: [
 
 test('cancellation permits pending/mobile requests and booked records without deliveries, plus unstarted assignments with or without active deliveries', () => {
   const { cancellationPolicy: policy } = setup();
-  for (const status of ['pending', 'booked', 'assigned']) {
+  for (const status of ['pending', 'quoted', 'booked', 'assigned']) {
     assert.equal(policy({ status, booking_source: 'mobile', deliveries: [{ status: 'cancelled' }] }).allowed, true);
     assert.equal(policy({ status, deliveries: [] }).allowed, true);
   }
+  assert.equal(policy({ status: 'quoted', deliveries: [{ status: 'loading' }] }).allowed, false);
   assert.equal(policy({ status: 'assigned', deliveries: [{ id: 'd', status: 'assigned' }] }).allowed, true);
   assert.equal(policy({ status: 'booked', deliveries: [{ id: 'd', status: 'assigned' }] }).allowed, true);
   for (const key of ['departed_at', 'route_started_at', 'pickup_arrived_at', 'customer_showed_at', 'grace_ends_at', 'auto_cancel_at']) {

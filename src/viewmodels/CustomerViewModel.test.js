@@ -72,6 +72,33 @@ test("unknown statuses and missing customer fields do not invent active bookings
   assert.equal(rows[0].profile.bookingSummary.activeNow, 0);
 });
 
+test("standing metadata, strike counts, cooldown/reinstated filters, and appeal linkage work cumulatively", () => {
+  const standingCustomers = [
+    { ...customers[0], no_show_strike_count: 1, standing_status: "cooldown", booking_cooldown_until: "2026-11-11T00:00:00Z" },
+    { ...customers[1], is_active: true, no_show_strike_count: 3, standing_status: "suspended", suspended_at: "2026-11-08T00:00:00Z" },
+    { ...customers[2], is_active: true, no_show_strike_count: 3, standing_status: "reinstated", reinstated_at: "2026-11-09T00:00:00Z" },
+  ];
+  const sampleStrikes = [
+    { id: "st-1", customer_id: "customer-a", strike_number: 1, confirmed_at: "2026-11-09T02:00:00Z", trackingNumber: "MT-1" },
+  ];
+  const sampleAppeals = [
+    { id: "ap-1", customer_id: "customer-b", status: "pending", reason: "Emergency at warehouse", created_at: "2026-11-09T04:00:00Z" },
+  ];
+  const rows = buildCustomerRows(standingCustomers, bookings, sampleStrikes, sampleAppeals, now);
+  assert.equal(rows[0].standingStatus, "cooldown");
+  assert.equal(rows[0].noShowStrikeCount, 1);
+  assert.equal(rows[1].standingStatus, "suspended");
+  assert.equal(rows[1].pendingAppeal.id, "ap-1");
+  assert.equal(rows[2].standingStatus, "reinstated");
+  assert.equal(rows[2].noShowStrikeCount, 3);
+
+  assert.equal(customerStatistics(rows, now).suspended, 1);
+  assert.equal(filterCustomerRows(rows, { strikeFilter: "HAS_STRIKES", now }).length, 3);
+  assert.equal(filterCustomerRows(rows, { strikeFilter: "COOLDOWN", now }).map(r => r.id).join(","), "customer-a");
+  assert.equal(filterCustomerRows(rows, { status: "REINSTATED", now }).map(r => r.id).join(","), "customer-c");
+  assert.equal(filterCustomerRows(rows, { sort: "strikes", now })[2].id, "customer-a");
+});
+
 test("directory loads, refreshes changed/deleted records, exposes errors, and cleans up", async () => {
   let state = [], refs = [], effects = [], stateIndex = 0, refIndex = 0, effectIndex = 0;
   let currentRows = customers, fail = false, subscriptions = 0, unsubscribed = 0;

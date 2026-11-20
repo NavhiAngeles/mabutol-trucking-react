@@ -1227,3 +1227,219 @@ dialog.shipment-cancellation-dialog { box-sizing: border-box; border: 0; margin:
     justify-items: start;
   }
 }
+
+/* ===== PICKUP WAIT, NO-SHOW CONFIRMATION & STRIKE BADGES ===== */
+.pickup-wait-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  border: 1px solid transparent;
+  letter-spacing: 0.01em;
+}
+
+.pickup-wait-badge.is-info {
+  background: #DBEAFE;
+  color: #1E40AF;
+  border-color: #BFDBFE;
+}
+
+.pickup-wait-badge.is-warning {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+.pickup-wait-badge.is-warning-outline {
+  background: #FFFBEB;
+  color: #92400E;
+  border-color: #F59E0B;
+}
+
+.pickup-wait-badge.is-danger {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
+.pickup-wait-badge.is-good,
+.pickup-wait-badge.is-on-way {
+  background: #DCFCE7;
+  color: #15803D;
+  border-color: #BBF7D0;
+}
+
+.pickup-wait-badge.is-neutral {
+  background: #F1F5F9;
+  color: #475569;
+  border-color: #CBD5E1;
+}
+
+.delivery-wait-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+
+.delivery-wait-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.delivery-wait-on-way-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #15803D;
+}
+
+.delivery-wait-detail {
+  margin: 0;
+  font-size: 12px;
+  color: #334155;
+}
+
+dialog.no-show-confirm-dialog {
+  overscroll-behavior: contain;
+}
+
+.no-show-warning-callout {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.no-show-warning-callout p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.no-show-timeline-summary {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.no-show-impact-box {
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+}
+
+.no-show-impact-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.no-show-impact-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #991B1B;
+}
+
+.no-show-impact-customer {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.no-show-impact-text {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #7F1D1D;
+}
+
+.no-show-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.no-show-preset-btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.no-show-preset-btn:hover:not(:disabled) {
+  background: #F1F5F9;
+}
+
+.no-show-field-block {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.no-show-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.no-show-label-row label,
+.no-show-field-block > label {
+  margin: 0;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.no-show-char-count {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.no-show-char-count.is-invalid {
+  color: #B91C1C;
+}
+
+.no-show-char-count.is-valid {
+  color: #15803D;
+}
+
+.delivery-workflow-panel .btn-danger,
+.no-show-confirm-dialog .btn-danger {
+  background: #B91C1C;
+  color: #FFFFFF;
+  border: 1px solid #B91C1C;
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delivery-workflow-panel .btn-danger:hover:not(:disabled),
+.no-show-confirm-dialog .btn-danger:hover:not(:disabled) {
+  background: #991B1B;
+}

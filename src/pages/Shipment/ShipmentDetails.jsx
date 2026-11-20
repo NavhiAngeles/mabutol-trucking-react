@@ -256,7 +256,14 @@ export default function ShipmentDetails({ shipment, onClose }) {
             <div className="shipment-card-fields">
               <div>
                 <dt>Customer</dt>
-                <dd>{details.customer?.name || 'Unavailable'}</dd>
+                <dd>
+                  <span>{details.customer?.name || 'Unavailable'}</span>
+                  {(details.customer?.no_show_strike_count > 0 || ['cooldown', 'suspended', 'reinstated'].includes(details.customer?.standing_status)) && (
+                    <span className={`pickup-wait-badge is-${details.customer?.standing_status === 'suspended' ? 'danger' : details.customer?.standing_status === 'cooldown' ? 'warning' : 'info'}`} style={{ marginLeft: '8px' }}>
+                      Strikes: {details.customer?.no_show_strike_count || 0}/3 ({details.customer?.standing_status || 'good'})
+                    </span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Booking source</dt>
@@ -271,6 +278,16 @@ export default function ShipmentDetails({ shipment, onClose }) {
                 <dd>{timestamp(details.updated_at)}</dd>
               </div>
               {details.status === 'cancelled' && <>
+                {details.cancellation_type && (
+                  <div>
+                    <dt>Cancellation type</dt>
+                    <dd>
+                      <span className={`pickup-wait-badge is-${details.cancellation_type === 'no_show' ? 'danger' : 'neutral'}`}>
+                        {details.cancellation_type === 'no_show' ? 'Cancelled: Customer No-Show' : details.cancellation_type.replaceAll('_', ' ')}
+                      </span>
+                    </dd>
+                  </div>
+                )}
                 <div className="shipment-field-full">
                   <dt>Cancellation reason</dt>
                   <dd className="shipment-cancelled-val">{details.cancelled_reason || 'None recorded'}</dd>
@@ -397,7 +414,14 @@ export default function ShipmentDetails({ shipment, onClose }) {
           )}
 
           <AssignmentManager shipmentId={details.id} shipmentRefreshVersion={refreshVersion} onChanged={reload} draftSuggestion={shipment?.draftSuggestion} />
-          <DeliveryOperations shipmentId={details.id} shipmentStatus={details.status} shipmentRefreshVersion={refreshVersion} onChanged={reload} />
+          <DeliveryOperations
+            shipmentId={details.id}
+            shipmentStatus={details.status}
+            customer={details.customer || null}
+            trackingNumber={details.tracking_number || ''}
+            shipmentRefreshVersion={refreshVersion}
+            onChanged={reload}
+          />
         </div>
       </>}
       <div className="booking-review-actions">

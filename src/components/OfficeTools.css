@@ -240,6 +240,26 @@
   background: #F6F9FF;
 }
 
+.office-tools .office-notification-payment {
+  background: #FFFBEB;
+  border-left: 3px solid #D97706;
+}
+
+.office-tools .office-notification-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs, 4px);
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .office-tools .office-notification-title {
   display: flex;
   align-items: flex-start;

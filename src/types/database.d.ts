@@ -10,6 +10,94 @@ export type ShipmentStatus =
   | 'completed'
   | 'cancelled';
 
+export type CustomerStandingStatus = 'good' | 'active' | 'cooldown' | 'suspended' | 'reinstated';
+
+export type CancellationType = 'no_show' | 'customer' | 'admin' | 'office' | 'system';
+
+export type CustomerAppealStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Customer {
+  id: string;
+  customer_code: string;
+  user_id: string | null;
+  name: string;
+  contact_person?: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  barangay?: string | null;
+  city: string | null;
+  province: string | null;
+  notes?: string | null;
+  is_active: boolean;
+  no_show_strike_count: number;
+  booking_cooldown_until: string | null;
+  standing_status: CustomerStandingStatus;
+  suspended_at: string | null;
+  suspension_reason: string | null;
+  reinstated_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Delivery {
+  id: string;
+  shipment_id: string;
+  truck_id: string;
+  driver_id: string;
+  status: 'assigned' | 'loading' | 'in_transit' | 'delivered' | 'cancelled';
+  assigned_at: string;
+  route_started_at?: string | null;
+  pickup_arrived_at?: string | null;
+  grace_ends_at?: string | null;
+  auto_cancel_at?: string | null;
+  customer_on_way_at?: string | null;
+  customer_showed_at?: string | null;
+  no_show_confirmed_at?: string | null;
+  departed_at?: string | null;
+  arrived_at?: string | null;
+  updated_at?: string;
+}
+
+export interface CustomerNoShowStrike {
+  id: string;
+  customer_id: string;
+  shipment_id: string;
+  delivery_id: string | null;
+  strike_number: number;
+  confirmed_at: string;
+  confirmed_by: string | null;
+  confirmed_by_role?: 'driver' | 'admin' | 'staff' | 'system';
+  confirmed_source?: 'driver' | 'office' | 'system';
+  reason: string;
+  attempt_notes: string | null;
+  created_at: string;
+  shipment?: {
+    tracking_number?: string | null;
+    pickup_address?: string | null;
+    dropoff_address?: string | null;
+  } | null;
+}
+
+export interface CustomerAppeal {
+  id: string;
+  customer_id: string;
+  user_id?: string | null;
+  strike_count_at_appeal?: number;
+  status: CustomerAppealStatus;
+  reason: string;
+  contact_number: string | null;
+  admin_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: Partial<Customer> | null;
+  reviewer?: {
+    full_name?: string | null;
+  } | null;
+}
+
 export interface VehicleType {
   id: string;
   name: string;
@@ -18,6 +106,9 @@ export interface VehicleType {
   toll_class: string | null;
   min_lead_time_hours: number;
   loading_buffer_minutes: number;
+  default_height_m?: number | null;
+  default_width_m?: number | null;
+  default_length_m?: number | null;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
@@ -79,6 +170,7 @@ export interface Shipment {
   driver_allowance?: number | null;
   toll_fees?: number | null;
   driver_notes: string | null;
+  cancellation_type?: CancellationType | null;
   cancelled_reason: string | null;
   cancelled_at: string | null;
   confirmed_by?: string | null;
@@ -96,6 +188,12 @@ export interface Truck {
   capacity_kg: number;
   vehicle_type_id: string | null;
   assigned_driver_id: string | null;
+  height_m?: number | null;
+  width_m?: number | null;
+  length_m?: number | null;
+  tare_weight_kg?: number | null;
+  gross_weight_kg?: number | null;
+  axle_count?: number | null;
   status: string;
   odometer_km: number | null;
   notes: string | null;
@@ -160,4 +258,27 @@ export interface SubmitOfficeQuotationParams {
   quoteValidHours?: number;
   routeUpdates?: Record<string, unknown> | null;
   selectedTruck?: RankedTruckCandidate | null;
+}
+
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'gcash' | 'check' | 'other';
+
+export type PaymentStatus = 'pending' | 'verified' | 'rejected' | 'refunded';
+
+export interface Payment {
+  id: string;
+  shipment_id: string;
+  amount: number;
+  method: PaymentMethod;
+  reference_number: string | null;
+  proof_path: string | null;
+  status: PaymentStatus;
+  paid_at: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
+  rejection_reason?: string | null;
+  notes: string | null;
+  created_by: string | null;
+  client_request_id?: string | null;
+  created_at: string;
+  updated_at: string;
 }
