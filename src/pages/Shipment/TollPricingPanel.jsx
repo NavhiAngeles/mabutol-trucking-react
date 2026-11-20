@@ -8,7 +8,7 @@ export default function TollPricingPanel({ rates, loading, error, vehicleClass, 
       <span className={`toll-price-chip${total == null ? ' is-pending' : ''}`}>{total == null ? 'Fee pending' : currency(total)}</span>
     </div>
     <dl className="toll-auto-summary">
-      <div><dt>Truck type</dt><dd>{vehicleName || 'Choose a truck in Step 2'}</dd></div>
+      <div><dt>Vehicle type</dt><dd>{vehicleName || 'Choose a vehicle type in Step 2'}</dd></div>
       <div><dt>Toll class</dt><dd>{vehicleClass || 'Not configured'}<small>Assigned from the selected truck type</small></dd></div>
       <div><dt>Expressways</dt><dd>{highways.length ? highways.join(' → ') : 'Awaiting route identification'}</dd></div>
     </dl>

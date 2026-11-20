@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { vehicleCanCarry, vehicleFitsShipmentWeight, vehicleBaseRate, bookingDefaults } from "../../services/vehiclePricing.js";
+import { vehicleCanCarry, vehicleFitsShipmentWeight, classifyVehicleWeightFit, vehicleBaseRate, bookingDefaults } from "../../services/vehiclePricing.js";
 import { shipmentRouteFields } from "../../services/shipmentRoute.js";
 import { withBookingPricing } from '../../services/tollPricing.js';
 
@@ -176,7 +176,7 @@ test('pristine and successfully booked forms close without discard prompt; savin
   assert.deepEqual(saving.state, { resets: 0, closes: 0, prompts: 0 });
 });
 // Execute actual validator/Next bodies with real capacity helpers and isolated UI state.
-function booking({ step = 2, weight = "3000", capacity = 4000, busy = false, routeError = "", baseRate = 500, description = "Cargo", vehicle = true } = {}) {
+function booking({ step = 2, weight = "3000", capacity = 4000, busy = false, routeError = "", scheduleError = "", baseRate = 500, description = "Cargo", vehicle = true } = {}) {
   const state = { step, error: "previous error" };
   const scope = {
     form: { weight, cargoDescription: description },
@@ -184,6 +184,9 @@ function booking({ step = 2, weight = "3000", capacity = 4000, busy = false, rou
     baseRate, vehicleCanCarry, vehicleFitsShipmentWeight,
     currentStep: step, isResolvingAddress: busy, isCalculatingRoute: false,
     validateRoute: () => routeError,
+    validateSchedule: () => scheduleError,
+    setStepSubmitted: () => {},
+    focusFirstInvalidField: () => {},
     setSaveError: value => { state.error = value; },
     setCurrentStep: update => { state.step = update(state.step); },
   };
@@ -197,8 +200,8 @@ test("valid route advances before cargo/vehicle selection without throwing", () 
   assert.equal(flow.state.step, 2);
   assert.equal(flow.state.error, "");
 });
-for (const weight of ["2000", "3000", "4000"]) {
-  test(`valid cargo ${weight}kg advances within capacity and excess-capacity boundary`, () => {
+for (const weight of ["1500", "1999", "2000", "3000", "4000"]) {
+  test(`valid cargo ${weight}kg advances within truck capacity including light bulky FTL loads`, () => {
     const flow = booking({ weight });
     assert.equal(flow.validateCargo(), "");
     assert.doesNotThrow(() => flow.handleNext());
@@ -206,7 +209,7 @@ for (const weight of ["2000", "3000", "4000"]) {
     assert.equal(flow.state.error, "");
   });
 }
-for (const weight of ["1999", "4001", "", "0", "-1", "invalid", "Infinity"]) {
+for (const weight of ["4001", "", "0", "-1", "invalid", "Infinity"]) {
   test(`invalid cargo ${weight} blocks advance and exposes validator error`, () => {
     const flow = booking({ weight });
     const error = flow.validateCargo();
@@ -216,7 +219,14 @@ for (const weight of ["1999", "4001", "", "0", "-1", "invalid", "Infinity"]) {
     assert.equal(flow.state.error, error);
   });
 }
-for (const options of [{ vehicle: false }, { baseRate: null }, { description: "" }, { busy: true }, { step: 1, routeError: "Destination required" }]) {
+for (const options of [
+  { vehicle: false },
+  { baseRate: null },
+  { description: "" },
+  { busy: true },
+  { step: 1, routeError: "Destination required" },
+  { step: 2, scheduleError: "Scheduled departure must be at least 48 hours in advance (Philippine time)." },
+]) {
   test(`existing validation blocks advance: ${JSON.stringify(options)}`, () => {
     const flow = booking(options);
     flow.handleNext();
@@ -224,6 +234,35 @@ for (const options of [{ vehicle: false }, { baseRate: null }, { description: ""
     assert.ok(flow.state.error);
   });
 }
+
+test('classifyVehicleWeightFit classifies best_fit, oversized bulky FTL, and overweight accurately', () => {
+  const truck6w = { is_active: true, default_capacity_kg: 6000 };
+  assert.equal(classifyVehicleWeightFit(truck6w, ''), 'missing_weight');
+  assert.equal(classifyVehicleWeightFit(truck6w, '5000'), 'best_fit');
+  assert.equal(classifyVehicleWeightFit(truck6w, '1500'), 'oversized');
+  assert.equal(classifyVehicleWeightFit(truck6w, '6001'), 'overweight');
+});
+
+test('HUBS presets define instant Luzon road coordinates without live geocode latency', () => {
+  assert.match(source, /MICT Manila[\s\S]*?coords:\s*\{\s*lat:\s*14\.\d+,\s*lng:\s*120\.\d+\s*\}/);
+  assert.match(source, /Subic Port[\s\S]*?coords:\s*\{\s*lat:\s*14\.\d+,\s*lng:\s*120\.\d+\s*\}/);
+});
+
+test('Add shipment drawer uses native modal dialog for success without ARIA redundancy and contains zero em dashes', async () => {
+  assert.match(source, /<dialog\s+ref=\{successDialogRef\}\s+className="shipment-success-dialog"/);
+  assert.doesNotMatch(source, /<dialog[^>]*role="dialog"/);
+  assert.doesNotMatch(source, /<dialog[^>]*aria-modal=/);
+  const files = [
+    new URL('./CreateShipmentDrawer.jsx', import.meta.url),
+    new URL('./CustomerCombobox.jsx', import.meta.url),
+    new URL('./AddressAutocomplete.jsx', import.meta.url),
+    new URL('./TollPricingPanel.jsx', import.meta.url),
+  ];
+  for (const file of files) {
+    const content = await readFile(file, 'utf8');
+    assert.equal(content.includes('—'), false, `Unexpected em dash in ${file.pathname}`);
+  }
+});
 
 test('Step 2 vehicle selection and Step 3 review render vehicle silhouette with category mapping', () => {
   assert.ok(source.includes('<SafeVehicleSilhouette category={truck.name} size="md" />'));
@@ -426,4 +465,84 @@ test('calculateRoute succeeds on ordinary road journeys when strict avoidance fa
   assert.equal(formState.distanceKm, '425.4');
   assert.equal(formState.estimatedMinutes, '520');
   assert.equal(routeGeo, validGeometry);
+});
+
+test('formatRouteErrorMessage sanitizes transient ORS TCP connect errors and wires retry controls', () => {
+  const start = source.indexOf('const formatRouteErrorMessage =');
+  const end = source.indexOf('const customerName =', start);
+  assert.ok(start > 0 && end > start);
+
+  const fn = new Function(`${source.slice(start, end)}; return formatRouteErrorMessage;`)();
+
+  const rawError = 'error sending request for url (https://api.heigit.org/openrouteservice/v2/directions/driving-hgv): client error (Connect): tcp connect error: Connection refused (os error 111)';
+  const friendly = fn(rawError);
+  assert.match(friendly, /temporarily unreachable/i);
+  assert.doesNotMatch(friendly, /api\.heigit\.org|os error 111|tcp connect/i);
+
+  const domainError = 'Select the port entrance road before routing.';
+  assert.equal(fn(domainError), domainError);
+  assert.equal(fn(''), '');
+
+  assert.match(source, /handleRetryRoute/);
+  assert.match(source, /className="route-retry-btn"/);
+  assert.match(source, /calculateFallbackTruckRoute/);
+});
+
+test('Step 1 defers empty address validation until submit or outside group blur and suppresses errors during pin mode', () => {
+  const start = source.indexOf('const handleFieldBlur = (key, event) => {');
+  const end = source.indexOf('const focusFirstInvalidField = () => {', start);
+  assert.ok(start > 0 && end > start);
+
+  let touchedState = {};
+  let announced = '';
+
+  const runBlur = ({
+    key,
+    relatedTarget = null,
+    pickerMode = null,
+    pickupContains = false,
+    destinationContains = false,
+    form = { billingCustomer: '', pickupLocation: '', destination: '', cargoDescription: '', weight: '' },
+    stepSubmitted = { 1: false, 2: false, 3: false },
+    rawFieldErrors = { destination: 'Enter a delivery address or choose a port hub.' },
+  }) => {
+    touchedState = {};
+    announced = '';
+    const scope = {
+      pickerMode,
+      pickupGroupRef: { current: { contains: () => pickupContains } },
+      destinationGroupRef: { current: { contains: () => destinationContains } },
+      form,
+      stepSubmitted,
+      rawFieldErrors,
+      FIELD_LABELS: { destination: 'Destination', pickupLocation: 'Pick-up location' },
+      announceTimerRef: { current: null },
+      setTouched: updater => { touchedState = updater(touchedState); },
+      setLiveErrorAnnouncement: msg => { announced = msg; },
+      clearTimeout,
+      setTimeout: (fn) => { fn(); return 1; },
+    };
+    const fn = new Function(...Object.keys(scope), `${source.slice(start, end)}; return handleFieldBlur;`)(...Object.values(scope));
+    fn(key, { relatedTarget });
+  };
+
+  // Focus moving from destination input to Pin destination / hub button within group must not touch field
+  runBlur({ key: 'destination', destinationContains: true });
+  assert.equal(touchedState.destination, undefined);
+
+  // Blur on an empty untouched destination before clicking Continue must defer validation
+  runBlur({ key: 'destination' });
+  assert.equal(touchedState.destination, undefined);
+
+  // Active picker mode suppresses error state
+  runBlur({ key: 'destination', pickerMode: 'destination', stepSubmitted: { 1: true, 2: false, 3: false } });
+  assert.equal(touchedState.destination, undefined);
+
+  // Non-empty unpinned destination outside group marks touched cleanly
+  runBlur({ key: 'destination', form: { billingCustomer: '', pickupLocation: '', destination: 'Capas', cargoDescription: '', weight: '' } });
+  assert.equal(touchedState.destination, true);
+  assert.match(announced, /Destination:/);
+
+  assert.match(source, /const pickupHasErr =\s*pickerMode !== "pickup" && showFieldError\("pickupLocation", 1\);/);
+  assert.match(source, /const destHasErr =\s*pickerMode !== "destination" && showFieldError\("destination", 1\);/);
 });

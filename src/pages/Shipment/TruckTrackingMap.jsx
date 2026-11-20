@@ -27,6 +27,7 @@ export default function TruckTrackingMap({
   fullRouteViewRequest = 0,
   isCalculatingRoute = false,
   routeError = "",
+  onRetryRoute,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -136,7 +137,7 @@ export default function TruckTrackingMap({
     if (!map || !mapReady || !confirmedPickup) return;
 
     const marker = new maplibregl.Marker({
-      color: "#dc2626",
+      color: "#1D4ED8",
     })
       .setLngLat([
         confirmedPickup.lng,
@@ -171,7 +172,7 @@ export default function TruckTrackingMap({
     if (!map || !mapReady || !confirmedDestination) return;
 
     const marker = new maplibregl.Marker({
-      color: "#2563eb",
+      color: "#D97706",
     })
       .setLngLat([
         confirmedDestination.lng,
@@ -314,7 +315,7 @@ export default function TruckTrackingMap({
       style={{
         width: "100%",
         height: "100%",
-        minHeight: "500px",
+        minHeight: "320px",
         position: "relative",
       }}
     >
@@ -341,7 +342,7 @@ export default function TruckTrackingMap({
               pointerEvents: "none",
               zIndex: 5,
               filter:
-                "drop-shadow(0 4px 4px rgba(0,0,0,0.3))",
+                "drop-shadow(0 4px 4px rgba(15, 23, 42, 0.28))",
             }}
           >
             <svg
@@ -352,7 +353,7 @@ export default function TruckTrackingMap({
             >
               <path
                 d="M22 2C11 2 2 11 2 22C2 38 22 58 22 58S42 38 42 22C42 11 33 2 22 2Z"
-                fill={pickerMode === "destination" ? "#2563eb" : "#dc2626"}
+                fill={pickerMode === "destination" ? "#D97706" : "#1D4ED8"}
                 stroke="#ffffff"
                 strokeWidth="2.5"
               />
@@ -372,12 +373,13 @@ export default function TruckTrackingMap({
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 6,
-              background: "#ffffff",
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
               padding: "16px",
               borderRadius: "12px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+              boxShadow: "0 10px 25px rgba(15, 23, 42, 0.14)",
               textAlign: "center",
-              width: "min(290px, calc(100% - 24px))",
+              width: "min(300px, calc(100% - 24px))",
               boxSizing: "border-box",
             }}
           >
@@ -385,42 +387,39 @@ export default function TruckTrackingMap({
               style={{
                 display: "block",
                 fontSize: "14px",
-                color: "#111827",
+                color: "#0F172A",
               }}
             >
               {pickerMode === "pickup"
-                ? "Select Pickup Location"
-                : "Select Destination"}
+                ? "Pin Pickup Entrance"
+                : "Pin Delivery Entrance"}
             </strong>
 
             <p
               style={{
                 fontSize: "12px",
-                color: "#6b7280",
-                margin: "8px 0",
+                color: "#475569",
+                margin: "6px 0 10px",
               }}
             >
-              Drag or zoom the map to position the pointer.
+              Drag or zoom the map under the pin to set exact coordinates.
             </p>
 
             {centerCoordinates && (
               <div
+                className="tabular-nums"
                 style={{
-                  background: "#f3f4f6",
-                  padding: "10px",
-                  borderRadius: "8px",
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  padding: "8px 10px",
+                  borderRadius: "6px",
                   fontSize: "12px",
-                  color: "#374151",
+                  color: "#475569",
                   marginBottom: "12px",
                 }}
               >
                 <div>
-                  Latitude:{" "}
-                  {centerCoordinates.lat.toFixed(6)}
-                </div>
-                <div>
-                  Longitude:{" "}
-                  {centerCoordinates.lng.toFixed(6)}
+                  Lat: {centerCoordinates.lat.toFixed(6)} · Lng: {centerCoordinates.lng.toFixed(6)}
                 </div>
               </div>
             )}
@@ -431,12 +430,13 @@ export default function TruckTrackingMap({
               disabled={!mapReady || isResolvingAddress}
               style={{
                 width: "100%",
-                padding: "11px",
+                minHeight: "44px",
+                padding: "10px 14px",
                 background:
                   mapReady && !isResolvingAddress
-                    ? "#b91c1c"
-                    : "#475569",
-                color: "#ffffff",
+                    ? "#0F2A52"
+                    : "#64748B",
+                color: "#FFFFFF",
                 border: "none",
                 borderRadius: "8px",
                 cursor:
@@ -449,8 +449,8 @@ export default function TruckTrackingMap({
               }}
             >
               {isResolvingAddress
-                ? "Detecting Address..."
-                : "Confirm Location"}
+                ? "Resolving Address..."
+                : "Confirm Pin Location"}
             </button>
 
             <button
@@ -459,49 +459,76 @@ export default function TruckTrackingMap({
               onClick={() => onCancelPicker?.()}
               style={{
                 width: "100%",
-                padding: "10px",
-                background: "#f3f4f6",
-                color: "#374151",
-                border: "1px solid #d1d5db",
+                minHeight: "44px",
+                padding: "10px 14px",
+                background: "#FFFFFF",
+                color: "#0F172A",
+                border: "1px solid #CBD5E1",
                 borderRadius: "8px",
                 cursor: isResolvingAddress
                   ? "not-allowed"
                   : "pointer",
-                opacity: isResolvingAddress ? 0.6 : 1,
+                opacity: isResolvingAddress ? 0.55 : 1,
                 fontWeight: "600",
                 fontSize: "13px",
               }}
             >
-              Cancel Selection
+              Cancel Pinning
             </button>
           </div>
         </>
       )}
 
       {/* ROUTING STATUS */}
-      {!pickerMode && (isCalculatingRoute || routeError) && (
+      {!pickerMode && (isCalculatingRoute || Boolean(routeError)) && (
         <div
-          role="status"
+          role={routeError ? "alert" : "status"}
           style={{
             position: "absolute",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "min(360px, calc(100% - 24px))",
-            padding: "12px 16px",
-            background: "#ffffff",
-            color: routeError ? "#b91c1c" : "#1f2937",
-            borderRadius: "10px",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
+            top: "16px",
+            left: "16px",
+            maxWidth: "calc(100% - 76px)",
+            padding: "8px 12px",
+            background: routeError ? "#FEF2F2" : "#FFFFFF",
+            border: routeError ? "1px solid #FECACA" : "1px solid #E2E8F0",
+            color: routeError ? "#B91C1C" : "#0F172A",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(15, 23, 42, 0.10)",
             zIndex: 7,
-            fontSize: "13px",
-            textAlign: "center",
+            fontSize: "12px",
+            fontWeight: 600,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "10px",
+            flexWrap: "wrap",
             boxSizing: "border-box",
           }}
         >
-          {isCalculatingRoute
-            ? "Calculating truck route..."
-            : routeError}
+          <span>
+            {isCalculatingRoute
+              ? "Calculating truck route..."
+              : "Route preview unavailable"}
+          </span>
+          {!isCalculatingRoute && onRetryRoute && (
+            <button
+              type="button"
+              onClick={() => onRetryRoute()}
+              style={{
+                background: "#FFFFFF",
+                border: "1px solid #FECACA",
+                color: "#B91C1C",
+                borderRadius: "6px",
+                minHeight: "32px",
+                padding: "4px 10px",
+                font: "inherit",
+                fontSize: "12px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
 
@@ -514,12 +541,15 @@ export default function TruckTrackingMap({
             top: "20px",
             left: "20px",
             right: "60px",
-            background: "#ffffff",
-            padding: "15px",
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            padding: "14px 16px",
             borderRadius: "8px",
-            color: "#dc2626",
+            color: "#B91C1C",
+            fontSize: "13px",
+            fontWeight: 500,
             zIndex: 10,
-            boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
+            boxShadow: "0 10px 25px rgba(15, 23, 42, 0.12)",
           }}
         >
           {error}
