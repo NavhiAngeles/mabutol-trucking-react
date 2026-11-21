@@ -162,3 +162,57 @@ test('drivers and trucks already assigned or reserved by another shipment are ex
   assert.deepEqual(truckOptionValues, ['t-free']);
 });
 
+test('reassignment defaults to current truck when only driver changes and current driver when only truck changes', async () => {
+  const options = {
+    current: { id: 'del-1', driver_id: 'd-curr', truck_id: 't-curr' },
+    blockedReason: null,
+    shipment: { weight_kg: 2000, requested_vehicle_type_id: 'vt-1' },
+    drivers: [
+      { id: 'd-curr', full_name: 'Regular Driver', status: 'available', eligible: true },
+      { id: 'd-sub', full_name: 'Substitute Driver', status: 'available', eligible: true },
+    ],
+    trucks: [
+      { id: 't-curr', plate_number: 'CURR-01', capacity_kg: 6000, vehicle_type_id: 'vt-1', status: 'available', assigned_driver_id: 'd-curr', eligible: true },
+      { id: 't-other', plate_number: 'OTHR-02', capacity_kg: 6000, vehicle_type_id: 'vt-1', status: 'available', assigned_driver_id: null, eligible: true },
+    ],
+  };
+
+  // Case 1: Only change driver -> current truck stays selected
+  const ui1 = await mount(options);
+  ui1.render();
+  await tick();
+  let tree1 = ui1.render();
+  const selects1 = find(tree1, node => node.type === 'select');
+  assert.equal(selects1[0].props.value, 'd-curr');
+  assert.equal(selects1[1].props.value, 't-curr');
+  selects1[0].props.onChange({ target: { value: 'd-sub' } });
+  find(tree1, node => node.type === 'textarea')[0].props.onChange({ target: { value: 'Regular driver on sick leave' } });
+  tree1 = ui1.render();
+  await find(tree1, node => node.type === 'form')[0].props.onSubmit({ preventDefault() {} });
+  assert.deepEqual(JSON.parse(JSON.stringify(ui1.saved())), {
+    shipmentId: 's',
+    driverId: 'd-sub',
+    truckId: 't-curr',
+    reason: 'Regular driver on sick leave',
+    expectedDelivery: 'del-1',
+  });
+
+  // Case 2: Only change truck -> current driver stays selected
+  const ui2 = await mount(options);
+  ui2.render();
+  await tick();
+  let tree2 = ui2.render();
+  const selects2 = find(tree2, node => node.type === 'select');
+  selects2[1].props.onChange({ target: { value: 't-other' } });
+  find(tree2, node => node.type === 'textarea')[0].props.onChange({ target: { value: 'Switching to spare vehicle' } });
+  tree2 = ui2.render();
+  await find(tree2, node => node.type === 'form')[0].props.onSubmit({ preventDefault() {} });
+  assert.deepEqual(JSON.parse(JSON.stringify(ui2.saved())), {
+    shipmentId: 's',
+    driverId: 'd-curr',
+    truckId: 't-other',
+    reason: 'Switching to spare vehicle',
+    expectedDelivery: 'del-1',
+  });
+});
+

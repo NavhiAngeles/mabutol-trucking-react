@@ -57,10 +57,10 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
     return true;
   }) || [], [options?.trucks, currentTruckId, shipmentWeight, requestedVehicleTypeId, draftSuggestion?.truckId]);
 
-  const selectedDriver = drivers.find(d => d.id === driverId);
-  const selectedTruck = trucks.find(t => t.id === truckId);
-  const effectiveDriverId = selectedDriver ? driverId : '';
-  const effectiveTruckId = selectedTruck ? truckId : '';
+  const effectiveDriverId = driverId || (drivers.some(d => d.id === currentDriverId) ? currentDriverId : '');
+  const effectiveTruckId = truckId || (trucks.some(t => t.id === currentTruckId) ? currentTruckId : '');
+  const selectedDriver = drivers.find(d => d.id === effectiveDriverId);
+  const selectedTruck = trucks.find(t => t.id === effectiveTruckId);
   const currentPair = options?.current && effectiveDriverId === options.current.driver_id && effectiveTruckId === options.current.truck_id;
   const canSave = Boolean(selectedDriver && selectedTruck && selectedDriver.eligible !== false && selectedTruck.eligible !== false)
     && reason.trim().length >= 5 && reason.trim().length <= 1000 && !currentPair && !busy;
