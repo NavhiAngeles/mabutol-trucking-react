@@ -159,7 +159,68 @@ export function validateDriverSubmit(form) {
   return null;
 }
 
-export function validateVehicleStep1(form) {
+export const MIN_VEHICLE_CARGO_KG = 100;
+export const MAX_VEHICLE_CARGO_KG = 50000;
+
+export function getVehicleCapacityBounds(vehicleType = null) {
+  const defaultCap = Number(vehicleType?.default_capacity_kg);
+  if (Number.isFinite(defaultCap) && defaultCap > 0) {
+    const min = Math.max(MIN_VEHICLE_CARGO_KG, Math.round(defaultCap * 0.5));
+    const max = Math.min(MAX_VEHICLE_CARGO_KG, Math.max(min, Math.round(defaultCap * 1.5)));
+    return {
+      min,
+      max,
+      defaultCapacityKg: defaultCap,
+      hasTypeBounds: true,
+    };
+  }
+  return {
+    min: MIN_VEHICLE_CARGO_KG,
+    max: MAX_VEHICLE_CARGO_KG,
+    defaultCapacityKg: null,
+    hasTypeBounds: false,
+  };
+}
+
+export function validateVehicleCapacity(rawCapacity, { vehicleType = null, tareWeightKg = null, grossWeightKg = null } = {}) {
+  const raw = rawCapacity === "" || rawCapacity == null ? "" : String(rawCapacity).trim();
+  const cap = raw ? Number(raw) : NaN;
+  if (!Number.isFinite(cap) || cap <= 0) {
+    return "Max cargo weight must be a positive number in kg.";
+  }
+  if (cap < MIN_VEHICLE_CARGO_KG) {
+    return `Max cargo weight must be at least ${MIN_VEHICLE_CARGO_KG.toLocaleString()} kg.`;
+  }
+  if (cap > MAX_VEHICLE_CARGO_KG) {
+    return `Max cargo weight cannot exceed ${MAX_VEHICLE_CARGO_KG.toLocaleString()} kg.`;
+  }
+
+  const bounds = getVehicleCapacityBounds(vehicleType);
+  if (bounds.hasTypeBounds && (cap < bounds.min || cap > bounds.max)) {
+    const typeName = vehicleType?.name || "this vehicle type";
+    return `Max cargo weight for ${typeName} (standard ${bounds.defaultCapacityKg.toLocaleString()} kg) must be between ${bounds.min.toLocaleString()} kg and ${bounds.max.toLocaleString()} kg.`;
+  }
+
+  const grossRaw = grossWeightKg === "" || grossWeightKg == null ? "" : String(grossWeightKg).trim();
+  const gross = grossRaw ? Number(grossRaw) : null;
+  const tareRaw = tareWeightKg === "" || tareWeightKg == null ? "" : String(tareWeightKg).trim();
+  const tare = tareRaw ? Number(tareRaw) : null;
+
+  if (gross !== null && Number.isFinite(gross) && gross > 0) {
+    if (tare !== null && Number.isFinite(tare) && tare >= 0 && gross >= tare) {
+      const maxPayload = gross - tare;
+      if (cap > maxPayload) {
+        return `Max cargo weight (${cap.toLocaleString()} kg) exceeds available payload (${maxPayload.toLocaleString()} kg from GVW minus tare weight).`;
+      }
+    } else if (cap > gross) {
+      return `Max cargo weight (${cap.toLocaleString()} kg) cannot exceed gross vehicle weight (${gross.toLocaleString()} kg).`;
+    }
+  }
+
+  return null;
+}
+
+export function validateVehicleStep1(form, { vehicleTypes = [] } = {}) {
   if (
     !form?.plateNumber?.trim() ||
     !form?.model?.trim() ||
@@ -168,10 +229,17 @@ export function validateVehicleStep1(form) {
   ) {
     return "Please provide a plate number, model, vehicle type and positive capacity before proceeding.";
   }
-  return validateTruckHgvSpecs(form);
+  const hgvError = validateTruckHgvSpecs(form);
+  if (hgvError) return hgvError;
+  const vehicleType = (vehicleTypes || []).find((vt) => vt.id === form.type) || null;
+  return validateVehicleCapacity(form.capacity, {
+    vehicleType,
+    tareWeightKg: form.tareWeightKg,
+    grossWeightKg: form.grossWeightKg,
+  });
 }
 
-export function validateVehicleSubmit(form) {
+export function validateVehicleSubmit(form, { vehicleTypes = [] } = {}) {
   if (
     !form?.plateNumber?.trim() ||
     !form?.model?.trim() ||
@@ -180,7 +248,14 @@ export function validateVehicleSubmit(form) {
   ) {
     return "Please provide a plate number, model, vehicle type and positive capacity.";
   }
-  return validateTruckHgvSpecs(form);
+  const hgvError = validateTruckHgvSpecs(form);
+  if (hgvError) return hgvError;
+  const vehicleType = (vehicleTypes || []).find((vt) => vt.id === form.type) || null;
+  return validateVehicleCapacity(form.capacity, {
+    vehicleType,
+    tareWeightKg: form.tareWeightKg,
+    grossWeightKg: form.grossWeightKg,
+  });
 }
 
 

@@ -7,7 +7,7 @@ import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
 import { FleetEditor, AssignDriverModal, ComplianceDialog, FleetModal, FleetDiscardDialog, FleetDeleteDialog } from "./FleetDialogs";
-import { INITIAL_VEHICLE_FORM, isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
+import { INITIAL_VEHICLE_FORM, getVehicleCapacityBounds, isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleCapacity, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
 import FleetOverview from "./FleetOverview";
 import FleetVehiclesView from "./FleetVehiclesView";
 import FleetDriversView from "./FleetDriversView";
@@ -157,6 +157,7 @@ export default function Fleet() {
   const [showVehicleSuccess, setShowVehicleSuccess] = useState(false);
   const [registeredTruckId, setRegisteredTruckId] = useState("");
   const [vehicleError, setVehicleError] = useState("");
+  const [vehicleCapacityTouched, setVehicleCapacityTouched] = useState(false);
   const [confirmDiscardTarget, setConfirmDiscardTarget] = useState(null); // 'driver' | 'vehicle' | null
 
   // Form Field States
@@ -218,6 +219,7 @@ export default function Fleet() {
     setVehicleStep(1);
     setShowVehicleSuccess(false);
     setVehicleError("");
+    setVehicleCapacityTouched(false);
   };
 
   const handleRegisterDriverClick = () => {
@@ -309,7 +311,8 @@ export default function Fleet() {
   };
 
   const handleVehicleNextStep = () => {
-    const error = validateVehicleStep1(vehicleForm);
+    setVehicleCapacityTouched(true);
+    const error = validateVehicleStep1(vehicleForm, { vehicleTypes });
     if (error) {
       setVehicleError(error);
       return;
@@ -340,7 +343,8 @@ export default function Fleet() {
   };
 
   const handleVehicleSubmit = async () => {
-    const error = validateVehicleSubmit(vehicleForm);
+    setVehicleCapacityTouched(true);
+    const error = validateVehicleSubmit(vehicleForm, { vehicleTypes });
     if (error) {
       setVehicleError(error);
       return;
@@ -871,6 +875,17 @@ export default function Fleet() {
           )}
           {vehicleStep === 1 && (() => {
             const selectedAddVehicleType = vehicleTypes.find(vt => vt.id === vehicleForm.type);
+            const capacityBounds = getVehicleCapacityBounds(selectedAddVehicleType);
+            const capacityValidationError = vehicleCapacityTouched && String(vehicleForm.capacity ?? '').trim() !== ''
+              ? validateVehicleCapacity(vehicleForm.capacity, {
+                  vehicleType: selectedAddVehicleType,
+                  tareWeightKg: vehicleForm.tareWeightKg,
+                  grossWeightKg: vehicleForm.grossWeightKg,
+                })
+              : null;
+            const capacityDescribedBy = capacityValidationError
+              ? "vehicle-form-capacity-hint vehicle-form-capacity-error"
+              : "vehicle-form-capacity-hint";
             return (
               <div className="form-grid">
                 <div className="form-group">
@@ -894,7 +909,30 @@ export default function Fleet() {
                 </div>
                 <div className="form-group">
                   <label htmlFor="vehicle-form-capacity">MAX CARGO WEIGHT (KG) *</label>
-                  <input id="vehicle-form-capacity" type="number" placeholder="15000" value={vehicleForm.capacity} onChange={(e) => handleVehicleInputChange(e, 'capacity')} />
+                  <input
+                    id="vehicle-form-capacity"
+                    type="number"
+                    min={capacityBounds.min}
+                    max={capacityBounds.max}
+                    step="any"
+                    required
+                    placeholder={capacityBounds.defaultCapacityKg ? String(capacityBounds.defaultCapacityKg) : "e.g. 6000"}
+                    value={vehicleForm.capacity}
+                    aria-invalid={capacityValidationError ? "true" : "false"}
+                    aria-describedby={capacityDescribedBy}
+                    onBlur={() => setVehicleCapacityTouched(true)}
+                    onChange={(e) => handleVehicleInputChange(e, 'capacity')}
+                  />
+                  <span id="vehicle-form-capacity-hint" className="form-field-hint">
+                    {capacityBounds.hasTypeBounds
+                      ? `Type default: ${capacityBounds.defaultCapacityKg.toLocaleString()} kg (model range: ${capacityBounds.min.toLocaleString()} - ${capacityBounds.max.toLocaleString()} kg)`
+                      : `Enter this model's rated payload (${capacityBounds.min.toLocaleString()} - ${capacityBounds.max.toLocaleString()} kg)`}
+                  </span>
+                  {capacityValidationError && (
+                    <span id="vehicle-form-capacity-error" className="form-field-error">
+                      {capacityValidationError}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-divider-title">HGV Dimensions & Weight Limits (Optional)</div>

@@ -1,10 +1,106 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { saveFleetRecord, validateComplianceFile, openComplianceFile } from '../../services/fleetWorkspaceService';
 import { getComplianceDocumentsForTruck, getComplianceDocumentsForDriver, TRUCK_COMPLIANCE_DOC_TYPES, DRIVER_COMPLIANCE_DOC_TYPES, getComplianceDocBadge } from '../../services/fleetService';
+import { getComplianceConfiguration } from '../../services/complianceThresholdService';
 import { useLiveData } from '../../hooks/useLiveData';
-import { validateTruckHgvSpecs } from './fleetDraftHelpers';
+import { getVehicleCapacityBounds, validateTruckHgvSpecs, validateVehicleCapacity } from './fleetDraftHelpers';
 
-const DOCUMENT_TABLES = ['compliance_documents'];
+const DOCUMENT_TABLES = ['compliance_documents', 'system_settings'];
+
+const COMPLIANCE_STATE_SEVERITY = {
+  rejected: 0,
+  expired: 1,
+  critical: 2,
+  missing: 3,
+  pending_review: 4,
+  expiring_soon: 5,
+  valid: 6,
+};
+
+export function complianceDocBadgeClass(state) {
+  if (state === 'valid') return 'is-valid';
+  if (state === 'rejected') return 'is-rejected';
+  if (state === 'expired') return 'is-expired';
+  if (state === 'critical' || state === 'expiring_soon') return 'is-warning';
+  if (state === 'pending_review') return 'is-review';
+  return 'is-missing';
+}
+
+export function buildComplianceChecklist(kind, docs = [], { now = Date.now(), configuration = null } = {}) {
+  const requiredTypes = kind === 'truck' ? TRUCK_COMPLIANCE_DOC_TYPES : DRIVER_COMPLIANCE_DOC_TYPES;
+  const safeDocs = Array.isArray(docs) ? docs : [];
+  const usedIds = new Set();
+
+  const slots = requiredTypes.map(({ docType, label }) => {
+    const matches = safeDocs
+      .filter((d) => d && d.doc_type === docType)
+      .slice()
+      .sort((a, b) => {
+        const stateA = getComplianceDocBadge(a, { now, configuration }).state;
+        const stateB = getComplianceDocBadge(b, { now, configuration }).state;
+        const sevDiff = (COMPLIANCE_STATE_SEVERITY[stateA] ?? 99) - (COMPLIANCE_STATE_SEVERITY[stateB] ?? 99);
+        if (sevDiff !== 0) return sevDiff;
+        const timeA = Date.parse(a.updated_at || a.created_at || '') || 0;
+        const timeB = Date.parse(b.updated_at || b.created_at || '') || 0;
+        return timeB - timeA;
+      });
+
+    const primaryDoc = matches[0] || null;
+    if (primaryDoc?.id) {
+      usedIds.add(primaryDoc.id);
+    }
+    const badge = getComplianceDocBadge(primaryDoc, { now, configuration });
+    return {
+      docType,
+      label,
+      doc: primaryDoc,
+      badge: {
+        ...badge,
+        badgeClass: complianceDocBadgeClass(badge.state),
+      },
+      isMissing: badge.state === 'missing',
+      needsAttention: badge.state !== 'valid',
+    };
+  });
+
+  const extraDocs = safeDocs
+    .filter((d) => d && (!d.id || !usedIds.has(d.id)))
+    .map((doc) => {
+      const typeDef = requiredTypes.find((t) => t.docType === doc.doc_type);
+      const badge = getComplianceDocBadge(doc, { now, configuration });
+      return {
+        doc,
+        label: typeDef ? typeDef.label : String(doc.doc_type || 'Document').replaceAll('_', ' '),
+        badge: {
+          ...badge,
+          badgeClass: complianceDocBadgeClass(badge.state),
+        },
+      };
+    });
+
+  const missingSlots = slots.filter((s) => s.isMissing);
+  const attentionSlots = slots.filter((s) => s.needsAttention);
+  const uploadedCount = slots.filter((s) => !s.isMissing).length;
+  const validCount = slots.filter((s) => s.badge.state === 'valid').length;
+  const defaultAddDocType =
+    missingSlots[0]?.docType ||
+    attentionSlots[0]?.docType ||
+    requiredTypes[0]?.docType ||
+    '';
+
+  return {
+    requiredTypes,
+    slots,
+    missingSlots,
+    attentionSlots,
+    extraDocs,
+    totalRequired: requiredTypes.length,
+    uploadedCount,
+    validCount,
+    missingCount: missingSlots.length,
+    defaultAddDocType,
+  };
+}
 
 export function FleetModal({
   isOpen,
@@ -106,14 +202,17 @@ export function FleetModal({
 function useDialog(onClose, busy) {
   const ref = useRef(null);
   useEffect(() => {
-    const previous = document.activeElement;
-    ref.current.showModal();
-    return () => { previous?.focus(); };
+    const previous = typeof document !== 'undefined' ? document.activeElement : null;
+    ref.current?.showModal?.();
+    return () => { previous?.focus?.(); };
   }, []);
   return { ref, onCancel: event => { event.preventDefault(); if (!busy) onClose(); } };
 }
-function Field({ label, name, form, setForm, options, wrapperClassName = '', ...props }) {
+function Field({ label, name, form, setForm, options, wrapperClassName = '', hint = '', fieldError = '', ...props }) {
   const id = 'fleet-field-' + name;
+  const hintId = hint ? `${id}-hint` : '';
+  const errorId = fieldError ? `${id}-error` : '';
+  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
   return (
     <div className={`form-group ${wrapperClassName}`.trim()}>
       <label htmlFor={id}>{label}</label>
@@ -122,6 +221,8 @@ function Field({ label, name, form, setForm, options, wrapperClassName = '', ...
           id={id}
           value={form[name] ?? ''}
           onChange={(e) => setForm({ ...form, [name]: e.target.value })}
+          aria-describedby={describedBy}
+          aria-invalid={fieldError ? 'true' : undefined}
           {...props}
         >
           {options.map(([value, text]) => (
@@ -135,9 +236,13 @@ function Field({ label, name, form, setForm, options, wrapperClassName = '', ...
           id={id}
           value={form[name] ?? ''}
           onChange={(e) => setForm({ ...form, [name]: e.target.value })}
+          aria-describedby={describedBy}
+          aria-invalid={fieldError ? 'true' : undefined}
           {...props}
         />
       )}
+      {hint && <span id={hintId} className="form-field-hint">{hint}</span>}
+      {fieldError && <span id={errorId} className="form-field-error">{fieldError}</span>}
     </div>
   );
 }
@@ -162,6 +267,14 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
   const selectedVehicleType = kind === 'truck'
     ? (fleet.vehicleTypes || []).find(t => t.id === form.vehicle_type_id)
     : null;
+  const capacityBounds = kind === 'truck' ? getVehicleCapacityBounds(selectedVehicleType) : null;
+  const liveCapacityError = kind === 'truck' && form.capacity_kg !== '' && form.capacity_kg != null
+    ? validateVehicleCapacity(form.capacity_kg, {
+      vehicleType: selectedVehicleType,
+      tareWeightKg: form.tare_weight_kg,
+      grossWeightKg: form.gross_weight_kg,
+    })
+    : null;
 
   async function save(event) {
     event.preventDefault(); if (guard.current) return;
@@ -176,6 +289,15 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
       });
       if (hgvError) {
         setError(hgvError);
+        return;
+      }
+      const capacityError = validateVehicleCapacity(form.capacity_kg, {
+        vehicleType: selectedVehicleType,
+        tareWeightKg: form.tare_weight_kg,
+        grossWeightKg: form.gross_weight_kg,
+      });
+      if (capacityError) {
+        setError(capacityError);
         return;
       }
     }
@@ -261,7 +383,18 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
                     {field('plate_number', 'Plate number', { required: true, placeholder: 'e.g. ABC-1234' })}
                     {field('model', 'Model', { required: true, placeholder: 'e.g. Fuso Canter Dropside' })}
                     {field('model_year', 'Model year', { type: 'number', min: 1980, max: 2100, placeholder: 'YYYY' })}
-                    {field('capacity_kg', 'Registered capacity (kg)', { type: 'number', min: 1, step: 'any', required: true, placeholder: 'e.g. 8000' })}
+                    {field('capacity_kg', 'Max cargo weight (kg)', {
+                      type: 'number',
+                      min: capacityBounds.min,
+                      max: capacityBounds.max,
+                      step: 'any',
+                      required: true,
+                      placeholder: capacityBounds.defaultCapacityKg ? String(capacityBounds.defaultCapacityKg) : 'e.g. 6000',
+                      hint: capacityBounds.hasTypeBounds
+                        ? `Type default: ${capacityBounds.defaultCapacityKg.toLocaleString()} kg (model range: ${capacityBounds.min.toLocaleString()} - ${capacityBounds.max.toLocaleString()} kg)`
+                        : `Model range: ${capacityBounds.min.toLocaleString()} - ${capacityBounds.max.toLocaleString()} kg`,
+                      fieldError: liveCapacityError || '',
+                    })}
                     {field('vehicle_type_id', 'Vehicle type', { required: true, options: [['', 'Select vehicle type'], ...fleet.vehicleTypes.map(t => [t.id, t.name])] })}
                     {field('assigned_driver_id', 'Assigned driver', {
                       disabled: isTruckOnActiveShipment,
@@ -510,22 +643,34 @@ export function AssignDriverModal({ truck, drivers = [], onClose, onAssigned }) 
     </dialog>
   );
 }
-function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
+export function DocumentForm({ record, initialDocType, checklist, entity, kind, onSaved, onCancel }) {
   const types = kind === 'truck' ? TRUCK_COMPLIANCE_DOC_TYPES : DRIVER_COMPLIANCE_DOC_TYPES;
+  const isEditingExisting = Boolean(record?.id);
+  const resolvedChecklist = checklist || buildComplianceChecklist(kind, []);
+  const defaultDocType =
+    record?.doc_type ||
+    initialDocType ||
+    resolvedChecklist.defaultAddDocType ||
+    types[0].docType;
+
   const [form, setForm] = useState(() => ({
-    doc_type: types[0].docType,
     document_number: '',
     issued_date: '',
     expiry_date: '',
     review_status: 'pending_review',
     remarks: '',
-    ...record,
+    ...(record || {}),
+    doc_type: record?.doc_type || defaultDocType,
     [kind + '_id']: entity.id,
   }));
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const guard = useRef(false);
+
+  const slotByType = new Map(resolvedChecklist.slots.map((s) => [s.docType, s]));
+  const activeSlot = slotByType.get(form.doc_type);
+  const missingSlots = resolvedChecklist.missingSlots || [];
 
   async function save(event) {
     event.preventDefault();
@@ -535,7 +680,7 @@ function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
     setError('');
     try {
       validateComplianceFile(file);
-      await saveFleetRecord('document', record, form, { documents: [{ ...form, file }] });
+      await saveFleetRecord('document', isEditingExisting ? record : null, form, { documents: [{ ...form, file }] });
       onSaved();
     } catch (error) {
       setError(error.message);
@@ -549,20 +694,75 @@ function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
     <form onSubmit={save} className="fleet-doc-form">
       <div className="fleet-doc-form-top">
         <button type="button" className="fleet-doc-back-btn" onClick={onCancel}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="15 18 9 12 15 6" />
           </svg>
           Back to documents
         </button>
         <div className="fleet-doc-form-header">
           <h4 className="fleet-doc-form-title">
-            {record ? 'Edit document' : 'Add document'}
+            {isEditingExisting ? `Edit ${activeSlot?.label || 'document'}` : `Add ${activeSlot?.label || 'document'}`}
           </h4>
           <p className="fleet-doc-form-subtitle">
             {entity.plate_number ? `Vehicle: ${entity.plate_number}` : `Driver: ${entity.full_name}`}
           </p>
         </div>
       </div>
+
+      {!isEditingExisting && (
+        <div
+          className={`fleet-missing-docs-callout ${missingSlots.length === 0 ? 'is-complete' : ''}`}
+          role="region"
+          aria-label="Missing required documents"
+        >
+          {missingSlots.length > 0 ? (
+            <>
+              <div className="fleet-missing-docs-header">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>
+                  <strong>Missing required {missingSlots.length === 1 ? 'document' : 'documents'} ({missingSlots.length} of {resolvedChecklist.totalRequired}):</strong>{' '}
+                  Select a missing document below to pre-fill the type.
+                </span>
+              </div>
+              <div className="fleet-missing-docs-pills" role="group" aria-label="Select missing document type">
+                {resolvedChecklist.slots.map((slot) => {
+                  const isSelected = form.doc_type === slot.docType;
+                  return (
+                    <button
+                      key={slot.docType}
+                      type="button"
+                      disabled={busy}
+                      aria-pressed={isSelected}
+                      className={`fleet-missing-doc-pill ${slot.isMissing ? 'is-missing' : 'is-present'} ${isSelected ? 'is-selected' : ''}`}
+                      onClick={() => {
+                        setForm((prev) => ({ ...prev, doc_type: slot.docType }));
+                        setError('');
+                      }}
+                    >
+                      <span className="fleet-missing-pill-label">{slot.label}</span>
+                      <span className={`fleet-doc-badge ${slot.badge.badgeClass}`}>
+                        {slot.badge.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="fleet-missing-docs-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span>All {resolvedChecklist.totalRequired} required documents are on file. Uploading a new record will add an updated copy.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="error-message fleet-dialog-error" role="alert">
@@ -577,8 +777,14 @@ function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
             name="doc_type"
             form={form}
             setForm={setForm}
-            disabled={!!record}
-            options={types.map(t => [t.docType, t.label])}
+            disabled={isEditingExisting}
+            options={types.map((t) => {
+              const slot = slotByType.get(t.docType);
+              const statusSuffix = !isEditingExisting && slot
+                ? (slot.isMissing ? ' — Missing' : ` — On file (${slot.badge.label})`)
+                : '';
+              return [t.docType, `${t.label}${statusSuffix}`];
+            })}
           />
           <Field
             label="Document number"
@@ -635,12 +841,12 @@ function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
               <div className="fleet-file-dropzone-content">
                 <div className="fleet-file-icon">
                   {file ? (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   ) : (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                       <polyline points="17 8 12 3 7 8" />
                       <line x1="12" y1="3" x2="12" y2="15" />
@@ -685,23 +891,47 @@ function DocumentForm({ record, entity, kind, onSaved, onCancel }) {
   );
 }
 export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
-  const loader = useCallback(() => kind === 'truck' ? getComplianceDocumentsForTruck(entity.id) : getComplianceDocumentsForDriver(entity.id), [kind, entity.id]);
+  const loader = useCallback(async () => {
+    const [docs, configuration] = await Promise.all([
+      kind === 'truck' ? getComplianceDocumentsForTruck(entity.id) : getComplianceDocumentsForDriver(entity.id),
+      getComplianceConfiguration().catch(() => null),
+    ]);
+    return { docs: Array.isArray(docs) ? docs : [], configuration };
+  }, [kind, entity.id]);
   const live = useLiveData(loader, DOCUMENT_TABLES);
   const [editing, setEditing] = useState(undefined);
+  const [initialDocType, setInitialDocType] = useState(undefined);
   const [fileUrl, setFileUrl] = useState('');
   const [fileError, setFileError] = useState('');
   const dialog = useDialog(onClose, editing !== undefined);
+
+  const rawData = live.data;
+  const docsList = Array.isArray(rawData) ? rawData : (rawData?.docs || []);
+  const configuration = Array.isArray(rawData) ? null : (rawData?.configuration || null);
+  const checklist = buildComplianceChecklist(kind, docsList, { configuration });
+
   async function view(doc) {
     setFileUrl(''); setFileError('');
     try { setFileUrl(await openComplianceFile(doc.file_path)); }
     catch (error) { setFileError(error.message); }
   }
+
+  function handleStartAdd(preferredDocType) {
+    setInitialDocType(preferredDocType || checklist.defaultAddDocType);
+    setEditing(null);
+  }
+
+  function handleStartEdit(doc) {
+    setInitialDocType(doc?.doc_type);
+    setEditing(doc);
+  }
+
   return (
     <dialog {...dialog} className="fleet-dialog" aria-modal="true" aria-labelledby="compliance-dialog-title">
       <div className="fleet-dialog-header">
         <div className="fleet-dialog-header-info">
           <div className="fleet-dialog-header-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
               <line x1="16" y1="13" x2="8" y2="13" />
@@ -749,31 +979,77 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
         )}
         {editing === undefined ? (
           <>
-            {!live.loading && !live.error && !live.data?.length && (
-              <p className="fleet-empty-cargo" style={{ padding: '24px 0', textAlign: 'center' }}>
-                No compliance documents recorded.
-              </p>
-            )}
-            <ul className="fleet-documents">
-              {live.data?.map(doc => {
-                const badge = getComplianceDocBadge(doc);
+            <div className="fleet-compliance-summary-bar" role="status" aria-live="polite">
+              <div className="fleet-compliance-summary-text">
+                <strong>Required compliance checklist ({checklist.uploadedCount} of {checklist.totalRequired} on file)</strong>
+                <span>
+                  {checklist.missingCount > 0
+                    ? `Missing: ${checklist.missingSlots.map((s) => s.label).join(', ')}`
+                    : checklist.validCount === checklist.totalRequired
+                      ? 'All required regulatory documents are valid.'
+                      : 'All required documents are uploaded; review status or expiry dates below.'}
+                </span>
+              </div>
+              <span className={`fleet-doc-badge ${checklist.missingCount > 0 ? 'is-missing' : checklist.validCount === checklist.totalRequired ? 'is-valid' : 'is-warning'}`}>
+                {checklist.missingCount > 0
+                  ? `${checklist.missingCount} Missing`
+                  : checklist.validCount === checklist.totalRequired
+                    ? 'Compliant'
+                    : 'Needs Review'}
+              </span>
+            </div>
+
+            <ul className="fleet-documents" aria-label="Required compliance documents">
+              {checklist.slots.map((slot) => {
+                const { doc, badge, label, docType, isMissing } = slot;
+                if (isMissing) {
+                  return (
+                    <li key={docType} className="fleet-doc-item is-missing">
+                      <div className="fleet-doc-item-details">
+                        <div className="fleet-doc-item-title-row">
+                          <strong className="fleet-doc-type-label">{label}</strong>
+                          <span className="fleet-doc-sep">·</span>
+                          <span className={`fleet-doc-badge ${badge.badgeClass}`}>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div className="fleet-doc-item-subtitle">
+                          Required {kind === 'truck' ? 'vehicle' : 'driver'} document not yet uploaded.
+                        </div>
+                      </div>
+                      <div className="fleet-doc-item-actions">
+                        <button
+                          type="button"
+                          className="btn-primary fleet-doc-action-btn"
+                          onClick={() => handleStartAdd(docType)}
+                        >
+                          + Add {label}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                }
+
                 return (
-                  <li key={doc.id} className="fleet-doc-item">
+                  <li key={doc.id || docType} className="fleet-doc-item">
                     <div className="fleet-doc-item-details">
                       <div className="fleet-doc-item-title-row">
-                        <strong className="fleet-doc-type-label">{doc.doc_type.replaceAll('_', ' ')}</strong>
+                        <strong className="fleet-doc-type-label">{label}</strong>
                         {doc.document_number && <span className="fleet-doc-number-label">({doc.document_number})</span>}
                         <span className="fleet-doc-sep">·</span>
-                        <span className={`fleet-doc-badge ${badge.badgeClass || 'compliance-valid'}`}>
+                        <span className={`fleet-doc-badge ${badge.badgeClass}`}>
                           {badge.label}
                         </span>
                       </div>
                       <div className="fleet-doc-item-subtitle">
-                        {doc.remarks || 'Approved compliance document for active fleet dispatch'}
+                        {[
+                          doc.expiry_date ? `Expires: ${doc.expiry_date}` : null,
+                          doc.remarks || 'Recorded compliance document for fleet dispatch',
+                        ].filter(Boolean).join(' · ')}
                       </div>
                     </div>
                     <div className="fleet-doc-item-actions">
-                      <button type="button" className="btn-secondary fleet-doc-action-btn" onClick={() => setEditing(doc)}>
+                      <button type="button" className="btn-secondary fleet-doc-action-btn" onClick={() => handleStartEdit(doc)}>
                         Edit / review
                       </button>
                       {doc.file_path && (
@@ -785,31 +1061,68 @@ export function ComplianceDialog({ kind, entity, onClose, onSaved }) {
                   </li>
                 );
               })}
+
+              {checklist.extraDocs.map(({ doc, label, badge }) => (
+                <li key={doc.id} className="fleet-doc-item">
+                  <div className="fleet-doc-item-details">
+                    <div className="fleet-doc-item-title-row">
+                      <strong className="fleet-doc-type-label">{label}</strong>
+                      {doc.document_number && <span className="fleet-doc-number-label">({doc.document_number})</span>}
+                      <span className="fleet-doc-sep">·</span>
+                      <span className={`fleet-doc-badge ${badge.badgeClass}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                    <div className="fleet-doc-item-subtitle">
+                      {[
+                        doc.expiry_date ? `Expires: ${doc.expiry_date}` : null,
+                        doc.remarks || 'Additional compliance document record',
+                      ].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  <div className="fleet-doc-item-actions">
+                    <button type="button" className="btn-secondary fleet-doc-action-btn" onClick={() => handleStartEdit(doc)}>
+                      Edit / review
+                    </button>
+                    {doc.file_path && (
+                      <button type="button" className="btn-secondary fleet-doc-action-btn" onClick={() => view(doc)}>
+                        View file
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
             </ul>
 
             <div className="fleet-compliance-bottom-bar">
               <button
                 type="button"
                 className="btn-primary fleet-add-doc-btn"
-                onClick={() => setEditing(null)}
+                onClick={() => handleStartAdd(checklist.defaultAddDocType)}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
-                <span>Add document</span>
+                <span>{checklist.missingCount > 0 ? 'Add missing document' : 'Add document'}</span>
               </button>
             </div>
           </>
         ) : (
           <DocumentForm
-            key={editing?.id || 'new'}
+            key={editing?.id || `new-${initialDocType || checklist.defaultAddDocType}`}
             record={editing}
+            initialDocType={initialDocType}
+            checklist={checklist}
             entity={entity}
             kind={kind}
-            onCancel={() => setEditing(undefined)}
+            onCancel={() => {
+              setEditing(undefined);
+              setInitialDocType(undefined);
+            }}
             onSaved={() => {
               setEditing(undefined);
+              setInitialDocType(undefined);
               live.refresh();
               onSaved();
             }}

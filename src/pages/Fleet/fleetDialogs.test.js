@@ -6,16 +6,46 @@ import * as vite from "vite";
 import {
   INITIAL_DRIVER_FORM,
   INITIAL_VEHICLE_FORM,
+  getVehicleCapacityBounds,
   isDriverFormDirty,
   isVehicleFormDirty,
   normalizeDriverPhone,
   validateDriverStep1,
   validateDriverSubmit,
+  validateVehicleCapacity,
   validateVehicleStep1,
   validateVehicleSubmit,
 } from "./fleetDraftHelpers.js";
 
-async function getFleetComponents() {
+import { complianceState } from "../../services/dashboardAnalytics.js";
+
+const TRUCK_COMPLIANCE_DOC_TYPES = [
+  { docType: "lto_registration", label: "OR/CR Registration" },
+  { docType: "franchise_permit", label: "LTFRB Permit" },
+  { docType: "emission_test", label: "Emission Test" },
+];
+
+const DRIVER_COMPLIANCE_DOC_TYPES = [
+  { docType: "drivers_license", label: "Driver's License" },
+  { docType: "medical_certificate", label: "Medical Certificate" },
+  { docType: "nbi_clearance", label: "NBI Clearance" },
+];
+
+function getComplianceDocBadge(doc, { now = Date.now(), configuration = null } = {}) {
+  const state = complianceState(doc, now, configuration);
+  const labels = {
+    missing: "Missing",
+    rejected: "Rejected",
+    expired: "Expired",
+    critical: "Critical — Due Soon",
+    expiring_soon: "Expiring Soon",
+    pending_review: "Pending Review",
+    valid: "Valid",
+  };
+  return { state, label: labels[state] };
+}
+
+async function getFleetComponents({ liveState = { data: { docs: [], configuration: null }, loading: false, error: null, refresh() {} }, useStateHook = null } = {}) {
   const fileContent = fs.readFileSync(new URL("./FleetDialogs.jsx", import.meta.url), "utf8");
   const { code } = await (vite.transformWithOxc
     ? vite.transformWithOxc(fileContent, "FleetDialogs.jsx", { jsx: { runtime: "classic" } })
@@ -25,11 +55,33 @@ async function getFleetComponents() {
     useRef: initial => ({ current: initial }),
     useEffect: fn => { fn(); },
     useCallback: fn => fn,
-    useState: initial => [initial, () => { }],
+    useState: useStateHook || (initial => [typeof initial === "function" ? initial() : initial, () => { }]),
     document: { activeElement: { focus() { } } },
+    TRUCK_COMPLIANCE_DOC_TYPES,
+    DRIVER_COMPLIANCE_DOC_TYPES,
+    getComplianceDocBadge,
+    getComplianceDocumentsForTruck: async () => [],
+    getComplianceDocumentsForDriver: async () => [],
+    getComplianceConfiguration: async () => null,
+    useLiveData: () => liveState,
+    saveFleetRecord: async () => ({ id: "doc-1" }),
+    validateComplianceFile: () => {},
+    openComplianceFile: async () => "https://example.test/doc.pdf",
   });
-  vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/^export /gm, "") + "\nthis.FleetModal = FleetModal;\nthis.FleetDiscardDialog = FleetDiscardDialog;\nthis.FleetDeleteDialog = FleetDeleteDialog;", scope);
-  return { FleetModal: scope.FleetModal, FleetDiscardDialog: scope.FleetDiscardDialog, FleetDeleteDialog: scope.FleetDeleteDialog };
+  vm.runInContext(
+    code.replace(/^import .*;$/gm, "").replace(/^export /gm, "") +
+      "\nthis.FleetModal = FleetModal;\nthis.FleetDiscardDialog = FleetDiscardDialog;\nthis.FleetDeleteDialog = FleetDeleteDialog;\nthis.ComplianceDialog = ComplianceDialog;\nthis.DocumentForm = DocumentForm;\nthis.buildComplianceChecklist = buildComplianceChecklist;\nthis.complianceDocBadgeClass = complianceDocBadgeClass;",
+    scope
+  );
+  return {
+    FleetModal: scope.FleetModal,
+    FleetDiscardDialog: scope.FleetDiscardDialog,
+    FleetDeleteDialog: scope.FleetDeleteDialog,
+    ComplianceDialog: scope.ComplianceDialog,
+    DocumentForm: scope.DocumentForm,
+    buildComplianceChecklist: scope.buildComplianceChecklist,
+    complianceDocBadgeClass: scope.complianceDocBadgeClass,
+  };
 }
 
 // ── 1. Helpers for Pure Draft Dirtiness Logic ────────────────────────────────
@@ -812,6 +864,251 @@ test("driver phone validation normalizes 09XX variants and rejects malformed num
   assert.match(
     validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan", contactNumber: "09171234567", emergencyContact: "0917123", licenseNumber: "N01-23-45678" }),
     /emergency contact/i
+  );
+});
+
+// ── 6. Missing Documents Checklist in ComplianceDialog & DocumentForm ─────────
+
+test("buildComplianceChecklist surfaces all 3 required documents as missing when no documents exist", async () => {
+  const { buildComplianceChecklist, complianceDocBadgeClass } = await getFleetComponents();
+
+  const truckChecklist = buildComplianceChecklist("truck", []);
+  assert.equal(truckChecklist.totalRequired, 3);
+  assert.equal(truckChecklist.uploadedCount, 0);
+  assert.equal(truckChecklist.missingCount, 3);
+  assert.deepEqual(
+    truckChecklist.missingSlots.map((s) => s.label),
+    ["OR/CR Registration", "LTFRB Permit", "Emission Test"]
+  );
+  assert.equal(truckChecklist.defaultAddDocType, "lto_registration");
+
+  const driverChecklist = buildComplianceChecklist("driver", []);
+  assert.equal(driverChecklist.totalRequired, 3);
+  assert.equal(driverChecklist.uploadedCount, 0);
+  assert.equal(driverChecklist.missingCount, 3);
+  assert.deepEqual(
+    driverChecklist.missingSlots.map((s) => s.label),
+    ["Driver's License", "Medical Certificate", "NBI Clearance"]
+  );
+  assert.equal(driverChecklist.defaultAddDocType, "drivers_license");
+
+  // Badge class mappings
+  assert.equal(complianceDocBadgeClass("valid"), "is-valid");
+  assert.equal(complianceDocBadgeClass("pending_review"), "is-review");
+  assert.equal(complianceDocBadgeClass("expiring_soon"), "is-warning");
+  assert.equal(complianceDocBadgeClass("critical"), "is-warning");
+  assert.equal(complianceDocBadgeClass("expired"), "is-expired");
+  assert.equal(complianceDocBadgeClass("rejected"), "is-rejected");
+  assert.equal(complianceDocBadgeClass("missing"), "is-missing");
+});
+
+test("buildComplianceChecklist identifies remaining missing documents and pre-selects the first missing docType", async () => {
+  const { buildComplianceChecklist } = await getFleetComponents();
+
+  // Truck already has OR/CR Registration on file; LTFRB Permit and Emission Test are missing
+  const checklist = buildComplianceChecklist("truck", [
+    {
+      id: "doc-orcr",
+      doc_type: "lto_registration",
+      document_number: "ORCR-2026-01",
+      review_status: "approved",
+      expiry_date: "2028-12-31",
+    },
+  ]);
+
+  assert.equal(checklist.uploadedCount, 1);
+  assert.equal(checklist.validCount, 1);
+  assert.equal(checklist.missingCount, 2);
+  assert.deepEqual(
+    checklist.missingSlots.map((s) => s.docType),
+    ["franchise_permit", "emission_test"]
+  );
+  assert.equal(
+    checklist.defaultAddDocType,
+    "franchise_permit",
+    "Default add document type must advance to the first missing document"
+  );
+});
+
+test("ComplianceDialog displays missing document slots with direct + Add actions instead of a blank modal", async () => {
+  const states = [];
+  let stateIdx = 0;
+  const useStateHook = (initial) => {
+    const i = stateIdx++;
+    if (!(i in states)) {
+      states[i] = typeof initial === "function" ? initial() : initial;
+    }
+    return [
+      states[i],
+      (next) => {
+        states[i] = typeof next === "function" ? next(states[i]) : next;
+      },
+    ];
+  };
+
+  const { ComplianceDialog } = await getFleetComponents({
+    liveState: {
+      data: {
+        docs: [
+          {
+            id: "doc-lic",
+            doc_type: "drivers_license",
+            document_number: "N01-23-45678",
+            review_status: "approved",
+            expiry_date: "2028-05-01",
+          },
+        ],
+        configuration: null,
+      },
+      loading: false,
+      error: null,
+      refresh() {},
+    },
+    useStateHook,
+  });
+
+  const renderDialog = () => {
+    stateIdx = 0;
+    return ComplianceDialog({
+      kind: "driver",
+      entity: { id: "drv-1", full_name: "Juan dela Cruz" },
+      onClose() {},
+      onSaved() {},
+    });
+  };
+
+    const tree = renderDialog();
+  const serialized = JSON.stringify(tree);
+
+  // Shows checklist summary and identifies the 2 missing documents
+  assert.ok(serialized.includes("Required compliance checklist"));
+  assert.ok(serialized.includes("Missing: Medical Certificate, NBI Clearance"));
+  assert.ok(serialized.includes("2 Missing"));
+
+  // Shows direct "+ Add" action buttons for missing documents
+  assert.ok(serialized.includes("Medical Certificate"));
+  assert.ok(serialized.includes("NBI Clearance"));
+  assert.ok(serialized.includes("Add missing document"));
+});
+
+test("DocumentForm displays missing documents callout pills and defaults doc_type to first missing document", async () => {
+  const { DocumentForm, buildComplianceChecklist } = await getFleetComponents();
+
+  const checklist = buildComplianceChecklist("truck", [
+    {
+      id: "doc-orcr",
+      doc_type: "lto_registration",
+      document_number: "ORCR-999",
+      review_status: "approved",
+      expiry_date: "2028-12-31",
+    },
+  ]);
+
+  const formTree = DocumentForm({
+    record: null,
+    initialDocType: checklist.defaultAddDocType,
+    checklist,
+    entity: { id: "trk-1", plate_number: "ABC-1234" },
+    kind: "truck",
+    onSaved() {},
+    onCancel() {},
+  });
+
+  const serialized = JSON.stringify(formTree);
+  assert.ok(serialized.includes("Add LTFRB Permit"), "Form header must reflect the pre-selected missing document type");
+  assert.ok(serialized.includes("Missing required documents"), "Form must display the missing required documents callout");
+  assert.ok(serialized.includes("LTFRB Permit — Missing"), "Select dropdown options must annotate missing document types");
+  assert.ok(serialized.includes("Emission Test — Missing"), "Select dropdown options must annotate missing document types");
+  assert.ok(serialized.includes("OR/CR Registration — On file (Valid)"), "Select dropdown options must annotate existing document types");
+});
+
+
+test("vehicle max cargo weight validation allows model variance per type while rejecting out-of-range and GVW-exceeding values", () => {
+  const vehicleTypes = [
+    { id: "vt-van", name: "Closed Van", default_capacity_kg: 3000 },
+    { id: "vt-wing", name: "10-Wheeler Wing Van", default_capacity_kg: 12000 },
+  ];
+
+  // Bounds reflect +/-50% tolerance so differing models within a type are valid
+  assert.deepEqual(getVehicleCapacityBounds(vehicleTypes[0]), {
+    min: 1500,
+    max: 4500,
+    defaultCapacityKg: 3000,
+    hasTypeBounds: true,
+  });
+  assert.deepEqual(getVehicleCapacityBounds(null), {
+    min: 100,
+    max: 50000,
+    defaultCapacityKg: null,
+    hasTypeBounds: false,
+  });
+
+  // Models with capacities different from type default (but realistic for that type) pass
+  assert.equal(
+    validateVehicleStep1(
+      { ...INITIAL_VEHICLE_FORM, plateNumber: "NBC 1024", model: "Hyundai HD65 Closed Van", type: "vt-van", capacity: "2500" },
+      { vehicleTypes }
+    ),
+    null
+  );
+  assert.equal(
+    validateVehicleSubmit(
+      { ...INITIAL_VEHICLE_FORM, plateNumber: "RFA 2840", model: "Isuzu Giga CYH52 Wing Van", type: "vt-wing", capacity: "15000" },
+      { vehicleTypes }
+    ),
+    null
+  );
+
+  // Unrealistic capacity for the selected type fails cleanly
+  assert.match(
+    validateVehicleStep1(
+      { ...INITIAL_VEHICLE_FORM, plateNumber: "NBC 1024", model: "Hyundai HD65 Closed Van", type: "vt-van", capacity: "15000" },
+      { vehicleTypes }
+    ),
+    /Closed Van.*1,500 kg and 4,500 kg/
+  );
+  assert.match(
+    validateVehicleSubmit(
+      { ...INITIAL_VEHICLE_FORM, plateNumber: "RFA 2840", model: "Isuzu Giga CYH52 Wing Van", type: "vt-wing", capacity: "2000" },
+      { vehicleTypes }
+    ),
+    /10-Wheeler Wing Van.*6,000 kg and 18,000 kg/
+  );
+
+  // Physical floor & ceiling
+  assert.match(validateVehicleCapacity("50"), /at least 100 kg/);
+  assert.match(validateVehicleCapacity("60000"), /cannot exceed 50,000 kg/);
+
+  // Payload cannot exceed (gross weight - tare weight) or gross weight
+  assert.match(
+    validateVehicleStep1(
+      {
+        ...INITIAL_VEHICLE_FORM,
+        plateNumber: "NBC 1024",
+        model: "Hino 300 Series 414 Closed Van",
+        type: "vt-van",
+        capacity: "3500",
+        tareWeightKg: "3000",
+        grossWeightKg: "6000",
+      },
+      { vehicleTypes }
+    ),
+    /exceeds available payload \(3,000 kg/
+  );
+  assert.equal(
+    validateVehicleStep1(
+      {
+        ...INITIAL_VEHICLE_FORM,
+        plateNumber: "NBC 1024",
+        model: "Hino 300 Series 414 Closed Van",
+        type: "vt-van",
+        capacity: "3000",
+        tareWeightKg: "3000",
+        grossWeightKg: "6000",
+      },
+      { vehicleTypes }
+    ),
+    null
   );
 });
 
