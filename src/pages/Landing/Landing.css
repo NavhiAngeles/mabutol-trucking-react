@@ -17,17 +17,11 @@
 }
 
 .landing-page .landing-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 10px;
-  margin-bottom: 16px;
-  background-color: #E8EEF8;
-  border: 1px solid #BFDBFE;
-  border-radius: 6px;
+  margin: 0 0 12px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: #0F2A52;
 }
 
@@ -330,47 +324,74 @@
   border-color: #94A3B8;
 }
 
-/* Pilot Evaluation & Respondent Feedback Section */
-.landing-page .landing-evaluation-section {
+/* Company Profile & Operations Ledger Section */
+.landing-page .landing-company-section {
   background-color: #F1F5F9;
   border-top: 1px solid #E2E8F0;
+  border-bottom: 1px solid #E2E8F0;
   padding: 64px 24px;
 }
 
-.landing-page .landing-evaluation-inner {
+.landing-page .landing-company-inner {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.landing-page .landing-evaluation-header {
-  max-width: 780px;
-  margin-bottom: 32px;
+.landing-page .company-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 36px;
+  align-items: start;
 }
 
-.landing-page .landing-evaluation-header h2 {
+.landing-page .company-story-column h2 {
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 1.2rem + 1vw, 1.875rem);
   font-weight: 800;
   line-height: 1.2;
   color: #0F172A;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 
-.landing-page .landing-evaluation-header p {
+.landing-page .company-story-lead {
   font-size: 15.5px;
+  line-height: 1.65;
+  color: #475569;
+  margin: 0 0 28px;
+  max-width: 600px;
+}
+
+.landing-page .company-pillar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.landing-page .company-pillar-item {
+  padding-top: 18px;
+  border-top: 1px solid #CBD5E1;
+}
+
+.landing-page .company-pillar-item h3 {
+  font-family: var(--font-display);
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0F172A;
+  margin: 0 0 6px;
+}
+
+.landing-page .company-pillar-item p {
+  margin: 0;
+  font-size: 14.5px;
   line-height: 1.6;
   color: #475569;
-  margin: 0;
 }
 
-.landing-page .evaluation-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  gap: 24px;
-  align-items: stretch;
-}
-
-.landing-page .evaluation-card {
+.landing-page .company-ledger-card {
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
@@ -380,227 +401,100 @@
   gap: 20px;
 }
 
-.landing-page .evaluation-card-head {
+.landing-page .company-ledger-head {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   padding-bottom: 14px;
   border-bottom: 1px solid #E2E8F0;
 }
 
-.landing-page .evaluation-card-head h3 {
+.landing-page .company-ledger-head h3 {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 19px;
   font-weight: 700;
   color: #0F172A;
 }
 
-.landing-page .evaluation-scale-note,
-.landing-page .evaluation-disclosure-tag {
+.landing-page .company-ledger-loc {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 600;
   color: #475569;
 }
 
-.landing-page .evaluation-score-list {
-  list-style: none;
+.landing-page .company-ledger-list {
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.landing-page .evaluation-score-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.landing-page .evaluation-score-item.is-overall {
-  padding-top: 14px;
-  border-top: 1px solid #E2E8F0;
-}
-
-.landing-page .evaluation-score-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.landing-page .evaluation-score-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #0F172A;
-}
-
-.landing-page .evaluation-score-item.is-overall .evaluation-score-label {
-  font-weight: 700;
-}
-
-.landing-page .evaluation-score-value {
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #0F2A52;
-  white-space: nowrap;
-}
-
-.landing-page .evaluation-bar-track {
-  width: 100%;
-  height: 10px;
-  background-color: #E2E8F0;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.landing-page .evaluation-bar-fill {
-  height: 100%;
-  background-color: #0F2A52;
-  border-radius: 6px;
-}
-
-.landing-page .evaluation-score-item.is-overall .evaluation-bar-fill {
-  background-color: #1D4ED8;
-}
-
-.landing-page .evaluation-scores-card {
-  justify-content: space-between;
-}
-
-.landing-page .evaluation-scores-main {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.landing-page .evaluation-composition-strip {
-  border-top: 1px solid #E2E8F0;
-  padding-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.landing-page .evaluation-composition-label {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #475569;
-}
-
-.landing-page .evaluation-composition-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.landing-page .evaluation-composition-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background-color: #F1F5F9;
-  border: 1px solid #CBD5E1;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #0F2A52;
-}
-
-.landing-page .evaluation-feedback-card {
-  justify-content: space-between;
-}
-
-.landing-page .evaluation-quote-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.landing-page .evaluation-quote-item {
-  margin: 0;
-  padding: 14px 16px;
-  background-color: #F8FAFC;
-  border: 1px solid #E2E8F0;
-  border-left: 3px solid #1D4ED8;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.landing-page .company-ledger-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.38fr) minmax(0, 0.62fr);
+  gap: 8px 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F1F5F9;
+  align-items: baseline;
 }
 
-.landing-page .evaluation-quote-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+.landing-page .company-ledger-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
-.landing-page .evaluation-quote-verbatim {
-  margin: 0;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.landing-page .evaluation-quote-verbatim p {
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: 700;
-  line-height: 1.5;
-  color: #0F172A;
-}
-
-.landing-page .evaluation-quote-topic {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background-color: #EFF6FF;
-  border: 1px solid #BFDBFE;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: #1E40AF;
-  white-space: nowrap;
-}
-
-.landing-page .evaluation-quote-translation {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: #475569;
-}
-
-.landing-page .evaluation-qa-footnote {
-  margin: 0;
-  padding: 10px 14px;
-  background-color: #F0FDF4;
-  border: 1px solid #BBF7D0;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.landing-page .company-ledger-row dt {
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.45;
-  color: #166534;
+  color: #475569;
 }
 
-.landing-page .evaluation-qa-footnote svg {
-  flex-shrink: 0;
+.landing-page .company-ledger-row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  color: #0F172A;
+}
+
+.landing-page .company-ledger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.landing-page .company-secondary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.landing-page .company-secondary-link:hover {
+  background-color: #F1F5F9;
+  border-color: #94A3B8;
 }
 
 /* Tablet & Small Laptop State (<= 1024px) */
 @media (max-width: 1024px) {
+
   .landing-page .landing-hero-grid,
-  .landing-page .evaluation-grid {
+  .landing-page .company-profile-grid {
     grid-template-columns: 1fr;
     gap: 28px;
   }
@@ -621,14 +515,16 @@
     padding: 36px 16px 40px;
   }
 
-  .landing-page .landing-hero-ctas {
+  .landing-page .landing-hero-ctas,
+  .landing-page .company-ledger-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
   .landing-page .landing-cta-primary,
   .landing-page .landing-cta-secondary,
-  .landing-page .platform-card-link {
+  .landing-page .platform-card-link,
+  .landing-page .company-secondary-link {
     width: 100%;
     justify-content: center;
   }
@@ -654,12 +550,17 @@
   }
 
   .landing-page .landing-platform-section,
-  .landing-page .landing-evaluation-section {
+  .landing-page .landing-company-section {
     padding: 40px 16px;
   }
 
   .landing-page .platform-card,
-  .landing-page .evaluation-card {
+  .landing-page .company-ledger-card {
     padding: 20px;
+  }
+
+  .landing-page .company-ledger-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }

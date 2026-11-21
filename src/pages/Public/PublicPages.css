@@ -749,80 +749,6 @@
   opacity: 0.45;
 }
 
-/* /workflow: Dark-Slate QA Validation Band */
-.public-subpage .workflow-qa-band {
-  background-color: #0F172A;
-  color: #F8FAFC;
-  padding: 52px 24px;
-}
-
-.public-subpage .workflow-qa-band-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.public-subpage .workflow-qa-band-header {
-  max-width: 680px;
-  margin-bottom: 28px;
-}
-
-.public-subpage .workflow-qa-band-header h2 {
-  margin: 0 0 8px;
-  font-size: clamp(1.375rem, 1.15rem + 0.8vw, 1.75rem);
-  font-weight: 800;
-  color: #F8FAFC;
-}
-
-.public-subpage .workflow-qa-band-header p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-  color: #CBD5E1;
-}
-
-.public-subpage .workflow-qa-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-}
-
-.public-subpage .workflow-qa-card-dark {
-  background-color: #1E293B;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.public-subpage .workflow-qa-code-dark {
-  align-self: flex-start;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background-color: #0F2A52;
-  border: 1px solid #1E3A8A;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #DBEAFE;
-}
-
-.public-subpage .workflow-qa-metric-dark {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #F8FAFC;
-}
-
-.public-subpage .workflow-qa-detail-dark {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: #CBD5E1;
-}
-
 /* /mobile-app: Dark Slate Hero Download, QR Card & Interactive Showcase */
 .public-subpage .mobile-download-hero {
   background-color: #0F172A;
@@ -1010,7 +936,6 @@
 
   .public-subpage .services-tier-grid,
   .public-subpage .workflow-explorer,
-  .public-subpage .workflow-qa-grid,
   .public-subpage .role-compare-grid {
     grid-template-columns: 1fr;
   }
@@ -1035,8 +960,7 @@
   }
 
   .public-subpage .public-section,
-  .public-subpage .public-section-muted,
-  .public-subpage .workflow-qa-band {
+  .public-subpage .public-section-muted {
     padding: 36px 16px;
   }
 

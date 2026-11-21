@@ -2,11 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 
 async function loadModule(relativePath, exportNames, dependencies = {}) {
   const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
-  const { code } = await transformWithOxc(source, relativePath, { jsx: { runtime: "classic" } });
+  const { code } = vite.transformWithOxc
+    ? await vite.transformWithOxc(source, relativePath, { jsx: { runtime: "classic" } })
+    : await vite.transformWithEsbuild(source, relativePath, { loader: "jsx", jsx: "transform" });
   const states = [];
   const refs = [];
   const effects = [];
@@ -163,7 +165,7 @@ test("PublicNavbar and PublicFooter render shared routes, location, notice, and 
   assert.match(footerText, /Restricted Portal Notice/);
 });
 
-test("Landing renders redesigned hero, freight photo + corridor pill, 4-column baseline bar, and 2-column platform split", async () => {
+test("Landing renders company-focused hero, freight photo, 4-column baseline bar, About Mabutol Trucking ledger, and 2-column platform split without thesis docs", async () => {
   const ui = await loadModule("./Landing.jsx", ["Landing"], {
     Link: ({ to, children, ...rest }) => ({ type: "a", props: { href: to, ...rest }, children: [children].flat(Infinity) }),
     PublicLayout: ({ children, className }) => ({ type: "public-layout", props: { className }, children: [children].flat(Infinity) }),
@@ -178,12 +180,12 @@ test("Landing renders redesigned hero, freight photo + corridor pill, 4-column b
   assert.equal(text.includes("Track Your Load"), false);
 
   // Hero content & dual CTAs
-  assert.match(text, /PEÑARANDA, NUEVA ECIJA/);
-  assert.match(text, /EST\. 2015/);
+  assert.match(text, /San Josef, Peñaranda, Nueva Ecija/);
+  assert.match(text, /Est\. 2015/);
   assert.match(text, /Dedicated Full Truckload \(FTL\) Freight Dispatch/);
   assert.match(text, /Full Truckload \(FTL\) hauls/);
   assert.equal(/\bltl\b/i.test(text), false);
-  assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/login" && textContent(n).includes("Office Staff Sign In")).length === 1);
+  assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/login" && textContent(n) === "Office Staff Sign In").length === 1);
   assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/mobile-app" && textContent(n) === "Get Mobile APK").length === 1);
 
   // Hero 16:10 truck photograph + bottom-left corridor pill
@@ -196,36 +198,44 @@ test("Landing renders redesigned hero, freight photo + corridor pill, 4-column b
   assert.match(text, /NLEX · SCTEX · TPLEX CORRIDOR/);
   assert.match(text, /GPS & Digital POD Enabled/);
 
-  // Dynamic-safe 4-column company baseline bar
+  // 4-column company baseline bar
   assert.match(text, /Est\. 2015/);
   assert.match(text, /6 Truck Classes/);
-  assert.match(text, /4 User Roles/);
-  assert.match(text, /4\.69 \/ 5\.00/);
-  assert.equal(text.includes("23 Units"), false);
-  assert.equal(text.includes("26 Personnel"), false);
+  assert.match(text, /NLEX · SCTEX · TPLEX/);
+  assert.match(text, /UTC\+8 Digital POD/);
+
+  // Company profile section & structured fact ledger (<dl>)
+  assert.match(text, /About Mabutol Trucking/);
+  assert.match(text, /Rooted in Nueva Ecija since 2015/);
+  assert.match(text, /Coordinated fleet and dispatch operations/);
+  assert.match(text, /Centralized visibility through TANAW/);
+  assert.match(text, /Company & Operations Profile/);
+  assert.equal(collectNodes(tree, (n) => n.type === "dl").length, 1);
+  assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/services").length === 1);
 
   // 2-column platform split preview & compact mobile showcase
   assert.match(text, /Web Dispatch Console/);
   assert.match(text, /TANAW Android App/);
   assert.ok(collectNodes(tree, (n) => n.type === "mobile-showcase" && n.props.variant === "compact").length === 1);
-  assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/workflow").length === 1);
+  assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/workflow").length >= 2);
   assert.ok(collectNodes(tree, (n) => n.type === "a" && n.props.href === "/mobile-app").length >= 2);
 
-  // ISO/IEC 25010 evaluation & verbatim Q21 feedback section
-  assert.match(text, /ISO\/IEC 25010:2023 QUALITY EVALUATION/);
-  assert.match(text, /Functional Suitability/);
-  assert.match(text, /4\.75 \/ 5\.00/);
-  assert.match(text, /Reliability/);
-  assert.match(text, /4\.68 \/ 5\.00/);
-  assert.match(text, /Overall System Mean/);
-  assert.match(text, /18 Staff/);
-  assert.match(text, /5 Drivers/);
-  assert.match(text, /5 IT Evaluators/);
-  assert.match(text, /2 External/);
-  assert.match(text, /Anonymous Survey Export · Q21:/);
-  assert.match(text, /Super bilis mag-response ng UI at maganda\./);
-  assert.match(text, /UI Speed/);
-  assert.match(text, /Button Clarity/);
-  assert.match(text, /Zero Lag/);
-  assert.match(text, /IEEE 829 Functional Verification: 49 \/ 51 Test Cases Passed/);
+  // Capstone/thesis documentation and sensitive internal counts are absent
+  for (const forbidden of [
+    "ISO/IEC 25010",
+    "4.69 / 5.00",
+    "IEEE 829",
+    "TRK-004",
+    "Anonymous Survey Export",
+    "Q21",
+    "23 Units",
+    "26 Personnel",
+    "18 trucks",
+    "5 closed vans",
+    "2 managers",
+    "6 dispatchers",
+    "18 drivers",
+  ]) {
+    assert.equal(text.includes(forbidden), false, `Unexpected string found: ${forbidden}`);
+  }
 });

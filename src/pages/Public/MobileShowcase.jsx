@@ -535,7 +535,7 @@ export default function MobileShowcase({ variant = "full" }) {
         <span className="callout-badge is-telemetry">GPS TELEMETRY</span>
         <strong className="callout-title">Foreground Location Sync</strong>
         <p className="callout-desc">
-          TRK-004 Verified &middot; Live route &amp; ETA updates
+          Live route &amp; ETA updates across Luzon corridors
         </p>
       </aside>
 
@@ -572,7 +572,7 @@ export default function MobileShowcase({ variant = "full" }) {
               <span className="callout-badge is-telemetry">GPS TELEMETRY</span>
               <strong className="callout-title">Foreground Location Sync</strong>
               <p className="callout-desc">
-                TRK-004 Verified &middot; Live route &amp; ETA updates
+                Live route &amp; ETA updates across Luzon corridors
               </p>
             </aside>
 

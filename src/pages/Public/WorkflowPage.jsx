@@ -63,13 +63,13 @@ const WORKFLOW_STAGES = [
     surface: "Driver Android -> MapLibre Console",
     description:
       "Drivers update trip stages (Heading to Pickup, Cargo Loaded, In Transit, Arrived) with foreground GPS coordinates synced to the dispatcher map.",
-    artifactTitle: "Active Trip Telemetry (TRK-004 Verified)",
+    artifactTitle: "Active Trip Telemetry",
     artifactStatus: "In Transit",
     artifactBadgeTone: "transit",
     artifactRows: [
       { label: "Milestone Sequence", value: "Heading to Pickup -> Loaded -> In Transit -> Arrived" },
       { label: "GPS Sync Source", value: "Driver foreground telemetry + MapLibre route" },
-      { label: "Trip Alerts (ALR-001)", value: "Status & arrival notifications pushed" },
+      { label: "Trip Alerts", value: "Status & arrival notifications pushed" },
     ],
   },
   {
@@ -101,24 +101,6 @@ const WORKFLOW_STAGES = [
       { label: "Record Integrity", value: "Immutable shipment ledger & audit trail" },
       { label: "Report Formats", value: "Formatted CSV & PDF operational exports" },
     ],
-  },
-];
-
-const QA_VALIDATION_ITEMS = [
-  {
-    code: "IEEE 829 QA",
-    metric: "49 / 51 Passed",
-    detail: "End-to-end functional test cases verified across web dispatch and mobile client workflows.",
-  },
-  {
-    code: "TRK-004 & ALR-001",
-    metric: "Verified Live",
-    detail: "Foreground driver GPS coordinate updates and status alert notifications validated during pilot testing.",
-  },
-  {
-    code: "ISO/IEC 25010:2023",
-    metric: "4.69 / 5.00 Mean",
-    detail: "Nov 8–10, 2026 evaluation across 30 consented respondents with 98.2% Agree/Strongly Agree ratings.",
   },
 ];
 
@@ -289,27 +271,6 @@ export default function WorkflowPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="workflow-qa-band" aria-labelledby="qa-validation-heading">
-        <div className="workflow-qa-band-inner">
-          <div className="workflow-qa-band-header">
-            <h2 id="qa-validation-heading">Pilot QA &amp; Functional Validation Summary</h2>
-            <p>
-              Verified prior to deployment through structured IEEE 829 functional testing and Mabutol Trucking pilot evaluation.
-            </p>
-          </div>
-
-          <div className="workflow-qa-grid">
-            {QA_VALIDATION_ITEMS.map((item) => (
-              <article key={item.code} className="workflow-qa-card-dark">
-                <span className="workflow-qa-code-dark">{item.code}</span>
-                <strong className="workflow-qa-metric-dark">{item.metric}</strong>
-                <p className="workflow-qa-detail-dark">{item.detail}</p>
-              </article>
-            ))}
           </div>
         </div>
       </section>

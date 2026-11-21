@@ -2,11 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 
 async function loadModule(relativePath, exportNames, dependencies = {}) {
   const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
-  const { code } = await transformWithOxc(source, relativePath, { jsx: { runtime: "classic" } });
+  const { code } = vite.transformWithOxc
+    ? await vite.transformWithOxc(source, relativePath, { jsx: { runtime: "classic" } })
+    : await vite.transformWithEsbuild(source, relativePath, { loader: "jsx", jsx: "transform" });
   const states = [];
   const refs = [];
   let stateIndex = 0;
@@ -116,7 +118,8 @@ test("MobileShowcase switches between anonymized Customer View and Driver View a
   // Floating glassmorphic callout cards
   assert.match(text, /GPS TELEMETRY/);
   assert.match(text, /Foreground Location Sync/);
-  assert.match(text, /TRK-004 Verified/);
+  assert.match(text, /Live route & ETA updates across Luzon corridors/);
+  assert.equal(text.includes("TRK-004"), false);
   assert.match(text, /VERIFIED POD/);
   assert.match(text, /Photo & E-Signature Capture/);
   assert.match(text, /Timestamped in PHT UTC\+8 upon drop-off/);

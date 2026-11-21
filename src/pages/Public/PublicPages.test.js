@@ -2,11 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 
 async function loadPage(relativePath, exportName, dependencies = {}) {
   const source = await readFile(new URL(relativePath, import.meta.url), "utf8");
-  const { code } = await transformWithOxc(source, relativePath, { jsx: { runtime: "classic" } });
+  const { code } = vite.transformWithOxc
+    ? await vite.transformWithOxc(source, relativePath, { jsx: { runtime: "classic" } })
+    : await vite.transformWithEsbuild(source, relativePath, { loader: "jsx", jsx: "transform" });
   const states = [];
   const refs = [];
   let stateIndex = 0;
@@ -129,7 +131,7 @@ test("ServicesPage renders FTL with its own truck image, Return-Load tier, 6 TAN
   );
 });
 
-test("WorkflowPage renders interactive 5-stage inspector, diff ledger, and QA validation band", async () => {
+test("WorkflowPage renders interactive 5-stage inspector and diff ledger without documentation/QA band", async () => {
   const page = await loadPage("./WorkflowPage.jsx", "WorkflowPage");
   let tree = page.render();
   let text = textContent(tree);
@@ -163,15 +165,17 @@ test("WorkflowPage renders interactive 5-stage inspector, diff ledger, and QA va
   tree = page.render();
   text = textContent(tree);
   assert.match(text, /STAGE 03 OF 05/);
-  assert.match(text, /TRK-004 Verified/);
+  assert.match(text, /Active Trip Telemetry/);
 
-  assert.match(text, /49 \/ 51 Passed/);
-  assert.match(text, /TRK-004 & ALR-001/);
-  assert.match(text, /4\.69 \/ 5\.00 Mean/);
+  for (const forbidden of ["TRK-004", "ALR-001", "49 / 51 Passed", "4.69 / 5.00 Mean", "ISO/IEC 25010"]) {
+    assert.equal(text.includes(forbidden), false, `Unexpected documentation string: ${forbidden}`);
+  }
 });
 
 test("MobileAppPage renders APK download link, 144x144 QR code, and Customer/Driver breakdown", async () => {
-  const page = await loadPage("./MobileAppPage.jsx", "MobileAppPage");
+  const page = await loadPage("./MobileAppPage.jsx", "MobileAppPage", {
+    MobileShowcase: () => ({ type: "mobile-showcase", props: {}, children: [] }),
+  });
   const tree = page.render();
   const text = textContent(tree);
 
