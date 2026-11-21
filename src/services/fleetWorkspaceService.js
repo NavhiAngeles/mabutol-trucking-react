@@ -53,17 +53,21 @@ export async function getFleetSnapshot() {
     const assignedTrucks = trips.length
       ? [...new Set(trips.map(trip => trip.truck_id))].map(id => trucksById.get(id)).filter(Boolean)
       : driver.trucks?.length ? driver.trucks : driver.assignedTruck ? [driver.assignedTruck] : [];
-    return { ...driver, assignedTrucks, assignedTruck: assignedTrucks[0] || null,
+    return {
+      ...driver, assignedTrucks, assignedTruck: assignedTrucks[0] || null,
       vehicleAssignmentUnavailable: trips.some(trip => !trucksById.has(trip.truck_id)),
-      location: locations.find(l => l.driver_id === driver.id), reserved: reservedDrivers.has(driver.id) };
+      location: locations.find(l => l.driver_id === driver.id), reserved: reservedDrivers.has(driver.id)
+    };
   });
   return {
     trucks: trucks.map(t => ({ ...t, displayStatus: fleetDisplayStatus(t, deliveries, maintenanceRecords) })), drivers: driverRows,
     maintenanceRecords, vehicleTypes, cargoCategories, truckComplianceRows, driverComplianceRows,
     assignableTrucks: trucks.filter(t => ready.has(t.id) && !t.drivers),
     assignableDrivers: drivers.filter(d => d.status === 'available' && !reservedDrivers.has(d.id) && !assignedDrivers.has(d.id)),
-    kpis: { total: trucks.length, available: ready.size, maintenance: trucks.filter(t => t.status === 'maintenance' || servicing.has(t.id)).length,
-      onTrip: trucks.filter(t => t.status === 'on_trip' || activeTrucks.has(t.id)).length },
+    kpis: {
+      total: trucks.length, available: ready.size, maintenance: trucks.filter(t => t.status === 'maintenance' || servicing.has(t.id)).length,
+      onTrip: trucks.filter(t => t.status === 'on_trip' || activeTrucks.has(t.id)).length
+    },
   };
 }
 export function validateComplianceFile(file) {
@@ -102,10 +106,42 @@ export async function stageComplianceDocuments(documents = []) {
   }
 }
 
+function normalizeDriverPhone(raw) {
+  const value = String(raw ?? '').trim().replace(/[\s()\-–—.]/g, '');
+  let phone = value;
+  if (/^09\d{9}$/.test(value)) {
+    phone = `+63${value.slice(1)}`;
+  } else if (/^9\d{9}$/.test(value)) {
+    phone = `+63${value}`;
+  } else if (/^639\d{9}$/.test(value)) {
+    phone = `+${value}`;
+  } else if (/^\+?6309\d{9}$/.test(value)) {
+    phone = `+63${value.replace(/^\+?630/, '')}`;
+  } else if (/^00630?9\d{9}$/.test(value)) {
+    phone = `+63${value.replace(/^00630?/, '')}`;
+  }
+  if (!/^\+639\d{9}$/.test(phone)) {
+    throw new Error('Enter a valid Philippine mobile number, such as 09XXXXXXXXX or +639XXXXXXXXX.');
+  }
+  return phone;
+}
+
 export async function saveFleetRecord(kind, record, payload, { categories = null, documents = [] } = {}) {
+  let normalizedPayload = payload;
+  if (kind === 'driver' && payload && typeof payload === 'object') {
+    const hasContact = typeof payload.contact_number === 'string' && payload.contact_number.trim() !== '';
+    const hasEmergency = typeof payload.emergency_contact_number === 'string' && payload.emergency_contact_number.trim() !== '';
+    if (hasContact || hasEmergency) {
+      normalizedPayload = {
+        ...payload,
+        ...(hasContact ? { contact_number: normalizeDriverPhone(payload.contact_number) } : {}),
+        ...(hasEmergency ? { emergency_contact_number: normalizeDriverPhone(payload.emergency_contact_number) } : {}),
+      };
+    }
+  }
   const { staged, uploads } = await stageComplianceDocuments(documents);
   try {
-    const data = kind === 'document' ? { ...payload, ...staged[0] } : payload;
+    const data = kind === 'document' ? { ...normalizedPayload, ...staged[0] } : normalizedPayload;
     const { data: id, error } = await supabase.rpc('fleet_save', {
       p_kind: kind, p_id: record?.id || null, p_data: data, p_categories: categories,
       p_documents: kind === 'document' ? [] : staged, p_expected: record?.updated_at || null,
@@ -151,8 +187,14 @@ export async function openComplianceFile(path) {
   return data.signedUrl;
 }
 export async function registerDriver(form, docs = []) {
-  const payload = { full_name: form.fullName.trim(), contact_number: form.contactNumber.trim(), date_hired: form.dateHired || null,
-    emergency_contact_number: form.emergencyContact || null, license_number: form.licenseNumber.trim(), assigned_truck_id: form.assignVehicle || null };
+  const normalizedContact = normalizeDriverPhone(form.contactNumber);
+  const normalizedEmergency = form.emergencyContact?.trim()
+    ? normalizeDriverPhone(form.emergencyContact)
+    : null;
+  const payload = {
+    full_name: form.fullName.trim(), contact_number: normalizedContact, date_hired: form.dateHired || null,
+    emergency_contact_number: normalizedEmergency, license_number: form.licenseNumber.trim(), assigned_truck_id: form.assignVehicle || null
+  };
   if (!!form.email !== !!form.password) throw new Error('Provide both email and password, or leave both empty for a roster-only driver.');
   if (form.password && form.password !== form.confirmPassword) throw new Error('Passwords do not match.');
 
@@ -160,9 +202,11 @@ export async function registerDriver(form, docs = []) {
 
   const { staged, uploads } = await stageComplianceDocuments(docs);
   try {
-    const { data, error } = await supabase.functions.invoke('create-driver-user', { body: {
-      email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), phone: form.contactNumber.trim(), registration: { payload, documents: staged },
-    } });
+    const { data, error } = await supabase.functions.invoke('create-driver-user', {
+      body: {
+        email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), phone: normalizedContact, registration: { payload, documents: staged },
+      }
+    });
     if (error) {
       let message = error.message || 'Unable to create the driver account. Please retry.';
       try { message = (await error.context.json()).error || message; } catch { /* no structured response */ }

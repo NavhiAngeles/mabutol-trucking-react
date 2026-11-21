@@ -223,3 +223,33 @@ test('deleteFleetRecord reports user-friendly pending setup or database errors',
   const errorApi = service({ rpcError: { message: 'Vehicle has an active delivery and cannot be removed.' } });
   await assert.rejects(errorApi.deleteFleetRecord('truck', 'trk-101'), /Vehicle has an active delivery/);
 });
+
+test('registerDriver normalizes 09XX phone variants to +639XXXXXXXXX and rejects malformed numbers before upload', async () => {
+  const api = service();
+  await api.registerDriver({
+    fullName: 'Juan dela Cruz',
+    contactNumber: '0917.123.4567',
+    emergencyContact: '+6309181234567',
+    licenseNumber: 'N01-23-45678',
+  }, []);
+  assert.equal(api.saves[0].args.p_data.contact_number, '+639171234567');
+  assert.equal(api.saves[0].args.p_data.emergency_contact_number, '+639181234567');
+
+  await api.registerDriver({
+    fullName: 'Maria Santos',
+    contactNumber: '00639189876543',
+    licenseNumber: 'N02-99-12345',
+    email: 'maria@tanawlogistics.com',
+    password: 'Password123!',
+    confirmPassword: 'Password123!',
+  }, []);
+  assert.equal(api.functionCalls[0].options.body.phone, '+639189876543');
+  assert.equal(api.functionCalls[0].options.body.registration.payload.contact_number, '+639189876543');
+
+  const rejectApi = service();
+  await assert.rejects(
+    rejectApi.registerDriver({ fullName: 'Bad Phone', contactNumber: '0917123', licenseNumber: 'N03-11-22334' }, [{ doc_type: 'drivers_license', file }]),
+    /Philippine mobile/
+  );
+  assert.equal(rejectApi.uploads.length, 0);
+});

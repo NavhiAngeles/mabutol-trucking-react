@@ -270,9 +270,9 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
                 <>
                   {field('full_name', 'Full name', { required: true })}
                   {field('license_number', 'License number', { required: true })}
-                  {field('contact_number', 'Contact number')}
+                  {field('contact_number', 'Contact number', { placeholder: '09XXXXXXXXX or +639XXXXXXXXX' })}
                   {field('date_hired', 'Date hired', { type: 'date' })}
-                  {field('emergency_contact_number', 'Emergency contact')}
+                  {field('emergency_contact_number', 'Emergency contact', { placeholder: '09XXXXXXXXX or +639XXXXXXXXX' })}
                   {field('status', 'Status', { options: ['available', 'off_duty', 'on_leave', 'inactive', ...(form.status === 'on_trip' ? ['on_trip'] : [])].map(v => [v, v.replaceAll('_', ' ')]) })}
                   {field('notes', 'Notes', { placeholder: 'Internal driver notes' }, 'col-span-full')}
                 </>

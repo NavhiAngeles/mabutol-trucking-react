@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 import {
   INITIAL_DRIVER_FORM,
   INITIAL_VEHICLE_FORM,
   isDriverFormDirty,
   isVehicleFormDirty,
+  normalizeDriverPhone,
   validateDriverStep1,
   validateDriverSubmit,
   validateVehicleStep1,
@@ -16,14 +17,16 @@ import {
 
 async function getFleetComponents() {
   const fileContent = fs.readFileSync(new URL("./FleetDialogs.jsx", import.meta.url), "utf8");
-  const { code } = await transformWithOxc(fileContent, "FleetDialogs.jsx", { jsx: { runtime: "classic" } });
+  const { code } = await (vite.transformWithOxc
+    ? vite.transformWithOxc(fileContent, "FleetDialogs.jsx", { jsx: { runtime: "classic" } })
+    : vite.transformWithEsbuild(fileContent, "FleetDialogs.jsx", { jsx: "transform" }));
   const scope = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: { ...(props || {}), children: children.length === 1 ? children[0] : children } }) },
     useRef: initial => ({ current: initial }),
     useEffect: fn => { fn(); },
     useCallback: fn => fn,
-    useState: initial => [initial, () => {}],
-    document: { activeElement: { focus() {} } },
+    useState: initial => [initial, () => { }],
+    document: { activeElement: { focus() { } } },
   });
   vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/^export /gm, "") + "\nthis.FleetModal = FleetModal;\nthis.FleetDiscardDialog = FleetDiscardDialog;\nthis.FleetDeleteDialog = FleetDeleteDialog;", scope);
   return { FleetModal: scope.FleetModal, FleetDiscardDialog: scope.FleetDiscardDialog, FleetDeleteDialog: scope.FleetDeleteDialog };
@@ -162,8 +165,8 @@ test("FleetModal ignores Escape and backdrop clicks when isBusy is true", async 
   // Escape while busy
   busyModal.props.onKeyDown({
     key: "Escape",
-    preventDefault() {},
-    stopPropagation() {},
+    preventDefault() { },
+    stopPropagation() { },
   });
   assert.equal(closeCount, 0, "Escape while busy should be ignored");
 });
@@ -172,7 +175,7 @@ test("FleetModal traps focus between first and last focusable elements on Tab an
   const { FleetModal } = await getFleetComponents();
   const modal = FleetModal({
     isOpen: true,
-    onRequestClose: () => {},
+    onRequestClose: () => { },
     titleId: "tab-title",
     children: "Focus Test",
   });
@@ -181,7 +184,7 @@ test("FleetModal traps focus between first and last focusable elements on Tab an
   const tabEvent = {
     key: "Tab",
     shiftKey: false,
-    preventDefault() {},
+    preventDefault() { },
   };
   modal.props.onKeyDown(tabEvent);
   assert.ok(true);
@@ -792,7 +795,24 @@ test("FleetViewModel exports deletion operations and tracking states", () => {
   assert.ok(vmSource.includes("removeTruck"), "Must export removeTruck");
   assert.ok(vmSource.includes("removeDriver"), "Must export removeDriver");
   assert.ok(vmSource.includes("isDeleting"), "Must export isDeleting");
-  assert.ok(vmSource.includes("deleteFleetRecord"), "Must import and invoke deleteFleetRecord");
+  assert.equal(vmSource.includes("deleteFleetRecord"), true, "Must import and invoke deleteFleetRecord");
+});
+
+test("driver phone validation normalizes 09XX variants and rejects malformed numbers", () => {
+  for (const valid of ["09171234567", "0917-123-4567", "0917.123.4567", "+63 917 123 4567", "+6309171234567", "00639171234567"]) {
+    assert.equal(normalizeDriverPhone(valid), "+639171234567");
+    assert.equal(validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan", contactNumber: valid, licenseNumber: "N01-23-45678" }), null);
+    assert.equal(validateDriverSubmit({ ...INITIAL_DRIVER_FORM, fullName: "Juan", contactNumber: valid, licenseNumber: "N01-23-45678" }), null);
+  }
+  for (const invalid of ["12345", "0917123", "abc09171234567", "0281234567"]) {
+    assert.equal(normalizeDriverPhone(invalid), null);
+    assert.match(validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan", contactNumber: invalid, licenseNumber: "N01-23-45678" }), /Philippine mobile/);
+    assert.match(validateDriverSubmit({ ...INITIAL_DRIVER_FORM, fullName: "Juan", contactNumber: invalid, licenseNumber: "N01-23-45678" }), /Philippine mobile/);
+  }
+  assert.match(
+    validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan", contactNumber: "09171234567", emergencyContact: "0917123", licenseNumber: "N01-23-45678" }),
+    /emergency contact/i
+  );
 });
 
 

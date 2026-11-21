@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FleetRefreshButton from "./FleetRefreshButton";
 import PaginationFooter from "./PaginationFooter";
 import RowActionMenu from "./RowActionMenu";
 import { SkeletonTableRows } from "../../components/Skeleton/Skeleton";
+import { reverseGeocodeLuzon, toPoint } from "../../services/geocodingService";
+import LocationMapModal from "../../components/LocationPicker/LocationMapModal";
 
 const PAGE_SIZE = 10;
 
@@ -34,6 +36,8 @@ export default function FleetDriversView({
 }) {
   const [driverSearch, setDriverSearch] = useState("");
   const [driverPage, setDriverPage] = useState(1);
+  const [driverPlaces, setDriverPlaces] = useState({});
+  const [selectedMapDriver, setSelectedMapDriver] = useState(null);
 
   const filteredDrivers = drivers.filter((driver) => {
     if (!driverSearch.trim()) return true;
@@ -49,6 +53,42 @@ export default function FleetDriversView({
   const driverPageCount = Math.max(1, Math.ceil(filteredDrivers.length / PAGE_SIZE));
   const currentDriverPage = Math.min(driverPage, driverPageCount);
   const pagedDrivers = filteredDrivers.slice((currentDriverPage - 1) * PAGE_SIZE, currentDriverPage * PAGE_SIZE);
+
+  const pageLocationKey = pagedDrivers
+    .map((driver) => {
+      const pt = toPoint(driver.location?.latitude, driver.location?.longitude);
+      return `${driver.id}:${pt ? `${pt.lat.toFixed(3)},${pt.lng.toFixed(3)}` : ""}`;
+    })
+    .join("|");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    pagedDrivers.forEach((driver) => {
+      const pt = toPoint(driver.location?.latitude, driver.location?.longitude);
+      if (!pt) return;
+      const cacheKey = `${driver.id}:${pt.lat.toFixed(3)},${pt.lng.toFixed(3)}`;
+      reverseGeocodeLuzon(pt.lat, pt.lng, { signal: controller.signal })
+        .then((place) => {
+          if (controller.signal.aborted) return;
+          setDriverPlaces((prev) => ({
+            ...prev,
+            [cacheKey]: {
+              status: place ? "ready" : "unavailable",
+              shortLabel: place?.shortLabel || "",
+            },
+          }));
+        })
+        .catch((err) => {
+          if (err?.name === "AbortError" || controller.signal.aborted) return;
+          setDriverPlaces((prev) => ({
+            ...prev,
+            [cacheKey]: { status: "unavailable", shortLabel: "" },
+          }));
+        });
+    });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageLocationKey]);
 
   return (
     <>
@@ -144,12 +184,34 @@ export default function FleetDriversView({
                       )}
                     </td>
                     <td>
-                      {driver.location ? (
-                        <>
-                          <span>{driver.location.latitude.toFixed(4)}, {driver.location.longitude.toFixed(4)}</span>
-                          <span className="subtext">{driver.location.stale ? "Last known GPS · " : "GPS · "}{new Date(driver.location.recorded_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}</span>
-                        </>
-                      ) : "No GPS report"}
+                      {(() => {
+                        const pt = driver.location
+                          ? toPoint(driver.location.latitude, driver.location.longitude)
+                          : null;
+                        if (!pt) return "No GPS report";
+                        const cacheKey = `${driver.id}:${pt.lat.toFixed(3)},${pt.lng.toFixed(3)}`;
+                        const resolved = driverPlaces[cacheKey];
+                        const placeLabel = !resolved
+                          ? "Locating area…"
+                          : resolved.shortLabel || "GPS recorded";
+                        return (
+                          <div className="fleet-driver-location-cell">
+                            <span className="fleet-driver-place">{placeLabel}</span>
+                            <span className="subtext">
+                              {driver.location.stale ? "Last known GPS · " : "GPS · "}
+                              {new Date(driver.location.recorded_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}
+                            </span>
+                            <button
+                              type="button"
+                              className="fleet-view-map-btn"
+                              aria-label={`View ${driver.full_name} on map`}
+                              onClick={() => setSelectedMapDriver(driver)}
+                            >
+                              View map
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td>
                       {driver.status === "on_route" || driver.status === "on_trip" ? (
@@ -210,6 +272,27 @@ export default function FleetDriversView({
         pageSize={PAGE_SIZE}
         disabled={driversLoading || Boolean(fleet.error)}
         onPageChange={setDriverPage}
+      />
+
+      <LocationMapModal
+        open={Boolean(selectedMapDriver?.location)}
+        onClose={() => setSelectedMapDriver(null)}
+        title={
+          selectedMapDriver
+            ? `${selectedMapDriver.full_name}${
+                selectedMapDriver.assignedTrucks?.[0]?.plate_number
+                  ? ` · ${selectedMapDriver.assignedTrucks[0].plate_number}`
+                  : selectedMapDriver.assignedTruck?.plate_number
+                    ? ` · ${selectedMapDriver.assignedTruck.plate_number}`
+                    : ""
+              }`
+            : ""
+        }
+        subtitle={selectedMapDriver?.contact_number || ""}
+        lat={selectedMapDriver?.location?.latitude}
+        lng={selectedMapDriver?.location?.longitude}
+        recordedAt={selectedMapDriver?.location?.recorded_at}
+        stale={Boolean(selectedMapDriver?.location?.stale)}
       />
     </>
   );

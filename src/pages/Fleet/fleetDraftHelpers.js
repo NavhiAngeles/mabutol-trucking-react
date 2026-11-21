@@ -110,9 +110,32 @@ export function validateTruckHgvSpecs(specs = {}) {
   return null;
 }
 
+export function normalizeDriverPhone(raw) {
+  const value = String(raw ?? '').trim().replace(/[\s()\-–—.]/g, '');
+  let phone = value;
+  if (/^09\d{9}$/.test(value)) {
+    phone = `+63${value.slice(1)}`;
+  } else if (/^9\d{9}$/.test(value)) {
+    phone = `+63${value}`;
+  } else if (/^639\d{9}$/.test(value)) {
+    phone = `+${value}`;
+  } else if (/^\+?6309\d{9}$/.test(value)) {
+    phone = `+63${value.replace(/^\+?630/, '')}`;
+  } else if (/^00630?9\d{9}$/.test(value)) {
+    phone = `+63${value.replace(/^00630?/, '')}`;
+  }
+  return /^\+639\d{9}$/.test(phone) ? phone : null;
+}
+
 export function validateDriverStep1(form) {
   if (!form?.fullName?.trim() || !form?.contactNumber?.trim()) {
     return "Please fill in Full Name and Contact Number before proceeding.";
+  }
+  if (!normalizeDriverPhone(form.contactNumber)) {
+    return "Enter a valid Philippine mobile number (e.g. 0917 123 4567 or +63 917 123 4567).";
+  }
+  if (form?.emergencyContact?.trim() && !normalizeDriverPhone(form.emergencyContact)) {
+    return "Enter a valid Philippine mobile number for the emergency contact (e.g. 0917 123 4567 or +63 917 123 4567).";
   }
   if (!form?.licenseNumber?.trim()) {
     return "Please provide the License Number before proceeding.";
@@ -123,6 +146,12 @@ export function validateDriverStep1(form) {
 export function validateDriverSubmit(form) {
   if (!form?.fullName?.trim() || !form?.contactNumber?.trim()) {
     return "Please provide the driver's full name and contact number.";
+  }
+  if (!normalizeDriverPhone(form.contactNumber)) {
+    return "Enter a valid Philippine mobile number (e.g. 0917 123 4567 or +63 917 123 4567).";
+  }
+  if (form?.emergencyContact?.trim() && !normalizeDriverPhone(form.emergencyContact)) {
+    return "Enter a valid Philippine mobile number for the emergency contact (e.g. 0917 123 4567 or +63 917 123 4567).";
   }
   if (!form?.licenseNumber?.trim()) {
     return "Please provide the professional license number.";

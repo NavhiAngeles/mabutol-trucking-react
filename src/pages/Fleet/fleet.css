@@ -2967,3 +2967,46 @@ MODAL STRUCTURAL CONFIGURATIONS
   font-variant-numeric: tabular-nums;
   color: #475569;
 }
+
+.fleet-page .fleet-driver-location-cell {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.fleet-page .fleet-driver-place {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  line-height: 1.35;
+}
+
+.fleet-page button.fleet-view-map-btn {
+  min-height: 34px;
+  padding: 5px 10px;
+  margin-top: 2px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: #0F172A;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fleet-page button.fleet-view-map-btn:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+}
+
+.fleet-page button.fleet-view-map-btn:focus-visible {
+  outline: 2px solid #1D4ED8;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .fleet-page button.fleet-view-map-btn {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+}
