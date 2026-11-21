@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
 import * as vite from "vite";
 import {
   resolveCity,
@@ -88,8 +87,6 @@ async function fixture(createCustomerMock, { confirm = () => true, existingCusto
   vm.createContext(scope);
   const acPath = new URL("../../components/PhAddressAutocomplete/PhAddressAutocomplete.jsx", import.meta.url);
   const dialogPath = new URL("./CustomerAddDialog.jsx", import.meta.url);
-  const { code: acCode } = await transformWithOxc(await readFile(acPath, "utf8"), acPath.pathname, { jsx: { runtime: "classic" } });
-  const { code: dialogCode } = await transformWithOxc(await readFile(dialogPath, "utf8"), dialogPath.pathname, { jsx: { runtime: "classic" } });
   const { code: acCode } = await transformJsx(await readFile(acPath, "utf8"), acPath.pathname);
   const { code: dialogCode } = await transformJsx(await readFile(dialogPath, "utf8"), dialogPath.pathname);
 
