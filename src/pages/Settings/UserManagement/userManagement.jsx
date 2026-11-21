@@ -332,7 +332,12 @@ function OfficeUsers() {
     try {
       const phone = await userManagementApi.recoveryPhone(row);
       if (mounted.current) {
-        setForm(previous => ({ ...previous, recoveryPhone: phone || '', expectedPhone: phone }));
+        setForm(previous => ({
+          ...previous,
+          recoveryPhone: phone || row?.phone || '',
+          expectedPhone: phone,
+          recoveryPrefilledFromContact: !phone && Boolean(row?.phone),
+        }));
         setRecoveryLoaded(true);
       }
     } catch (cause) {
@@ -1396,13 +1401,24 @@ function OfficeUsers() {
                       </p>
                     )}
                     {recoveryLoaded && (
-                      <div className="space-y-1.5">
-                        <label
-                          htmlFor="um-recovery-phone-input"
-                          className="text-sm font-medium text-foreground"
-                        >
-                          Recovery Mobile Number
-                        </label>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label
+                            htmlFor="um-recovery-phone-input"
+                            className="text-sm font-medium text-foreground"
+                          >
+                            Recovery Mobile Number
+                          </label>
+                          {form.expectedPhone ? (
+                            <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
+                              Enrolled in Auth
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800">
+                              Not yet enrolled
+                            </Badge>
+                          )}
+                        </div>
                         <Input
                           id="um-recovery-phone-input"
                           type="tel"
@@ -1415,10 +1431,17 @@ function OfficeUsers() {
                             setForm({ ...form, recoveryPhone: event.target.value })
                           }
                         />
+                        {!form.expectedPhone && (
+                          <p className="text-xs text-amber-800">
+                            {form.recoveryPrefilledFromContact
+                              ? 'Pre-filled from this user’s profile contact number. Click Save Changes to enroll it for SMS password recovery.'
+                              : 'No recovery phone is enrolled yet. Enter a Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX) and save to enable SMS recovery.'}
+                          </p>
+                        )}
                       </div>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      This changes the Auth recovery number. The profile’s contact number remains separate. No SMS is sent when an administrator registers a number; possession is checked during recovery.
+                      Accepts <code>09XXXXXXXXX</code> or <code>+639XXXXXXXXX</code> (<code>09XX</code> numbers are saved as <code>+639XX</code>). This changes the Auth recovery number; the profile’s contact number remains separate. No SMS is sent when an administrator registers a number; possession is checked during recovery.
                     </p>
                   </div>
                 )}

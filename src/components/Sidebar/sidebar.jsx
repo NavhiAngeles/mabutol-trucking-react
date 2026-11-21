@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabaseClient";
+import { useSidebarBadges } from "../../hooks/useSidebarBadges";
+import { getGroupBadgeTotal } from "../../services/sidebarBadgeService";
 import OfficeHelpDialog from "./OfficeHelpDialog";
 
 const SUBMENU_SVG_PROPS = {
@@ -35,6 +37,7 @@ const FLEET_SUBMENU = [
   {
     path: "/fleet/vehicles",
     label: "Vehicles",
+    badgeKey: "fleet_vehicles",
     icon: (
       <svg {...SUBMENU_SVG_PROPS}>
         <rect x="1" y="3" width="15" height="13" rx="2" />
@@ -47,6 +50,7 @@ const FLEET_SUBMENU = [
   {
     path: "/fleet/drivers",
     label: "Drivers",
+    badgeKey: "fleet_drivers",
     icon: (
       <svg {...SUBMENU_SVG_PROPS}>
         <circle cx="12" cy="8" r="4" />
@@ -57,6 +61,7 @@ const FLEET_SUBMENU = [
   {
     path: "/fleet/maintenance",
     label: "Maintenance",
+    badgeKey: "fleet_maintenance",
     icon: (
       <svg {...SUBMENU_SVG_PROPS}>
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -164,6 +169,7 @@ const SETTINGS_SUBMENU = [
   {
     path: "/settings/userManagement",
     label: "User management",
+    badgeKey: "settings_users",
     icon: (
       <svg {...SUBMENU_SVG_PROPS}>
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -185,14 +191,27 @@ const SETTINGS_SUBMENU = [
   },
 ];
 
+function renderBadge(count) {
+  if (!count || count <= 0) return null;
+  return (
+    <span className="nav-badge" aria-label={`${count} new`}>
+      {count > 99 ? "99+" : String(count)}
+    </span>
+  );
+}
+
 export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClose }) {
   const navigate = useNavigate();
-  const { clearAuth } = useAuth();
+  const { user, clearAuth } = useAuth();
   const logoutInFlight = useRef(false);
   const logoutModalRef = useRef(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const location = useLocation();
+  const pathname = location.pathname.toLowerCase();
+  const badgeCounts = useSidebarBadges({ userId: user?.id, pathname });
+  const fleetBadgeTotal = getGroupBadgeTotal(badgeCounts, "fleet");
+  const settingsBadgeTotal = getGroupBadgeTotal(badgeCounts, "settings");
 
   const handleNav = (path) => {
     navigate(path);
@@ -201,7 +220,6 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
     }
   };
 
-  const pathname = location.pathname.toLowerCase();
   const isActive = (path) => pathname === path.toLowerCase();
   const isParentActive = (prefix) => pathname.startsWith(prefix.toLowerCase());
 
@@ -352,6 +370,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               <circle cx="12" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
             </svg>
             Shipments
+            {renderBadge(badgeCounts.shipments)}
           </button>
 
           {/* Fleet Management Dropdown */}
@@ -372,6 +391,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                 <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
               Fleet Management
+              {!currentFleetOpen && renderBadge(fleetBadgeTotal)}
               <svg
                 className={`nav-chevron ${currentFleetOpen ? "open" : ""}`}
                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -393,6 +413,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                   >
                     {item.icon}
                     {item.label}
+                    {item.badgeKey && renderBadge(badgeCounts[item.badgeKey])}
                   </button>
                 ))}
               </div>
@@ -410,6 +431,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             Customers
+            {renderBadge(badgeCounts.customers)}
           </button>
 
           <button type="button"
@@ -420,6 +442,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
               <path d="M9 12l2 2 4-4" /><path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z" />
             </svg>
             Compliance
+            {renderBadge(badgeCounts.compliance)}
           </button>
 
           <div className="sidebar-nav-divider" role="separator" />
@@ -485,6 +508,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0 1.51 1z" />
               </svg>
               Settings
+              {!currentSettingsOpen && renderBadge(settingsBadgeTotal)}
               <svg
                 className={`nav-chevron ${currentSettingsOpen ? "open" : ""}`}
                 xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -506,6 +530,7 @@ export default function Sidebar({ id = "main-sidebar", mobileOpen = false, onClo
                   >
                     {item.icon}
                     {item.label}
+                    {item.badgeKey && renderBadge(badgeCounts[item.badgeKey])}
                   </button>
                 ))}
               </div>

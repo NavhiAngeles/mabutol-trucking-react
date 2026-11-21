@@ -63,12 +63,17 @@ async function screen(api = {}) {
     button: label => find(render(), n => n.type === 'button' && textOf(n).includes(label))[0],
   };
 }
-test('renders persisted disabled preferences, accessible switches and unavailable external channels', async () => {
+test('renders persisted disabled preferences, accessible switches and active In-app channel without unconfigured external toggles', async () => {
   const data = snapshot(); data.preferences.delay = false;
   const ui = await screen({ load: async () => data });
   assert.equal(ui.toggle('Delays & Incidents').props['aria-checked'], false);
-  for (const label of ['Email Notifications', 'Push Notifications', 'SMS Alerts']) assert.equal(ui.toggle(label).props.disabled, true);
-  assert.ok(JSON.stringify(ui.render()).includes('Off-route, cold-chain'));
+  const rendered = JSON.stringify(ui.render());
+  assert.ok(rendered.includes('In-app Notifications'));
+  assert.ok(rendered.includes('Available'));
+  for (const label of ['Email Notifications', 'Push Notifications', 'SMS Alerts']) {
+    assert.equal(ui.toggle(label), undefined);
+  }
+  assert.ok(rendered.includes('Off-route, cold-chain'));
 });
 test('save waits for confirmation and deduplicates rapid clicks', async () => {
   let resolve, calls = 0;

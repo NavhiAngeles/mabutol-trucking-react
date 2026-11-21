@@ -206,7 +206,7 @@ function NotificationPreferences() {
                 <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
                 <CardTitle>Delivery Channels</CardTitle>
               </div>
-              <CardDescription>Configured notification endpoints for this account.</CardDescription>
+              <CardDescription>Active notification channel for this account.</CardDescription>
             </CardHeader>
             <CardContent className="pt-2">
               <div className="toggle-row">
@@ -218,24 +218,6 @@ function NotificationPreferences() {
                   Available
                 </Badge>
               </div>
-              {['Email Notifications', 'Push Notifications', 'SMS Alerts'].map(label => (
-                <div className="toggle-row" key={label}>
-                  <div>
-                    <strong className="text-sm font-semibold text-foreground">{label}</strong>
-                    <p className="text-xs text-muted-foreground">Delivery is not configured.</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={false}
-                    aria-label={label}
-                    className="toggle inactive"
-                    disabled
-                  >
-                    <span className="toggle-circle" />
-                  </button>
-                </div>
-              ))}
             </CardContent>
           </Card>
 

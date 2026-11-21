@@ -1,13 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 import { snapshotStatus } from '../../services/snapshotStatus.js';
+
+const sidebarBadgeSource = readFileSync(new URL('../../services/sidebarBadgeService.js', import.meta.url), 'utf8')
+  .replace(/^import .*;$/gm, '')
+  .replace(/^export const /gm, 'const ')
+  .replace(/^export async function /gm, 'async function ')
+  .replace(/^export function /gm, 'function ');
+const sidebarBadgeContext = vm.createContext({ supabase: {}, Promise, Set, Object, Array, Number, String, Date, Math, JSON });
+vm.runInContext(`${sidebarBadgeSource}\nthis.getGroupBadgeTotal = getGroupBadgeTotal;`, sidebarBadgeContext);
+const { getGroupBadgeTotal } = sidebarBadgeContext;
 
 async function component(path, name, dependencies) {
   const source = await readFile(new URL(path, import.meta.url), "utf8");
-  const { code } = await transformWithOxc(source, path, { jsx: { runtime: "classic" } });
+  const { code } = vite.transformWithOxc
+    ? await vite.transformWithOxc(source, path, { jsx: { runtime: "classic" } })
+    : await vite.transformWithEsbuild(source, path, { loader: "jsx", jsx: "transform" });
   const states = [], refs = [], effects = [], callbacks = [];
   let stateIndex = 0, refIndex = 0, callbackIndex = 0;
   const scope = {
@@ -41,7 +53,7 @@ async function component(path, name, dependencies) {
     ...dependencies,
   };
   vm.createContext(scope);
-  vm.runInContext(code.replace(/^import .*;$/gm, "").replace(/export default function/g, "function").replace(/export function/g, "function").replace(/export const/g, "const").replace(/^export default .*;$/gm, "").replaceAll("import.meta.env.VITE_MAPTILER_API_KEY", '"test-key"') + `\nthis.Component=${name};`, scope);
+  vm.runInContext(code.replace(/^import[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, "").replace(/^import\s+['"][^'"]+['"];?\s*$/gm, "").replace(/export default function/g, "function").replace(/export function/g, "function").replace(/export const/g, "const").replace(/^export default .*;$/gm, "").replaceAll("import.meta.env.VITE_MAPTILER_API_KEY", '"test-key"') + `\nthis.Component=${name};`, scope);
   return {
     effects,
     refs,
@@ -67,6 +79,8 @@ test('sidebar actions are native buttons and disclosures expose expanded state a
     useLocation: () => ({ pathname: '/dashboard' }),
     useAuth: () => ({ clearAuth() { } }),
     supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({}),
+    getGroupBadgeTotal,
   });
   const actions = () => find(ui.render(), n => typeof n.props.onClick === 'function');
   const named = label => actions().find(n => n.children.includes(label));
@@ -96,6 +110,8 @@ test('sidebar automatically expands matching submenu on active route and synchro
     useLocation: () => ({ pathname: currentPath }),
     useAuth: () => ({ clearAuth() {} }),
     supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({}),
+    getGroupBadgeTotal,
   });
 
   const actions = () => find(ui.render(), n => typeof n.props.onClick === 'function');
@@ -132,6 +148,8 @@ test('help button opens the Office Help & Operations Guide dialog and closing re
     useLocation: () => ({ pathname: '/dashboard' }),
     useAuth: () => ({ clearAuth() { } }),
     supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({}),
+    getGroupBadgeTotal,
     OfficeHelpDialog: HelpStub,
   });
   const help = () => find(ui.render(), n => n.props.className?.includes('sidebar-help-button'))[0];
@@ -247,6 +265,8 @@ async function sidebar(signOut) {
     useLocation: () => ({ pathname: "/dashboard" }),
     useAuth: () => ({ clearAuth: () => events.push(["clear"]) }),
     supabase: { auth: { signOut } },
+    useSidebarBadges: () => ({}),
+    getGroupBadgeTotal,
   });
   find(ui.render(), node => node.props.className === "nav-item logout-button")[0].props.onClick();
   const confirm = () => find(ui.render(), node => node.props.className === "btn-modal-yes")[0];
@@ -488,6 +508,8 @@ test('sidebar supports mobile drawer props: reflects mobileOpen and invokes onCl
     useLocation: () => ({ pathname: '/dashboard' }),
     useAuth: () => ({ clearAuth() {} }),
     supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({}),
+    getGroupBadgeTotal,
   });
 
   // 1. Render closed without onClose prop
@@ -515,4 +537,91 @@ test('sidebar supports mobile drawer props: reflects mobileOpen and invokes onCl
   shipmentsBtn.props.onClick();
   assert.equal(closedCount, 2, 'Navigating should invoke onClose');
   assert.deepEqual(routes, ['/shipment']);
+});
+
+test('sidebar renders circular count badges for modules and caps counts above 99 at 99+', async () => {
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => () => {},
+    useLocation: () => ({ pathname: '/dashboard' }),
+    useAuth: () => ({ user: { id: 'office-1' }, clearAuth() {} }),
+    supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({ shipments: 2, customers: 120, compliance: 0 }),
+    getGroupBadgeTotal,
+  });
+
+  const tree = ui.render();
+  const named = label => find(tree, n => n.type === 'button' && n.children.includes(label))[0];
+  const badgeIn = button => find(button, n => n.props.className === 'nav-badge')[0];
+
+  const shipmentsBadge = badgeIn(named('Shipments'));
+  assert.ok(shipmentsBadge);
+  assert.equal(textOf(shipmentsBadge), '2');
+  assert.equal(shipmentsBadge.props['aria-label'], '2 new');
+
+  const customersBadge = badgeIn(named('Customers'));
+  assert.ok(customersBadge);
+  assert.equal(textOf(customersBadge), '99+');
+  assert.equal(customersBadge.props['aria-label'], '120 new');
+
+  assert.equal(badgeIn(named('Compliance')), undefined);
+});
+
+test('Fleet Management displays combined badge total when collapsed and splits counts across subtabs when expanded', async () => {
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => () => {},
+    useLocation: () => ({ pathname: '/dashboard' }),
+    useAuth: () => ({ user: { id: 'office-1' }, clearAuth() {} }),
+    supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({ fleet_vehicles: 2, fleet_drivers: 1, fleet_maintenance: 2 }),
+    getGroupBadgeTotal,
+  });
+
+  const named = (tree, label) => find(tree, n => n.type === 'button' && n.children.includes(label))[0];
+  const badgeIn = button => find(button, n => n.props.className === 'nav-badge')[0];
+
+  const collapsedTree = ui.render();
+  const collapsedFleetBtn = named(collapsedTree, 'Fleet Management');
+  assert.equal(collapsedFleetBtn.props['aria-expanded'], false);
+  assert.equal(textOf(badgeIn(collapsedFleetBtn)), '5');
+  assert.equal(find(collapsedTree, n => n.props.id === 'sidebar-fleet').length, 0);
+
+  collapsedFleetBtn.props.onClick();
+
+  const expandedTree = ui.render();
+  const expandedFleetBtn = named(expandedTree, 'Fleet Management');
+  assert.equal(expandedFleetBtn.props['aria-expanded'], true);
+  assert.equal(badgeIn(expandedFleetBtn), undefined);
+  assert.equal(badgeIn(named(expandedTree, 'Overview')), undefined);
+  assert.equal(textOf(badgeIn(named(expandedTree, 'Vehicles'))), '2');
+  assert.equal(textOf(badgeIn(named(expandedTree, 'Drivers'))), '1');
+  assert.equal(textOf(badgeIn(named(expandedTree, 'Maintenance'))), '2');
+});
+
+test('Settings displays User management badge total when collapsed and moves it to User management when expanded', async () => {
+  const ui = await component('./sidebar.jsx', 'Sidebar', {
+    useNavigate: () => () => {},
+    useLocation: () => ({ pathname: '/dashboard' }),
+    useAuth: () => ({ user: { id: 'office-1' }, clearAuth() {} }),
+    supabase: { auth: { signOut: async () => ({}) } },
+    useSidebarBadges: () => ({ settings_users: 3 }),
+    getGroupBadgeTotal,
+  });
+
+  const named = (tree, label) => find(tree, n => n.type === 'button' && n.children.includes(label))[0];
+  const badgeIn = button => find(button, n => n.props.className === 'nav-badge')[0];
+
+  const collapsedTree = ui.render();
+  const collapsedSettingsBtn = named(collapsedTree, 'Settings');
+  assert.equal(collapsedSettingsBtn.props['aria-expanded'], false);
+  assert.equal(textOf(badgeIn(collapsedSettingsBtn)), '3');
+
+  collapsedSettingsBtn.props.onClick();
+
+  const expandedTree = ui.render();
+  const expandedSettingsBtn = named(expandedTree, 'Settings');
+  assert.equal(expandedSettingsBtn.props['aria-expanded'], true);
+  assert.equal(badgeIn(expandedSettingsBtn), undefined);
+  assert.equal(textOf(badgeIn(named(expandedTree, 'User management'))), '3');
+  assert.equal(badgeIn(named(expandedTree, 'Notifications')), undefined);
+  assert.equal(badgeIn(named(expandedTree, 'Security')), undefined);
 });

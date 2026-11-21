@@ -144,6 +144,28 @@
   transform: rotate(180deg);
 }
 
+.nav-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--color-accent-cobalt, #1D4ED8);
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.nav-badge + .nav-chevron {
+  margin-left: 0;
+}
+
 .nav-group {
   display: flex;
   flex-direction: column;
