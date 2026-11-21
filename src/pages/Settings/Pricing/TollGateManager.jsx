@@ -16,8 +16,13 @@ import {
   updateTollGate,
   deleteTollGate,
   getCurrentPricingUser,
+  syncLuzonStandardTollGates,
 } from "../../../services/tollGateService";
-import { VERIFIED_TOLL_PRESETS, cleanGateName } from "../../../services/tollPricing";
+import {
+  VERIFIED_TOLL_PRESETS,
+  buildLuzonStandardTollRows,
+  cleanGateName,
+} from "../../../services/tollPricing";
 import { SkeletonTableRows } from "../../../components/Skeleton/Skeleton";
 import {
   Card,
@@ -152,6 +157,25 @@ export default function TollGateManager() {
       );
     });
   }, [tolls, searchQuery]);
+
+  const handleApplyLuzonStandardTolls = async () => {
+    if (!isAdmin || saving || loading) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const standardRows = buildLuzonStandardTollRows(VERIFIED_TOLL_PRESETS);
+      const summary = await syncLuzonStandardTollGates(standardRows, tolls);
+      await loadTolls();
+      setSuccess(
+        `Applied Luzon FTL standard toll rates (${summary.updated} updated, ${summary.inserted} added, ${summary.unchanged} already up to date).`
+      );
+    } catch (err) {
+      setError(err.message || "Unable to apply Luzon FTL standard toll rates.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const openAddModal = (event) => {
     if (!isAdmin) return;
@@ -529,7 +553,16 @@ export default function TollGateManager() {
           Expressway toll tariffs used for automated route calculation.
         </CardDescription>
         {isAdmin && (
-          <CardAction>
+          <CardAction className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleApplyLuzonStandardTolls}
+              disabled={saving || loading}
+            >
+              Apply Luzon FTL Standard
+            </Button>
             <Button
               type="button"
               size="sm"

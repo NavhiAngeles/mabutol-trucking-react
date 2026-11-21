@@ -184,7 +184,46 @@ export const VERIFIED_TOLL_PRESETS = [
     description: "Muntinlupa-Cavite Expressway: Susana Heights SLEX to Daang Hari",
   },
 
-  // ── North Luzon Corridors ────────────────────────────────────────────────
+  // ── North & Central Luzon Corridors ──────────────────────────────────────
+  {
+    gate_name: "Pulilan to Balintawak",
+    highway: "NLEX",
+    class2_fee: 436,
+    class3_fee: 523,
+    entry_lat: 14.862450,
+    entry_lng: 120.858766,
+    exit_lat: 14.660560,
+    exit_lng: 121.000110,
+    bidirectional: true,
+    pricing_scope: "entry_exit",
+    description: "NLEX: Pulilan (Nueva Ecija / Bulacan) to Balintawak Toll Plaza",
+  },
+  {
+    gate_name: "Sta. Rita to Balintawak",
+    highway: "NLEX",
+    class2_fee: 394,
+    class3_fee: 473,
+    entry_lat: 14.849200,
+    entry_lng: 120.880500,
+    exit_lat: 14.660560,
+    exit_lng: 121.000110,
+    bidirectional: true,
+    pricing_scope: "entry_exit",
+    description: "NLEX: Sta. Rita (Guiguinto / Maharlika Hwy) to Balintawak Toll Plaza",
+  },
+  {
+    gate_name: "San Fernando to Balintawak",
+    highway: "NLEX",
+    class2_fee: 636,
+    class3_fee: 763,
+    entry_lat: 15.052800,
+    entry_lng: 120.699700,
+    exit_lat: 14.660560,
+    exit_lng: 121.000110,
+    bidirectional: true,
+    pricing_scope: "entry_exit",
+    description: "NLEX: San Fernando (Pampanga) to Balintawak Toll Plaza",
+  },
   {
     gate_name: "Balagtas to Balintawak",
     highway: "NLEX",
@@ -264,6 +303,19 @@ export const VERIFIED_TOLL_PRESETS = [
     description: "SCTEX: Dinalupihan Bataan to Tarlac La Paz",
   },
   {
+    gate_name: "Tipo (Subic) to Tarlac (La Paz)",
+    highway: "SCTEX",
+    class2_fee: 651,
+    class3_fee: 976,
+    entry_lat: 14.843500,
+    entry_lng: 120.327800,
+    exit_lat: 15.481536,
+    exit_lng: 120.678335,
+    bidirectional: true,
+    pricing_scope: "entry_exit",
+    description: "SCTEX: Subic Tipo Interchange to Tarlac La Paz",
+  },
+  {
     gate_name: "Tarlac (La Paz) to Rosario (Baguio)",
     highway: "TPLEX",
     class2_fee: 778,
@@ -295,6 +347,30 @@ export const VERIFIED_TOLL_PRESETS = [
     description: "NLEX Harbor Link: Karuhatan to C3 / Navotas R10",
   },
 ];
+
+export function buildLuzonStandardTollRows(presets = VERIFIED_TOLL_PRESETS) {
+  const rows = [];
+  for (const preset of presets) {
+    for (const [vehicle_class, fee] of [
+      ['Class 2', preset.class2_fee],
+      ['Class 3', preset.class3_fee],
+    ]) {
+      rows.push({
+        gate_name: preset.gate_name,
+        highway: preset.highway,
+        vehicle_class,
+        fee,
+        pricing_scope: preset.pricing_scope || 'entry_exit',
+        entry_lat: preset.entry_lat ?? null,
+        entry_lng: preset.entry_lng ?? null,
+        exit_lat: preset.exit_lat ?? null,
+        exit_lng: preset.exit_lng ?? null,
+        bidirectional: preset.bidirectional === true,
+      });
+    }
+  }
+  return rows;
+}
 
 export function automaticTollQuote(usesTollRoad, vehicle, geometry, rates) {
   const vehicleClass = vehicleTollClass(vehicle);

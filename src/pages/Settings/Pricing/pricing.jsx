@@ -15,6 +15,7 @@ import {
   fetchPricingData,
   savePricing,
 } from "../../../services/pricingService";
+import { buildLuzonFtlPricingPreset } from "../../../services/luzonFtlRates";
 import { getCurrentPricingUser } from "../../../services/tollGateService";
 import TollGateManager from "./TollGateManager";
 import CurrencyRateInput from "./CurrencyRateInput";
@@ -338,6 +339,19 @@ export default function Pricing() {
     }));
 
     setSuccess("");
+  };
+
+  const handleApplyLuzonFtlPreset = () => {
+    if (!isAdmin || saving || !vehicles.length) return;
+    const preset = buildLuzonFtlPricingPreset(vehicles);
+    setRates((previous) => ({ ...previous, ...preset.rates }));
+    setDeadhead((previous) => ({ ...previous, ...preset.deadhead }));
+    setVehicleRules((previous) => ({ ...previous, ...preset.vehicleRules }));
+    setFees((previous) => ({ ...previous, ...preset.fees }));
+    setError("");
+    setSuccess(
+      "Loaded Luzon FTL standard truck rates into the form. Review the changes and click Save to apply."
+    );
   };
 
   const handleDiscard = () => {
@@ -892,16 +906,32 @@ export default function Pricing() {
                 {/* VEHICLE LINEHAUL & DEADHEAD RATES */}
                 <Card className="gap-0 rounded-xl border border-border/80 py-0 shadow-xs ring-0">
                   <CardHeader className="border-b border-border/60 px-6 py-5">
-                    <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
-                      <Truck
-                        className="size-4 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <span>Vehicle Linehaul &amp; Deadhead Rates</span>
-                    </CardTitle>
-                    <CardDescription className="text-sm text-muted-foreground">
-                      Per-kilometer linehaul tariffs, free empty deadhead thresholds, and mobilization surcharge rates per kilometer.
-                    </CardDescription>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <CardTitle className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+                          <Truck
+                            className="size-4 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                          <span>Vehicle Linehaul &amp; Deadhead Rates</span>
+                        </CardTitle>
+                        <CardDescription className="text-sm text-muted-foreground">
+                          Per-kilometer linehaul tariffs, free empty deadhead thresholds, and mobilization surcharge rates per kilometer.
+                        </CardDescription>
+                      </div>
+                      {isAdmin && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleApplyLuzonFtlPreset}
+                          disabled={saving || loading || !vehicles.length}
+                          className="shrink-0"
+                        >
+                          Apply Luzon FTL Standard
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
 
                   <CardContent className="px-0 py-0">

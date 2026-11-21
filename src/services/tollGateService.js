@@ -113,3 +113,64 @@ export async function deleteTollGate(id) {
     throw new Error("Toll gate could not be deleted.");
   }
 }
+
+const normalizeName = (value) =>
+  String(value || "")
+    .replace(/\s*(\[(?:PDF reference|Stage \d+ matrix|\d+ matrix|[A-Za-z0-9_ -]+ matrix)\]|\((?:standalone )?fixed system\))\s*$/gi, "")
+    .trim()
+    .toLowerCase();
+
+const coordsClose = (a, b) =>
+  a.entry_lat != null &&
+  b.entry_lat != null &&
+  Math.abs(Number(a.entry_lat) - Number(b.entry_lat)) < 0.005 &&
+  Math.abs(Number(a.entry_lng) - Number(b.entry_lng)) < 0.005 &&
+  Math.abs(Number(a.exit_lat) - Number(b.exit_lat)) < 0.005 &&
+  Math.abs(Number(a.exit_lng) - Number(b.exit_lng)) < 0.005;
+
+export async function syncLuzonStandardTollGates(standardRows, existingRows = null, ops = {}) {
+  const fetchFn = ops.getTollGates || getTollGates;
+  const addFn = ops.addTollGate || addTollGate;
+  const updateFn = ops.updateTollGate || updateTollGate;
+  const current = Array.isArray(existingRows) ? existingRows : await fetchFn();
+
+  let inserted = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const row of standardRows) {
+    const targetName = normalizeName(row.gate_name);
+    const match = current.find(
+      (item) =>
+        String(item.highway || "").trim().toUpperCase() === row.highway &&
+        String(item.vehicle_class || "").trim() === row.vehicle_class &&
+        (normalizeName(item.gate_name) === targetName || coordsClose(item, row))
+    );
+
+    if (!match) {
+      await addFn(row);
+      inserted += 1;
+      continue;
+    }
+
+    const sameFee = Number(match.fee) === Number(row.fee);
+    const sameScope = (match.pricing_scope || "entry_exit") === (row.pricing_scope || "entry_exit");
+    const sameBidirectional = Boolean(match.bidirectional) === Boolean(row.bidirectional);
+    const sameCoords =
+      (row.entry_lat == null && match.entry_lat == null) ||
+      (row.entry_lat != null &&
+        Number(match.entry_lat) === Number(row.entry_lat) &&
+        Number(match.entry_lng) === Number(row.entry_lng) &&
+        Number(match.exit_lat) === Number(row.exit_lat) &&
+        Number(match.exit_lng) === Number(row.exit_lng));
+
+    if (sameFee && sameScope && sameBidirectional && sameCoords) {
+      unchanged += 1;
+    } else {
+      await updateFn(match.id, row);
+      updated += 1;
+    }
+  }
+
+  return { inserted, updated, unchanged, total: standardRows.length };
+}
