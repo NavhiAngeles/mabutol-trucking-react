@@ -48,6 +48,24 @@ function CloseIcon() {
   );
 }
 
+function formatRecoveryPhoneDisplay(raw) {
+  const trimmed = String(raw ?? '').trim();
+  const compact = trimmed.replace(/[\s()\-–—.]/g, '');
+  let normalized = compact;
+  if (/^09\d{9}$/.test(compact)) normalized = `+63${compact.slice(1)}`;
+  else if (/^9\d{9}$/.test(compact)) normalized = `+63${compact}`;
+  else if (/^639\d{9}$/.test(compact)) normalized = `+${compact}`;
+  else if (/^\+?6309\d{9}$/.test(compact)) normalized = `+63${compact.replace(/^\+?630/, '')}`;
+  else if (/^00630?9\d{9}$/.test(compact)) normalized = `+63${compact.replace(/^00630?/, '')}`;
+  return /^\+639\d{9}$/.test(normalized) && trimmed !== normalized
+    ? `${trimmed} (${normalized})`
+    : trimmed;
+}
+
+function sanitizeOtpInput(value) {
+  return String(value ?? '').replace(/\D/g, '').slice(0, 6);
+}
+
 export function PhoneRecovery({ inModal = false, onClose = null, onBusyChange = null } = {}) {
   const [api] = useState(createOfficeRecovery);
   const [phase, setPhase] = useState('phone');
@@ -153,12 +171,12 @@ export function PhoneRecovery({ inModal = false, onClose = null, onBusyChange = 
           <fieldset disabled={busy}>
             {phase === 'phone' && <>
               <div className="form-group"><label htmlFor="recovery-phone" className="field-label">Registered recovery mobile number</label><input id="recovery-phone" type="tel" autoComplete="tel" autoFocus={inModal} required maxLength={40} placeholder="09XXXXXXXXX or +639XXXXXXXXX" value={phone} onChange={event => setPhone(event.target.value)} /></div>
-              <p className="recovery-help">Use the number registered by your administrator. A profile contact number alone does not enable recovery.</p>
+              <p className="recovery-help">Enter your Philippine mobile number in <code>09XXXXXXXXX</code> or <code>+639XXXXXXXXX</code> format (<code>09XX</code> numbers are automatically converted to <code>+639XX</code>). Use the number registered by your administrator; a profile contact number alone does not enable recovery.</p>
               <button className="btn-primary" type="submit" disabled={remaining > 0}>{busy ? 'Requesting SMS…' : remaining > 0 ? `Request again in ${remaining}s` : 'Send SMS code'}</button>
             </>}
             {phase === 'code' && <>
-              <p className="recovery-help recovery-help-top">Enter the latest SMS code for {phone}. SMS receipt is required to continue.</p>
-              <div className="form-group"><label htmlFor="recovery-sms-code" className="field-label">Six-digit SMS code</label><input id="recovery-sms-code" inputMode="numeric" autoComplete="one-time-code" autoFocus={inModal} pattern="[0-9]{6}" maxLength={6} required value={smsCode} onChange={event => setSmsCode(event.target.value)} /></div>
+              <p className="recovery-help recovery-help-top">Enter the latest SMS code for {formatRecoveryPhoneDisplay(phone)}. SMS receipt is required to continue.</p>
+              <div className="form-group"><label htmlFor="recovery-sms-code" className="field-label">Six-digit SMS code</label><input id="recovery-sms-code" inputMode="numeric" autoComplete="one-time-code" autoFocus={inModal} pattern="[0-9]{6}" maxLength={12} required value={smsCode} onChange={event => setSmsCode(sanitizeOtpInput(event.target.value))} /></div>
               <button className="btn-primary" type="submit">{busy ? 'Verifying SMS…' : 'Verify SMS code'}</button>
               <button className="recovery-secondary" type="button" disabled={remaining > 0} onClick={send}>{remaining > 0 ? `Resend in ${remaining}s` : 'Resend SMS code'}</button>
               <button className="recovery-secondary" type="button" onClick={changeNumber}>Use a different number</button>
@@ -167,7 +185,7 @@ export function PhoneRecovery({ inModal = false, onClose = null, onBusyChange = 
               <p className="recovery-help recovery-help-top">Your SMS code is verified. Your account also requires its existing authenticator.</p>
               {security.unsupported || !security.factors.length ? <p className="recovery-error" role="alert">Contact your administrator for help with your authentication method. Password reset remains locked.</p> : <>
                 <div className="form-group"><label htmlFor="recovery-factor" className="field-label">Authenticator</label><select id="recovery-factor" value={factorId} onChange={event => setFactorId(event.target.value)}>{security.factors.map((factor, index) => <option key={factor.id} value={factor.id}>{factor.friendly_name || `Authenticator ${index + 1}`}</option>)}</select></div>
-                <div className="form-group"><label htmlFor="recovery-code" className="field-label">Six-digit authenticator code</label><input id="recovery-code" autoComplete="one-time-code" inputMode="numeric" autoFocus={inModal} pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event => setCode(event.target.value)} /></div>
+                <div className="form-group"><label htmlFor="recovery-code" className="field-label">Six-digit authenticator code</label><input id="recovery-code" autoComplete="one-time-code" inputMode="numeric" autoFocus={inModal} pattern="[0-9]{6}" maxLength={12} required value={code} onChange={event => setCode(sanitizeOtpInput(event.target.value))} /></div>
                 <button type="submit" className="btn-primary">{busy ? 'Verifying…' : 'Verify authenticator'}</button>
               </>}
             </> : <>

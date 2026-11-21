@@ -2,10 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { transformWithOxc } from 'vite';
+import * as vite from 'vite';
 import { normalizeOfficePhone } from '../_shared/officePhone.js';
 
-const { code } = await transformWithOxc(fs.readFileSync(new URL('./index.ts',import.meta.url),'utf8'),'index.ts');
+const tsSource = fs.readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
+const { code } = await (vite.transformWithOxc
+  ? vite.transformWithOxc(tsSource, 'index.ts')
+  : vite.transformWithEsbuild(tsSource, 'index.ts', { loader: 'ts' }));
 async function invoke(options = {}) {
   const calls = { create: [], reset: [], cleanup: [], finalize: [], customerCleanup: [], listMfa: [], deleteMfa: [], activityLogs: [] }; let handler;
   let createdRole = options.initialRole || 'customer';

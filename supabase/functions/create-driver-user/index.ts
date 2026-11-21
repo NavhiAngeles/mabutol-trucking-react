@@ -73,15 +73,18 @@ Deno.serve(async (req) => {
 
     const rawPhone = reqPhone || registration?.payload?.contact_number;
     let phone = null;
-    if (rawPhone) {
-      try {
+    if (rawPhone && String(rawPhone).trim()) {
+      if (typeof normalizeOfficePhone === "function") {
         phone = normalizeOfficePhone(rawPhone);
-      } catch {
-        const cleaned = String(rawPhone).trim().replace(/[ ()-]/g, "");
+      } else {
+        const cleaned = String(rawPhone).trim().replace(/[\s()\-–—.]/g, "");
         if (/^09\d{9}$/.test(cleaned)) phone = `+63${cleaned.slice(1)}`;
         else if (/^9\d{9}$/.test(cleaned)) phone = `+63${cleaned}`;
         else if (/^639\d{9}$/.test(cleaned)) phone = `+${cleaned}`;
         else if (/^\+639\d{9}$/.test(cleaned)) phone = cleaned;
+        else if (/^\+?6309\d{9}$/.test(cleaned)) phone = `+63${cleaned.replace(/^\+?630/, "")}`;
+        else if (/^00630?9\d{9}$/.test(cleaned)) phone = `+63${cleaned.replace(/^00630?/, "")}`;
+        else throw new Error("Enter a Philippine mobile number, such as 09XXXXXXXXX or +639XXXXXXXXX.");
       }
     }
 

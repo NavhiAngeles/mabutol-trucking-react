@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { transformWithOxc } from 'vite';
+import * as vite from 'vite';
 
-const { code } = await transformWithOxc(await readFile(new URL('./index.ts', import.meta.url), 'utf8'), 'index.ts');
+const tsSource = await readFile(new URL('./index.ts', import.meta.url), 'utf8');
+const { code } = await (vite.transformWithOxc
+  ? vite.transformWithOxc(tsSource, 'index.ts')
+  : vite.transformWithEsbuild(tsSource, 'index.ts', { loader: 'ts' }));
 async function invoke({ rpcError = null, upsertError = null, cleanupError = null } = {}) {
   let handler; const calls = { created: 0, deleted: [], rpc: [] };
   const caller = { auth: { getUser: async () => ({ data: { user: { id: 'office' } } }) }, rpc: async (name, args) => { calls.rpc.push({ name, args }); return { data: rpcError ? null : 'driver-id', error: rpcError }; } };
@@ -161,4 +164,53 @@ test('existing driver user with same email updates phone login credentials', asy
   assert.equal(updatedPayload.phone, '+639675132862');
   assert.equal(updatedPayload.phone_confirm, true);
   assert.equal(updatedPayload.password, 'new-password');
+});
+
+test('driver creation normalizes +6309/00639/dot variants and rejects malformed phone numbers', async () => {
+  let handler;
+  const createdPhones = [];
+  const caller = {
+    auth: { getUser: async () => ({ data: { user: { id: 'office' } } }) },
+    rpc: async () => ({ data: 'driver-id', error: null }),
+  };
+  const admin = {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: async () => ({ data: { role: 'admin', is_active: true } }) }) }),
+      upsert: async () => ({ error: null }),
+    }),
+    auth: {
+      admin: {
+        createUser: async payload => {
+          createdPhones.push(payload.phone);
+          return { data: { user: { id: 'created-user' } } };
+        },
+        deleteUser: async () => ({ error: null }),
+      },
+    },
+  };
+  const scope = {
+    Response, Request,
+    Deno: { serve: fn => { handler = fn; }, env: { get: name => name } },
+    createClient: (url, key, options) => (options ? caller : admin),
+  };
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, ''), scope);
+
+  for (const variant of ['0967.513.2862', '+6309675132862', '00639675132862']) {
+    const res = await handler(new Request('https://example.test', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer fixture', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'nav@example.test', password: 'pw', phone: variant, registration: { payload: { full_name: 'Nav' }, documents: [] } }),
+    }));
+    assert.equal(res.status, 200);
+  }
+  assert.deepEqual(createdPhones, ['+639675132862', '+639675132862', '+639675132862']);
+
+  const badRes = await handler(new Request('https://example.test', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer fixture', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: 'nav@example.test', password: 'pw', phone: '0967123' }),
+  }));
+  assert.equal(badRes.status, 400);
+  assert.equal(createdPhones.length, 3);
 });

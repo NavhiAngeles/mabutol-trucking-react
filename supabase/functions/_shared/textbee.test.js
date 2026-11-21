@@ -6,7 +6,7 @@ const config = { apiKey: 'fixture-secret', deviceId: '0123456789abcdef01234567',
   phone: '09123456789', message: shipmentMessage() };
 
 test('Philippine numbers normalize without accepting malformed destinations', () => {
-  for (const phone of ['09123456789', '9123456789', '639123456789', '+63 912-345-6789']) {
+  for (const phone of ['09123456789', '0912-345-6789', '0912.345.6789', '0912\u00A0345\u00A06789', '9123456789', '639123456789', '+63 912-345-6789', '+6309123456789', '00639123456789']) {
     assert.equal(normalizeSmsPhone(phone), '+639123456789');
   }
   for (const phone of ['', '0912345678', '+6391234567890', 'abc09123456789']) {

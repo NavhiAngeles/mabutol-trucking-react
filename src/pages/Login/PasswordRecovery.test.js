@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { setImmediate } from 'node:timers';
-import { transformWithOxc } from 'vite';
+import * as vite from 'vite';
+
+const transformJsx = (source, filename) => vite.transformWithOxc
+  ? vite.transformWithOxc(source, filename, { jsx: { runtime: 'classic' } })
+  : vite.transformWithEsbuild(source, filename, { jsx: 'transform' });
 function find(node, predicate) {
   if (!node || typeof node !== 'object') return [];
   return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
@@ -20,7 +24,7 @@ async function screen(overrides = {}) {
     useRef(initial) { return refs[ri++] ||= { current: initial }; }, useEffect(fn) { effects[ei++] ||= fn; },
     setInterval(fn) { tick = fn; return 1; }, clearInterval() {},
   });
-  const { code } = await transformWithOxc(fs.readFileSync(new URL('./PasswordRecovery.jsx', import.meta.url), 'utf8'), 'PasswordRecovery.jsx', { jsx: { runtime: 'classic' } });
+  const { code } = await transformJsx(fs.readFileSync(new URL('./PasswordRecovery.jsx', import.meta.url), 'utf8'), 'PasswordRecovery.jsx');
   vm.runInContext(code.replace(/^import .*;$/gm, '').replace(/^export /gm, '') + '\nthis.component=PhoneRecovery;', scope);
   const render = () => { si = ri = ei = 0; return scope.component(); }; render(); let cleanups = effects.map(fn => fn());
   const input = (id, value) => find(render(), node => node.props.id === id)[0].props.onChange({ target: { value } });
@@ -142,4 +146,25 @@ test('navigating away during password reset submission disposes isolated recover
   if (resolveReset) resolveReset('Your password has been reset.');
   await work;
   assert.ok(!JSON.stringify(ui.render()).includes('has been reset'), 'Late reset resolution must not update unmounted component state');
+});
+
+test('09XX display shows normalized +639 form and OTP inputs strip spaces and hyphens', async () => {
+  const verified = [];
+  const ui = await screen({
+    verifyPhone: async (p, code) => { verified.push({ type: 'sms', p, code }); return { required: true, factors: [{ id: 'totp' }] }; },
+    verify: async (factorId, code) => { verified.push({ type: 'totp', factorId, code }); return { required: false, factors: [] }; },
+  });
+  ui.input('recovery-phone', '0917-123-4567');
+  await ui.submit();
+  assert.match(JSON.stringify(ui.render()), /0917-123-4567 \(\+639171234567\)/);
+  ui.input('recovery-sms-code', '123 456 ');
+  assert.equal(find(ui.render(), n => n.props.id === 'recovery-sms-code')[0].props.value, '123456');
+  await ui.submit();
+  ui.input('recovery-code', '654-321');
+  assert.equal(find(ui.render(), n => n.props.id === 'recovery-code')[0].props.value, '654321');
+  await ui.submit();
+  assert.deepEqual(verified, [
+    { type: 'sms', p: '0917-123-4567', code: '123456' },
+    { type: 'totp', factorId: 'totp', code: '654321' },
+  ]);
 });

@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 
 const source = await readFile(new URL("./index.ts", import.meta.url), "utf8");
-const { code } = await transformWithOxc(source, "index.ts");
+const { code } = await (vite.transformWithOxc
+  ? vite.transformWithOxc(source, "index.ts")
+  : vite.transformWithEsbuild(source, "index.ts", { loader: "ts" }));
 
 async function invoke({
   profile = { role: "staff", is_active: true },
@@ -137,5 +139,42 @@ test("CORS preflight succeeds for create-customer-user", async () => {
   const result = await invoke({ method: "OPTIONS", header: false });
   assert.equal(result.response.status, 200);
   assert.equal(result.created, 0);
+});
+
+test("create-customer-user normalizes +6309/00639/dot variants and rejects partial PH mobile numbers", async () => {
+  let handler;
+  const createdPhones = [];
+  const scope = {
+    Request, Response,
+    Deno: { env: { get: name => name }, serve: fn => { handler = fn; } },
+    createClient: (_url, _key, options) => options
+      ? { auth: { getUser: async () => ({ data: { user: { id: "caller" } }, error: null }) } }
+      : {
+          auth: { admin: { createUser: async details => { createdPhones.push(details.phone); return { data: { user: { id: "u1" } }, error: null }; } } },
+          from: (table) => table === "users"
+            ? { select: () => ({ eq: () => ({ single: async () => ({ data: { role: "admin", is_active: true }, error: null }) }) }), upsert: async () => ({ error: null }) }
+            : { select: () => ({ or: () => ({ limit: () => ({ single: async () => ({ data: null, error: null }) }) }) }), insert: () => ({ select: () => ({ single: async () => ({ data: { id: "c1", customer_code: "CUST-1" }, error: null }) }) }) },
+        },
+  };
+  vm.createContext(scope);
+  vm.runInContext(code.replace(/^import .*;$/gm, ""), scope);
+
+  for (const variant of ["0917.123.4567", "+6309171234567", "00639171234567"]) {
+    const res = await handler(new Request("https://example.test/create-customer-user", {
+      method: "POST",
+      headers: { Authorization: "Bearer fixture", "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "c@example.test", password: "fixture-password", fullName: "C", phone: variant }),
+    }));
+    assert.equal(res.status, 200);
+  }
+  assert.deepEqual(createdPhones, ["+639171234567", "+639171234567", "+639171234567"]);
+
+  const bad = await handler(new Request("https://example.test/create-customer-user", {
+    method: "POST",
+    headers: { Authorization: "Bearer fixture", "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "c@example.test", password: "fixture-password", fullName: "C", phone: "0917123" }),
+  }));
+  assert.equal(bad.status, 400);
+  assert.equal(createdPhones.length, 3);
 });
 

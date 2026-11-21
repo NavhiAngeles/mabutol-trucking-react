@@ -37,8 +37,27 @@ function setup(options = {}) {
 }
 
 test('office phones normalize Philippine forms and reject invalid/non-mobile values', () => {
-  for (const value of ['09171234567', '9171234567', '639171234567', '+63 (917) 123-4567']) assert.equal(normalizeOfficePhone(value), phone);
-  for (const value of ['', '123', 'office@example.test', '+12025550123', '+63281234567']) assert.throws(() => normalizeOfficePhone(value), /Philippine mobile/);
+  for (const value of [
+    '09171234567',
+    '0917-123-4567',
+    '0917.123.4567',
+    '0917 123 4567',
+    '0917\u00A0123\u00A04567',
+    '0917–123—4567',
+    '9171234567',
+    '639171234567',
+    '+63 (917) 123-4567',
+    '+63\u00A0917\u00A0123\u00A04567',
+    '+6309171234567',
+    '6309171234567',
+    '00639171234567',
+    '006309171234567',
+  ]) {
+    assert.equal(normalizeOfficePhone(value), phone);
+  }
+  for (const value of ['', '123', '0912345678', '+6391234567890', 'abc09171234567', 'office@example.test', '+12025550123', '+63281234567', '0281234567']) {
+    assert.throws(() => normalizeOfficePhone(value), /Philippine mobile/);
+  }
 });
 test('SMS request never signs up or queries account existence and normalizes phone', async () => {
   const { api, calls } = setup(); await api.request('09171234567');

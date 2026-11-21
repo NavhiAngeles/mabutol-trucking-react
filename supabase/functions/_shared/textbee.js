@@ -1,15 +1,16 @@
+import { normalizeOfficePhone } from './officePhone.js';
+
 /** Server-only transport. Acceptance means queued by TextBee, never delivered. */
 export class SmsTransportError extends Error {
   constructor(code) { super(code); this.name = 'SmsTransportError'; }
 }
 
 export function normalizeSmsPhone(raw) {
-  const cleaned = String(raw ?? '').trim().replace(/[ ()-]/g, '');
-  const phone = /^09\d{9}$/.test(cleaned) ? `+63${cleaned.slice(1)}`
-    : /^9\d{9}$/.test(cleaned) ? `+63${cleaned}`
-    : /^639\d{9}$/.test(cleaned) ? `+${cleaned}` : cleaned;
-  if (!/^\+639\d{9}$/.test(phone)) throw new SmsTransportError('INVALID_SMS_PHONE');
-  return phone;
+  try {
+    return normalizeOfficePhone(raw);
+  } catch {
+    throw new SmsTransportError('INVALID_SMS_PHONE');
+  }
 }
 
 export async function sendTextBee({ apiKey, deviceId, phone, message, fetchImpl = fetch }) {

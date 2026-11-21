@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 
 const source = await readFile(new URL("./index.ts", import.meta.url), "utf8");
-const { code } = await transformWithOxc(source, "index.ts");
+const { code } = await (vite.transformWithOxc
+  ? vite.transformWithOxc(source, "index.ts")
+  : vite.transformWithEsbuild(source, "index.ts", { loader: "ts" }));
 async function invoke({ profile = { role: "staff", is_active: true }, profileError = null, caller = { id: "caller", user_metadata: { role: "admin" }, app_metadata: { role: "admin" } }, authError = null, header = true, method = "POST" } = {}) {
   let handler, created = 0, upserted = 0, reads = 0;
   const scope = {

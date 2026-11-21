@@ -72,15 +72,26 @@ Deno.serve(async (req) => {
 
     const rawPhone = reqPhone || customerData?.phone;
     let phone = null;
-    if (rawPhone) {
-      try {
-        phone = normalizeOfficePhone(rawPhone);
-      } catch {
-        const cleaned = String(rawPhone).trim().replace(/[ ()-]/g, "");
+    if (rawPhone && String(rawPhone).trim()) {
+      const cleaned = String(rawPhone).trim().replace(/[\s()\-–—.]/g, "");
+      if (typeof normalizeOfficePhone === "function") {
+        try {
+          phone = normalizeOfficePhone(rawPhone);
+        } catch (err) {
+          if (/^(\+?63|0063|09|9)/.test(cleaned) && !/^(\+?63|0063|0)[2-8]/.test(cleaned)) {
+            throw err;
+          }
+        }
+      } else {
         if (/^09\d{9}$/.test(cleaned)) phone = `+63${cleaned.slice(1)}`;
         else if (/^9\d{9}$/.test(cleaned)) phone = `+63${cleaned}`;
         else if (/^639\d{9}$/.test(cleaned)) phone = `+${cleaned}`;
         else if (/^\+639\d{9}$/.test(cleaned)) phone = cleaned;
+        else if (/^\+?6309\d{9}$/.test(cleaned)) phone = `+63${cleaned.replace(/^\+?630/, "")}`;
+        else if (/^00630?9\d{9}$/.test(cleaned)) phone = `+63${cleaned.replace(/^00630?/, "")}`;
+        else if (/^(\+?63|0063|09|9)/.test(cleaned) && !/^(\+?63|0063|0)[2-8]/.test(cleaned)) {
+          throw new Error("Enter a Philippine mobile number, such as 09XXXXXXXXX or +639XXXXXXXXX.");
+        }
       }
     }
 

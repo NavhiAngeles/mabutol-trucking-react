@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { transformWithOxc } from 'vite';
+import * as vite from 'vite';
+
+const transformJsx = (source, filename) => vite.transformWithOxc
+  ? vite.transformWithOxc(source, filename, { jsx: { runtime: 'classic' } })
+  : vite.transformWithEsbuild(source, filename, { jsx: 'transform' });
 
 test('rapid submits make one request, failed request unlocks retry, success stays locked until redirect', async () => {
   const states = [], lock = { current: false }, timers = [], routes = [];
@@ -31,7 +35,7 @@ test('rapid submits make one request, failed request unlocks retry, success stay
 
 test('login page disables fields and submit during loading and success and exposes pending status', async () => {
   const source = fs.readFileSync(new URL('../pages/Login/login.jsx', import.meta.url), 'utf8');
-  const { code } = await transformWithOxc(source, 'login.jsx', { jsx: { runtime: 'classic' } });
+  const { code } = await transformJsx(source, 'login.jsx');
   function find(node, predicate) {
     if (!node || typeof node !== 'object') return [];
     return [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
