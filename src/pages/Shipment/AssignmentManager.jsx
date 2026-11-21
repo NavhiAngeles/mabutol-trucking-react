@@ -30,11 +30,21 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
   const shipmentWeight = Number(options?.shipment?.weight_kg || 0);
   const requestedVehicleTypeId = options?.shipment?.requested_vehicle_type_id;
 
-  const drivers = useMemo(() => options?.drivers.filter(row =>
-    row.status === 'available' || (row.status === undefined ? Boolean(row.eligible) : row.eligible || row.id === currentDriverId || row.id === draftSuggestion?.driverId)
-  ) || [], [options?.drivers, currentDriverId, draftSuggestion?.driverId]);
+  const isReservedOrAssignedElsewhere = (row, currentId) => {
+    if (!row) return true;
+    if (row.id === currentId) return false;
+    if (row.reason === 'Reserved by another delivery' || row.reserved === true) return true;
+    if (['assigned', 'loading', 'in_transit', 'on_trip', 'on_route', 'reserved'].includes(row.status)) return true;
+    return false;
+  };
+
+  const drivers = useMemo(() => options?.drivers.filter(row => {
+    if (isReservedOrAssignedElsewhere(row, currentDriverId)) return false;
+    return row.status === 'available' || (row.status === undefined ? Boolean(row.eligible) : row.eligible || row.id === currentDriverId || row.id === draftSuggestion?.driverId);
+  }) || [], [options?.drivers, currentDriverId, draftSuggestion?.driverId]);
 
   const trucks = useMemo(() => options?.trucks.filter(row => {
+    if (isReservedOrAssignedElsewhere(row, currentTruckId)) return false;
     const isAvailable = row.status === 'available' || (row.status === undefined ? Boolean(row.eligible) : row.eligible || row.id === currentTruckId || row.id === draftSuggestion?.truckId);
     if (!isAvailable) return false;
     if (shipmentWeight > 0) {
@@ -47,19 +57,24 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
     return true;
   }) || [], [options?.trucks, currentTruckId, shipmentWeight, requestedVehicleTypeId, draftSuggestion?.truckId]);
 
-  const currentPair = options?.current && driverId === options.current.driver_id && truckId === options.current.truck_id;
-  const canSave = driverId && truckId && reason.trim().length >= 5 && reason.trim().length <= 1000 && !currentPair && !busy;
+  const selectedDriver = drivers.find(d => d.id === driverId);
+  const selectedTruck = trucks.find(t => t.id === truckId);
+  const effectiveDriverId = selectedDriver ? driverId : '';
+  const effectiveTruckId = selectedTruck ? truckId : '';
+  const currentPair = options?.current && effectiveDriverId === options.current.driver_id && effectiveTruckId === options.current.truck_id;
+  const canSave = Boolean(selectedDriver && selectedTruck && selectedDriver.eligible !== false && selectedTruck.eligible !== false)
+    && reason.trim().length >= 5 && reason.trim().length <= 1000 && !currentPair && !busy;
+  const hasEligibleDriver = drivers.some(d => d.eligible !== false);
+  const hasEligibleTruck = trucks.some(t => t.eligible !== false);
   const excluded = useMemo(() => ({
     drivers: Math.max(0, (options?.drivers?.length || 0) - drivers.length),
     trucks: Math.max(0, (options?.trucks?.length || 0) - trucks.length),
   }), [options?.drivers, options?.trucks, drivers.length, trucks.length]);
-  const selectedDriver = drivers.find(d => d.id === driverId);
-  const selectedTruck = trucks.find(t => t.id === truckId);
   const submit = async event => {
     event.preventDefault(); if (!canSave) return;
     setBusy(true); setError('');
     try {
-      await saveManualAssignment({ shipmentId, driverId, truckId, reason, expectedDelivery: options.current?.id || null });
+      await saveManualAssignment({ shipmentId, driverId: effectiveDriverId, truckId: effectiveTruckId, reason, expectedDelivery: options.current?.id || null });
       setRevision(value => value + 1);
       await onChanged();
     } catch (err) {
@@ -144,7 +159,7 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
             <div className="assignment-field-col">
               <label htmlFor={`assignment-driver-${shipmentId}`}>
                 Driver
-                <select id={`assignment-driver-${shipmentId}`} value={driverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
+                <select id={`assignment-driver-${shipmentId}`} value={effectiveDriverId} onChange={event => setDriverId(event.target.value)} disabled={busy}>
                   <option value="">Choose a driver</option>
                   {drivers.map(row => (
                     <option key={row.id} value={row.id}>
@@ -168,7 +183,7 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
             <div className="assignment-field-col">
               <label htmlFor={`assignment-truck-${shipmentId}`}>
                 Truck{shipmentWeight > 0 ? ` (min. ${shipmentWeight.toLocaleString()} kg capacity)` : ''}
-                <select id={`assignment-truck-${shipmentId}`} value={truckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
+                <select id={`assignment-truck-${shipmentId}`} value={effectiveTruckId} onChange={event => setTruckId(event.target.value)} disabled={busy}>
                   <option value="">Choose a truck</option>
                   {trucks.map(row => (
                     <option key={row.id} value={row.id}>
@@ -190,7 +205,7 @@ export default function AssignmentManager({ shipmentId, onChanged, draftSuggesti
             </div>
           </div>
 
-          {(!drivers.length || !trucks.length) && (
+          {(!hasEligibleDriver || !hasEligibleTruck) && (
             <div role="status" className="assignment-warning shipment-dialog-alert is-warning">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />

@@ -21,7 +21,7 @@ export async function fetchHandlingSurcharges() {
 
 export async function fetchPricingData() {
   const today = pricingDate();
-  const [initialVehicleResult, initialRateResult, settingsResult, truckResult] =
+  const [initialVehicleResult, initialRateResult, settingsResult, truckResult, deliveriesResult, maintenanceResult] =
     await Promise.all([
       supabase
         .from("vehicle_types")
@@ -45,7 +45,13 @@ export async function fetchPricingData() {
           "driver_allowance",
           "handling_surcharges",
         ]),
-      supabase.from("trucks").select("vehicle_type_id, capacity_kg, status"),
+      supabase.from("trucks").select("id, vehicle_type_id, capacity_kg, status"),
+      Promise.resolve(
+        supabase.from("deliveries")?.select?.("truck_id, status")
+      ).catch(() => ({ data: null, error: true })),
+      Promise.resolve(
+        supabase.from("maintenance_records")?.select?.("truck_id, status")
+      ).catch(() => ({ data: null, error: true })),
     ]);
 
   let vehicleResult = initialVehicleResult;
@@ -94,6 +100,23 @@ export async function fetchPricingData() {
       : 0,
   }));
 
+  const reservedTruckIds = new Set(
+    Array.isArray(deliveriesResult?.data)
+      ? deliveriesResult.data
+          .filter((d) => ["assigned", "loading", "in_transit"].includes(d?.status))
+          .map((d) => d.truck_id)
+          .filter(Boolean)
+      : []
+  );
+  const maintenanceTruckIds = new Set(
+    Array.isArray(maintenanceResult?.data)
+      ? maintenanceResult.data
+          .filter((m) => m?.status === "in_progress")
+          .map((m) => m.truck_id)
+          .filter(Boolean)
+      : []
+  );
+
   const vehicles = attachVehiclePricing(normalizedVehicles, normalizedRates, today)
     .map(vehicle => {
       const matchingTrucks = (truckResult.data || [])
@@ -107,7 +130,11 @@ export async function fetchPricingData() {
         registeredMaxCapacityKg: capacities.length ? Math.max(...capacities) : null,
         registeredTruckCount: !truckResult.error ? matchingTrucks.length : null,
         availableTruckCount: !truckResult.error
-          ? matchingTrucks.filter(truck => truck.status === "available").length
+          ? matchingTrucks.filter(
+              truck =>
+                truck.status === "available" &&
+                (!truck.id || (!reservedTruckIds.has(truck.id) && !maintenanceTruckIds.has(truck.id)))
+            ).length
           : null,
       };
     });

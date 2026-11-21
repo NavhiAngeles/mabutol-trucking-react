@@ -254,32 +254,59 @@ export function FleetEditor({ kind, record, fleet, onClose, onSaved }) {
 
           <fieldset disabled={busy}>
             <div className="form-grid">
-              {kind === 'truck' && (
-                <>
-                  {field('plate_number', 'Plate number', { required: true, placeholder: 'e.g. ABC-1234' })}
-                  {field('model', 'Model', { required: true, placeholder: 'e.g. Fuso Canter Dropside' })}
-                  {field('model_year', 'Model year', { type: 'number', min: 1980, max: 2100, placeholder: 'YYYY' })}
-                  {field('capacity_kg', 'Registered capacity (kg)', { type: 'number', min: 1, step: 'any', required: true, placeholder: 'e.g. 8000' })}
-                  {field('vehicle_type_id', 'Vehicle type', { required: true, options: [['', 'Select vehicle type'], ...fleet.vehicleTypes.map(t => [t.id, t.name])] })}
-                  {field('assigned_driver_id', 'Assigned driver', { options: [['', 'Unassigned'], ...fleet.drivers.filter(d => d.id === form.assigned_driver_id || fleet.assignableDrivers.some(a => a.id === d.id)).map(d => [d.id, d.full_name])] })}
-                  {field('status', 'Status', { options: ['available', 'maintenance', 'inactive', ...(form.status === 'on_trip' ? ['on_trip'] : [])].map(v => [v, v.replaceAll('_', ' ')]) })}
-                  {field('notes', 'Notes', { placeholder: 'Internal operational notes or specifications' }, 'col-span-2')}
-                </>
-              )}
-              {kind === 'driver' && (
-                <>
-                  {field('full_name', 'Full name', { required: true })}
-                  {field('license_number', 'License number', { required: true })}
-                  {field('contact_number', 'Contact number', { placeholder: '09XXXXXXXXX or +639XXXXXXXXX' })}
-                  {field('date_hired', 'Date hired', { type: 'date' })}
-                  {field('emergency_contact_number', 'Emergency contact', { placeholder: '09XXXXXXXXX or +639XXXXXXXXX' })}
-                  {field('status', 'Status', { options: ['available', 'off_duty', 'on_leave', 'inactive', ...(form.status === 'on_trip' ? ['on_trip'] : [])].map(v => [v, v.replaceAll('_', ' ')]) })}
-                  {field('notes', 'Notes', { placeholder: 'Internal driver notes' }, 'col-span-full')}
-                </>
-              )}
+              {kind === 'truck' && (() => {
+                const isTruckOnActiveShipment = ['on_trip', 'loading', 'reserved'].includes(record?.displayStatus || record?.status || form.status);
+                return (
+                  <>
+                    {field('plate_number', 'Plate number', { required: true, placeholder: 'e.g. ABC-1234' })}
+                    {field('model', 'Model', { required: true, placeholder: 'e.g. Fuso Canter Dropside' })}
+                    {field('model_year', 'Model year', { type: 'number', min: 1980, max: 2100, placeholder: 'YYYY' })}
+                    {field('capacity_kg', 'Registered capacity (kg)', { type: 'number', min: 1, step: 'any', required: true, placeholder: 'e.g. 8000' })}
+                    {field('vehicle_type_id', 'Vehicle type', { required: true, options: [['', 'Select vehicle type'], ...fleet.vehicleTypes.map(t => [t.id, t.name])] })}
+                    {field('assigned_driver_id', 'Assigned driver', {
+                      disabled: isTruckOnActiveShipment,
+                      title: isTruckOnActiveShipment ? 'Cannot change permanent driver while vehicle is assigned to an active shipment' : undefined,
+                      options: [['', 'Unassigned'], ...fleet.drivers.filter(d => d.id === form.assigned_driver_id || fleet.assignableDrivers.some(a => a.id === d.id)).map(d => [d.id, d.full_name])],
+                    })}
+                    {field('status', 'Status', {
+                      disabled: isTruckOnActiveShipment,
+                      title: isTruckOnActiveShipment ? 'Vehicle status is locked while assigned to an active shipment' : undefined,
+                      options: ['available', 'maintenance', 'inactive', ...(form.status === 'on_trip' ? ['on_trip'] : [])].map(v => [v, v.replaceAll('_', ' ')]),
+                    })}
+                    {field('notes', 'Notes', { placeholder: 'Internal operational notes or specifications' }, 'col-span-2')}
+                  </>
+                );
+              })()}
+              {kind === 'driver' && (() => {
+                const isDriverOnActiveShipment = Boolean(record?.reserved) || ['on_trip', 'on_route', 'assigned', 'loading', 'in_transit'].includes(record?.status || form.status);
+                return (
+                  <>
+                    {field('full_name', 'Full name', { required: true })}
+                    {field('license_number', 'License number', { required: true })}
+                    {field('contact_number', 'Contact number', { placeholder: '09XXXXXXXXX or +639XXXXXXXXX' })}
+                    {field('date_hired', 'Date hired', { type: 'date' })}
+                    {field('emergency_contact_number', 'Emergency contact', { placeholder: '09XXXXXXXXX or +639XXXXXXXXX' })}
+                    {field('status', 'Status', {
+                      disabled: isDriverOnActiveShipment,
+                      title: isDriverOnActiveShipment ? 'Driver status is locked while assigned to an active shipment' : undefined,
+                      options: ['available', 'off_duty', 'on_leave', 'inactive', ...(form.status === 'on_trip' ? ['on_trip'] : [])].map(v => [v, v.replaceAll('_', ' ')]),
+                    })}
+                    {field('notes', 'Notes', { placeholder: 'Internal driver notes' }, 'col-span-full')}
+                  </>
+                );
+              })()}
               {kind === 'maintenance' && (
                 <>
-                  {field('truck_id', 'Vehicle', { required: true, disabled: !!record, options: [['', 'Select vehicle'], ...fleet.trucks.map(t => [t.id, t.plate_number])] })}
+                  {field('truck_id', 'Vehicle', {
+                    required: true,
+                    disabled: !!record,
+                    options: [
+                      ['', 'Select vehicle'],
+                      ...fleet.trucks
+                        .filter(t => t.id === form.truck_id || !['on_trip', 'loading', 'reserved'].includes(t.displayStatus || t.status))
+                        .map(t => [t.id, t.plate_number]),
+                    ],
+                  })}
                   {field('kind', 'Service type', { options: ['preventive', 'repair', 'inspection', 'tire', 'other'].map(v => [v, v]) })}
                   {field('status', 'Status', { options: ['scheduled', 'in_progress', 'completed', 'cancelled'].map(v => [v, v.replaceAll('_', ' ')]) })}
                   {field('scheduled_date', 'Scheduled date', { type: 'date', required: true })}
@@ -365,7 +392,10 @@ export function AssignDriverModal({ truck, drivers = [], onClose, onAssigned }) 
   const guard = useRef(false);
   const dialog = useDialog(onClose, busy);
 
-  const selectedDriver = drivers.find((d) => d.id === driverId);
+  const eligibleDrivers = drivers.filter(
+    (d) => (!d.status || d.status === 'available') && !d.reserved && !d.assignedTruck
+  );
+  const selectedDriver = eligibleDrivers.find((d) => d.id === driverId);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -453,14 +483,14 @@ export function AssignDriverModal({ truck, drivers = [], onClose, onAssigned }) 
             <select
               id="assign-driver-select"
               value={driverId}
-              disabled={busy || drivers.length === 0}
+              disabled={busy || eligibleDrivers.length === 0}
               onChange={(e) => {
                 setDriverId(e.target.value);
                 setError('');
               }}
             >
-              <option value="">{drivers.length === 0 ? 'No available drivers' : 'Select an available driver...'}</option>
-              {drivers.map((driver) => (
+              <option value="">{eligibleDrivers.length === 0 ? 'No available drivers' : 'Select an available driver...'}</option>
+              {eligibleDrivers.map((driver) => (
                 <option key={driver.id} value={driver.id}>
                   {driver.full_name}{driver.license_number ? ` (${driver.license_number})` : ''}
                 </option>
@@ -472,7 +502,7 @@ export function AssignDriverModal({ truck, drivers = [], onClose, onAssigned }) 
           <button type="button" className="btn-secondary" disabled={busy} onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn-primary" disabled={busy || drivers.length === 0}>
+          <button type="submit" className="btn-primary" disabled={busy || eligibleDrivers.length === 0}>
             {busy ? 'Assigning...' : 'Assign driver'}
           </button>
         </div>

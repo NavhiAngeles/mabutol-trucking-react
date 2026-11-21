@@ -458,27 +458,29 @@ export default function Shipment() {
             }}
           >
             <svg {...svgProps}>
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
             </svg>
-            {' Edit Details'}
+            {' View shipment details'}
           </button>
 
           {!completed && shipment.status !== "cancelled" && (
             <>
-              <button type="button" role="menuitem" onClick={event => {
-                reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
-                setEditShipment(shipment);
-                setOpenMenuId(null);
-              }}>
-                <svg {...svgProps}>
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-                {' View shipment'}
-              </button>
+              {["pending", "quoted", "booked", "assigned"].includes(shipment.rawStatus) && (
+                <button type="button" role="menuitem" onClick={event => {
+                  reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
+                  setEditShipment(shipment);
+                  setOpenMenuId(null);
+                }}>
+                  <svg {...svgProps}>
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  {' Edit shipment'}
+                </button>
+              )}
 
-              {shipment.status !== "review" && (
+              {shipment.status !== "review" && shipment.status !== "transit" && (
                 <button
                   type="button"
                   role="menuitem"

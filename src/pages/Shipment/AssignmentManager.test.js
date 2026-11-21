@@ -3,14 +3,17 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { setImmediate } from 'node:timers';
-import { transformWithOxc } from 'vite';
+import * as vite from 'vite';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const find = (node, predicate) => !node || typeof node !== 'object' ? []
   : [...(predicate(node) ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, predicate))];
 
 async function mount(options) {
-  const { code } = await transformWithOxc(fs.readFileSync(new URL('./AssignmentManager.jsx', import.meta.url), 'utf8'), 'AssignmentManager.jsx', { jsx: { runtime: 'classic' } });
+  const fileContent = fs.readFileSync(new URL('./AssignmentManager.jsx', import.meta.url), 'utf8');
+  const { code } = await (vite.transformWithOxc
+    ? vite.transformWithOxc(fileContent, 'AssignmentManager.jsx', { jsx: { runtime: 'classic' } })
+    : vite.transformWithEsbuild(fileContent, 'AssignmentManager.jsx', { jsx: 'transform' }));
   const states = [], effects = []; let index = 0, effectIndex = 0, pending = [], saved, changes = 0;
   const context = vm.createContext({
     React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
@@ -128,3 +131,34 @@ test('truck list automatically filters out mismatch trucks that cannot carry the
   assert.deepEqual(truckOptionValues, ['t-exact', 't-large']);
   assert.match(JSON.stringify(tree), /min\. 2,500 kg capacity/);
 });
+
+test('drivers and trucks already assigned or reserved by another shipment are excluded from the dropdowns', async () => {
+  const options = {
+    current: null,
+    shipment: { id: 's-new', weight_kg: 3000, requested_vehicle_type_id: 'vt-1' },
+    blockedReason: null,
+    drivers: [
+      { id: 'd-reserved', full_name: 'Joel Carpio', status: 'available', eligible: false, reason: 'Reserved by another delivery' },
+      { id: 'd-ontrip', full_name: 'Ramon OnTrip', status: 'on_trip', eligible: false, reason: 'Driver is not available' },
+      { id: 'd-free', full_name: 'Mario Free', status: 'available', eligible: true },
+    ],
+    trucks: [
+      { id: 't-reserved', plate_number: 'CAE 4128', capacity_kg: 6000, vehicle_type_id: 'vt-1', status: 'available', eligible: false, reason: 'Reserved by another delivery' },
+      { id: 't-ontrip', plate_number: 'NBC 9999', capacity_kg: 6000, vehicle_type_id: 'vt-1', status: 'on_trip', eligible: false, reason: 'Truck is not available' },
+      { id: 't-free', plate_number: 'NAA 1111', capacity_kg: 6000, vehicle_type_id: 'vt-1', status: 'available', eligible: true },
+    ],
+  };
+
+  const ui = await mount(options);
+  ui.render();
+  await tick();
+  const tree = ui.render();
+
+  const selects = find(tree, node => node.type === 'select');
+  const driverOptionValues = selects[0].children.flat().map(opt => opt.props?.value).filter(Boolean);
+  const truckOptionValues = selects[1].children.flat().map(opt => opt.props?.value).filter(Boolean);
+
+  assert.deepEqual(driverOptionValues, ['d-free']);
+  assert.deepEqual(truckOptionValues, ['t-free']);
+});
+

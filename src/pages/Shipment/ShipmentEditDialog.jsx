@@ -117,7 +117,16 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
         }
         changes[key] = parsePhilippineDeparture(draft.date, draft.time).toISOString();
       } else if (key === 'weight_kg') {
-        changes[key] = Number(draft[key]);
+        const parsedWeight = Number(draft[key]);
+        if (!Number.isFinite(parsedWeight) || parsedWeight <= 0) {
+          setError('Enter a valid positive cargo weight in kilograms.');
+          return;
+        }
+        if (selectedEditVehicle?.default_capacity_kg && parsedWeight > Number(selectedEditVehicle.default_capacity_kg)) {
+          setError(`Selected vehicle type (${selectedEditVehicle.name}) can carry at most ${Number(selectedEditVehicle.default_capacity_kg).toLocaleString()} kg.`);
+          return;
+        }
+        changes[key] = parsedWeight;
       } else {
         changes[key] = draft[key];
       }
@@ -298,8 +307,8 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                       id="shipment-edit-weight"
                       className="shipment-edit-input"
                       type="number"
-                      min="2000"
-                      max="4000"
+                      min="1"
+                      max={selectedEditVehicle?.default_capacity_kg ? Number(selectedEditVehicle.default_capacity_kg) : undefined}
                       value={draft.weight_kg}
                       onChange={set('weight_kg')}
                     />
@@ -320,11 +329,18 @@ export default function ShipmentEditDialog({ shipment, onClose, onSaved }) {
                       value={draft.requested_vehicle_type_id}
                       onChange={set('requested_vehicle_type_id')}
                     >
-                      {record.vehicles.map(v => (
-                        <option key={v.id} value={v.id}>
-                          {v.name} · {Number(v.default_capacity_kg).toLocaleString()} kg
-                        </option>
-                      ))}
+                      {record.vehicles
+                        .filter(v => {
+                          const w = Number(draft.weight_kg);
+                          const cap = Number(v.default_capacity_kg);
+                          if (v.id === draft.requested_vehicle_type_id) return true;
+                          return !(w > 0 && cap > 0 && cap < w);
+                        })
+                        .map(v => (
+                          <option key={v.id} value={v.id}>
+                            {v.name} · {Number(v.default_capacity_kg).toLocaleString()} kg
+                          </option>
+                        ))}
                     </select>
                   </label>
                 ) : (

@@ -47,7 +47,25 @@ export default function CustomerCombobox({
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const activeCustomers = useMemo(
-    () => customers.filter((customer) => customer?.is_active === true),
+    () =>
+      customers.filter((customer) => {
+        if (customer?.is_active !== true) return false;
+        const standing = String(customer?.standing_status || "").trim().toLowerCase();
+        if (standing === "suspended") return false;
+        if (
+          standing !== "reinstated" &&
+          Number(customer?.no_show_strike_count ?? 0) >= 3
+        ) {
+          return false;
+        }
+        const cooldownMs = customer?.booking_cooldown_until
+          ? Date.parse(customer.booking_cooldown_until)
+          : NaN;
+        if (Number.isFinite(cooldownMs) && cooldownMs > Date.now()) {
+          return false;
+        }
+        return true;
+      }),
     [customers]
   );
 
