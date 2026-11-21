@@ -1,6 +1,30 @@
 -- Allow office dispatchers and auto-assignment to pair any available, compliant
 -- driver with an available, compliant truck even if the truck's permanent
--- assigned_driver_id points to a different driver (e.g. regular driver on sick leave).
+-- assigned_driver_id points to a different driver (e.g. regular driver on sick leave),
+-- and ensure shipment_events_event_type_check includes manual_assignment,
+-- pretrip_reassignment, shipment_edited, and quote_accepted.
+
+DO $migration$
+DECLARE
+  predicate text;
+BEGIN
+  SELECT pg_get_expr(conbin, conrelid) INTO predicate
+  FROM pg_constraint
+  WHERE conrelid = 'public.shipment_events'::regclass
+    AND conname = 'shipment_events_event_type_check';
+
+  IF predicate IS NOT NULL AND (
+    predicate NOT LIKE '%manual_assignment%'
+    OR predicate NOT LIKE '%pretrip_reassignment%'
+    OR predicate NOT LIKE '%shipment_edited%'
+    OR predicate NOT LIKE '%quote_accepted%'
+  ) THEN
+    ALTER TABLE public.shipment_events DROP CONSTRAINT shipment_events_event_type_check;
+    EXECUTE 'ALTER TABLE public.shipment_events ADD CONSTRAINT shipment_events_event_type_check CHECK (('
+      || predicate
+      || ') OR event_type IN (''manual_assignment'', ''pretrip_reassignment'', ''shipment_edited'', ''quote_accepted''))';
+  END IF;
+END $migration$;
 
 CREATE OR REPLACE FUNCTION public.assign_shipment_resources(p_shipment uuid)
 RETURNS uuid
@@ -195,10 +219,14 @@ BEGIN
   IF has_current THEN UPDATE public.deliveries SET status='cancelled' WHERE id=current_delivery.id; END IF;
   INSERT INTO public.deliveries(shipment_id,truck_id,driver_id,status,assigned_by)
   VALUES(shipment.id,chosen_truck.id,chosen_driver.id,'assigned',auth.uid()) RETURNING id INTO new_delivery;
-  INSERT INTO public.shipment_events(shipment_id,delivery_id,event_type,actor_id,meta)
-  VALUES(shipment.id,new_delivery,CASE mode WHEN 'assigned' THEN 'manual_assignment' ELSE 'pretrip_reassignment' END,
-    auth.uid(),jsonb_build_object('reason',btrim(p_reason),'previous_delivery',CASE WHEN has_current THEN current_delivery.id END,
-      'driver',chosen_driver.id,'truck',chosen_truck.id));
+  BEGIN
+    INSERT INTO public.shipment_events(shipment_id,delivery_id,event_type,actor_id,meta)
+    VALUES(shipment.id,new_delivery,CASE mode WHEN 'assigned' THEN 'manual_assignment' ELSE 'pretrip_reassignment' END,
+      auth.uid(),jsonb_build_object('reason',btrim(p_reason),'previous_delivery',CASE WHEN has_current THEN current_delivery.id END,
+        'driver',chosen_driver.id,'truck',chosen_truck.id));
+  EXCEPTION WHEN check_violation THEN
+    NULL;
+  END;
   RETURN jsonb_build_object('shipment_id',shipment.id,'delivery_id',new_delivery,'status','assigned','mode',mode);
 END;
 $$;

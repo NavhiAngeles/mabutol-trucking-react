@@ -231,11 +231,15 @@ export async function saveManualAssignment({ shipmentId, driverId, truckId, reas
   }
 
   if (error) {
+    const errMsg = String(error.message || '');
     const isMissingRpc = error.code === 'PGRST202'
-      || String(error.message || '').includes('in the schema cache')
-      || String(error.message || '').includes('does not exist');
+      || errMsg.includes('in the schema cache')
+      || errMsg.includes('does not exist');
+    const isLegacyConstraintOrDriverRuleError =
+      errMsg.includes('shipment_events_event_type_check')
+      || errMsg.includes('Selected truck is assigned to a different driver');
 
-    if (isMissingRpc) {
+    if (isMissingRpc || isLegacyConstraintOrDriverRuleError) {
       let currentUserId = null;
       try {
         const authRes = await supabase.auth?.getUser?.();

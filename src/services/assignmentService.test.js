@@ -157,3 +157,79 @@ test('manual save falls back to table mutations when office_assign_shipment_reso
   const updateShip = tableOps.find(op => op.op === 'update_shipments');
   assert.equal(updateShip.patch.status, 'assigned');
 });
+
+test('manual save falls back to table mutations when shipment_events_event_type_check constraint fails in RPC', async () => {
+  const tableOps = [];
+  const context = vm.createContext({
+    Intl, Date, Number, Map, console,
+    supabase: {
+      async rpc() {
+        return {
+          error: {
+            code: '23514',
+            message: 'new row for relation "shipment_events" violates check constraint "shipment_events_event_type_check"',
+          },
+        };
+      },
+      from(tableName) {
+        if (tableName === 'deliveries') {
+          return {
+            update(patch) {
+              tableOps.push({ op: 'update_deliveries', patch });
+              return { eq: () => Promise.resolve({ error: null }) };
+            },
+            insert(payload) {
+              tableOps.push({ op: 'insert_deliveries', payload });
+              return {
+                select: () => ({
+                  single: () => Promise.resolve({ data: { id: 'reassigned-del-1', shipment_id: payload.shipment_id, status: 'assigned' }, error: null }),
+                }),
+              };
+            },
+          };
+        }
+        if (tableName === 'shipments') {
+          return {
+            update(patch) {
+              tableOps.push({ op: 'update_shipments', patch });
+              return { eq: () => Promise.resolve({ error: null }) };
+            },
+          };
+        }
+        if (tableName === 'shipment_events') {
+          return {
+            insert() {
+              return Promise.resolve({ error: { code: '23514', message: 'violates check constraint' } });
+            },
+          };
+        }
+        throw new Error(`Unexpected table ${tableName}`);
+      },
+      auth: {
+        async getUser() {
+          return { data: { user: { id: 'admin-user-id' } } };
+        },
+      },
+    },
+  });
+
+  const whole = fs.readFileSync(new URL('./assignmentService.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(whole + '\nthis.save=saveManualAssignment;', context);
+
+  const result = await context.save({
+    shipmentId: 'ship-1',
+    driverId: 'driver-sub',
+    truckId: 'truck-curr',
+    reason: 'On sick leave',
+    expectedDelivery: 'old-del-1',
+  });
+
+  assert.equal(result.shipment_id, 'ship-1');
+  assert.equal(result.delivery_id, 'reassigned-del-1');
+  assert.equal(result.status, 'assigned');
+  assert.equal(result.mode, 'reassigned');
+  assert.equal(tableOps.find(op => op.op === 'update_deliveries').patch.status, 'cancelled');
+  assert.equal(tableOps.find(op => op.op === 'insert_deliveries').payload.driver_id, 'driver-sub');
+  assert.equal(tableOps.find(op => op.op === 'insert_deliveries').payload.truck_id, 'truck-curr');
+});
