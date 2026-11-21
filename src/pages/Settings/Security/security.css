@@ -19,7 +19,7 @@ HEADER
 CARDS
 ========================= */
 
-.settings-page .settings-card {
+.settings-page .settings-card:not([data-slot="card"]) {
   background: white;
 
   border-radius: 14px;
@@ -28,6 +28,13 @@ CARDS
 
   padding: 24px;
 
+  margin-bottom: 24px;
+}
+
+.settings-page .settings-card[data-slot="card"] {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #E5E7EB;
   margin-bottom: 24px;
 }
 

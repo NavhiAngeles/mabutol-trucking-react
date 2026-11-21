@@ -27,7 +27,7 @@ import './security.css';
 import '../../../components/accountSecurityDesign.css';
 
 const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]):not(:disabled), input:not([disabled]):not(:disabled):not([type="hidden"]), select:not([disabled]):not(:disabled), textarea:not([disabled]):not(:disabled), [tabindex]:not([tabindex="-1"])';
 
 export default function Security() {
   const { user } = useAuth();
@@ -118,24 +118,45 @@ function SecurityDetails() {
         }
         finish('2FA verified and enabled via TextBee SMS.');
       } else if (modal === 'remove') {
-        if (target?.status === 'verified' && target?.factor_type === 'totp' && code) {
+        const isTotpTarget = target?.factor_type === 'totp';
+        if (target?.status === 'verified' && isTotpTarget && code) {
           await securityApi.verify(target.id, code);
         }
-        if (securityApi.disable2fa) {
-          await securityApi.disable2fa(target?.id);
+        if (isTotpTarget && securityApi.remove) {
+          await securityApi.remove(target.id);
+          finish('Authenticator removed.');
+        } else if (securityApi.disable2fa) {
+          await securityApi.disable2fa(isTotpTarget ? target?.id : null);
+          finish('2FA disabled.');
         } else {
           await securityApi.remove(target?.id);
+          finish('2FA disabled.');
         }
-        finish('2FA disabled.');
       }
     });
   }
 
   async function cancel() {
-    await perform(async () => {
-      if (setup?.id && securityApi.remove) await securityApi.remove(setup.id);
-      if (mounted.current) { clear(); refresh(); }
-    });
+    if (guard.current) return;
+    const pendingFactorId = setup?.id;
+    if (!pendingFactorId) {
+      clear();
+      return;
+    }
+    guard.current = true;
+    setBusy(true);
+    try {
+      if (securityApi.remove) await securityApi.remove(pendingFactorId);
+    } catch {
+      // Best-effort cleanup of unverified factor; never trap user in modal on cancel.
+    } finally {
+      guard.current = false;
+      if (mounted.current) {
+        setBusy(false);
+        clear();
+        refresh();
+      }
+    }
   }
 
   useEffect(() => {
@@ -146,7 +167,8 @@ function SecurityDetails() {
     if (!modal || typeof document === 'undefined') return;
     const dialog = modalRef.current;
     if (dialog) {
-      const firstFocusable = dialog.querySelector?.('input:not([readonly]):not([disabled]), button:not([disabled])');
+      const firstInput = dialog.querySelector?.('input:not([readonly]):not([disabled]):not(:disabled)');
+      const firstFocusable = firstInput || dialog.querySelector?.('button:not([disabled]):not(:disabled)');
       if (firstFocusable && typeof firstFocusable.focus === 'function') {
         firstFocusable.focus();
       } else if (typeof dialog.focus === 'function') {
@@ -175,10 +197,13 @@ function SecurityDetails() {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [modal]);
+  }, [modal, setup]);
 
-  const is2faActive = Boolean(snapshot?.twoFactorEnabled || (snapshot?.factors && snapshot.factors.some(f => f.status === 'verified')));
+  const isSms2faActive = Boolean(snapshot?.twoFactorEnabled);
+  const hasVerifiedTotp = Boolean(snapshot?.factors && snapshot.factors.some(f => f.status === 'verified'));
+  const is2faActive = isSms2faActive || hasVerifiedTotp;
   const phoneDisplay = snapshot?.twoFactorPhone || snapshot?.phone || '';
+  const isRemovingTotp = modal === 'remove' && target?.factor_type === 'totp';
 
   return (
     <section className="content security-settings space-y-6">
@@ -317,7 +342,7 @@ function SecurityDetails() {
                   <strong>Password</strong>
                   <p>Password change date is unavailable.</p>
                 </div>
-                <Button type="button" onClick={() => open('password')}>
+                <Button type="button" disabled={busy} onClick={() => open('password')}>
                   <KeyRound className="size-4" data-icon="inline-start" aria-hidden="true" />
                   Update Password
                 </Button>
@@ -325,16 +350,16 @@ function SecurityDetails() {
               <div className="security-row">
                 <div>
                   <strong>Two-Factor Authentication (2FA)</strong>
-                  <p>{is2faActive ? `TextBee SMS 2FA is active${phoneDisplay ? ` (${phoneDisplay})` : ''}` : 'No verified 2FA phone'}</p>
+                  <p>{isSms2faActive ? `TextBee SMS 2FA is active${phoneDisplay ? ` (${phoneDisplay})` : ''}` : 'No verified 2FA phone'}</p>
                   <p>SMS verification codes delivered via TextBee are requested before office pages on future sign-ins.</p>
                 </div>
-                {is2faActive ? (
+                {isSms2faActive ? (
                   <Button
                     type="button"
                     variant="outline"
                     className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     disabled={busy}
-                    onClick={() => open('remove', snapshot.factors?.[0] || { id: 'sms' })}
+                    onClick={() => open('remove', { id: 'sms', factor_type: 'sms' })}
                   >
                     Disable 2FA
                   </Button>
@@ -355,6 +380,7 @@ function SecurityDetails() {
                     type="button"
                     variant="outline"
                     className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={busy}
                     onClick={() => open('remove', factor)}
                   >
                     Remove authenticator
@@ -376,6 +402,7 @@ function SecurityDetails() {
                 type="button"
                 variant="outline"
                 className="w-full border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={busy}
                 onClick={() => open('sessions')}
               >
                 <LogOut className="size-4" data-icon="inline-start" aria-hidden="true" />
@@ -422,9 +449,11 @@ function SecurityDetails() {
                     ? 'Update Password'
                     : modal === 'sessions'
                       ? 'Sign Out Other Sessions'
-                      : modal === 'remove'
-                        ? 'Disable 2FA'
-                        : 'Set Up 2FA (TextBee SMS)'}
+                      : isRemovingTotp
+                        ? 'Remove Authenticator'
+                        : modal === 'remove'
+                          ? 'Disable 2FA'
+                          : 'Set Up 2FA (TextBee SMS)'}
                 </h2>
                 <Button
                   type="button"
@@ -507,24 +536,30 @@ function SecurityDetails() {
                   </>
                 )}
                 {modal === 'remove' && (
-                  <p>Disable SMS Two-Factor Authentication for <strong>{phoneDisplay || 'your account'}</strong>? Your account will no longer require SMS verification codes when signing in.</p>
+                  isRemovingTotp ? (
+                    <p>Remove <strong>{target?.friendly_name || 'Authenticator app'}</strong> from your account? You will no longer be able to use this authenticator to verify sign-ins.</p>
+                  ) : (
+                    <p>Disable SMS Two-Factor Authentication for <strong>{phoneDisplay || 'your account'}</strong>? Your account will no longer require SMS verification codes when signing in.</p>
+                  )
                 )}
                 {error && <p role="alert" className="pw-error">{error}</p>}
               </div>
               <div className="pw-modal-footer">
-                <Button type="button" variant="outline" onClick={cancel}>
+                <Button type="button" variant="outline" disabled={busy} onClick={cancel}>
                   Cancel
                 </Button>
-                <Button type="submit" variant={modal === 'remove' || modal === 'sessions' ? 'destructive' : 'default'}>
+                <Button type="submit" disabled={busy} variant={modal === 'remove' || modal === 'sessions' ? 'destructive' : 'default'}>
                   {busy
                     ? 'Working...'
                     : modal === 'enroll' && !setup
                       ? 'Send Verification SMS'
                       : modal === 'enroll'
                         ? 'Verify & Enable 2FA'
-                        : modal === 'remove'
-                          ? 'Disable 2FA'
-                          : 'Confirm'}
+                        : isRemovingTotp
+                          ? 'Remove Authenticator'
+                          : modal === 'remove'
+                            ? 'Disable 2FA'
+                            : 'Confirm'}
                 </Button>
               </div>
             </fieldset>

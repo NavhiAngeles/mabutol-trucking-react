@@ -25,7 +25,9 @@ export function accountService(client = supabase, verifierFactory = () => create
     if (error || !data) throw new Error('Unable to load your account. Please retry.');
     const [photo, sessions] = await Promise.all([
       photoUrl(data.avatar_url, user.id),
-      ensureDeviceSessions(client, user).catch(() => []),
+      typeof ensureDeviceSessions === 'function'
+        ? Promise.resolve().then(() => ensureDeviceSessions(client, user)).catch(() => [])
+        : Promise.resolve([]),
     ]);
     const currentSession = sessions.find(item => item.isCurrent) || sessions[0] || null;
     return { ...data, email: user.email, lastSignIn: user.last_sign_in_at, photo, sessions, currentSession };
@@ -74,12 +76,16 @@ export function accountService(client = supabase, verifierFactory = () => create
     const user = await identity();
     const { error } = await client.auth.signOut({ scope: 'others' });
     if (error) throw new Error('Unable to sign out other sessions. Please retry.');
-    const sessions = await clearOtherDeviceSessions(client, user);
+    const sessions = typeof clearOtherDeviceSessions === 'function'
+      ? await clearOtherDeviceSessions(client, user)
+      : [];
     return { sessions };
   }
   async function revokeSession(sessionId) {
     const user = await identity();
-    const sessions = await removeDeviceSession(client, user, sessionId);
+    const sessions = typeof removeDeviceSession === 'function'
+      ? await removeDeviceSession(client, user, sessionId)
+      : [];
     return { sessions };
   }
   return { load, save, changePassword, revokeOthers, revokeSession };

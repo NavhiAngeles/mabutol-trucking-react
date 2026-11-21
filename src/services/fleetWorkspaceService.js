@@ -192,19 +192,32 @@ export async function registerDriver(form, docs = []) {
     ? normalizeDriverPhone(form.emergencyContact)
     : null;
   const payload = {
-    full_name: form.fullName.trim(), contact_number: normalizedContact, date_hired: form.dateHired || null,
-    emergency_contact_number: normalizedEmergency, license_number: form.licenseNumber.trim(), assigned_truck_id: form.assignVehicle || null
+    full_name: form.fullName.trim(),
+    contact_number: normalizedContact,
+    date_hired: form.dateHired || null,
+    emergency_contact_name: form.emergencyContactName?.trim() || null,
+    emergency_contact_number: normalizedEmergency,
+    notes: form.notes?.trim() || null,
+    license_number: form.licenseNumber.trim(),
+    assigned_truck_id: form.assignVehicle || null,
   };
-  if (!!form.email !== !!form.password) throw new Error('Provide both email and password, or leave both empty for a roster-only driver.');
-  if (form.password && form.password !== form.confirmPassword) throw new Error('Passwords do not match.');
+  const email = form.email?.trim() || "";
+  const effectivePassword = email
+    ? (form.password ? String(form.password) : "driver123")
+    : (form.password ? String(form.password) : "");
+  const effectiveConfirm = form.confirmPassword !== undefined && form.confirmPassword !== ""
+    ? String(form.confirmPassword)
+    : effectivePassword;
+  if (!!email !== !!effectivePassword) throw new Error('Provide both email and password, or leave both empty for a roster-only driver.');
+  if (effectivePassword && effectivePassword !== effectiveConfirm) throw new Error('Passwords do not match.');
 
-  if (!form.email) return saveFleetRecord('driver', null, payload, { documents: docs });
+  if (!email) return saveFleetRecord('driver', null, payload, { documents: docs });
 
   const { staged, uploads } = await stageComplianceDocuments(docs);
   try {
     const { data, error } = await supabase.functions.invoke('create-driver-user', {
       body: {
-        email: form.email.trim(), password: form.password, fullName: form.fullName.trim(), phone: normalizedContact, registration: { payload, documents: staged },
+        email, password: effectivePassword, fullName: form.fullName.trim(), phone: normalizedContact, registration: { payload, documents: staged },
       }
     });
     if (error) {

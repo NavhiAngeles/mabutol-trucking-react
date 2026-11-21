@@ -156,15 +156,52 @@ test('TextBee 2FA enrollment sends verification SMS and enables only after code 
   assert.ok(text.includes('2FA verified and enabled via TextBee SMS.'));
 });
 
-test('cancel enrollment clears modal dialog and closes cleanly', async () => {
+test('cancel enrollment clears modal dialog and closes cleanly without unnecessary reload', async () => {
+  let loads = 0;
   const ui = await screen('security', {
+    load: async () => {
+      loads++;
+      return { email: 'fixture@example.test', twoFactorEnabled: false, twoFactorPhone: '', factors: [] };
+    },
     sendSms2fa: async phone => ({ phone }),
   });
+  assert.equal(loads, 1);
   ui.open('Set Up 2FA');
   assert.equal(find(ui.render(), n => n.type === 'form').length, 1);
   ui.open('Cancel');
   await tick();
   assert.equal(find(ui.render(), n => n.type === 'form').length, 0);
+  assert.equal(loads, 1);
+});
+
+test('verified TOTP authenticator removal does not falsely report SMS 2FA active and invokes remove()', async () => {
+  const removed = [];
+  let disabled = 0;
+  const ui = await screen('security', {
+    load: async () => ({
+      email: 'fixture@example.test',
+      twoFactorEnabled: false,
+      twoFactorPhone: '',
+      factors: [{ id: 'totp-1', factor_type: 'totp', status: 'verified', friendly_name: 'Office Authenticator' }],
+    }),
+    remove: async id => { removed.push(id); },
+    disable2fa: async () => { disabled++; },
+  });
+  const initialText = JSON.stringify(ui.render());
+  assert.ok(initialText.includes('2FA Active'));
+  assert.ok(initialText.includes('No verified 2FA phone'));
+  assert.ok(initialText.includes('Set Up 2FA'));
+  assert.ok(initialText.includes('Office Authenticator'));
+
+  ui.open('Remove authenticator');
+  const modalText = JSON.stringify(ui.render());
+  assert.ok(modalText.includes('Remove Authenticator'));
+  assert.ok(modalText.includes('Office Authenticator'));
+
+  await ui.submit();
+  assert.deepEqual(removed, ['totp-1']);
+  assert.equal(disabled, 0);
+  assert.ok(JSON.stringify(ui.render()).includes('Authenticator removed.'));
 });
 
 test('Disable 2FA confirms and disables SMS 2FA with success notice', async () => {

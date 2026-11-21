@@ -1,11 +1,16 @@
 /* Shared Account/Security refinement; deliberately scoped away from other settings. */
-.settings-page :is(.account-settings, .security-settings) .settings-card {
+.settings-page :is(.account-settings, .security-settings) .settings-card:not([data-slot="card"]) {
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   background: #fff;
   padding: 24px;
   margin: 0;
   box-shadow: 0 1px 3px #0f172a05;
+  min-width: 0;
+}
+
+.settings-page :is(.account-settings, .security-settings) .settings-card[data-slot="card"] {
+  margin: 0;
   min-width: 0;
 }
 

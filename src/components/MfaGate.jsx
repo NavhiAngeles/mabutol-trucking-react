@@ -50,7 +50,9 @@ export default function MfaGate({ children, userId = null }) {
         setFactorId(data.factors?.[0]?.id || '');
         setError('');
         if (data.required && data.twoFactorType === 'textbee_sms' && securityApi.sendChallengeSms) {
-          securityApi.sendChallengeSms().catch(() => { });
+          securityApi.sendChallengeSms().catch(err => {
+            if (!disposed && err?.message) setError(err.message);
+          });
         }
       }
     }).catch(err => {

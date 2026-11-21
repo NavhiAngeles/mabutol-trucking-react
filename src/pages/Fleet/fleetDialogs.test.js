@@ -4,10 +4,17 @@ import fs from "node:fs";
 import vm from "node:vm";
 import * as vite from "vite";
 import {
+  DEFAULT_DRIVER_TEMP_PASSWORD,
   INITIAL_DRIVER_FORM,
   INITIAL_VEHICLE_FORM,
+  findDuplicateDriver,
+  formatLtoLicenseInput,
+  formatPhMobileInput,
+  getManilaTodayIso,
   getVehicleCapacityBounds,
   isDriverFormDirty,
+  isValidDriverEmail,
+  isValidDriverLicenseNumber,
   isVehicleFormDirty,
   normalizeDriverPhone,
   validateDriverStep1,
@@ -552,7 +559,7 @@ test("validateVehicleStep1 requires plateNumber, model, type, and positive capac
   );
 });
 
-test("validateDriverStep1 requires fullName, contactNumber, and licenseNumber before advancing", () => {
+test("validateDriverStep1 validates basic info and mobile credentials while license is collected in Step 2", () => {
   // Empty form
   assert.equal(
     validateDriverStep1(INITIAL_DRIVER_FORM),
@@ -565,24 +572,54 @@ test("validateDriverStep1 requires fullName, contactNumber, and licenseNumber be
     "Please fill in Full Name and Contact Number before proceeding."
   );
 
-  // Missing license number
+  // Step 1 succeeds without licenseNumber (license is now entered in Step 2 Compliance Documents)
   assert.equal(
-    validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09123456789", licenseNumber: " " }),
-    "Please provide the License Number before proceeding."
+    validateDriverStep1({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09123456789", licenseNumber: "" }),
+    null
   );
 
-  // Valid step 1
+  // Rejects emergency contact matching primary contact number
+  assert.match(
+    validateDriverStep1({
+      ...INITIAL_DRIVER_FORM,
+      fullName: "Juan dela Cruz",
+      contactNumber: "09171234567",
+      emergencyContact: "+63 917 123 4567",
+    }),
+    /different from the driver's primary contact number/i
+  );
+
+  // Rejects future dateHired
+  assert.match(
+    validateDriverStep1(
+      { ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09171234567", dateHired: "2099-01-01" },
+      { todayIso: "2026-11-22" }
+    ),
+    /cannot be in the future/i
+  );
+
+  // Validates mobile account email and default temporary password
+  assert.equal(DEFAULT_DRIVER_TEMP_PASSWORD, "driver123");
+  assert.match(
+    validateDriverStep1({
+      ...INITIAL_DRIVER_FORM,
+      fullName: "Juan dela Cruz",
+      contactNumber: "09171234567",
+      email: "invalid-email",
+    }),
+    /valid email address/i
+  );
   assert.equal(
     validateDriverStep1({
       ...INITIAL_DRIVER_FORM,
       fullName: "Juan dela Cruz",
-      contactNumber: "09123456789",
-      licenseNumber: "N01-23-45678",
+      contactNumber: "09171234567",
+      email: "juan@tanawlogistics.com",
     }),
     null
   );
 
-  // validateDriverSubmit checks driver identity and license on submission
+  // validateDriverSubmit checks driver identity, license format, and expiry dates on submission
   assert.equal(
     validateDriverSubmit(INITIAL_DRIVER_FORM),
     "Please provide the driver's full name and contact number."
@@ -591,15 +628,56 @@ test("validateDriverStep1 requires fullName, contactNumber, and licenseNumber be
     validateDriverSubmit({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09123456789", licenseNumber: "" }),
     "Please provide the professional license number."
   );
+  assert.match(
+    validateDriverSubmit({ ...INITIAL_DRIVER_FORM, fullName: "Juan dela Cruz", contactNumber: "09123456789", licenseNumber: "12" }),
+    /valid LTO license number/i
+  );
+  assert.match(
+    validateDriverSubmit(
+      {
+        ...INITIAL_DRIVER_FORM,
+        fullName: "Juan dela Cruz",
+        contactNumber: "09123456789",
+        licenseNumber: "N01-23-45678",
+        licenseExpiry: "2020-01-01",
+      },
+      { todayIso: "2026-11-22" }
+    ),
+    /expiry date cannot be in the past/i
+  );
   assert.equal(
-    validateDriverSubmit({
-      ...INITIAL_DRIVER_FORM,
-      fullName: "Juan dela Cruz",
-      contactNumber: "09123456789",
-      licenseNumber: "N01-23-45678",
-    }),
+    validateDriverSubmit(
+      {
+        ...INITIAL_DRIVER_FORM,
+        fullName: "Juan dela Cruz",
+        contactNumber: "09123456789",
+        licenseNumber: "N01-23-45678",
+        licenseExpiry: "2028-05-01",
+      },
+      { todayIso: "2026-11-22" }
+    ),
     null
   );
+});
+
+test("driver formatting helpers normalize PH mobile, LTO license, email, and detect duplicates", () => {
+  assert.equal(formatPhMobileInput("0917-555-1234"), "917 555 1234");
+  assert.equal(formatPhMobileInput("+63 0917 555 1234"), "917 555 1234");
+  assert.equal(formatLtoLicenseInput("n0123456789"), "N01-23-456789");
+  assert.equal(isValidDriverLicenseNumber("N01-23-456789"), true);
+  assert.equal(isValidDriverLicenseNumber("N01-23-45678"), true);
+  assert.equal(isValidDriverLicenseNumber("abc"), false);
+  assert.equal(isValidDriverEmail("driver@tanawlogistics.com"), true);
+  assert.equal(isValidDriverEmail("not-an-email"), false);
+  assert.match(getManilaTodayIso(new Date("2026-11-22T02:00:00+08:00")), /^\d{4}-\d{2}-\d{2}$/);
+
+  const roster = [
+    { id: "d1", full_name: "Juan dela Cruz", contact_number: "+639175551234", license_number: "N01-23-456789" },
+  ];
+  assert.equal(findDuplicateDriver(roster, { licenseNumber: "n0123456789" })?.type, "license");
+  assert.equal(findDuplicateDriver(roster, { contactNumber: "0917 555 1234" })?.type, "phone");
+  assert.equal(findDuplicateDriver(roster, { fullName: "  juan dela cruz " })?.type, "name");
+  assert.equal(findDuplicateDriver(roster, { fullName: "Pedro Santos", contactNumber: "09181112222" }), null);
 });
 
 test("Vehicle Step 1 NEXT STEP advances only when required fields are valid and displays inline alert on error", () => {
@@ -640,7 +718,7 @@ test("Vehicle Step 1 NEXT STEP advances only when required fields are valid and 
   assert.equal(vehicleError, "", "Error banner must be cleared on successful validation");
 });
 
-test("Driver Step 1 NEXT STEP advances only when required fields are valid and displays inline alert on error", () => {
+test("Driver Step 1 NEXT STEP advances when basic info is valid and Step 2 enforces license before submit", () => {
   let driverStep = 1;
   let driverError = "";
   let driverForm = { ...INITIAL_DRIVER_FORM };
@@ -660,18 +738,17 @@ test("Driver Step 1 NEXT STEP advances only when required fields are valid and d
   assert.equal(driverStep, 1, "Must not advance to Step 2 when form is empty");
   assert.equal(driverError, "Please fill in Full Name and Contact Number before proceeding.");
 
-  // Filled name and contact, but missing license
+  // Filled name and contact advances to Step 2 (Compliance Documents) where license is entered
   driverForm.fullName = "Juan dela Cruz";
   driverForm.contactNumber = "09123456789";
   handleDriverNextStep();
-  assert.equal(driverStep, 1, "Must not advance without license number");
-  assert.equal(driverError, "Please provide the License Number before proceeding.");
-
-  // Full valid step 1
-  driverForm.licenseNumber = "N01-23-45678";
-  handleDriverNextStep();
-  assert.equal(driverStep, 2, "Advances to Step 2 when required fields are valid");
+  assert.equal(driverStep, 2, "Advances to Step 2 without requiring license on Step 1");
   assert.equal(driverError, "", "Error banner must be cleared on successful validation");
+
+  // Step 2 submission blocks until license number is provided
+  assert.equal(validateDriverSubmit(driverForm), "Please provide the professional license number.");
+  driverForm.licenseNumber = "N01-23-45678";
+  assert.equal(validateDriverSubmit(driverForm), null);
 });
 
 test("fleet.jsx source contains zero blocking window.alert calls and binds accessible inline error alerts with role=alert", () => {

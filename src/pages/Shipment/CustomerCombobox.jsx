@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 function customerLabel(customer) {
   return (
@@ -45,6 +45,12 @@ export default function CustomerCombobox({
   const [isEditing, setIsEditing] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const activeCustomers = useMemo(
     () =>
@@ -61,12 +67,12 @@ export default function CustomerCombobox({
         const cooldownMs = customer?.booking_cooldown_until
           ? Date.parse(customer.booking_cooldown_until)
           : NaN;
-        if (Number.isFinite(cooldownMs) && cooldownMs > Date.now()) {
+        if (Number.isFinite(cooldownMs) && cooldownMs > nowMs) {
           return false;
         }
         return true;
       }),
-    [customers]
+    [customers, nowMs]
   );
 
   const selectedCustomer = useMemo(

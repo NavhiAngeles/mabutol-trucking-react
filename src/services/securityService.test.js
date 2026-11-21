@@ -5,17 +5,20 @@ import vm from 'node:vm';
 function setup(options = {}) {
   const calls = [];
   const response = (name, data) => { calls.push(name); return { data, error: options.errorAt === name ? Error('Provider denied') : null }; };
-  const client = { auth: {
-    getUser: async () => response('identity', { user: options.noUser ? null : { id: 'own', email: 'fixture@example.test' } }),
-    signOut: async args => { calls.push(args); return response('signOut', {}); },
-    mfa: {
-      listFactors: async () => response('list', { all: options.factors || [] }),
-      enroll: async args => { calls.push(args); return response('enroll', { id: 'pending', totp: { qr_code: 'data:image/svg+xml;utf-8,<svg/>', secret: 'fixture-only' } }); },
-      challengeAndVerify: async args => { calls.push(args); return response('verify', options.noToken ? {} : { access_token: 'fixture' }); },
-      unenroll: async args => { calls.push(args); return response('remove', {}); },
-      getAuthenticatorAssuranceLevel: async () => response('assurance', options.aal || { currentLevel: 'aal1', nextLevel: 'aal1' }),
-    },
-  } };
+  const client = {
+    auth: {
+      getUser: async () => response('identity', { user: options.noUser ? null : (options.user || { id: 'own', email: 'fixture@example.test' }) }),
+      signOut: async args => { calls.push(args); return response('signOut', {}); },
+      updateUser: async args => { calls.push(['updateUser', args]); return response('updateUser', {}); },
+      mfa: {
+        listFactors: async () => response('list', { all: options.factors || [] }),
+        enroll: async args => { calls.push(args); return response('enroll', { id: 'pending', totp: { qr_code: 'data:image/svg+xml;utf-8,<svg/>', secret: 'fixture-only' } }); },
+        challengeAndVerify: async args => { calls.push(args); return response('verify', options.noToken ? {} : { access_token: 'fixture' }); },
+        unenroll: async args => { calls.push(args); return response('remove', {}); },
+        getAuthenticatorAssuranceLevel: async () => response('assurance', options.aal || { currentLevel: 'aal1', nextLevel: 'aal1' }),
+      },
+    }
+  };
   const scope = vm.createContext({ supabase: client });
   vm.runInContext(fs.readFileSync(new URL('./securityService.js', import.meta.url), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '') + '\nthis.api = securityService(supabase);', scope);
   return { api: scope.api, calls };
@@ -62,4 +65,19 @@ test('fresh server factors require MFA even when local session factor cache is s
 test('challenge screen signout only targets current session and propagates failure', async () => {
   const { api, calls } = setup(); await api.signOut(); assert.equal(calls[0].scope, 'local');
   await assert.rejects(setup({ errorAt: 'signOut' }).api.signOut());
+});
+test('explicitly disabled two_factor_enabled metadata is not overridden by stale phone metadata, and disable2fa skips bogus sms factor unenroll', async () => {
+  const { api, calls } = setup({
+    user: {
+      id: 'own',
+      email: 'fixture@example.test',
+      phone: '+639171234567',
+      phone_confirmed_at: '2026-11-01T00:00:00Z',
+      user_metadata: { two_factor_enabled: false, two_factor_phone: '+639171234567' },
+    },
+  });
+  const loaded = await api.load();
+  assert.equal(loaded.twoFactorEnabled, false);
+  await api.disable2fa('sms');
+  assert.equal(calls.includes('remove'), false);
 });

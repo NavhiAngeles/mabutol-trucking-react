@@ -1,5 +1,5 @@
 // fleet.jsx
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { getDispatchReadyTruckIds, subscribeToDashboardChanges } from '../../services/dashboardService';
 import MainLayout from "../../layouts/mainLayout";
@@ -7,7 +7,26 @@ import { useFleetViewModel } from "../../viewmodels/FleetViewModel";
 import "./fleet.css";
 import OfficeTools from "../../components/OfficeTools";
 import { FleetEditor, AssignDriverModal, ComplianceDialog, FleetModal, FleetDiscardDialog, FleetDeleteDialog } from "./FleetDialogs";
-import { INITIAL_VEHICLE_FORM, getVehicleCapacityBounds, isDriverFormDirty, isVehicleFormDirty, validateDriverStep1, validateDriverSubmit, validateVehicleCapacity, validateVehicleStep1, validateVehicleSubmit } from "./fleetDraftHelpers";
+import {
+  DEFAULT_DRIVER_TEMP_PASSWORD,
+  INITIAL_DRIVER_FORM,
+  INITIAL_VEHICLE_FORM,
+  findDuplicateDriver,
+  formatLtoLicenseInput,
+  formatPhMobileInput,
+  getManilaTodayIso,
+  getVehicleCapacityBounds,
+  isDriverFormDirty,
+  isValidDriverEmail,
+  isValidDriverLicenseNumber,
+  isVehicleFormDirty,
+  normalizeDriverPhone,
+  validateDriverStep1,
+  validateDriverSubmit,
+  validateVehicleCapacity,
+  validateVehicleStep1,
+  validateVehicleSubmit,
+} from "./fleetDraftHelpers";
 import FleetOverview from "./FleetOverview";
 import FleetVehiclesView from "./FleetVehiclesView";
 import FleetDriversView from "./FleetDriversView";
@@ -151,6 +170,11 @@ export default function Fleet() {
   const [driverStep, setDriverStep] = useState(1); // 1: Info, 2: Documents, 3: Success
   const [registeredDriverId, setRegisteredDriverId] = useState("");
   const [driverError, setDriverError] = useState("");
+  const [driverTouched, setDriverTouched] = useState({});
+  const [enableDriverMobileAccount, setEnableDriverMobileAccount] = useState(false);
+  const [useCustomDriverPassword, setUseCustomDriverPassword] = useState(false);
+  const [showDriverPassword, setShowDriverPassword] = useState(false);
+  const [copiedDriverPassword, setCopiedDriverPassword] = useState(false);
 
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [vehicleStep, setVehicleStep] = useState(1); // 1: Info, 2: Compliance Docs, 3: Success
@@ -160,53 +184,40 @@ export default function Fleet() {
   const [vehicleCapacityTouched, setVehicleCapacityTouched] = useState(false);
   const [confirmDiscardTarget, setConfirmDiscardTarget] = useState(null); // 'driver' | 'vehicle' | null
 
+  const todayIso = useMemo(() => getManilaTodayIso(), []);
+
   // Form Field States
-  const [driverForm, setDriverForm] = useState({
-    fullName: "",
-    contactNumber: "",
-    dateHired: "",
-    assignVehicle: "",
-    emergencyContact: "",
-    licenseNumber: "",
-    licenseExpiry: "",
-    medicalDocNumber: "",
-    medicalExpiry: "",
-    nbiDocNumber: "",
-    nbiExpiry: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    licenseFile: null,
-    medicalFile: null,
-    nbiFile: null,
-  });
+  const [driverForm, setDriverForm] = useState(() => ({
+    ...INITIAL_DRIVER_FORM,
+    dateHired: getManilaTodayIso(),
+  }));
 
   const [vehicleForm, setVehicleForm] = useState(() => ({
     ...INITIAL_VEHICLE_FORM,
     cargoCompatibility: [],
   }));
 
+  const duplicateDriverMatch = useMemo(
+    () =>
+      findDuplicateDriver(drivers, {
+        fullName: driverForm.fullName,
+        contactNumber: driverForm.contactNumber,
+        licenseNumber: driverForm.licenseNumber,
+      }),
+    [drivers, driverForm.fullName, driverForm.contactNumber, driverForm.licenseNumber]
+  );
+
   // Handler functions for modal open / form reset
   const resetDriverForm = () => {
     setDriverForm({
-      fullName: "",
-      contactNumber: "",
-      dateHired: "",
-      assignVehicle: "",
-      emergencyContact: "",
-      licenseNumber: "",
-      licenseExpiry: "",
-      medicalDocNumber: "",
-      medicalExpiry: "",
-      nbiDocNumber: "",
-      nbiExpiry: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      licenseFile: null,
-      medicalFile: null,
-      nbiFile: null,
+      ...INITIAL_DRIVER_FORM,
+      dateHired: getManilaTodayIso(),
     });
+    setDriverTouched({});
+    setEnableDriverMobileAccount(false);
+    setUseCustomDriverPassword(false);
+    setShowDriverPassword(false);
+    setCopiedDriverPassword(false);
     setDriverStep(1);
     setDriverError("");
   };
@@ -254,8 +265,70 @@ export default function Fleet() {
   }, [isSubmittingTruck, vehicleForm, vehicleStep, showVehicleSuccess]);
 
   const handleDriverInputChange = (e, field) => {
-    setDriverForm(previous => ({ ...previous, [field]: e.target.value }));
+    let val = e.target.value;
+    if (field === "contactNumber" || field === "emergencyContact") {
+      val = formatPhMobileInput(val);
+    } else if (field === "licenseNumber") {
+      val = formatLtoLicenseInput(val);
+    }
+    setDriverForm((previous) => ({
+      ...previous,
+      [field]: val,
+      ...(field === "password" && !useCustomDriverPassword ? { confirmPassword: val } : {}),
+    }));
     setDriverError("");
+  };
+
+  const handleDriverPhonePaste = (e, field) => {
+    const pasted = e?.clipboardData?.getData?.("text");
+    if (typeof pasted === "string" && pasted.length > 0) {
+      e.preventDefault();
+      const formatted = formatPhMobileInput(pasted);
+      setDriverForm((previous) => ({ ...previous, [field]: formatted }));
+      setDriverError("");
+    }
+  };
+
+  const handleDriverFieldBlur = (field) => {
+    setDriverTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleToggleDriverMobileAccount = () => {
+    setEnableDriverMobileAccount((prev) => {
+      const next = !prev;
+      if (!next) {
+        setDriverForm((f) => ({
+          ...f,
+          email: "",
+          password: DEFAULT_DRIVER_TEMP_PASSWORD,
+          confirmPassword: DEFAULT_DRIVER_TEMP_PASSWORD,
+        }));
+        setUseCustomDriverPassword(false);
+        setShowDriverPassword(false);
+      } else {
+        setDriverForm((f) => ({
+          ...f,
+          password: f.password || DEFAULT_DRIVER_TEMP_PASSWORD,
+          confirmPassword: f.confirmPassword || f.password || DEFAULT_DRIVER_TEMP_PASSWORD,
+        }));
+      }
+      return next;
+    });
+    setDriverError("");
+  };
+
+  const handleCopyDriverPassword = async () => {
+    const pwdToCopy = driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(pwdToCopy);
+      }
+      setCopiedDriverPassword(true);
+      setTimeout(() => setCopiedDriverPassword(false), 2000);
+    } catch {
+      setCopiedDriverPassword(true);
+      setTimeout(() => setCopiedDriverPassword(false), 2000);
+    }
   };
 
   const handleCargoToggle = (id) => {
@@ -301,7 +374,27 @@ export default function Fleet() {
 
   // Next Step Handlers
   const handleDriverNextStep = () => {
-    const error = validateDriverStep1(driverForm);
+    setDriverTouched((prev) => ({
+      ...prev,
+      fullName: true,
+      contactNumber: true,
+      emergencyContact: true,
+      dateHired: true,
+      ...(enableDriverMobileAccount ? { email: true, password: true, confirmPassword: true } : {}),
+    }));
+    if (enableDriverMobileAccount && !driverForm.email.trim()) {
+      setDriverError("Enter the driver's email address to enable mobile application login, or turn off Mobile Access for a roster-only record.");
+      return;
+    }
+    const effectiveForm = {
+      ...driverForm,
+      email: enableDriverMobileAccount ? driverForm.email : "",
+      password: enableDriverMobileAccount ? (driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD) : "",
+      confirmPassword: enableDriverMobileAccount
+        ? (useCustomDriverPassword ? driverForm.confirmPassword : (driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD))
+        : "",
+    };
+    const error = validateDriverStep1(effectiveForm, { todayIso });
     if (error) {
       setDriverError(error);
       return;
@@ -323,14 +416,38 @@ export default function Fleet() {
 
   // Submission Handlers
   const handleDriverSubmit = async () => {
-    const error = validateDriverSubmit(driverForm);
+    setDriverTouched((prev) => ({
+      ...prev,
+      fullName: true,
+      contactNumber: true,
+      emergencyContact: true,
+      dateHired: true,
+      licenseNumber: true,
+      licenseExpiry: true,
+      medicalExpiry: true,
+      nbiExpiry: true,
+      ...(enableDriverMobileAccount ? { email: true, password: true, confirmPassword: true } : {}),
+    }));
+    if (enableDriverMobileAccount && !driverForm.email.trim()) {
+      setDriverError("Enter the driver's email address to enable mobile application login, or turn off Mobile Access for a roster-only record.");
+      return;
+    }
+    const submissionForm = {
+      ...driverForm,
+      email: enableDriverMobileAccount ? driverForm.email.trim() : "",
+      password: enableDriverMobileAccount ? (driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD) : "",
+      confirmPassword: enableDriverMobileAccount
+        ? (useCustomDriverPassword ? driverForm.confirmPassword : (driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD))
+        : "",
+    };
+    const error = validateDriverSubmit(submissionForm, { todayIso });
     if (error) {
       setDriverError(error);
       return;
     }
     try {
       setDriverError("");
-      const created = await submitNewDriver(driverForm);
+      const created = await submitNewDriver(submissionForm);
       if (!created?.id) {
         throw new Error("Driver registration was not confirmed by the database.");
       }
@@ -510,32 +627,55 @@ export default function Fleet() {
           <div>
             <h3 id="register-driver-modal-title">Register New Driver</h3>
             <p className="modal-subtitle">
-              {driverStep === 1 && "Basic Information"}
-              {driverStep === 2 && "Manual Compliance Documents"}
-              {driverStep === 3 && "Registration Executed"}
+              {driverStep === 1 && "Step 1 of 2: Driver profile, emergency contact, and optional mobile access"}
+              {driverStep === 2 && "Step 2 of 2: Professional driver's license, medical certificate, and NBI clearance"}
+              {driverStep === 3 && "Driver record saved to roster"}
             </p>
           </div>
-          <button className="close-modal-btn" disabled={isSubmittingDriver} onClick={handleCloseDriverModal} aria-label="Close dialog">×</button>
+          <button
+            type="button"
+            className="close-modal-btn"
+            disabled={isSubmittingDriver}
+            onClick={handleCloseDriverModal}
+            aria-label="Close dialog"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
 
         {/* Steps Progress Metrics Indicator */}
-        <div className="modal-steps-indicator">
-          <span className={`step-badge ${driverStep === 1 ? "active" : ""}`}>
-            1 Basic Information
+        <nav className="modal-steps-indicator" aria-label="Driver registration steps">
+          <span
+            className={`step-badge ${driverStep === 1 ? "active" : driverStep > 1 ? "completed" : ""}`}
+            aria-current={driverStep === 1 ? "step" : undefined}
+          >
+            <span className="step-num" aria-hidden="true">{driverStep > 1 ? "✓" : "1"}</span>
+            <span>Basic Information</span>
           </span>
 
-          <span className="step-line"></span>
+          <span className={`step-line ${driverStep > 1 ? "completed" : ""}`} aria-hidden="true"></span>
 
-          <span className={`step-badge ${driverStep === 2 ? "active" : ""}`}>
-            2 Compliance Documents
+          <span
+            className={`step-badge ${driverStep === 2 ? "active" : driverStep > 2 ? "completed" : ""}`}
+            aria-current={driverStep === 2 ? "step" : undefined}
+          >
+            <span className="step-num" aria-hidden="true">{driverStep > 2 ? "✓" : "2"}</span>
+            <span>Compliance Documents</span>
           </span>
 
-          <span className="step-line"></span>
+          <span className={`step-line ${driverStep > 2 ? "completed" : ""}`} aria-hidden="true"></span>
 
-          <span className={`step-badge ${driverStep === 3 ? "active" : ""}`}>
-            3 Confirmation
+          <span
+            className={`step-badge ${driverStep === 3 ? "active" : ""}`}
+            aria-current={driverStep === 3 ? "step" : undefined}
+          >
+            <span className="step-num" aria-hidden="true">3</span>
+            <span>Confirmation</span>
           </span>
-        </div>
+        </nav>
 
         {/* Modal Form Body Segment Switcher */}
         <div className="modal-body">
@@ -549,208 +689,801 @@ export default function Fleet() {
               <span>{driverError}</span>
             </div>
           )}
-          {driverStep === 1 && (
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="driver-form-full-name">FULL NAME *</label>
-                <input id="driver-form-full-name" type="text" placeholder="e.g. Juan dela Cruz" value={driverForm.fullName} onChange={(e) => handleDriverInputChange(e, 'fullName')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="driver-form-contact-number">CONTACT NUMBER *</label>
-                <input id="driver-form-contact-number" type="text" placeholder="09XX XXX XXXX" value={driverForm.contactNumber} onChange={(e) => handleDriverInputChange(e, 'contactNumber')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="driver-form-date-hired">DATE HIRED</label>
-                <input id="driver-form-date-hired" type="date" value={driverForm.dateHired} onChange={(e) => handleDriverInputChange(e, 'dateHired')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="driver-form-assign-vehicle">ASSIGN VEHICLE</label>
-                <select id="driver-form-assign-vehicle" value={driverForm.assignVehicle} onChange={(e) => handleDriverInputChange(e, 'assignVehicle')}>
-                  <option value="">Select vehicle...</option>
-                  {assignableTrucks.map((truck) => (
-                    <option key={truck.id} value={truck.id}>
-                      {truck.model ? `${truck.model} (${truck.plate_number})` : truck.plate_number}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group full-width">
-                <label htmlFor="driver-form-emergency-contact">EMERGENCY CONTACT NUMBER</label>
-                <input id="driver-form-emergency-contact" type="text" placeholder="09XX XXX XXXX" value={driverForm.emergencyContact} onChange={(e) => handleDriverInputChange(e, 'emergencyContact')} />
-              </div>
 
-              <div className="form-divider-title">License Information</div>
-              <div className="form-group">
-                <label htmlFor="driver-form-license-number">LICENSE NUMBER *</label>
-                <input id="driver-form-license-number" type="text" placeholder="e.g. N01-23-45678" value={driverForm.licenseNumber} onChange={(e) => handleDriverInputChange(e, 'licenseNumber')} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="driver-form-license-expiry">LICENSE EXPIRY</label>
-                <input id="driver-form-license-expiry" type="date" value={driverForm.licenseExpiry} onChange={(e) => handleDriverInputChange(e, 'licenseExpiry')} />
-              </div>
-
-              <div className="form-section-box">
-                <h4>Driver Mobile Application Account</h4>
-                <div className="form-group full-width">
-                  <label htmlFor="driver-form-email">EMAIL ADDRESS</label>
-                  <input id="driver-form-email" type="email" placeholder="driver@tanawlogistics.com" value={driverForm.email} onChange={(e) => handleDriverInputChange(e, 'email')} />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="driver-form-password">TEMPORARY PASSWORD</label>
-                  <input id="driver-form-password" type="password" placeholder="........" value={driverForm.password} onChange={(e) => handleDriverInputChange(e, 'password')} />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="driver-form-confirm-password">CONFIRM PASSWORD</label>
-                  <input id="driver-form-confirm-password" type="password" placeholder="........" value={driverForm.confirmPassword} onChange={(e) => handleDriverInputChange(e, 'confirmPassword')} />
-                </div>
-                <p className="notice-text">Email and password create a mobile login. The driver can sign in on Tanaw Mobile using either their contact number or email.</p>
-              </div>
+          {driverStep !== 3 && duplicateDriverMatch && (
+            <div className="driver-duplicate-callout" role="status" aria-live="polite">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span>{duplicateDriverMatch.message}</span>
             </div>
           )}
 
-          {driverStep === 2 && (
-            <div className="documents-upload-container">
-              <p className="info-banner">Manual compliance entry: Enter driver license, medical clearance, and NBI verification records below.</p>
+          {driverStep === 1 && (() => {
+            const fullNameInvalid = Boolean(driverTouched.fullName && driverForm.fullName.trim().length < 2);
+            const contactNormalized = normalizeDriverPhone(driverForm.contactNumber);
+            const contactInvalid = Boolean(driverTouched.contactNumber && !contactNormalized);
+            const emergencyHasValue = Boolean(driverForm.emergencyContact.trim());
+            const emergencyNormalized = emergencyHasValue ? normalizeDriverPhone(driverForm.emergencyContact) : null;
+            const emergencySameAsPrimary = Boolean(
+              emergencyHasValue && contactNormalized && emergencyNormalized && emergencyNormalized === contactNormalized
+            );
+            const emergencyInvalid = Boolean(
+              driverTouched.emergencyContact && emergencyHasValue && (!emergencyNormalized || emergencySameAsPrimary)
+            );
+            const dateHiredInvalid = Boolean(
+              driverTouched.dateHired && driverForm.dateHired && todayIso && driverForm.dateHired > todayIso
+            );
+            const emailInvalid = Boolean(
+              enableDriverMobileAccount &&
+                driverTouched.email &&
+                (!driverForm.email.trim() || !isValidDriverEmail(driverForm.email))
+            );
+            const activePassword = driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD;
+            const passwordInvalid = Boolean(
+              enableDriverMobileAccount &&
+                useCustomDriverPassword &&
+                driverTouched.password &&
+                activePassword.length < 6
+            );
+            const confirmInvalid = Boolean(
+              enableDriverMobileAccount &&
+                useCustomDriverPassword &&
+                driverTouched.confirmPassword &&
+                driverForm.confirmPassword !== activePassword
+            );
+            const formattedDisplayPhone = driverForm.contactNumber ? `+63 ${driverForm.contactNumber}` : "";
 
-              <div className="upload-cards-grid">
-                {/* Card 1: Driver's License */}
-                <div className="upload-card required">
-                  <h4>PROFESSIONAL DRIVER'S LICENSE <span className="req-label">REQUIRED</span></h4>
-                  <div className="form-grid" style={{ marginTop: "12px" }}>
+            return (
+              <div className="driver-reg-sections">
+                {/* Section 1: Driver Identity & Assignment */}
+                <fieldset className="driver-form-section" disabled={isSubmittingDriver}>
+                  <legend className="driver-section-legend">1. Driver Profile &amp; Vehicle Assignment</legend>
+                  <div className="form-grid">
                     <div className="form-group">
-                      <label htmlFor="driver-step2-license-number">LICENSE NUMBER *</label>
+                      <label htmlFor="driver-form-full-name">
+                        Full Name <span className="field-required">*</span>
+                      </label>
                       <input
-                        id="driver-step2-license-number"
+                        id="driver-form-full-name"
+                        name="fullName"
                         type="text"
-                        placeholder="e.g. N01-23-45678"
-                        value={driverForm.licenseNumber}
-                        onChange={(e) => handleDriverInputChange(e, "licenseNumber")}
+                        required
+                        autoComplete="name"
+                        placeholder="e.g. Juan dela Cruz"
+                        disabled={isSubmittingDriver}
+                        value={driverForm.fullName}
+                        aria-invalid={fullNameInvalid ? "true" : "false"}
+                        aria-describedby={fullNameInvalid ? "driver-full-name-error" : undefined}
+                        onBlur={() => handleDriverFieldBlur("fullName")}
+                        onChange={(e) => handleDriverInputChange(e, "fullName")}
                       />
+                      {fullNameInvalid && (
+                        <span id="driver-full-name-error" className="form-field-error">
+                          Enter the driver&apos;s full name (at least 2 characters).
+                        </span>
+                      )}
                     </div>
+
                     <div className="form-group">
-                      <label htmlFor="driver-step2-license-expiry">EXPIRY DATE *</label>
+                      <label htmlFor="driver-form-contact-number">
+                        Contact Number <span className="field-required">*</span>
+                      </label>
+                      <div className={`driver-phone-input-wrap ${contactInvalid ? "is-invalid" : ""}`}>
+                        <span className="driver-phone-prefix" aria-hidden="true">+63</span>
+                        <input
+                          id="driver-form-contact-number"
+                          name="contactNumber"
+                          type="tel"
+                          inputMode="tel"
+                          required
+                          autoComplete="tel-national"
+                          placeholder="9XX XXX XXXX"
+                          disabled={isSubmittingDriver}
+                          value={driverForm.contactNumber}
+                          aria-invalid={contactInvalid ? "true" : "false"}
+                          aria-describedby={contactInvalid ? "driver-contact-error" : "driver-contact-hint"}
+                          onBlur={() => handleDriverFieldBlur("contactNumber")}
+                          onChange={(e) => handleDriverInputChange(e, "contactNumber")}
+                          onPaste={(e) => handleDriverPhonePaste(e, "contactNumber")}
+                        />
+                      </div>
+                      {contactInvalid ? (
+                        <span id="driver-contact-error" className="form-field-error">
+                          Enter a valid 10-digit Philippine mobile number starting with 9 (e.g. 917 123 4567).
+                        </span>
+                      ) : (
+                        <span id="driver-contact-hint" className="form-field-hint">
+                          Used for dispatch calls and Tanaw Mobile phone sign-in.
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="driver-form-date-hired">Date Hired</label>
                       <input
-                        id="driver-step2-license-expiry"
+                        id="driver-form-date-hired"
+                        name="dateHired"
                         type="date"
-                        value={driverForm.licenseExpiry}
-                        onChange={(e) => handleDriverInputChange(e, "licenseExpiry")}
+                        max={todayIso || undefined}
+                        disabled={isSubmittingDriver}
+                        value={driverForm.dateHired}
+                        aria-invalid={dateHiredInvalid ? "true" : "false"}
+                        aria-describedby={dateHiredInvalid ? "driver-date-hired-error" : "driver-date-hired-hint"}
+                        onBlur={() => handleDriverFieldBlur("dateHired")}
+                        onChange={(e) => handleDriverInputChange(e, "dateHired")}
+                      />
+                      {dateHiredInvalid ? (
+                        <span id="driver-date-hired-error" className="form-field-error">
+                          Date hired cannot be in the future.
+                        </span>
+                      ) : (
+                        <span id="driver-date-hired-hint" className="form-field-hint">
+                          Defaults to today (Asia/Manila).
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="driver-form-assign-vehicle">Assign Vehicle (Optional)</label>
+                      <select
+                        id="driver-form-assign-vehicle"
+                        name="assignVehicle"
+                        disabled={isSubmittingDriver}
+                        value={driverForm.assignVehicle}
+                        onChange={(e) => handleDriverInputChange(e, "assignVehicle")}
+                      >
+                        <option value="">Unassigned (assign later)</option>
+                        {assignableTrucks.map((truck) => (
+                          <option key={truck.id} value={truck.id}>
+                            {truck.model ? `${truck.model} (${truck.plate_number})` : truck.plate_number}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="form-field-hint">
+                        {assignableTrucks.length > 0
+                          ? `${assignableTrucks.length} dispatch-ready ${assignableTrucks.length === 1 ? "vehicle" : "vehicles"} available.`
+                          : "No unassigned dispatch-ready vehicles at the moment."}
+                      </span>
+                    </div>
+                  </div>
+                </fieldset>
+
+                {/* Section 2: Emergency Contact & Operational Notes */}
+                <fieldset className="driver-form-section" disabled={isSubmittingDriver}>
+                  <legend className="driver-section-legend">2. Emergency Contact &amp; Notes (Optional)</legend>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label htmlFor="driver-form-emergency-name">Emergency Contact Person</label>
+                      <input
+                        id="driver-form-emergency-name"
+                        name="emergencyContactName"
+                        type="text"
+                        placeholder="e.g. Maria dela Cruz (Spouse)"
+                        disabled={isSubmittingDriver}
+                        value={driverForm.emergencyContactName || ""}
+                        onChange={(e) => handleDriverInputChange(e, "emergencyContactName")}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="driver-form-emergency-contact">Emergency Contact Number</label>
+                      <div className={`driver-phone-input-wrap ${emergencyInvalid ? "is-invalid" : ""}`}>
+                        <span className="driver-phone-prefix" aria-hidden="true">+63</span>
+                        <input
+                          id="driver-form-emergency-contact"
+                          name="emergencyContact"
+                          type="tel"
+                          inputMode="tel"
+                          placeholder="9XX XXX XXXX"
+                          disabled={isSubmittingDriver}
+                          value={driverForm.emergencyContact}
+                          aria-invalid={emergencyInvalid ? "true" : "false"}
+                          aria-describedby={emergencyInvalid ? "driver-emergency-error" : undefined}
+                          onBlur={() => handleDriverFieldBlur("emergencyContact")}
+                          onChange={(e) => handleDriverInputChange(e, "emergencyContact")}
+                          onPaste={(e) => handleDriverPhonePaste(e, "emergencyContact")}
+                        />
+                      </div>
+                      {emergencyInvalid && (
+                        <span id="driver-emergency-error" className="form-field-error">
+                          {emergencySameAsPrimary
+                            ? "Emergency contact number must be different from the driver's primary number."
+                            : "Enter a valid 10-digit Philippine mobile number (e.g. 918 234 5678)."}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label htmlFor="driver-form-notes">Operational Notes</label>
+                      <input
+                        id="driver-form-notes"
+                        name="notes"
+                        type="text"
+                        placeholder="e.g. Familiar with NLEX/TPLEX North Luzon routes, night-shift certified"
+                        disabled={isSubmittingDriver}
+                        value={driverForm.notes || ""}
+                        onChange={(e) => handleDriverInputChange(e, "notes")}
                       />
                     </div>
                   </div>
-                  <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
-                    <div className="upload-icon-container">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
+                </fieldset>
+
+                {/* Section 3: Driver Mobile Application Account */}
+                <div className={`driver-cred-box ${enableDriverMobileAccount ? "is-enabled" : ""}`}>
+                  <div className="driver-cred-header">
+                    <div className="driver-cred-header-info">
+                      <div className="driver-cred-icon-badge" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                          <line x1="12" y1="18" x2="12.01" y2="18" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="driver-cred-title">Driver Mobile Application Account</h4>
+                        <p className="driver-cred-subtitle">
+                          Provision Tanaw Mobile login credentials using the default temporary password (<code>{DEFAULT_DRIVER_TEMP_PASSWORD}</code>).
+                        </p>
+                      </div>
                     </div>
-                    <div className="upload-text-content">
-                      <p className="upload-main-text">
-                        <span>Choose a file</span>
-                      </p>
-                      <p className="upload-sub-text">{driverForm.licenseFile ? driverForm.licenseFile.name + ": ready to upload" : "Driver's License Copy (PDF, PNG, JPG up to 10MB)"}</p>
-                    </div>
-                    <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Driver's license file" onChange={e => handleDriverFile(e, "licenseFile")} />
+                    <button
+                      type="button"
+                      className={`driver-cred-toggle-btn ${enableDriverMobileAccount ? "is-active" : ""}`}
+                      aria-pressed={enableDriverMobileAccount}
+                      disabled={isSubmittingDriver}
+                      onClick={handleToggleDriverMobileAccount}
+                    >
+                      {enableDriverMobileAccount ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                          <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="16" />
+                          <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                      )}
+                      <span>{enableDriverMobileAccount ? "Mobile Access Active" : "+ Enable Mobile Access"}</span>
+                    </button>
                   </div>
+
+                  {enableDriverMobileAccount && (
+                    <div className="driver-cred-body">
+                      <div className="form-grid">
+                        <div className="form-group full-width">
+                          <label htmlFor="driver-form-email">
+                            Driver Email Address <span className="field-required">*</span>
+                          </label>
+                          <input
+                            id="driver-form-email"
+                            name="email"
+                            type="email"
+                            required
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="none"
+                            spellCheck={false}
+                            placeholder="e.g. juan.delacruz@tanawlogistics.com"
+                            disabled={isSubmittingDriver}
+                            value={driverForm.email}
+                            aria-invalid={emailInvalid ? "true" : "false"}
+                            aria-describedby={emailInvalid ? "driver-email-error" : undefined}
+                            onBlur={() => handleDriverFieldBlur("email")}
+                            onChange={(e) => handleDriverInputChange(e, "email")}
+                          />
+                          {emailInvalid && (
+                            <span id="driver-email-error" className="form-field-error">
+                              Enter a valid email address (e.g. driver@tanawlogistics.com).
+                            </span>
+                          )}
+                        </div>
+
+                        {!useCustomDriverPassword ? (
+                          <div className="form-group full-width">
+                            <div className="driver-default-pwd-bar">
+                              <div className="driver-default-pwd-info">
+                                <span className="driver-default-pwd-label">Default Temporary Password</span>
+                                <div className="driver-default-pwd-value-row">
+                                  <code className="driver-default-pwd-chip">
+                                    {showDriverPassword ? DEFAULT_DRIVER_TEMP_PASSWORD : "•••••••••"}
+                                  </code>
+                                  <span className="driver-default-pwd-tag">Pre-filled automatically</span>
+                                </div>
+                              </div>
+                              <div className="driver-default-pwd-actions">
+                                <button
+                                  type="button"
+                                  className="btn-secondary small"
+                                  disabled={isSubmittingDriver}
+                                  aria-pressed={showDriverPassword}
+                                  aria-label={showDriverPassword ? "Hide default temporary password" : "Show default temporary password"}
+                                  onClick={() => setShowDriverPassword((v) => !v)}
+                                >
+                                  {showDriverPassword ? "Hide" : "Show"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-secondary small"
+                                  disabled={isSubmittingDriver}
+                                  onClick={handleCopyDriverPassword}
+                                >
+                                  {copiedDriverPassword ? "Copied" : "Copy"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-secondary small"
+                                  disabled={isSubmittingDriver}
+                                  onClick={() => {
+                                    setUseCustomDriverPassword(true);
+                                    setDriverForm((prev) => ({
+                                      ...prev,
+                                      password: prev.password || DEFAULT_DRIVER_TEMP_PASSWORD,
+                                      confirmPassword: prev.password || DEFAULT_DRIVER_TEMP_PASSWORD,
+                                    }));
+                                  }}
+                                >
+                                  Customize
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="form-group">
+                              <label htmlFor="driver-form-password">
+                                Custom Temporary Password <span className="field-required">*</span>
+                              </label>
+                              <div className="driver-password-input-wrap">
+                                <input
+                                  id="driver-form-password"
+                                  name="password"
+                                  type={showDriverPassword ? "text" : "password"}
+                                  autoComplete="new-password"
+                                  placeholder="Min. 6 characters"
+                                  disabled={isSubmittingDriver}
+                                  value={driverForm.password}
+                                  aria-invalid={passwordInvalid ? "true" : "false"}
+                                  aria-describedby={passwordInvalid ? "driver-password-error" : undefined}
+                                  onBlur={() => handleDriverFieldBlur("password")}
+                                  onChange={(e) => handleDriverInputChange(e, "password")}
+                                />
+                                <button
+                                  type="button"
+                                  className="driver-pwd-toggle"
+                                  disabled={isSubmittingDriver}
+                                  aria-pressed={showDriverPassword}
+                                  aria-label={showDriverPassword ? "Hide password" : "Show password"}
+                                  onClick={() => setShowDriverPassword((v) => !v)}
+                                >
+                                  {showDriverPassword ? "Hide" : "Show"}
+                                </button>
+                              </div>
+                              {passwordInvalid && (
+                                <span id="driver-password-error" className="form-field-error">
+                                  Temporary password must be at least 6 characters.
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="form-group">
+                              <label htmlFor="driver-form-confirm-password">
+                                Confirm Password <span className="field-required">*</span>
+                              </label>
+                              <input
+                                id="driver-form-confirm-password"
+                                name="confirmPassword"
+                                type={showDriverPassword ? "text" : "password"}
+                                autoComplete="new-password"
+                                placeholder="Repeat temporary password"
+                                disabled={isSubmittingDriver}
+                                value={driverForm.confirmPassword}
+                                aria-invalid={confirmInvalid ? "true" : "false"}
+                                aria-describedby={confirmInvalid ? "driver-confirm-password-error" : undefined}
+                                onBlur={() => handleDriverFieldBlur("confirmPassword")}
+                                onChange={(e) => handleDriverInputChange(e, "confirmPassword")}
+                              />
+                              {confirmInvalid && (
+                                <span id="driver-confirm-password-error" className="form-field-error">
+                                  Passwords do not match.
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="form-group full-width">
+                              <button
+                                type="button"
+                                className="driver-reset-default-pwd-btn"
+                                disabled={isSubmittingDriver}
+                                onClick={() => {
+                                  setUseCustomDriverPassword(false);
+                                  setDriverForm((prev) => ({
+                                    ...prev,
+                                    password: DEFAULT_DRIVER_TEMP_PASSWORD,
+                                    confirmPassword: DEFAULT_DRIVER_TEMP_PASSWORD,
+                                  }));
+                                }}
+                              >
+                                Use default temporary password ({DEFAULT_DRIVER_TEMP_PASSWORD}) instead
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <p className="notice-text">
+                        The driver can sign in on Tanaw Mobile using either their contact number ({formattedDisplayPhone || "entered above"}) or email ({driverForm.email.trim() || "entered above"}) with this temporary password.
+                      </p>
+                    </div>
+                  )}
                 </div>
+              </div>
+            );
+          })()}
 
-                {/* Card 2: Medical Clearance Certificate */}
-                <div className="upload-card required">
-                  <h4>MEDICAL CLEARANCE CERTIFICATE <span className="req-label">RECOMMENDED</span></h4>
-                  <div className="form-grid" style={{ marginTop: "12px" }}>
-                    <div className="form-group">
-                      <label htmlFor="driver-step2-medical-number">CERTIFICATE NUMBER / CLINIC</label>
-                      <input
-                        id="driver-step2-medical-number"
-                        type="text"
-                        placeholder="e.g. MED-2026-8891"
-                        value={driverForm.medicalDocNumber || ""}
-                        onChange={(e) => handleDriverInputChange(e, "medicalDocNumber")}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="driver-step2-medical-expiry">VALID UNTIL / EXPIRY DATE</label>
-                      <input
-                        id="driver-step2-medical-expiry"
-                        type="date"
-                        value={driverForm.medicalExpiry || ""}
-                        onChange={(e) => handleDriverInputChange(e, "medicalExpiry")}
-                      />
-                    </div>
-                  </div>
-                  <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
-                    <div className="upload-icon-container">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                    </div>
-                    <div className="upload-text-content">
-                      <p className="upload-main-text">
-                        <span>Choose a file</span>
-                      </p>
-                      <p className="upload-sub-text">{driverForm.medicalFile ? driverForm.medicalFile.name + ": ready to upload" : "Medical Certificate Copy (PDF, PNG, JPG up to 10MB)"}</p>
-                    </div>
-                    <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="Medical certificate file" onChange={e => handleDriverFile(e, "medicalFile")} />
-                  </div>
-                </div>
+          {driverStep === 2 && (() => {
+            const licenseInvalid = Boolean(
+              driverTouched.licenseNumber &&
+                (!driverForm.licenseNumber.trim() || !isValidDriverLicenseNumber(driverForm.licenseNumber))
+            );
+            const licenseExpiryInvalid = Boolean(
+              driverTouched.licenseExpiry &&
+                driverForm.licenseExpiry &&
+                todayIso &&
+                driverForm.licenseExpiry < todayIso
+            );
+            const medicalExpiryInvalid = Boolean(
+              driverTouched.medicalExpiry &&
+                driverForm.medicalExpiry &&
+                todayIso &&
+                driverForm.medicalExpiry < todayIso
+            );
+            const nbiExpiryInvalid = Boolean(
+              driverTouched.nbiExpiry &&
+                driverForm.nbiExpiry &&
+                todayIso &&
+                driverForm.nbiExpiry < todayIso
+            );
 
-                {/* Card 3: NBI Clearance */}
-                <div className="upload-card optional">
-                  <h4>NATIONAL BUREAU OF INVESTIGATION (NBI) CLEARANCE <span className="opt-label">OPTIONAL</span></h4>
-                  <div className="form-grid" style={{ marginTop: "12px" }}>
-                    <div className="form-group">
-                      <label htmlFor="driver-step2-nbi-number">NBI CLEARANCE NUMBER</label>
+            return (
+              <div className="documents-upload-container">
+                <p className="info-banner">
+                  Enter the driver&apos;s professional license details (required) and attach any available compliance scans (PDF, PNG, JPG, or WebP up to 10 MB).
+                </p>
+
+                <div className="upload-cards-grid">
+                  {/* Card 1: Driver's License */}
+                  <div className="upload-card">
+                    <div className="upload-card-header">
+                      <h4>Professional Driver&apos;s License</h4>
+                      <span className="doc-req-badge is-required">Required</span>
+                    </div>
+                    <div className="form-grid" style={{ marginTop: "12px" }}>
+                      <div className="form-group">
+                        <label htmlFor="driver-step2-license-number">
+                          License Number <span className="field-required">*</span>
+                        </label>
+                        <input
+                          id="driver-step2-license-number"
+                          name="licenseNumber"
+                          type="text"
+                          required
+                          autoFocus
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="characters"
+                          spellCheck={false}
+                          placeholder="e.g. N01-23-456789"
+                          disabled={isSubmittingDriver}
+                          value={driverForm.licenseNumber}
+                          aria-invalid={licenseInvalid ? "true" : "false"}
+                          aria-describedby={licenseInvalid ? "driver-license-error" : "driver-license-hint"}
+                          onBlur={() => handleDriverFieldBlur("licenseNumber")}
+                          onChange={(e) => handleDriverInputChange(e, "licenseNumber")}
+                        />
+                        {licenseInvalid ? (
+                          <span id="driver-license-error" className="form-field-error">
+                            Enter a valid LTO license number (e.g. N01-23-456789).
+                          </span>
+                        ) : (
+                          <span id="driver-license-hint" className="form-field-hint">
+                            Auto-formats standard LTO codes as you type.
+                          </span>
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="driver-step2-license-expiry">Expiry Date</label>
+                        <input
+                          id="driver-step2-license-expiry"
+                          name="licenseExpiry"
+                          type="date"
+                          min={todayIso || undefined}
+                          disabled={isSubmittingDriver}
+                          value={driverForm.licenseExpiry}
+                          aria-invalid={licenseExpiryInvalid ? "true" : "false"}
+                          aria-describedby={licenseExpiryInvalid ? "driver-license-expiry-error" : undefined}
+                          onBlur={() => handleDriverFieldBlur("licenseExpiry")}
+                          onChange={(e) => handleDriverInputChange(e, "licenseExpiry")}
+                        />
+                        {licenseExpiryInvalid && (
+                          <span id="driver-license-expiry-error" className="form-field-error">
+                            License expiry date cannot be in the past.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`file-upload-dropzone ${driverForm.licenseFile ? "has-file" : ""}`} style={{ marginTop: "14px" }}>
+                      <div className="upload-icon-container">
+                        {driverForm.licenseFile ? (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        ) : (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="upload-text-content">
+                        <p className="upload-main-text">
+                          <span>{driverForm.licenseFile ? "Replace file" : "Choose a file"}</span>
+                        </p>
+                        <p className="upload-sub-text">
+                          {driverForm.licenseFile
+                            ? `${driverForm.licenseFile.name} (${(driverForm.licenseFile.size / 1024 / 1024).toFixed(2)} MB) ready to upload`
+                            : "Driver's License Copy (PDF, PNG, JPG, WebP up to 10 MB)"}
+                        </p>
+                      </div>
                       <input
-                        id="driver-step2-nbi-number"
-                        type="text"
-                        placeholder="e.g. NBI-2026-4492"
-                        value={driverForm.nbiDocNumber || ""}
-                        onChange={(e) => handleDriverInputChange(e, "nbiDocNumber")}
+                        type="file"
+                        className="hidden-file-input"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        aria-label="Driver's license file"
+                        disabled={isSubmittingDriver}
+                        onChange={(e) => handleDriverFile(e, "licenseFile")}
                       />
                     </div>
-                    <div className="form-group">
-                      <label htmlFor="driver-step2-nbi-expiry">EXPIRY DATE</label>
-                      <input
-                        id="driver-step2-nbi-expiry"
-                        type="date"
-                        value={driverForm.nbiExpiry || ""}
-                        onChange={(e) => handleDriverInputChange(e, "nbiExpiry")}
-                      />
-                    </div>
+                    {driverForm.licenseFile && (
+                      <div className="uploaded-file-actions">
+                        <button
+                          type="button"
+                          className="remove-file-btn"
+                          disabled={isSubmittingDriver}
+                          onClick={() => setDriverForm((prev) => ({ ...prev, licenseFile: null }))}
+                        >
+                          Remove attached license file
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="file-upload-dropzone" style={{ marginTop: "14px" }}>
-                    <div className="upload-icon-container">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
+
+                  {/* Card 2: Medical Clearance Certificate */}
+                  <div className="upload-card">
+                    <div className="upload-card-header">
+                      <h4>Medical Clearance Certificate</h4>
+                      <span className="doc-req-badge is-recommended">Recommended</span>
                     </div>
-                    <div className="upload-text-content">
-                      <p className="upload-main-text">
-                        <span>Choose a file</span>
-                      </p>
-                      <p className="upload-sub-text">{driverForm.nbiFile ? driverForm.nbiFile.name + ": ready to upload" : "NBI Clearance Copy (PDF, PNG, JPG up to 10MB)"}</p>
+                    <div className="form-grid" style={{ marginTop: "12px" }}>
+                      <div className="form-group">
+                        <label htmlFor="driver-step2-medical-number">Certificate Number / Clinic</label>
+                        <input
+                          id="driver-step2-medical-number"
+                          name="medicalDocNumber"
+                          type="text"
+                          placeholder="e.g. MED-2026-8891"
+                          disabled={isSubmittingDriver}
+                          value={driverForm.medicalDocNumber || ""}
+                          onChange={(e) => handleDriverInputChange(e, "medicalDocNumber")}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="driver-step2-medical-expiry">Valid Until / Expiry Date</label>
+                        <input
+                          id="driver-step2-medical-expiry"
+                          name="medicalExpiry"
+                          type="date"
+                          min={todayIso || undefined}
+                          disabled={isSubmittingDriver}
+                          value={driverForm.medicalExpiry || ""}
+                          aria-invalid={medicalExpiryInvalid ? "true" : "false"}
+                          aria-describedby={medicalExpiryInvalid ? "driver-medical-expiry-error" : undefined}
+                          onBlur={() => handleDriverFieldBlur("medicalExpiry")}
+                          onChange={(e) => handleDriverInputChange(e, "medicalExpiry")}
+                        />
+                        {medicalExpiryInvalid && (
+                          <span id="driver-medical-expiry-error" className="form-field-error">
+                            Medical certificate expiry date cannot be in the past.
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <input type="file" className="hidden-file-input" accept=".pdf,.png,.jpg,.jpeg,.webp" aria-label="NBI clearance file" onChange={e => handleDriverFile(e, "nbiFile")} />
+                    <div className={`file-upload-dropzone ${driverForm.medicalFile ? "has-file" : ""}`} style={{ marginTop: "14px" }}>
+                      <div className="upload-icon-container">
+                        {driverForm.medicalFile ? (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        ) : (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="upload-text-content">
+                        <p className="upload-main-text">
+                          <span>{driverForm.medicalFile ? "Replace file" : "Choose a file"}</span>
+                        </p>
+                        <p className="upload-sub-text">
+                          {driverForm.medicalFile
+                            ? `${driverForm.medicalFile.name} (${(driverForm.medicalFile.size / 1024 / 1024).toFixed(2)} MB) ready to upload`
+                            : "Medical Certificate Copy (PDF, PNG, JPG, WebP up to 10 MB)"}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden-file-input"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        aria-label="Medical certificate file"
+                        disabled={isSubmittingDriver}
+                        onChange={(e) => handleDriverFile(e, "medicalFile")}
+                      />
+                    </div>
+                    {driverForm.medicalFile && (
+                      <div className="uploaded-file-actions">
+                        <button
+                          type="button"
+                          className="remove-file-btn"
+                          disabled={isSubmittingDriver}
+                          onClick={() => setDriverForm((prev) => ({ ...prev, medicalFile: null }))}
+                        >
+                          Remove attached medical file
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card 3: NBI Clearance */}
+                  <div className="upload-card">
+                    <div className="upload-card-header">
+                      <h4>National Bureau of Investigation (NBI) Clearance</h4>
+                      <span className="doc-req-badge is-optional">Optional</span>
+                    </div>
+                    <div className="form-grid" style={{ marginTop: "12px" }}>
+                      <div className="form-group">
+                        <label htmlFor="driver-step2-nbi-number">NBI Clearance Number</label>
+                        <input
+                          id="driver-step2-nbi-number"
+                          name="nbiDocNumber"
+                          type="text"
+                          placeholder="e.g. NBI-2026-4492"
+                          disabled={isSubmittingDriver}
+                          value={driverForm.nbiDocNumber || ""}
+                          onChange={(e) => handleDriverInputChange(e, "nbiDocNumber")}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="driver-step2-nbi-expiry">Expiry Date</label>
+                        <input
+                          id="driver-step2-nbi-expiry"
+                          name="nbiExpiry"
+                          type="date"
+                          min={todayIso || undefined}
+                          disabled={isSubmittingDriver}
+                          value={driverForm.nbiExpiry || ""}
+                          aria-invalid={nbiExpiryInvalid ? "true" : "false"}
+                          aria-describedby={nbiExpiryInvalid ? "driver-nbi-expiry-error" : undefined}
+                          onBlur={() => handleDriverFieldBlur("nbiExpiry")}
+                          onChange={(e) => handleDriverInputChange(e, "nbiExpiry")}
+                        />
+                        {nbiExpiryInvalid && (
+                          <span id="driver-nbi-expiry-error" className="form-field-error">
+                            NBI clearance expiry date cannot be in the past.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`file-upload-dropzone ${driverForm.nbiFile ? "has-file" : ""}`} style={{ marginTop: "14px" }}>
+                      <div className="upload-icon-container">
+                        {driverForm.nbiFile ? (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        ) : (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="upload-text-content">
+                        <p className="upload-main-text">
+                          <span>{driverForm.nbiFile ? "Replace file" : "Choose a file"}</span>
+                        </p>
+                        <p className="upload-sub-text">
+                          {driverForm.nbiFile
+                            ? `${driverForm.nbiFile.name} (${(driverForm.nbiFile.size / 1024 / 1024).toFixed(2)} MB) ready to upload`
+                            : "NBI Clearance Copy (PDF, PNG, JPG, WebP up to 10 MB)"}
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden-file-input"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp"
+                        aria-label="NBI clearance file"
+                        disabled={isSubmittingDriver}
+                        onChange={(e) => handleDriverFile(e, "nbiFile")}
+                      />
+                    </div>
+                    {driverForm.nbiFile && (
+                      <div className="uploaded-file-actions">
+                        <button
+                          type="button"
+                          className="remove-file-btn"
+                          disabled={isSubmittingDriver}
+                          onClick={() => setDriverForm((prev) => ({ ...prev, nbiFile: null }))}
+                        >
+                          Remove attached NBI file
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {driverStep === 3 && (
             <div className="success-modal-view">
-              <div className="success-icon-circle">✓</div>
+              <div className="success-icon-circle" aria-hidden="true">✓</div>
               <h2>Driver Registered Successfully</h2>
-              <span className="system-id-badge">SYSTEM GEN ID: {registeredDriverId}</span>
+              <span className="system-id-badge">SYSTEM ID: {registeredDriverId}</span>
               <div className="status-box">
                 <p>Status: <span className="text-success">REGISTERED: COMPLIANCE REVIEW PENDING</span></p>
-                <p className="subtext">{driverForm.email ? "Driver record and mobile login created. Driver can sign in using their contact number or email. Review compliance before dispatch." : "Driver roster record created without a mobile login. Review compliance before dispatch."}</p>
+                <p className="subtext">
+                  {enableDriverMobileAccount && driverForm.email
+                    ? "Driver record and Tanaw Mobile login created. Review compliance documents before dispatch."
+                    : "Driver roster record created without a mobile login. Review compliance documents before dispatch."}
+                </p>
               </div>
+              {enableDriverMobileAccount && driverForm.email && (
+                <div className="driver-credentials-summary-card">
+                  <div className="driver-credentials-summary-header">
+                    <strong>Tanaw Mobile Sign-In Credentials</strong>
+                    <button
+                      type="button"
+                      className="btn-secondary small"
+                      onClick={handleCopyDriverPassword}
+                    >
+                      {copiedDriverPassword ? "Password Copied" : "Copy Temporary Password"}
+                    </button>
+                  </div>
+                  <div className="driver-credentials-summary-grid">
+                    <div>
+                      <span className="cred-summary-label">Phone Login</span>
+                      <code className="cred-summary-value">+63 {driverForm.contactNumber}</code>
+                    </div>
+                    <div>
+                      <span className="cred-summary-label">Email Login</span>
+                      <code className="cred-summary-value">{driverForm.email.trim()}</code>
+                    </div>
+                    <div>
+                      <span className="cred-summary-label">Temporary Password</span>
+                      <code className="cred-summary-value">{driverForm.password || DEFAULT_DRIVER_TEMP_PASSWORD}</code>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -760,27 +1493,22 @@ export default function Fleet() {
           {driverStep === 1 && (
             <>
               <button
-                className="btn-link"
+                type="button"
+                className="btn-secondary"
                 disabled={isSubmittingDriver}
                 onClick={handleCloseDriverModal}
               >
-                CANCEL
+                Cancel
               </button>
 
               <div className="footer-right-buttons">
                 <button
-                  className="btn-secondary"
-                  onClick={handleDriverSubmit}
-                  disabled={isSubmittingDriver}
-                  title="Quick register driver without entering additional compliance documents"
-                >
-                  {isSubmittingDriver ? "Registering..." : "Quick Register"}
-                </button>
-                <button
+                  type="button"
                   className="btn-primary"
+                  disabled={isSubmittingDriver}
                   onClick={handleDriverNextStep}
                 >
-                  NEXT STEP
+                  Next: Compliance Documents
                 </button>
               </div>
             </>
@@ -789,25 +1517,20 @@ export default function Fleet() {
           {driverStep === 2 && (
             <>
               <button
-                className="btn-link"
+                type="button"
+                className="btn-secondary"
+                disabled={isSubmittingDriver}
                 onClick={() => {
                   setDriverError("");
                   setDriverStep(1);
                 }}
               >
-                BACK
+                Back to Basic Info
               </button>
 
               <div className="footer-right-buttons">
                 <button
-                  className="btn-secondary"
-                  onClick={handleDriverSubmit}
-                  disabled={isSubmittingDriver}
-                >
-                  Skip & Complete
-                </button>
-
-                <button
+                  type="button"
                   className="btn-primary"
                   disabled={isSubmittingDriver}
                   onClick={handleDriverSubmit}
@@ -821,10 +1544,18 @@ export default function Fleet() {
           {driverStep === 3 && (
             <>
               <button
+                type="button"
+                className="btn-secondary"
+                onClick={resetDriverForm}
+              >
+                Register Another Driver
+              </button>
+              <button
+                type="button"
                 className="btn-primary"
                 onClick={handleCloseDriverModal}
               >
-                Close
+                Done
               </button>
             </>
           )}

@@ -253,3 +253,21 @@ test('registerDriver normalizes 09XX phone variants to +639XXXXXXXXX and rejects
   );
   assert.equal(rejectApi.uploads.length, 0);
 });
+
+test('registerDriver defaults temporary password to driver123 when email is provided without manual password', async () => {
+  const api = service();
+  const res = await api.registerDriver({
+    fullName: 'Carlos Mendoza',
+    contactNumber: '917 222 3333',
+    emergencyContactName: 'Elena Mendoza',
+    emergencyContact: '918 444 5555',
+    notes: 'Night shift Luzon route',
+    licenseNumber: 'N01-23-456789',
+    email: 'carlos@tanawlogistics.com',
+  }, []);
+  assert.equal(res.id, 'created-driver-id');
+  assert.equal(api.functionCalls.length, 1);
+  assert.equal(api.functionCalls[0].options.body.password, 'driver123');
+  assert.equal(api.functionCalls[0].options.body.registration.payload.emergency_contact_name, 'Elena Mendoza');
+  assert.equal(api.functionCalls[0].options.body.registration.payload.notes, 'Night shift Luzon route');
+});

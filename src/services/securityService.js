@@ -1,5 +1,20 @@
 import { supabase } from './supabaseClient';
-import { normalizeOfficePhone } from '../../supabase/functions/_shared/officePhone.js';
+import { normalizeOfficePhone as sharedNormalizeOfficePhone } from '../../supabase/functions/_shared/officePhone.js';
+
+function normalizePhone(raw) {
+  if (typeof sharedNormalizeOfficePhone === 'function') {
+    return sharedNormalizeOfficePhone(raw);
+  }
+  const value = String(raw ?? '').trim().replace(/[\s()\-–—.]/g, '');
+  let phone = value;
+  if (/^09\d{9}$/.test(value)) phone = `+63${value.slice(1)}`;
+  else if (/^9\d{9}$/.test(value)) phone = `+63${value}`;
+  else if (/^639\d{9}$/.test(value)) phone = `+${value}`;
+  else if (/^\+?6309\d{9}$/.test(value)) phone = `+63${value.replace(/^\+?630/, '')}`;
+  else if (/^00630?9\d{9}$/.test(value)) phone = `+63${value.replace(/^00630?/, '')}`;
+  if (!/^\+639\d{9}$/.test(phone)) throw new Error('Enter a Philippine mobile number, such as 09XXXXXXXXX or +639XXXXXXXXX.');
+  return phone;
+}
 
 export function securityService(client = supabase) {
   async function identity() {
@@ -13,23 +28,26 @@ export function securityService(client = supabase) {
     const { data, error } = await client.auth.mfa.listFactors();
     if (error || !Array.isArray(data?.all)) throw new Error('Unable to load authentication factors. Please retry.');
 
-    let twoFactorPhone = user.user_metadata?.two_factor_phone || user.phone || '';
-    if (!twoFactorPhone && client.from) {
+    const explicitFlag = user.user_metadata?.two_factor_enabled;
+    const twoFactorEnabled =
+      explicitFlag === true ||
+      (explicitFlag !== false && Boolean(user.user_metadata?.two_factor_phone && user.phone_confirmed_at));
+
+    const configuredPhone = user.user_metadata?.two_factor_phone || user.phone || '';
+    let fallbackPhone = configuredPhone;
+    if (!fallbackPhone && client.from) {
       try {
         const { data: profile } = await client.from('users').select('phone').eq('id', user.id).single();
-        if (profile?.phone) twoFactorPhone = profile.phone;
+        if (profile?.phone) fallbackPhone = profile.phone;
       } catch {
         // Profile fallback is optional
       }
     }
-    const twoFactorEnabled = Boolean(
-      user.user_metadata?.two_factor_enabled ||
-      (user.user_metadata?.two_factor_phone && user.phone_confirmed_at)
-    );
+    const twoFactorPhone = twoFactorEnabled ? (configuredPhone || fallbackPhone) : configuredPhone;
 
     return {
       email: user.email,
-      phone: twoFactorPhone,
+      phone: fallbackPhone,
       lastSignIn: user.last_sign_in_at,
       twoFactorEnabled,
       twoFactorPhone,
@@ -40,8 +58,22 @@ export function securityService(client = supabase) {
   }
 
   async function sendSms2fa(phone) {
-    await identity();
-    const normalized = normalizeOfficePhone(phone);
+    const user = await identity();
+    const normalized = normalizePhone(phone);
+    let currentNormalized = '';
+    if (user.phone) {
+      try { currentNormalized = normalizePhone(user.phone); } catch { currentNormalized = ''; }
+    }
+    if (currentNormalized === normalized && user.phone_confirmed_at && client.auth.signInWithOtp) {
+      const { error } = await client.auth.signInWithOtp({
+        phone: normalized,
+        options: { shouldCreateUser: false, channel: 'sms' },
+      });
+      if (error) {
+        throw new Error(error.message || 'Unable to send verification SMS via TextBee. Please check the phone number and retry.');
+      }
+      return { phone: normalized };
+    }
     const { error } = await client.auth.updateUser({ phone: normalized });
     if (error) {
       throw new Error(error.message || 'Unable to send verification SMS via TextBee. Please check the phone number and retry.');
@@ -51,8 +83,8 @@ export function securityService(client = supabase) {
 
   async function verifySms2fa(phone, code) {
     if (!/^\d{6}$/.test(code)) throw new Error('Enter the six-digit SMS code.');
-    await identity();
-    const normalized = normalizeOfficePhone(phone);
+    const user = await identity();
+    const normalized = normalizePhone(phone);
 
     let { error } = await client.auth.verifyOtp({ phone: normalized, token: code, type: 'phone_change' });
     if (error) {
@@ -73,8 +105,7 @@ export function securityService(client = supabase) {
 
     if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
-        const u = await identity();
-        window.sessionStorage.setItem('mabutol_2fa_verified_' + u.id, 'true');
+        window.sessionStorage.setItem('mabutol_2fa_verified_' + user.id, 'true');
       } catch { /* ignore */ }
     }
 
@@ -83,8 +114,9 @@ export function securityService(client = supabase) {
 
   async function disable2fa(factorId) {
     const user = await identity();
-    if (factorId && client.auth?.mfa?.unenroll) {
-      try { await client.auth.mfa.unenroll({ factorId }); } catch { /* ignore */ }
+    if (factorId && factorId !== 'sms' && client.auth?.mfa?.unenroll) {
+      const { error: unenrollError } = await client.auth.mfa.unenroll({ factorId });
+      if (unenrollError) throw new Error(unenrollError.message || 'Unable to disable 2FA. Please retry.');
     }
     if (client.auth?.updateUser) {
       const { error } = await client.auth.updateUser({
@@ -124,17 +156,6 @@ export function securityService(client = supabase) {
     await identity();
     const { error } = await client.auth.mfa.unenroll({ factorId });
     if (error) throw new Error(error.message || 'Unable to remove authenticator. Please retry.');
-    if (client.auth?.updateUser) {
-      try {
-        await client.auth.updateUser({
-          data: {
-            two_factor_enabled: false,
-            two_factor_type: null,
-            two_factor_phone: null,
-          },
-        });
-      } catch { /* ignore */ }
-    }
   }
 
   async function assurance() {
@@ -163,7 +184,7 @@ export function securityService(client = supabase) {
     const phone = user.user_metadata?.two_factor_phone || user.phone;
     if (!phone) throw new Error('No 2FA phone registered on this account.');
     const { error } = await client.auth.signInWithOtp({
-      phone: normalizeOfficePhone(phone),
+      phone: normalizePhone(phone),
       options: { shouldCreateUser: false, channel: 'sms' },
     });
     if (error) {
@@ -175,7 +196,7 @@ export function securityService(client = supabase) {
   async function verifyChallengeSms(code) {
     if (!/^\d{6}$/.test(code)) throw new Error('Enter the six-digit SMS code.');
     const user = await identity();
-    const phone = normalizeOfficePhone(user.user_metadata?.two_factor_phone || user.phone);
+    const phone = normalizePhone(user.user_metadata?.two_factor_phone || user.phone);
     const { data, error } = await client.auth.verifyOtp({ phone, token: code, type: 'sms' });
     if (error || !data?.session) {
       throw new Error(error?.message || 'Invalid or expired SMS code. Try a fresh code.');
@@ -189,6 +210,16 @@ export function securityService(client = supabase) {
   async function signOut() {
     const { error } = await client.auth.signOut({ scope: 'local' });
     if (error) throw new Error('Unable to sign out. Please retry.');
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        for (let i = window.sessionStorage.length - 1; i >= 0; i--) {
+          const key = window.sessionStorage.key(i);
+          if (key && key.startsWith('mabutol_2fa_verified_')) {
+            window.sessionStorage.removeItem(key);
+          }
+        }
+      } catch { /* ignore */ }
+    }
   }
 
   return {
