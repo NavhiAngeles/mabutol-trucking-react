@@ -317,6 +317,50 @@ test('getPaymentReceiptUrl resolves signed URL via mobile_delivery_evidence_file
   };
   const fallbackUrl = await api.getPaymentReceiptUrl('ship-1', 'pay-1', 'del-1/payment-fallback.jpg', fallbackSupabase);
   assert.equal(fallbackUrl, 'https://example.test/signed-receipt.jpg');
+
+  // Pre-D06 mobile_delivery_evidence_file returns 42501 RECORDED_FILE_NOT_FOUND for p_kind='payment'
+  const legacyRpcCalls = [];
+  const legacyRpcSupabase = {
+    rpc: async () => ({ data: null, error: { code: '42501', message: 'RECORDED_FILE_NOT_FOUND' } }),
+    storage: {
+      from: (bucket) => ({
+        createSignedUrl: async (path, ttl) => {
+          legacyRpcCalls.push([bucket, path, ttl]);
+          return { data: { signedUrl: 'https://example.test/legacy-fallback.jpg' }, error: null };
+        },
+      }),
+    },
+  };
+  const legacyFallbackUrl = await api.getPaymentReceiptUrl(
+    'ship-1',
+    'pay-1',
+    'del-1/payment-legacy.jpg',
+    legacyRpcSupabase
+  );
+  assert.equal(legacyFallbackUrl, 'https://example.test/legacy-fallback.jpg');
+  assert.deepEqual(JSON.parse(JSON.stringify(legacyRpcCalls)), [
+    ['delivery-documents', 'del-1/payment-legacy.jpg', 300],
+  ]);
+
+  // Unsafe fallback path or missing fallback must still reject
+  await assert.rejects(
+    () => api.getPaymentReceiptUrl('ship-1', 'pay-1', '../escape.jpg', legacyRpcSupabase),
+    { code: '42501', message: 'RECORDED_FILE_NOT_FOUND' }
+  );
+  await assert.rejects(
+    () => api.getPaymentReceiptUrl('ship-1', 'pay-1', null, legacyRpcSupabase),
+    { code: '42501', message: 'RECORDED_FILE_NOT_FOUND' }
+  );
+
+  // Explicit role authorization failures must never bypass via fallbackProofPath
+  const unauthorizedSupabase = {
+    rpc: async () => ({ data: null, error: { code: '42501', message: 'ACTIVE_DRIVER_OR_OFFICE_REQUIRED' } }),
+    storage: fakeSupabase.storage,
+  };
+  await assert.rejects(
+    () => api.getPaymentReceiptUrl('ship-1', 'pay-1', 'del-1/payment-legacy.jpg', unauthorizedSupabase),
+    { code: '42501', message: 'ACTIVE_DRIVER_OR_OFFICE_REQUIRED' }
+  );
 });
 
 test('subscribeToShipmentPayments subscribes to public.payments filtered by shipment_id and cleans up', () => {

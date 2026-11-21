@@ -577,9 +577,9 @@ export default function PaymentLedger({ shipment, onChanged }) {
                             type="button"
                             className="btn-receipt"
                             onClick={() => openReceiptModal(p)}
-                            title="View signed payment receipt"
+                            title="View proof of payment"
                           >
-                            View Receipt
+                            View Proof of Payment
                           </button>
                         )}
                         {isPending ? (
@@ -836,7 +836,7 @@ export default function PaymentLedger({ shipment, onChanged }) {
                       openReceiptModal(target);
                     }}
                   >
-                    View Signed Receipt
+                    View Proof of Payment
                   </button>
                 </div>
               )}
@@ -977,7 +977,7 @@ export default function PaymentLedger({ shipment, onChanged }) {
           <div className="payment-receipt-dialog-body">
             <div className="shipment-details-header">
               <div className="shipment-details-header-main">
-                <h3 id="receipt-preview-title">Signed Payment Receipt</h3>
+                <h3 id="receipt-preview-title">Proof of Payment</h3>
                 <p className="shipment-details-subtitle">
                   {formatPaymentCurrency(receiptModal.payment.amount)} · {formatPaymentMethod(receiptModal.payment.method)}
                   {receiptModal.payment.reference_number ? ` · Ref: ${receiptModal.payment.reference_number}` : ''}
@@ -1017,7 +1017,7 @@ export default function PaymentLedger({ shipment, onChanged }) {
               <figure className="payment-receipt-figure">
                 <img
                   src={receiptModal.url}
-                  alt={`Signed payment receipt for ${formatPaymentCurrency(receiptModal.payment.amount)} on ${shipment?.tracking_number || 'shipment'}`}
+                  alt={`Proof of payment for ${formatPaymentCurrency(receiptModal.payment.amount)} on ${shipment?.tracking_number || 'shipment'}`}
                   className="payment-receipt-image"
                 />
                 <figcaption className="payment-receipt-caption">

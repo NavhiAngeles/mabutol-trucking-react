@@ -340,7 +340,7 @@ test('Cancelled shipment disables Record Payment button', async () => {
   assert.equal(recordBtn.props.disabled, true, 'Record payment button must be disabled for cancelled shipments');
 });
 
-test('PaymentLedger renders View Receipt button for payments with proof_path and shows rejection_reason', async () => {
+test('PaymentLedger renders View Proof of Payment button for payments with proof_path and shows rejection_reason', async () => {
   const paymentWithProof = {
     id: 'p-proof',
     shipment_id: 'ship-1',
@@ -360,6 +360,6 @@ test('PaymentLedger renders View Receipt button for payments with proof_path and
 
   const text = JSON.stringify(tree);
   assert.ok(text.includes('Blurry signature on slip'));
-  const receiptBtn = find(tree, (n) => n.type === 'button' && textContent(n).includes('View Receipt'))[0];
-  assert.ok(receiptBtn, 'View Receipt button must render when proof_path is present');
+  const receiptBtn = find(tree, (n) => n.type === 'button' && textContent(n).includes('View Proof of Payment'))[0];
+  assert.ok(receiptBtn, 'View Proof of Payment button must render when proof_path is present');
 });

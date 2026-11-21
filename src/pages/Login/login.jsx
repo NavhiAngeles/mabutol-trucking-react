@@ -174,7 +174,7 @@ export default function Login() {
             <dl className="login-scope-list">
               <div className="login-scope-item">
                 <dt>Dispatch Hub</dt>
-                <dd>Cabanatuan City, Nueva Ecija</dd>
+                <dd>San Josef, Peñaranda, Nueva Ecija</dd>
               </div>
               <div className="login-scope-item">
                 <dt>Operations Standard</dt>

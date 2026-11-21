@@ -226,7 +226,10 @@ export async function getPaymentReceiptUrl(
 
   if (rpcError) {
     const missingRpc = rpcError.code === 'PGRST202' || rpcError.code === '42883';
-    if (missingRpc && isSafeStoragePath(fallbackProofPath)) {
+    const legacyEvidenceRpc =
+      rpcError.code === '42501' &&
+      String(rpcError.message || '').includes('RECORDED_FILE_NOT_FOUND');
+    if ((missingRpc || legacyEvidenceRpc) && isSafeStoragePath(fallbackProofPath)) {
       resolvedPath = fallbackProofPath;
     } else {
       throw rpcError;
