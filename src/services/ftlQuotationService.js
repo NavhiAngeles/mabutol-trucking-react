@@ -319,7 +319,6 @@ export async function submitOfficeQuotation(params, client = supabase) {
     pricing_rate_id: pricingRateId,
     linehaul_amount: round2(breakdown.linehaulAmount),
     toll_amount: round2(breakdown.tollAmount),
-    toll_fees: round2(breakdown.tollAmount),
     mobilization_fee: round2(breakdown.mobilizationFee),
     deadhead_km: round2(breakdown.deadheadKm),
     quoted_amount: round2(breakdown.quotedAmount),
@@ -330,10 +329,33 @@ export async function submitOfficeQuotation(params, client = supabase) {
     updated_at: nowIso,
   };
 
-  const { error: updateError } = await client
-    .from('shipments')
-    .update(updatePayload)
-    .eq('id', shipmentId);
+  let currentPayload = { ...updatePayload };
+  let updateError = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await client
+      .from('shipments')
+      .update(currentPayload)
+      .eq('id', shipmentId);
+    updateError = res?.error || null;
+    if (!updateError) break;
+
+    const msg = String(updateError.message || '');
+    const missingColMatch =
+      msg.match(/Could not find the '([^']+)' column/i) ||
+      msg.match(/column "([^"]+)" of relation "shipments" does not exist/i);
+    const generatedColMatch =
+      updateError.code === '428C9' || /generated column|non-DEFAULT value into column/i.test(msg)
+        ? msg.match(/column "([^"]+)"/i) || [null, 'final_amount']
+        : null;
+    const stripCol = missingColMatch?.[1] || generatedColMatch?.[1];
+    if (stripCol && Object.prototype.hasOwnProperty.call(currentPayload, stripCol)) {
+      const nextPayload = { ...currentPayload };
+      delete nextPayload[stripCol];
+      currentPayload = nextPayload;
+      continue;
+    }
+    break;
+  }
 
   if (updateError) throw updateError;
 

@@ -260,6 +260,7 @@ test('submitOfficeQuotation writes itemized fields, final_amount, quote_expires_
   assert.equal(updates[0].pricing_rate_id, 'rate-10w');
   assert.equal(updates[0].linehaul_amount, 14000);
   assert.equal(updates[0].toll_amount, 750);
+  assert.equal('toll_fees' in updates[0], false);
   assert.equal(updates[0].mobilization_fee, 1800);
   assert.equal(updates[0].deadhead_km, 75);
   assert.equal(updates[0].quoted_amount, 16550);
@@ -279,6 +280,68 @@ test('submitOfficeQuotation writes itemized fields, final_amount, quote_expires_
   assert.equal(events[0].meta.quoted_amount, 16550);
   assert.equal(events[0].meta.final_amount, 16550);
   assert.equal(events[0].meta.quote_expires_at, result.quoteExpiresAt);
+});
+
+test('submitOfficeQuotation strips rejected schema-cache or generated columns and retries', async () => {
+  const attempts = [];
+  const events = [];
+  const client = {
+    from(table) {
+      if (table === 'shipments') {
+        return {
+          update(payload) {
+            attempts.push({ ...payload });
+            return {
+              async eq() {
+                if (attempts.length === 1) {
+                  return {
+                    error: {
+                      code: '428C9',
+                      message: 'cannot update a generated column "final_amount"',
+                    },
+                  };
+                }
+                return { error: null };
+              },
+            };
+          },
+        };
+      }
+      if (table === 'shipment_events') {
+        return {
+          async insert(payload) {
+            events.push(payload);
+            return { error: null };
+          },
+        };
+      }
+      throw new Error(`Unexpected table ${table}`);
+    },
+  };
+
+  const { calculateFtlQuote, submitOfficeQuotation } = loadFtlService(client);
+  const breakdown = calculateFtlQuote({
+    rate: { base_rate: 1000, per_km_rate: 50, per_kg_rate: 0, min_charge: 2500, free_deadhead_km: 30, deadhead_per_km_rate: 0 },
+    distanceKm: 100,
+    tollAmount: 500,
+  });
+
+  await submitOfficeQuotation(
+    {
+      shipmentId: 'shp-2',
+      actorUserId: 'usr-admin',
+      pricingRateId: 'rate-10w',
+      breakdown,
+      quoteValidHours: 6,
+    },
+    client
+  );
+
+  assert.equal(attempts.length, 2);
+  assert.equal('final_amount' in attempts[0], true);
+  assert.equal('final_amount' in attempts[1], false);
+  assert.equal(attempts[1].toll_amount, 500);
+  assert.equal(events.length, 1);
 });
 
 test('SQL migration and TypeScript database definitions cover all FTL alignment objects', () => {
