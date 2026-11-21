@@ -1,0 +1,479 @@
+.vrp-container {
+  display: grid;
+  gap: 12px;
+}
+
+.vrp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.vrp-endpoints-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.vrp-container.is-compact .vrp-endpoints-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vrp-endpoint-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-lg, 12px);
+  transition: border-color var(--duration-fast, 150ms) var(--ease-standard, ease);
+}
+
+.vrp-endpoint-card.is-adjusting {
+  border-color: var(--color-accent-cobalt, #1D4ED8);
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.14);
+}
+
+.vrp-endpoint-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vrp-endpoint-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.vrp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs, 4px);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.vrp-badge.is-origin {
+  background: var(--status-success-bg, #DCFCE7);
+  color: var(--status-success-text, #15803D);
+  border-color: var(--status-success-border, #BBF7D0);
+}
+
+.vrp-badge.is-destination {
+  background: var(--status-info-bg, #DBEAFE);
+  color: var(--status-info-text, #1E40AF);
+  border-color: var(--status-info-border, #BFDBFE);
+}
+
+.vrp-badge-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-xs, 4px);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.vrp-pin-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs, 4px);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vrp-pin-status.is-placed {
+  background: var(--status-neutral-bg, #F1F5F9);
+  color: var(--text-primary, #0F172A);
+  border: 1px solid var(--border-subtle, #E2E8F0);
+}
+
+.vrp-pin-status.is-needed {
+  background: var(--status-warning-bg, #FEF3C7);
+  color: var(--status-warning-text, #B45309);
+  border: 1px solid var(--status-warning-border, #FDE68A);
+}
+
+.vrp-container button.vrp-adjust-btn {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-control, #CBD5E1);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #0F172A);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast, 150ms) ease, border-color var(--duration-fast, 150ms) ease;
+}
+
+.vrp-container button.vrp-adjust-btn:hover:not(:disabled) {
+  background: var(--bg-surface-subtle, #F1F5F9);
+  border-color: var(--border-control-hover, #94A3B8);
+}
+
+.vrp-container button.vrp-adjust-btn.is-active {
+  background: var(--color-brand-navy, #0F2A52);
+  border-color: var(--color-brand-navy, #0F2A52);
+  color: #FFFFFF;
+}
+
+.vrp-container button.vrp-adjust-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vrp-endpoint-address {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #0F172A);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.vrp-search-box {
+  position: relative;
+}
+
+.vrp-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vrp-container input.vrp-search-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 36px 8px 12px;
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #0F172A);
+  font-size: 13.5px;
+  box-sizing: border-box;
+}
+
+.vrp-container input.vrp-search-input::placeholder {
+  color: var(--text-muted, #64748B);
+}
+
+.vrp-container input.vrp-search-input:disabled {
+  background: var(--bg-surface-subtle, #F1F5F9);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vrp-container button.vrp-search-clear {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+}
+
+.vrp-container button.vrp-search-clear:hover {
+  background: var(--bg-surface-subtle, #F1F5F9);
+  color: var(--text-primary, #0F172A);
+}
+
+.vrp-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-popover, 0 10px 25px rgba(15, 23, 42, 0.12));
+}
+
+.vrp-container .vrp-search-dropdown button {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-primary, #0F172A);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vrp-container .vrp-search-dropdown button:hover,
+.vrp-container .vrp-search-dropdown button[aria-selected="true"] {
+  background: var(--bg-nav-active, #E8EEF8);
+  color: var(--color-brand-navy, #0F2A52);
+}
+
+.vrp-search-dropdown p {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary, #475569);
+}
+
+.vrp-nudge-bar {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--status-info-bg-subtle, #EFF6FF);
+  border: 1px solid var(--status-info-border, #BFDBFE);
+  border-radius: var(--radius-md, 8px);
+  color: var(--text-primary, #0F172A);
+}
+
+.vrp-nudge-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.vrp-container label.vrp-step-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vrp-container .vrp-step-toggle input[type="checkbox"] {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.vrp-nudge-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vrp-container button.vrp-nudge-btn,
+.vrp-container button.vrp-nudge-done {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vrp-container button.vrp-nudge-btn {
+  border: 1px solid var(--border-control, #CBD5E1);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #0F172A);
+}
+
+.vrp-container button.vrp-nudge-btn:hover:not(:disabled) {
+  background: var(--bg-surface-subtle, #F1F5F9);
+}
+
+.vrp-container button.vrp-nudge-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vrp-container button.vrp-nudge-done {
+  margin-left: auto;
+  border: 1px solid var(--color-brand-navy, #0F2A52);
+  background: var(--color-brand-navy, #0F2A52);
+  color: #FFFFFF;
+}
+
+.vrp-map-shell {
+  position: relative;
+  height: 300px;
+  border: 1px solid var(--border-subtle, #E2E8F0);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  background: var(--bg-surface-subtle, #F1F5F9);
+}
+
+.vrp-container.is-compact .vrp-map-shell {
+  height: 240px;
+}
+
+.vrp-map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vrp-map-shell.is-crosshair .maplibregl-canvas {
+  cursor: crosshair;
+}
+
+.vrp-map-toolbar-left {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-surface, #FFFFFF);
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-lift, 0 2px 6px rgba(15, 23, 42, 0.06));
+}
+
+.vrp-container button.vrp-style-btn {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--text-secondary, #475569);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vrp-container button.vrp-style-btn.is-active {
+  background: var(--color-brand-navy, #0F2A52);
+  color: #FFFFFF;
+}
+
+.vrp-container button.vrp-style-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vrp-map-toolbar-bottom {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vrp-container button.vrp-utility-btn {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-control, #CBD5E1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #0F172A);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-lift, 0 2px 6px rgba(15, 23, 42, 0.06));
+}
+
+.vrp-container button.vrp-utility-btn:hover:not(:disabled) {
+  background: var(--bg-surface-subtle, #F1F5F9);
+}
+
+.vrp-container button.vrp-utility-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.vrp-pin-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  border: 2.5px solid #FFFFFF;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.28);
+  cursor: grab;
+  user-select: none;
+}
+
+.vrp-pin-marker.is-origin {
+  background: #15803D;
+}
+
+.vrp-pin-marker.is-destination {
+  background: #1D4ED8;
+}
+
+.vrp-pin-marker.is-active {
+  outline: 3px solid #0F2A52;
+  outline-offset: 2px;
+}
+
+.vrp-map-alert {
+  padding: 12px 14px;
+  background: var(--status-danger-bg, #FEE2E2);
+  border: 1px solid var(--status-danger-border, #FECACA);
+  border-radius: var(--radius-md, 8px);
+  color: var(--status-danger-text, #B91C1C);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.vrp-container :is(button, input):focus-visible {
+  outline: 2px solid var(--focus-ring-color, #1D4ED8);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .vrp-endpoints-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .vrp-container button.vrp-adjust-btn,
+  .vrp-container input.vrp-search-input,
+  .vrp-container button.vrp-nudge-btn,
+  .vrp-container button.vrp-nudge-done,
+  .vrp-container button.vrp-style-btn,
+  .vrp-container button.vrp-utility-btn {
+    min-height: 44px;
+  }
+
+  .vrp-container button.vrp-nudge-done {
+    margin-left: 0;
+  }
+}
