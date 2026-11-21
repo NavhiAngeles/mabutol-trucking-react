@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 import {
   resolveCity,
   resolveProvince,
@@ -18,8 +18,13 @@ import {
   applyProvinceTextChange,
   findDuplicateCustomer,
   formatPhMobileInput,
+  isValidCustomerPhone,
   toFullPhPhone,
 } from "./customerFormUtils.js";
+
+const transformJsx = (source, filename) => vite.transformWithOxc
+  ? vite.transformWithOxc(source, filename, { jsx: { runtime: "classic" } })
+  : vite.transformWithEsbuild(source, filename, { jsx: "transform" });
 
 const find = (node, type) => !node || typeof node !== "object" ? [] : [
   ...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type)),
@@ -71,22 +76,23 @@ async function fixture(updateCustomer, confirm = () => true, { existingCustomers
     applyProvinceTextChange,
     findDuplicateCustomer,
     formatPhMobileInput,
+    isValidCustomerPhone,
     toFullPhPhone,
     updateCustomer,
     window: { confirm },
-    document: { body: { style: { overflow: "" } }, activeElement: { focus() {} } },
+    document: { body: { style: { overflow: "" } }, activeElement: { focus() { } } },
   };
   vm.createContext(scope);
   const acPath = new URL("../../components/PhAddressAutocomplete/PhAddressAutocomplete.jsx", import.meta.url);
   const dialogPath = new URL("./CustomerEditDialog.jsx", import.meta.url);
-  const { code: acCode } = await transformWithOxc(await readFile(acPath, "utf8"), acPath.pathname, { jsx: { runtime: "classic" } });
-  const { code: dialogCode } = await transformWithOxc(await readFile(dialogPath, "utf8"), dialogPath.pathname, { jsx: { runtime: "classic" } });
+  const { code: acCode } = await transformJsx(await readFile(acPath, "utf8"), acPath.pathname);
+  const { code: dialogCode } = await transformJsx(await readFile(dialogPath, "utf8"), dialogPath.pathname);
 
   vm.runInContext(
     stripImports(acCode).replace("export default function", "function") +
-      "\n" +
-      stripImports(dialogCode).replace("export default function", "function") +
-      "\nthis.Dialog=CustomerEditDialog;",
+    "\n" +
+    stripImports(dialogCode).replace("export default function", "function") +
+    "\nthis.Dialog=CustomerEditDialog;",
     scope
   );
 
@@ -103,11 +109,11 @@ async function fixture(updateCustomer, confirm = () => true, { existingCustomers
     },
   };
 }
-const event = () => ({ preventDefault() {}, stopPropagation() {} });
+const event = () => ({ preventDefault() { }, stopPropagation() { } });
 
 test("edit dialog preserves separate address fields in top-down order, disables unchanged saves and confirms dirty cancellation", async () => {
   let discard = false;
-  const ui = await fixture(async () => {}, () => discard);
+  const ui = await fixture(async () => { }, () => discard);
   let tree = ui.render();
 
   const inputs = find(tree, "input");
@@ -161,7 +167,7 @@ test("unmounted editor ignores a late save result", async () => {
   let resolve;
   const ui = await fixture(() => new Promise(done => { resolve = done; }));
   const tree = ui.render();
-  ui.refs[0].current = { showModal() {} };
+  ui.refs[0].current = { showModal() { } };
   const cleanup = ui.effects[0]();
   const pending = find(tree, "form")[0].props.onSubmit(event());
   cleanup(); resolve({ id: "a" }); await pending;
@@ -202,7 +208,7 @@ test("edit dialog formats +63 phone, supports PSGC reverse auto-fill, and exclud
 
   // Pasting another customer's 09... number shows duplicate warning
   find(tree, "input").find(i => i.props.name === "phone").props.onPaste({
-    preventDefault() {},
+    preventDefault() { },
     clipboardData: { getData: () => "0918-999-0000" },
   });
   tree = ui.render(self, [self, other]);

@@ -841,4 +841,26 @@ test("createCustomer upserts public.users with normalized phone when office_conf
   assert.equal(usersUpserted.is_active, true);
 });
 
+test("customerService normalizes +6309/00639/dot mobile variants, rejects partial mobile numbers, and retains landlines", async () => {
+  const api = createCustomerMock();
+  const editApi = editor();
+  const scope = vm.createContext({});
+  const source = fs.readFileSync(new URL("./customerService.js", import.meta.url), "utf8")
+    .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+  vm.runInContext(source + "\nthis.normalizeCustomerPhone=normalizeCustomerPhone;", scope);
+
+  for (const variant of ["0917.555.8888", "+6309175558888", "6309175558888", "00639175558888", "006309175558888"]) {
+    assert.equal(scope.normalizeCustomerPhone(variant), "+639175558888");
+  }
+
+  await assert.rejects(api.createCustomer({ name: "Partial Mobile", phone: "0917123" }), /Philippine mobile/);
+  await assert.rejects(api.createCustomer({ name: "Partial Local", phone: "9171234" }), /Philippine mobile/);
+  await assert.rejects(editApi.updateCustomer(original, { name: "Valid", phone: "0917123" }), /Philippine mobile/);
+
+  const landline = await api.createCustomer({ name: "Manila Warehouse", phone: "0281234567" });
+  assert.ok(landline.id);
+  const intlLandline = await api.createCustomer({ name: "Manila HQ", phone: "+63281234567" });
+  assert.ok(intlLandline.id);
+});
+
 

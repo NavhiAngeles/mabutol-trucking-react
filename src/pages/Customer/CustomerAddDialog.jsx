@@ -14,6 +14,7 @@ import {
   applyProvinceTextChange,
   findDuplicateCustomer,
   formatPhMobileInput,
+  isValidCustomerPhone,
   toFullPhPhone,
 } from "./customerFormUtils";
 
@@ -217,6 +218,9 @@ export default function CustomerAddDialog({ onClose, onSaved, callerRole, existi
 
     try {
       const normalizedPhone = toFullPhPhone(values.phone);
+      if (normalizedPhone && !isValidCustomerPhone(normalizedPhone)) {
+        throw new Error("Enter a valid Philippine mobile number (9XX XXX XXXX) or landline (7–15 digits).");
+      }
       const payload = {
         ...values,
         phone: normalizedPhone,

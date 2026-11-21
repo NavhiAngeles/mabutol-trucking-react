@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-import { transformWithOxc } from "vite";
+import * as vite from "vite";
 import {
   resolveCity,
   resolveProvince,
@@ -18,8 +18,13 @@ import {
   applyProvinceTextChange,
   findDuplicateCustomer,
   formatPhMobileInput,
+  isValidCustomerPhone,
   toFullPhPhone,
 } from "./customerFormUtils.js";
+
+const transformJsx = (source, filename) => vite.transformWithOxc
+  ? vite.transformWithOxc(source, filename, { jsx: { runtime: "classic" } })
+  : vite.transformWithEsbuild(source, filename, { jsx: "transform" });
 
 const find = (node, type) => !node || typeof node !== "object" ? [] : [
   ...(node.type === type ? [node] : []), ...(node.children || []).flat(Infinity).flatMap(child => find(child, type)),
@@ -73,6 +78,7 @@ async function fixture(createCustomerMock, { confirm = () => true, existingCusto
     applyProvinceTextChange,
     findDuplicateCustomer,
     formatPhMobileInput,
+    isValidCustomerPhone,
     toFullPhPhone,
     window: { confirm },
     document: { body: { style: { overflow: "" } }, activeElement: { focus() {} } },
@@ -81,8 +87,8 @@ async function fixture(createCustomerMock, { confirm = () => true, existingCusto
   vm.createContext(scope);
   const acPath = new URL("../../components/PhAddressAutocomplete/PhAddressAutocomplete.jsx", import.meta.url);
   const dialogPath = new URL("./CustomerAddDialog.jsx", import.meta.url);
-  const { code: acCode } = await transformWithOxc(await readFile(acPath, "utf8"), acPath.pathname, { jsx: { runtime: "classic" } });
-  const { code: dialogCode } = await transformWithOxc(await readFile(dialogPath, "utf8"), dialogPath.pathname, { jsx: { runtime: "classic" } });
+  const { code: acCode } = await transformJsx(await readFile(acPath, "utf8"), acPath.pathname);
+  const { code: dialogCode } = await transformJsx(await readFile(dialogPath, "utf8"), dialogPath.pathname);
 
   vm.runInContext(
     stripImports(acCode).replace("export default function", "function") +
@@ -395,4 +401,37 @@ test("CustomerAddDialog normalizes 09... phone paste and shows inline duplicate 
   const nameCallout = find(tree, "div").find(d => d.props.className === "customer-duplicate-callout");
   assert.ok(nameCallout);
   assert.match(textOf(nameCallout), /Mabutol Farms Inc/);
+});
+
+test("CustomerAddDialog handles +6309/00639/dot phone pastes and rejects partial mobile numbers", async () => {
+  let submitted = null;
+  const ui = await fixture(async (payload) => {
+    submitted = payload;
+    return { id: "c-variant", ...payload };
+  });
+
+  for (const variant of ["+63 0917 555 1234", "00639175551234", "0917.555.1234"]) {
+    assert.equal(formatPhMobileInput(variant), "917 555 1234");
+    assert.equal(toFullPhPhone(variant), "+63 917 555 1234");
+  }
+
+  let tree = ui.render();
+  find(tree, "input").find(i => i.props.name === "name").props.onChange({ target: { value: "Variant Co" } });
+  find(tree, "input").find(i => i.props.name === "phone").props.onChange({ target: { value: "917 123" } });
+  tree = ui.render();
+  await find(tree, "form")[0].props.onSubmit(event());
+  tree = ui.render();
+
+  assert.equal(submitted, null);
+  const alert = find(tree, "div").find(d => d.props.role === "alert");
+  assert.ok(alert);
+  assert.match(textOf(alert), /valid Philippine mobile/i);
+
+  find(tree, "input").find(i => i.props.name === "phone").props.onPaste({
+    preventDefault() {},
+    clipboardData: { getData: () => "+63 0917 555 1234" },
+  });
+  tree = ui.render();
+  await find(tree, "form")[0].props.onSubmit(event());
+  assert.equal(submitted.phone, "+63 917 555 1234");
 });

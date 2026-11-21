@@ -9,7 +9,15 @@ export function formatPhMobileInput(raw) {
   let digits = raw.replace(/\D/g, "");
   if (!digits) return "";
 
-  if (digits.startsWith("639")) {
+  if (digits.startsWith("006309")) {
+    digits = digits.slice(5);
+  } else if (digits.startsWith("00639")) {
+    digits = digits.slice(4);
+  } else if (digits.startsWith("0063") && digits.length > 4) {
+    digits = digits.slice(4);
+  } else if (digits.startsWith("6309")) {
+    digits = digits.slice(3);
+  } else if (digits.startsWith("639")) {
     digits = digits.slice(2);
   } else if (digits.startsWith("63") && digits.length > 2) {
     digits = digits.slice(2);
@@ -35,15 +43,15 @@ export function toFullPhPhone(displayValue) {
   const trimmed = typeof displayValue === "string" ? displayValue.trim() : "";
   if (!trimmed) return "";
   const digits = trimmed.replace(/\D/g, "");
-  if (/^9\d{9}$/.test(digits)) {
-    return `+63 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-  }
-  if (/^09\d{9}$/.test(digits)) {
-    const local = digits.slice(1);
-    return `+63 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
-  }
-  if (/^639\d{9}$/.test(digits)) {
-    const local = digits.slice(2);
+
+  let local = null;
+  if (/^9\d{9}$/.test(digits)) local = digits;
+  else if (/^09\d{9}$/.test(digits)) local = digits.slice(1);
+  else if (/^639\d{9}$/.test(digits)) local = digits.slice(2);
+  else if (/^6309\d{9}$/.test(digits)) local = digits.slice(3);
+  else if (/^00630?9\d{9}$/.test(digits)) local = digits.replace(/^00630?/, "");
+
+  if (local) {
     return `+63 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
   }
   return trimmed;
@@ -59,7 +67,30 @@ export function canonicalPhoneDigits(raw) {
   if (/^09\d{9}$/.test(digits)) return `63${digits.slice(1)}`;
   if (/^9\d{9}$/.test(digits)) return `63${digits}`;
   if (/^639\d{9}$/.test(digits)) return digits;
+  if (/^6309\d{9}$/.test(digits)) return `63${digits.slice(3)}`;
+  if (/^00630?9\d{9}$/.test(digits)) return `63${digits.replace(/^00630?/, "")}`;
   return digits;
+}
+
+/**
+ * Validate a customer contact number (optional).
+ * Accepts complete Philippine mobile numbers (`09XX`, `+639XX`, `6309XX`, `00639XX`)
+ * or valid 7–15 digit landline numbers, while rejecting partial/malformed mobile numbers.
+ */
+export function isValidCustomerPhone(raw) {
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  if (!trimmed) return true;
+  if (!/^[\d+\s()\-–—.]+$/.test(trimmed)) return false;
+  const cleaned = trimmed.replace(/[\s()\-–—.]/g, "");
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 7 || digits.length > 15) return false;
+  const looksLikePhMobile =
+    /^(\+?63|0063|09|9)/.test(cleaned) &&
+    !/^(\+?63|0063|0)[2-8]/.test(cleaned);
+  if (looksLikePhMobile) {
+    return /^639\d{9}$/.test(canonicalPhoneDigits(trimmed));
+  }
+  return true;
 }
 
 function normalizeName(value) {

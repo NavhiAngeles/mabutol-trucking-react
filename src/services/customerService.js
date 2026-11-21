@@ -113,12 +113,29 @@ export const AUTHORIZED_OFFICE_ROLES = ["admin", "staff"];
 export function normalizeCustomerPhone(raw) {
   const trimmed = typeof raw === "string" ? raw.trim() : "";
   if (!trimmed) return null;
-  const cleaned = trimmed.replace(/[ ()-]/g, "");
+  const cleaned = trimmed.replace(/[\s()\-–—.]/g, "");
   if (/^09\d{9}$/.test(cleaned)) return `+63${cleaned.slice(1)}`;
   if (/^9\d{9}$/.test(cleaned)) return `+63${cleaned}`;
   if (/^639\d{9}$/.test(cleaned)) return `+${cleaned}`;
   if (/^\+639\d{9}$/.test(cleaned)) return cleaned;
+  if (/^\+?6309\d{9}$/.test(cleaned)) return `+63${cleaned.replace(/^\+?630/, "")}`;
+  if (/^00630?9\d{9}$/.test(cleaned)) return `+63${cleaned.replace(/^00630?/, "")}`;
   return trimmed;
+}
+
+function validateCustomerPhone(raw) {
+  if (!raw) return;
+  const cleaned = raw.replace(/[\s()\-–—.]/g, "");
+  const digits = raw.replace(/\D/g, "");
+  if (!/^[\d+\s()\-–—.]+$/.test(raw) || digits.length < 7 || digits.length > 15) {
+    throw new Error("Enter a valid contact number (7–15 digits).");
+  }
+  const looksLikePhMobile =
+    /^(\+?63|0063|09|9)/.test(cleaned) &&
+    !/^(\+?63|0063|0)[2-8]/.test(cleaned);
+  if (looksLikePhMobile && !/^\+639\d{9}$/.test(normalizeCustomerPhone(raw))) {
+    throw new Error("Enter a valid Philippine mobile number (e.g. 0917 123 4567 or +63 917 123 4567).");
+  }
 }
 
 async function syncCustomerMobileUser({ userId, customerId = null, name = "", email = null, phone = null }) {
@@ -226,8 +243,8 @@ export async function createCustomerAuthUser({ email, password, fullName, phone,
         storageKey: `tanaw_isolated_${Date.now()}_${Math.random()}`,
         storage: {
           getItem: () => null,
-          setItem: () => {},
-          removeItem: () => {},
+          setItem: () => { },
+          removeItem: () => { },
         },
       },
     });
@@ -297,10 +314,8 @@ export async function createCustomer(values, { callerRole } = {}) {
   }
 
   const phoneRaw = typeof values?.phone === "string" ? values.phone.trim() : "";
+  validateCustomerPhone(phoneRaw);
   const phoneDigits = phoneRaw.replace(/\D/g, "");
-  if (phoneRaw && (phoneDigits.length < 7 || phoneDigits.length > 15)) {
-    throw new Error("Enter a valid contact number (7–15 digits).");
-  }
 
   const address = typeof values?.address === "string" ? values.address.trim() || null : null;
   const barangay = typeof values?.barangay === "string" ? values.barangay.trim() || null : null;
@@ -553,9 +568,7 @@ export async function updateCustomer(customer, values) {
   for (const key of Object.keys(fields)) fields[key] = fields[key].trim();
   if (!fields.name) throw new Error("Customer name is required.");
   if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) throw new Error("Enter a valid email address.");
-  if (fields.phone && (!/^[+\d\s().-]+$/.test(fields.phone) || fields.phone.replace(/\D/g, "").length < 7 || fields.phone.replace(/\D/g, "").length > 15)) {
-    throw new Error("Enter a valid contact number (7–15 digits).");
-  }
+  validateCustomerPhone(fields.phone);
 
   let assignedUserId = customer.user_id || null;
   const newPassword = typeof values?.password === "string" ? values.password : "";
