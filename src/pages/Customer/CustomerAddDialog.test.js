@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
+import { transformWithOxc } from "vite";
 import * as vite from "vite";
 import {
   resolveCity,
@@ -81,20 +82,22 @@ async function fixture(createCustomerMock, { confirm = () => true, existingCusto
     isValidCustomerPhone,
     toFullPhPhone,
     window: { confirm },
-    document: { body: { style: { overflow: "" } }, activeElement: { focus() {} } },
+    document: { body: { style: { overflow: "" } }, activeElement: { focus() { } } },
   };
 
   vm.createContext(scope);
   const acPath = new URL("../../components/PhAddressAutocomplete/PhAddressAutocomplete.jsx", import.meta.url);
   const dialogPath = new URL("./CustomerAddDialog.jsx", import.meta.url);
+  const { code: acCode } = await transformWithOxc(await readFile(acPath, "utf8"), acPath.pathname, { jsx: { runtime: "classic" } });
+  const { code: dialogCode } = await transformWithOxc(await readFile(dialogPath, "utf8"), dialogPath.pathname, { jsx: { runtime: "classic" } });
   const { code: acCode } = await transformJsx(await readFile(acPath, "utf8"), acPath.pathname);
   const { code: dialogCode } = await transformJsx(await readFile(dialogPath, "utf8"), dialogPath.pathname);
 
   vm.runInContext(
     stripImports(acCode).replace("export default function", "function") +
-      "\n" +
-      stripImports(dialogCode).replace("export default function", "function") +
-      "\nthis.Dialog=CustomerAddDialog;",
+    "\n" +
+    stripImports(dialogCode).replace("export default function", "function") +
+    "\nthis.Dialog=CustomerAddDialog;",
     scope
   );
 
@@ -115,7 +118,7 @@ async function fixture(createCustomerMock, { confirm = () => true, existingCusto
   };
 }
 
-const event = () => ({ preventDefault() {}, stopPropagation() {} });
+const event = () => ({ preventDefault() { }, stopPropagation() { } });
 
 test("CustomerAddDialog renders all fields in top-down order, disables submit when name is empty, and confirms dirty cancel", async () => {
   const ui = await fixture(async () => ({ id: "c1", name: "Acme" }));
@@ -428,7 +431,7 @@ test("CustomerAddDialog handles +6309/00639/dot phone pastes and rejects partial
   assert.match(textOf(alert), /valid Philippine mobile/i);
 
   find(tree, "input").find(i => i.props.name === "phone").props.onPaste({
-    preventDefault() {},
+    preventDefault() { },
     clipboardData: { getData: () => "+63 0917 555 1234" },
   });
   tree = ui.render();
