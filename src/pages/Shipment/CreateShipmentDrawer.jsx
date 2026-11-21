@@ -649,7 +649,7 @@ export default function CreateShipmentDrawer({ isOpen, onClose, onCreated }) {
 
     const coordinates = { lat, lng };
 
-    const fallbackAddress = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const fallbackAddress = "Pinned map location (no street address found)";
 
     const enteredAddress = (
       type === "pickup" ? form.pickupLocation : form.destination
@@ -682,7 +682,7 @@ export default function CreateShipmentDrawer({ isOpen, onClose, onCreated }) {
         resolvedAddress = enteredAddress || feature.place_name.trim();
       } else {
         warning =
-          "No street address was found at this pin. Your exact coordinates were saved; add a landmark or warehouse name below if helpful.";
+          "No street address was found at this pin. Your exact pin was saved; add a landmark or warehouse name below if helpful.";
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -692,7 +692,7 @@ export default function CreateShipmentDrawer({ isOpen, onClose, onCreated }) {
       console.error("Reverse geocoding error:", error);
 
       warning =
-        "Address lookup failed. Your exact coordinates were saved; you can edit the address text manually.";
+        "Address lookup failed. Your exact pin was saved; you can edit the address text manually.";
     } finally {
       if (requestId === lookupIdRef.current) {
         if (type === "pickup") {

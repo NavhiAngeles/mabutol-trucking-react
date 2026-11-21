@@ -41,13 +41,16 @@ const statusClass = val =>
     cancelled: 'delayed-pill',
   })[val] ?? 'loading-pill';
 
-export default function ShipmentDetails({ shipment, onClose }) {
+export default function ShipmentDetails({ shipment, onClose, focusSection = null }) {
   const [details, setDetails] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const dialog = useRef(null);
   const detailSequence = useRef(0);
+  const paymentSectionRef = useRef(null);
+  const deliverySectionRef = useRef(null);
+  const didFocusSection = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -68,6 +71,21 @@ export default function ShipmentDetails({ shipment, onClose }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!details || !focusSection || didFocusSection.current) return;
+    const target = focusSection === 'payment'
+      ? paymentSectionRef.current
+      : focusSection === 'delivery'
+        ? deliverySectionRef.current
+        : null;
+    if (target) {
+      didFocusSection.current = true;
+      if (typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [details, focusSection]);
 
   const reload = async ({ preserve = false } = {}) => {
     const request = ++detailSequence.current;
@@ -387,7 +405,9 @@ export default function ShipmentDetails({ shipment, onClose }) {
           </div>
         </dl>
 
-        <PaymentLedger shipment={details} onChanged={reload} />
+        <div ref={paymentSectionRef}>
+          <PaymentLedger shipment={details} onChanged={reload} />
+        </div>
 
         <div className="shipment-details-assignments-section">
           <h3>Delivery assignments</h3>
@@ -414,14 +434,16 @@ export default function ShipmentDetails({ shipment, onClose }) {
           )}
 
           <AssignmentManager shipmentId={details.id} shipmentRefreshVersion={refreshVersion} onChanged={reload} draftSuggestion={shipment?.draftSuggestion} />
-          <DeliveryOperations
-            shipmentId={details.id}
-            shipmentStatus={details.status}
-            customer={details.customer || null}
-            trackingNumber={details.tracking_number || ''}
-            shipmentRefreshVersion={refreshVersion}
-            onChanged={reload}
-          />
+          <div ref={deliverySectionRef}>
+            <DeliveryOperations
+              shipmentId={details.id}
+              shipmentStatus={details.status}
+              customer={details.customer || null}
+              trackingNumber={details.tracking_number || ''}
+              shipmentRefreshVersion={refreshVersion}
+              onChanged={reload}
+            />
+          </div>
         </div>
       </>}
       <div className="booking-review-actions">

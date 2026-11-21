@@ -277,3 +277,79 @@ test('createShipment strips generated final_amount upfront and recovers from gen
   assert.equal('computed_col' in insertedPayloads[1], false);
 });
 
+test('fetchShipments marks active shipments with pending driver payments for review and subscribes to payments', async () => {
+  const shipments = [
+    { id: 'shp-pay', status: 'loading', created_at: '2026-11-05T04:00:00Z', updated_at: '2026-11-05T04:10:00Z' },
+    { id: 'shp-clean', status: 'loading', created_at: '2026-11-05T03:00:00Z', updated_at: '2026-11-05T03:10:00Z' },
+  ];
+  const deliveries = [
+    { id: 'del-1', shipment_id: 'shp-pay', status: 'loading', driver: { full_name: 'Driver One' }, truck: { plate_number: 'TRK-01' } },
+    { id: 'del-2', shipment_id: 'shp-clean', status: 'loading', driver: { full_name: 'Driver Two' }, truck: { plate_number: 'TRK-02' } },
+  ];
+  const pendingPayments = [
+    { id: 'pay-1', shipment_id: 'shp-pay', amount: 12000, method: 'gcash', status: 'pending', proof_path: 'del-1/payment-1.jpg', created_at: '2026-11-05T04:30:00Z', updated_at: '2026-11-05T04:30:00Z' },
+  ];
+  const subscribedTables = [];
+  let cleared = 0;
+
+  const context = vm.createContext({
+    console: { log() {}, error() {} },
+    pendingDeparture: () => false,
+    clearOperationalCache: () => { cleared++; },
+    async fetchOperationalRows(table) {
+      return table === 'shipments' ? shipments : deliveries;
+    },
+    supabase: {
+      from(table) {
+        assert.equal(table, 'payments');
+        return {
+          select() { return this; },
+          eq() { return this; },
+          not() { return this; },
+          async order() { return { data: pendingPayments, error: null }; },
+        };
+      },
+      channel() {
+        const ch = {
+          on(_ev, filter, cb) { subscribedTables.push({ table: filter.table, cb }); return ch; },
+          subscribe() { return ch; },
+        };
+        return ch;
+      },
+      removeChannel() {},
+    },
+  });
+  const source = fs.readFileSync(new URL('./shipmentService.js', import.meta.url), 'utf8')
+    .replace(/^import .*;$/gm, '').replace(/^export /gm, '');
+  vm.runInContext(source + '\nthis.api = { fetchShipments, mapShipmentRow, subscribeToShipments };', context);
+
+  const rows = await context.api.fetchShipments();
+  assert.equal(rows[0].dbId, 'shp-pay');
+  assert.equal(rows[0].pendingPaymentReview, true);
+  assert.equal(rows[0].pendingPaymentAmount, 12000);
+  assert.equal(rows[0].etaNote, 'Payment verification required');
+  assert.equal(rows[0].etaNoteClass, 'text-warning-amber');
+  assert.equal(rows[0].flaggedAt.getTime(), Date.parse('2026-11-05T04:30:00Z'));
+
+  assert.equal(rows[1].dbId, 'shp-clean');
+  assert.equal(rows[1].pendingPaymentReview, false);
+  assert.equal(rows[1].etaNote, 'Awaiting Dispatch');
+
+  // Pending payment on completed/cancelled shipment should not flag active review
+  const completedWithPayment = context.api.mapShipmentRow({
+    id: 'shp-done',
+    status: 'completed',
+    pendingPayment: pendingPayments[0],
+  });
+  assert.equal(completedWithPayment.pendingPaymentReview, false);
+
+  let refreshed = 0;
+  const unsub = context.api.subscribeToShipments(() => { refreshed++; });
+  assert.deepEqual(subscribedTables.map(s => s.table), ['shipments', 'deliveries', 'payments']);
+  subscribedTables[2].cb();
+  assert.equal(cleared, 1);
+  assert.equal(refreshed, 1);
+  unsub();
+});
+
+

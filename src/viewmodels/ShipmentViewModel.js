@@ -26,7 +26,7 @@ export const TAB_CONFIG = {
     title: "Active Operations",
     description:
       "Real-time view of all ongoing shipments currently in transit, loading, or preparing for departure.",
-    filter: (s) => ACTIVE_STATUSES.includes(s.rawStatus),
+    filter: (s) => ACTIVE_STATUSES.includes(s.rawStatus) && !s.pendingPaymentReview,
   },
   delayed: {
     label: "Delayed",
@@ -57,8 +57,12 @@ export const TAB_CONFIG = {
   review: {
     label: "Review",
     title: "Shipments Needing Review",
-    description: "Customer booking requests awaiting quotation, customer confirmation, or manual review.",
-    filter: (s) => s.status === "review" || s.rawStatus === "pending" || s.rawStatus === "quoted",
+    description: "Customer booking requests, driver payment verifications, and deliveries awaiting manual review.",
+    filter: (s) =>
+      s.status === "review" ||
+      s.rawStatus === "pending" ||
+      s.rawStatus === "quoted" ||
+      Boolean(s.pendingPaymentReview),
     badgeClass: "badge-warning",
   },
 };
@@ -168,7 +172,9 @@ export function useShipmentViewModel() {
     const withStatus = (status) => shipments.filter((s) => s.status === status);
 
     const delayed = withStatus("delayed");
-    const review = shipments.filter((s) => s.status === "review" || s.rawStatus === "pending" || s.rawStatus === "quoted");
+    const review = shipments.filter(
+      (s) => s.status === "review" || s.rawStatus === "pending" || s.rawStatus === "quoted" || Boolean(s.pendingPaymentReview)
+    );
     const completedToday = withStatus("completed").filter((s) => isToday(s.actualAt));
     const onTimeToday = completedToday.filter((s) => s.deliveryStatus === "ON TIME");
     const lateToday = completedToday.filter((s) => s.deliveryStatus === "LATE");
@@ -180,8 +186,10 @@ export function useShipmentViewModel() {
     const worst = delayed.reduce((w, s) => (s.delayMinutes > (w?.delayMinutes ?? -1) ? s : w), null);
 
     return {
-      transitCount: withStatus("transit").length,
-      loadingCount: withStatus("loading").length + withStatus("assigned").length,
+      transitCount: withStatus("transit").filter((s) => !s.pendingPaymentReview).length,
+      loadingCount:
+        withStatus("loading").filter((s) => !s.pendingPaymentReview).length +
+        withStatus("assigned").filter((s) => !s.pendingPaymentReview).length,
       delayedCount: delayed.length,
 
       avgDelayLabel: formatDuration(avgDelay),

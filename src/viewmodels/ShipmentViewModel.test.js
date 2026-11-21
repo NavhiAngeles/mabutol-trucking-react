@@ -38,3 +38,32 @@ test('shipment clock is state-driven and refreshed by a managed timer and focus 
   assert.doesNotMatch(statsBody, /Date\.now/);
   assert.match(statsBody, /reviewAgeLabel\(review, clock\)/);
 });
+
+test('driver payment reviews are routed to review tab instead of active tab and reflected in stats', () => {
+  const tabBlock = source.split('export const TAB_CONFIG = ')[1].split('const SHIPMENT_PAGE_SIZE')[0];
+  const tabScope = vm.createContext({ ACTIVE_STATUSES: ['assigned', 'loading', 'in_transit'] });
+  const TAB_CONFIG = vm.runInContext(`(${tabBlock.trim().replace(/;$/, '')})`, tabScope);
+
+  const activeLoading = { dbId: 's1', status: 'loading', rawStatus: 'loading', pendingPaymentReview: false };
+  const driverPaymentPending = { dbId: 's2', status: 'loading', rawStatus: 'loading', pendingPaymentReview: true, flaggedAt: new Date('2026-11-04T12:00:00Z') };
+  const bookingPending = { dbId: 's3', status: 'pending', rawStatus: 'pending', pendingPaymentReview: false };
+  const podReview = { dbId: 's4', status: 'review', rawStatus: 'review', pendingPaymentReview: false };
+
+  const allRows = [activeLoading, driverPaymentPending, bookingPending, podReview];
+  assert.deepEqual(allRows.filter(TAB_CONFIG.active.filter).map(r => r.dbId), ['s1']);
+  assert.deepEqual(allRows.filter(TAB_CONFIG.review.filter).map(r => r.dbId), ['s2', 's3', 's4']);
+
+  const statsBody = source.split('const stats = useMemo(() => {')[1].split('}, [shipments, weeklyTrips, clock]);')[0];
+  const statsScope = vm.createContext({
+    shipments: allRows,
+    isToday: () => false,
+    formatDuration: () => '0m',
+    reviewAgeLabel: (rows) => `${rows.length} in review`,
+    weeklyTrips: 4,
+    clock: Date.parse('2026-11-05T12:00:00Z'),
+  });
+  const computed = vm.runInContext(`(function(){${statsBody}})()`, statsScope);
+  assert.equal(computed.loadingCount, 1);
+  assert.equal(computed.transitCount, 0);
+  assert.equal(computed.avgReviewAgeLabel, '3 in review');
+});

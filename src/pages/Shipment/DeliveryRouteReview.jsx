@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { initialRouteProfile, routeConfirmation } from '../../services/deliveryRouteConfirmation';
+import VisualRoutePinPicker from '../../components/LocationPicker/VisualRoutePinPicker';
 
 const fields=[['height','Truck height (m)'],['width','Truck width (m)'],['length','Truck length (m)'],['weight','Loaded gross weight (tonnes, including truck)'],['axleload','Maximum loaded axle weight (tonnes)']];
 export default function DeliveryRouteReview({delivery,onSaved,actionBlocked=false}) {
@@ -31,7 +32,38 @@ export default function DeliveryRouteReview({delivery,onSaved,actionBlocked=fals
     {error && <p role="alert">{error}</p>}
     <button type="button" disabled={busy} onClick={()=>{setError('');setRevision(value=>value+1);}}>Reload truck route</button>
     {form && ['assigned','loading','in_transit'].includes(delivery.status) && <>
-      <div className="delivery-workflow-grid">{[['pickup_lat','Pickup latitude'],['pickup_lng','Pickup longitude'],['dropoff_lat','Destination latitude'],['dropoff_lng','Destination longitude'],...fields].map(([key,label])=><label key={key} htmlFor={`route-${delivery.id}-${key}`}>{label}<input id={`route-${delivery.id}-${key}`} type="number" step="any" value={form[key]} disabled={busy} onChange={event=>setForm(previous=>({...previous,[key]:event.target.value,confirmed:false}))}/></label>)}</div>
+      <h5 className="delivery-route-subheading">Verified truck entrances</h5>
+      <VisualRoutePinPicker
+        idPrefix={`route-${delivery.id}`}
+        defaultMapStyle="satellite"
+        origin={{
+          lat: form.pickup_lat,
+          lng: form.pickup_lng,
+          label: 'Pickup entrance',
+          badge: 'P',
+          addressHint: context?.shipment?.pickup_address || '',
+        }}
+        destination={{
+          lat: form.dropoff_lat,
+          lng: form.dropoff_lng,
+          label: 'Delivery entrance',
+          badge: 'D',
+          addressHint: context?.shipment?.dropoff_address || '',
+        }}
+        routeGeometry={context?.shipment?.route_geometry || context?.plan?.geometry || null}
+        disabled={busy}
+        onChangePoint={(slot, point) =>
+          setForm(previous => ({
+            ...previous,
+            ...(slot === 'origin'
+              ? { pickup_lat: point.lat, pickup_lng: point.lng }
+              : { dropoff_lat: point.lat, dropoff_lng: point.lng }),
+            confirmed: false,
+          }))
+        }
+      />
+      <h5 className="delivery-route-subheading">Loaded vehicle measurements</h5>
+      <div className="delivery-workflow-grid">{fields.map(([key,label])=><label key={key} htmlFor={`route-${delivery.id}-${key}`}>{label}<input id={`route-${delivery.id}-${key}`} type="number" step="any" value={form[key]} disabled={busy} onChange={event=>setForm(previous=>({...previous,[key]:event.target.value,confirmed:false}))}/></label>)}</div>
       <label htmlFor={`route-${delivery.id}-hazmat`}>Hazardous goods aboard<select id={`route-${delivery.id}-hazmat`} value={String(form.hazmat)} disabled={busy} onChange={event=>setForm(previous=>({...previous,hazmat:event.target.value===''?'':event.target.value==='true',confirmed:false}))}><option value="">Choose a declaration</option><option value="false">No hazardous goods</option><option value="true">Hazardous goods aboard</option></select></label>
       <label htmlFor={`route-${delivery.id}-reason`}>Office verification reason<textarea id={`route-${delivery.id}-reason`} maxLength={1000} value={form.reason} disabled={busy} onChange={event=>setForm(previous=>({...previous,reason:event.target.value}))}/></label>
       <label className="delivery-route-confirmation" htmlFor={`route-${delivery.id}-confirmed`}><input id={`route-${delivery.id}-confirmed`} type="checkbox" checked={form.confirmed} disabled={busy} onChange={event=>setForm(previous=>({...previous,confirmed:event.target.checked}))}/> I verified both entrances, this assigned truck's loaded dimensions, gross/axle weights and hazardous-goods declaration.</label>

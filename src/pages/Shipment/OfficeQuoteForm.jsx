@@ -14,6 +14,7 @@ import {
   calculateEstimatedArrival,
   resolveVehicleLoadingBufferMinutes,
 } from './departureSchedule';
+import VisualRoutePinPicker from '../../components/LocationPicker/VisualRoutePinPicker';
 
 const service = deliveryWorkflowService();
 const VALIDITY_PRESETS = [6, 12, 24, 48];
@@ -412,7 +413,7 @@ export default function OfficeQuoteForm({
         <div>
           <h3>Quotation Builder &amp; Fleet Ranking</h3>
           <p>
-            Customer linehaul is anchored to pickup and destination coordinates only. Empty truck deadhead is tracked separately as an optional mobilization surcharge.
+            Customer linehaul is anchored to verified pickup and destination pins only. Empty truck deadhead is tracked separately as an optional mobilization surcharge.
           </p>
         </div>
         {estimatedArrivalIso && (
@@ -433,79 +434,36 @@ export default function OfficeQuoteForm({
           <span className="ftl-zone-step-tag">Linehaul Basis</span>
         </div>
 
-        <div className="quote-locations-group">
-          <div className="quote-location-card pickup-card">
-            <div className="quote-location-header">
-              <span className="quote-location-badge pickup">
-                <span className="quote-location-badge-dot" aria-hidden="true">●</span>
-                <span>Pickup (Origin)</span>
-              </span>
-              <div className="quote-location-address">
-                {request.pickup_address || 'Address not specified'}
-              </div>
-            </div>
-            <div className="delivery-workflow-grid">
-              <label htmlFor="quote-pickup-lat">
-                Pickup latitude
-                <input
-                  id="quote-pickup-lat"
-                  type="number"
-                  step="any"
-                  value={form.pickup_lat}
-                  disabled={busy || disabled}
-                  onChange={(event) => change('pickup_lat', event.target.value)}
-                />
-              </label>
-              <label htmlFor="quote-pickup-lng">
-                Pickup longitude
-                <input
-                  id="quote-pickup-lng"
-                  type="number"
-                  step="any"
-                  value={form.pickup_lng}
-                  disabled={busy || disabled}
-                  onChange={(event) => change('pickup_lng', event.target.value)}
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="quote-location-card dropoff-card">
-            <div className="quote-location-header">
-              <span className="quote-location-badge dropoff">
-                <span className="quote-location-badge-dot" aria-hidden="true">●</span>
-                <span>Destination (Drop-off)</span>
-              </span>
-              <div className="quote-location-address">
-                {request.dropoff_address || 'Address not specified'}
-              </div>
-            </div>
-            <div className="delivery-workflow-grid">
-              <label htmlFor="quote-dropoff-lat">
-                Destination latitude
-                <input
-                  id="quote-dropoff-lat"
-                  type="number"
-                  step="any"
-                  value={form.dropoff_lat}
-                  disabled={busy || disabled}
-                  onChange={(event) => change('dropoff_lat', event.target.value)}
-                />
-              </label>
-              <label htmlFor="quote-dropoff-lng">
-                Destination longitude
-                <input
-                  id="quote-dropoff-lng"
-                  type="number"
-                  step="any"
-                  value={form.dropoff_lng}
-                  disabled={busy || disabled}
-                  onChange={(event) => change('dropoff_lng', event.target.value)}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
+        <VisualRoutePinPicker
+          idPrefix="quote"
+          origin={{
+            lat: form.pickup_lat,
+            lng: form.pickup_lng,
+            label: 'Pickup (Origin)',
+            badge: 'P',
+            addressHint: request.pickup_address || 'Address not specified',
+          }}
+          destination={{
+            lat: form.dropoff_lat,
+            lng: form.dropoff_lng,
+            label: 'Destination (Drop-off)',
+            badge: 'D',
+            addressHint: request.dropoff_address || 'Address not specified',
+          }}
+          routeGeometry={form.geometry}
+          disabled={busy || disabled}
+          onChangePoint={(slot, point) => {
+            setForm((previous) => ({
+              ...previous,
+              ...(slot === 'origin'
+                ? { pickup_lat: point.lat, pickup_lng: point.lng }
+                : { dropoff_lat: point.lat, dropoff_lng: point.lng }),
+              distance_km: '',
+              duration_minutes: '',
+              geometry: null,
+            }));
+          }}
+        />
 
         <div className="ftl-route-controls-row">
           <label htmlFor="quote-route-source">

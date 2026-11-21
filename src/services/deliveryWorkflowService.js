@@ -10,7 +10,7 @@ export function deliveryWorkflowService(client = supabase) {
     const fields = ['pickup_lat', 'pickup_lng', 'dropoff_lat', 'dropoff_lng', 'distance_km', 'duration_minutes'];
     const data = Object.fromEntries(fields.map(key => [key, form[key] === '' || form[key] == null ? NaN : Number(form[key])]));
     if (Object.values(data).some(value => !Number.isFinite(value)) || Math.abs(data.pickup_lat) > 90 || Math.abs(data.dropoff_lat) > 90 ||
-      Math.abs(data.pickup_lng) > 180 || Math.abs(data.dropoff_lng) > 180 || data.distance_km <= 0 || data.duration_minutes <= 0) throw Error('Enter valid confirmed coordinates, road distance and duration.');
+      Math.abs(data.pickup_lng) > 180 || Math.abs(data.dropoff_lng) > 180 || data.distance_km <= 0 || data.duration_minutes <= 0) throw Error('Confirm both map pins, road distance and duration.');
     if (!['provider', 'manual'].includes(form.source)) throw Error('Choose a route source.');
     if (form.source === 'manual' && (form.reason?.trim().length < 5 || !form.reason?.trim())) throw Error('Explain how the manual road route was verified (5–1000 characters).');
     return { ...data, source: form.source, reason: form.source === 'manual' ? form.reason.trim() : null, geometry: form.source === 'provider' ? form.geometry : null };
@@ -32,7 +32,7 @@ export function deliveryWorkflowService(client = supabase) {
     },
     async calculateRoute(form) {
       const point = (lat, lng) => {
-        if (lat === '' || lng === '' || lat == null || lng == null || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) throw Error('Confirm both route coordinates first.');
+        if (lat === '' || lng === '' || lat == null || lng == null || !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) throw Error('Place both pickup and destination pins first.');
         return { lat: Number(lat), lng: Number(lng) };
       };
       const { data, error } = await client.functions.invoke('calculate-route', { body: { pickup: point(form.pickup_lat, form.pickup_lng), destination: point(form.dropoff_lat, form.dropoff_lng) } });

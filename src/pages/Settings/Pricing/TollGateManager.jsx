@@ -24,6 +24,7 @@ import {
   cleanGateName,
 } from "../../../services/tollPricing";
 import { SkeletonTableRows } from "../../../components/Skeleton/Skeleton";
+import VisualRoutePinPicker from "../../../components/LocationPicker/VisualRoutePinPicker";
 import {
   Card,
   CardAction,
@@ -695,7 +696,7 @@ export default function TollGateManager() {
                             ? "Fixed toll system fee"
                             : toll.entry_lat != null && toll.exit_lat != null
                               ? "Auto route matching ready"
-                              : "Coordinates needed for auto pricing"}
+                              : "Pin plazas on map for auto pricing"}
                         </span>
                       </div>
                     </TableCell>
@@ -846,7 +847,7 @@ export default function TollGateManager() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="toll-dialog-title"
-            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-border bg-background p-6 shadow-xl"
+            className={`max-h-[90vh] w-full ${form.pricing_scope === "entry_exit" ? "max-w-xl" : "max-w-md"} overflow-y-auto rounded-xl border border-border bg-background p-6 shadow-xl`}
           >
             <div className="mb-5 flex items-center justify-between gap-4">
               <h2
@@ -922,7 +923,7 @@ export default function TollGateManager() {
                     </select>
                   </label>
                   <p className="mt-1.5 text-xs text-muted-foreground">
-                    Auto-fills entry &amp; exit plaza coordinates, confirmed Class
+                    Auto-fills entry &amp; exit plaza pins, confirmed Class
                     2/3 tariffs, and bidirectional matching.
                   </p>
                 </div>
@@ -1041,47 +1042,57 @@ export default function TollGateManager() {
                     ) && <option value="flat">Fixed toll system fee</option>}
                   </select>
                 </label>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  Set the entry and exit plaza coordinates so automated routing
-                  can match this tariff.
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-2.5">
-                  {["entry_lat", "entry_lng", "exit_lat", "exit_lng"].map(
-                    (key) => (
-                      <label
-                        key={key}
-                        htmlFor={`toll-${key}-input`}
-                        className="block text-xs font-medium text-muted-foreground"
-                      >
-                        {
-                          {
-                            entry_lat: "Entry latitude",
-                            entry_lng: "Entry longitude",
-                            exit_lat: "Exit latitude",
-                            exit_lng: "Exit longitude",
-                          }[key]
+                {form.pricing_scope === "flat" ? (
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                    Fixed system fees apply to the whole corridor; no plaza pins
+                    needed.
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      Pin the entry and exit plazas so automated routing can
+                      match this tariff.
+                    </p>
+                    <div className="mt-3">
+                      <VisualRoutePinPicker
+                        compact
+                        idPrefix="toll"
+                        defaultMapStyle="streets"
+                        origin={{
+                          lat: form.entry_lat,
+                          lng: form.entry_lng,
+                          label: "Entry toll plaza",
+                          badge: "A",
+                        }}
+                        destination={{
+                          lat: form.exit_lat,
+                          lng: form.exit_lng,
+                          label: "Exit toll plaza",
+                          badge: "B",
+                        }}
+                        disabled={saving}
+                        onChangePoint={(slot, point) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            [slot === "origin" ? "entry_lat" : "exit_lat"]:
+                              String(point.lat),
+                            [slot === "origin" ? "entry_lng" : "exit_lng"]:
+                              String(point.lng),
+                          }))
                         }
-                        <Input
-                          id={`toll-${key}-input`}
-                          type="number"
-                          step="any"
-                          min={key.endsWith("lat") ? -90 : -180}
-                          max={key.endsWith("lat") ? 90 : 180}
-                          className="mt-1 h-8 text-xs tabular-nums"
-                          value={form[key]}
-                          onChange={(event) =>
-                            updateField(key, event.target.value)
-                          }
-                          placeholder={
-                            key.endsWith("lat")
-                              ? "e.g. 14.800000"
-                              : "e.g. 120.950000"
-                          }
-                        />
-                      </label>
-                    )
-                  )}
-                </div>
+                        onClear={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            entry_lat: "",
+                            entry_lng: "",
+                            exit_lat: "",
+                            exit_lng: "",
+                          }))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
                 <label
                   htmlFor="toll-bidirectional-checkbox"
                   className="mt-3 flex items-center gap-2 text-xs text-foreground"

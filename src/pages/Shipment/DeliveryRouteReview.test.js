@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { setImmediate } from 'node:timers';
-import { transformWithOxc } from 'vite';
+import { transformWithEsbuild } from 'vite';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const find = (node, predicate) => !node || typeof node !== 'object' ? []
@@ -28,10 +28,10 @@ const sampleRoutingContext = {
 };
 
 async function mountDeliveryRouteReview(options = {}) {
-  const { code } = await transformWithOxc(
+  const { code } = await transformWithEsbuild(
     fs.readFileSync(new URL('./DeliveryRouteReview.jsx', import.meta.url), 'utf8'),
     'DeliveryRouteReview.jsx',
-    { jsx: { runtime: 'classic' } }
+    { loader: 'jsx', jsx: 'transform' }
   );
 
   const states = [], refs = [], effects = [];
@@ -40,8 +40,19 @@ async function mountDeliveryRouteReview(options = {}) {
   let invokeCalls = 0;
   let invokeResult = options.invokeResult || { data: { ok: true }, error: null };
 
+  const FRAGMENT = Symbol.for('react.fragment');
   const context = vm.createContext({
-    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    React: {
+      Fragment: FRAGMENT,
+      createElement: (type, props, ...children) => {
+        const flat = children.flat(Infinity);
+        if (type === FRAGMENT) return flat;
+        if (typeof type === 'function') {
+          return type({ ...(props || {}), children: flat });
+        }
+        return { type, props: props || {}, children: flat };
+      },
+    },
     useState(initial) {
       const i = stateIndex++;
       if (!(i in states)) states[i] = typeof initial === 'function' ? initial() : initial;
@@ -71,6 +82,15 @@ async function mountDeliveryRouteReview(options = {}) {
       },
     },
     routeConfirmation: () => ({ mode: 'confirm' }),
+    initialRouteProfile: (data) => ({
+      height: data?.plan?.profile?.height ?? 3.5,
+      width: data?.plan?.profile?.width ?? 2.5,
+      length: data?.plan?.profile?.length ?? 12,
+      weight: data?.plan?.profile?.weight ?? 15,
+      axleload: data?.plan?.profile?.axleload ?? 8,
+      prefilledFromTruck: false,
+    }),
+    VisualRoutePinPicker: (props) => ({ type: 'VisualRoutePinPicker', props, children: [] }),
     Date,
     Promise,
     Object,
@@ -80,7 +100,13 @@ async function mountDeliveryRouteReview(options = {}) {
     Array,
   });
 
-  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.Component = DeliveryRouteReview;', context);
+  vm.runInContext(
+    code
+      .replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];?$/gm, '')
+      .replace(/^import\s+['"][^'"]+['"];?$/gm, '')
+      .replace('export default function', 'function') + '\nthis.Component = DeliveryRouteReview;',
+    context
+  );
 
   let currentProps = {
     delivery: { id: 'del-1', status: 'in_transit' },
@@ -206,4 +232,30 @@ test('DELIVERY-01 Route Review: confirmed save invokes delivery-routing and requ
   const postSaveBtn = button(tree, 'Refresh records before route update');
   assert.ok(postSaveBtn, 'Post-save button instructs user to refresh records before next route update');
   assert.equal(postSaveBtn.props.disabled, true);
+});
+
+test('DELIVERY-01 Route Review: adjusting pin in VisualRoutePinPicker resets confirmation checkbox', async () => {
+  const ui = await mountDeliveryRouteReview();
+  ui.render();
+  await ui.flush();
+  let tree = ui.render();
+
+  const reasonTextarea = find(tree, n => n.type === 'textarea')[0];
+  reasonTextarea.props.onChange({ target: { value: 'Verified dimensions with fleet' } });
+  tree = ui.render();
+
+  const confirmCheckbox = find(tree, n => n.type === 'input' && n.props?.type === 'checkbox')[0];
+  confirmCheckbox.props.onChange({ target: { checked: true } });
+  tree = ui.render();
+
+  let submitBtn = button(tree, 'Confirm pins and calculate truck route');
+  assert.equal(submitBtn.props.disabled, false);
+
+  const picker = find(tree, n => n.type === 'VisualRoutePinPicker')[0];
+  assert.ok(picker, 'VisualRoutePinPicker is rendered');
+  picker.props.onChangePoint('origin', { lat: 14.61, lng: 120.99 });
+  tree = ui.render();
+
+  submitBtn = button(tree, 'Confirm pins and calculate truck route');
+  assert.equal(submitBtn.props.disabled, true, 'Changing pin resets confirmation checkbox');
 });

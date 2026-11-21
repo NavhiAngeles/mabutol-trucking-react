@@ -312,7 +312,8 @@ export default function OfficeTools() {
       if (notification.shipment_id) {
         setOpen(false);
         setMessagesOpen(false);
-        navigate('/shipment?tab=all&record=' + notification.shipment_id);
+        const targetTab = notification.type === 'payment' ? 'review' : 'all';
+        navigate(`/shipment?tab=${targetTab}&record=${notification.shipment_id}`);
       }
     } catch {
       setFailedNotification(notification);

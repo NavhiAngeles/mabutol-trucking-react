@@ -223,3 +223,44 @@ test('details forwards draftSuggestion to AssignmentManager when provided on ins
   assert.equal(am.props.draftSuggestion.driverId, 'd-ret');
   assert.equal(am.props.draftSuggestion.truckId, 't-ret');
 });
+
+test('details scrolls payment or delivery section into view when focusSection is passed', async () => {
+  const { code } = await transformWithOxc(fs.readFileSync(new URL('./ShipmentDetails.jsx', import.meta.url), 'utf8'), 'ShipmentDetails.jsx', { jsx: { runtime: 'classic' } });
+  for (const targetSection of ['payment', 'delivery']) {
+    const states = [], refs = [], effects = [];
+    let index = 0, refIndex = 0, effectIndex = 0, pending = [];
+    const scrollCalls = [];
+    const context = vm.createContext({
+      React: {
+        createElement: (type, props, ...children) => {
+          if (props?.ref) {
+            props.ref.current = {
+              focus() {},
+              scrollIntoView(opts) { scrollCalls.push({ type, opts, hasPayment: JSON.stringify(children).includes('PaymentLedger'), hasDelivery: JSON.stringify(children).includes('DeliveryOperations') }); },
+            };
+          }
+          return { type, props: props || {}, children };
+        },
+      },
+      document: { activeElement: null },
+      useState(initial) { const i = index++; if (!(i in states)) states[i] = initial; return [states[i], value => { states[i] = typeof value === 'function' ? value(states[i]) : value; }]; },
+      useRef(initial) { const i = refIndex++; return refs[i] ||= { current: initial }; },
+      useEffect(effect, deps) {
+        const i = effectIndex++; const old = effects[i];
+        if (!old || deps.some((d, j) => old.deps[j] !== d)) pending.push(() => { old?.cleanup?.(); effects[i] = { deps, cleanup: effect() }; });
+      },
+      fetchShipmentDetails: async () => record,
+      AssignmentManager: 'AssignmentManager', DeliveryOperations: 'DeliveryOperations', PaymentLedger: 'PaymentLedger',
+      SkeletonBlock: ({ width, height }) => ({ type: 'SkeletonBlock', props: { width, height }, children: [] }),
+    });
+    vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.render = ShipmentDetails;', context);
+    const render = () => { index = 0; refIndex = 0; effectIndex = 0; pending = []; const tree = context.render({ shipment: { dbId: 's', id: 'SHIP-1' }, focusSection: targetSection, onClose: () => {} }); pending.forEach(run => run()); return tree; };
+    render();
+    await tick();
+    render();
+    assert.equal(scrollCalls.length, 1);
+    assert.deepEqual(JSON.parse(JSON.stringify(scrollCalls[0].opts)), { behavior: 'smooth', block: 'start' });
+    if (targetSection === 'payment') assert.equal(scrollCalls[0].hasPayment, true);
+    if (targetSection === 'delivery') assert.equal(scrollCalls[0].hasDelivery, true);
+  }
+});

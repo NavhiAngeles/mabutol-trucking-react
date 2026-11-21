@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { transformWithOxc } from 'vite';
+import { transformWithEsbuild } from 'vite';
 
 function find(node, predicate) {
   if (!node || typeof node !== 'object') return [];
@@ -43,11 +43,12 @@ test('TollGateManager does not use window.confirm and defines 3-dots action menu
 
 test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropdown, trigger delete, cancel, focus restoration, in-flight state, and error handling', async () => {
   const source = await readFile(new URL('./TollGateManager.jsx', import.meta.url), 'utf8');
-  const { code } = await transformWithOxc(source, 'TollGateManager.jsx', { jsx: { runtime: 'classic' } });
+  const { code } = await transformWithEsbuild(source, 'TollGateManager.jsx', { loader: 'jsx', jsx: 'transform' });
 
   const stateValues = new Map();
   const stateSetters = new Map();
   const refs = new Map();
+  const memos = new Map();
   const effectEntries = new Map();
   const eventListeners = {};
   const windowListeners = {};
@@ -55,6 +56,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
 
   let stateIdx = 0;
   let refIdx = 0;
+  let memoIdx = 0;
   let effectIdx = 0;
 
   let mockCurrentUser = { isAdmin: true };
@@ -93,13 +95,20 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
     },
   };
 
+  const FRAGMENT = Symbol.for('react.fragment');
   const context = vm.createContext({
     React: {
+      Fragment: FRAGMENT,
       createElement: (type, props, ...children) => {
         const flatChildren = children.flat(Infinity);
+        if (type === FRAGMENT) return flatChildren;
+        const propChildren = flatChildren.length === 1 ? flatChildren[0] : flatChildren;
+        if (typeof type === 'function') {
+          return type({ ...(props || {}), children: propChildren });
+        }
         return {
           type,
-          props: { ...(props || {}), children: flatChildren.length === 1 ? flatChildren[0] : flatChildren },
+          props: { ...(props || {}), children: propChildren },
           children: flatChildren,
         };
       },
@@ -137,6 +146,16 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
     useCallback(fn) {
       return fn;
     },
+    useMemo(factory, deps) {
+      const idx = memoIdx++;
+      const prev = memos.get(idx);
+      if (!prev || !deps || deps.some((dep, i) => dep !== prev.deps?.[i])) {
+        const value = factory();
+        memos.set(idx, { deps, value });
+        return value;
+      }
+      return prev.value;
+    },
     document: {
       activeElement: fakeTrigger,
       addEventListener(name, fn) {
@@ -165,15 +184,43 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
     updateTollGate: async () => {},
     deleteTollGate: async (id) => deleteTollGateImpl(id),
     getCurrentPricingUser: async () => mockCurrentUser,
+    syncLuzonStandardTollGates: async () => ({ inserted: 0, updated: 0, unchanged: 0 }),
     VERIFIED_TOLL_PRESETS: [],
+    buildLuzonStandardTollRows: () => [],
     cleanGateName: (name) => String(name || '').trim(),
     SkeletonTableRows: ({ rows, columns }) => ({ type: 'SkeletonTableRows', props: { rows, columns }, children: [] }),
+    VisualRoutePinPicker: (props) => ({ type: 'VisualRoutePinPicker', props, children: [] }),
+    AlertCircle: (props) => ({ type: 'svg', props, children: [] }),
+    CheckCircle2: (props) => ({ type: 'svg', props, children: [] }),
+    MoreVertical: (props) => ({ type: 'svg', props, children: [] }),
+    Pencil: (props) => ({ type: 'svg', props, children: [] }),
+    Plus: (props) => ({ type: 'svg', props, children: [] }),
+    Route: (props) => ({ type: 'svg', props, children: [] }),
+    Search: (props) => ({ type: 'svg', props, children: [] }),
+    Trash2: (props) => ({ type: 'svg', props, children: [] }),
+    X: (props) => ({ type: 'svg', props, children: [] }),
+    Card: ({ children, ...p }) => ({ type: 'div', props: p, children: [children].flat(Infinity) }),
+    CardAction: ({ children, ...p }) => ({ type: 'div', props: p, children: [children].flat(Infinity) }),
+    CardContent: ({ children, ...p }) => ({ type: 'div', props: p, children: [children].flat(Infinity) }),
+    CardDescription: ({ children, ...p }) => ({ type: 'p', props: p, children: [children].flat(Infinity) }),
+    CardHeader: ({ children, ...p }) => ({ type: 'div', props: p, children: [children].flat(Infinity) }),
+    CardTitle: ({ children, ...p }) => ({ type: 'h2', props: p, children: [children].flat(Infinity) }),
+    Badge: ({ children, ...p }) => ({ type: 'span', props: p, children: [children].flat(Infinity) }),
+    Button: ({ children, ...p }) => ({ type: 'button', props: p, children: [children].flat(Infinity) }),
+    Input: (p) => ({ type: 'input', props: p, children: [] }),
+    Table: ({ children, ...p }) => ({ type: 'table', props: p, children: [children].flat(Infinity) }),
+    TableBody: ({ children, ...p }) => ({ type: 'tbody', props: p, children: [children].flat(Infinity) }),
+    TableCell: ({ children, ...p }) => ({ type: 'td', props: p, children: [children].flat(Infinity) }),
+    TableHead: ({ children, ...p }) => ({ type: 'th', props: p, children: [children].flat(Infinity) }),
+    TableHeader: ({ children, ...p }) => ({ type: 'thead', props: p, children: [children].flat(Infinity) }),
+    TableRow: ({ children, ...p }) => ({ type: 'tr', props: p, children: [children].flat(Infinity) }),
     setTimeout: (fn) => { fn(); return 1; },
     clearTimeout: () => {},
   });
 
   const wrapped = code
-    .replace(/^import .*;$/gm, '')
+    .replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];?$/gm, '')
+    .replace(/^import\s+['"][^'"]+['"];?$/gm, '')
     .replace('export default function TollGateManager', 'function TollGateManager') +
     '\nthis.TollGateManager = TollGateManager;';
 
@@ -182,6 +229,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   const render = () => {
     stateIdx = 0;
     refIdx = 0;
+    memoIdx = 0;
     effectIdx = 0;
     return context.TollGateManager();
   };
@@ -195,12 +243,12 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   let tree = render();
 
   // 2. Locate 3-dots button in the table
-  const dotsBtn = find(tree, (n) => n.type === 'button' && n.props?.className === 'toll-action-dots-btn')[0];
+  const dotsBtn = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('toll-action-dots-btn'))[0];
   assert.ok(dotsBtn, '3-dots button should be present in toll row');
   assert.equal(dotsBtn.props['aria-expanded'], false);
 
   // Verify dropdown menu is not visible yet
-  let dropdown = find(tree, (n) => n.props?.className === 'toll-action-dropdown')[0];
+  let dropdown = find(tree, (n) => n.props?.className?.includes('toll-action-dropdown'))[0];
   assert.equal(dropdown, undefined, 'Dropdown should not be rendered initially');
 
   // 3. Click 3-dots button to open menu
@@ -210,7 +258,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   });
 
   tree = render();
-  dropdown = find(tree, (n) => n.props?.className === 'toll-action-dropdown')[0];
+  dropdown = find(tree, (n) => n.props?.className?.includes('toll-action-dropdown'))[0];
   assert.ok(dropdown, 'Dropdown should now be rendered');
   assert.equal(dropdown.props.role, 'menu');
   assert.equal(dropdown.props.style?.position, 'fixed');
@@ -232,7 +280,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
 
   tree = render();
   // Dropdown should close, confirmation dialog should open
-  dropdown = find(tree, (n) => n.props?.className === 'toll-action-dropdown')[0];
+  dropdown = find(tree, (n) => n.props?.className?.includes('toll-action-dropdown'))[0];
   assert.equal(dropdown, undefined, 'Dropdown should close when item is selected');
 
   let dialog = find(tree, (n) => n.props?.['role'] === 'dialog' && n.props?.['aria-labelledby'] === 'toll-delete-dialog-title')[0];
@@ -254,7 +302,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   assert.equal(fakeTrigger.focused, true, 'Focus should be restored to 3-dots trigger on Cancel');
 
   // 6. Test Escape dismissal
-  const dotsBtn2 = find(tree, (n) => n.type === 'button' && n.props?.className === 'toll-action-dots-btn')[0];
+  const dotsBtn2 = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('toll-action-dots-btn'))[0];
   dotsBtn2.props.onClick({ stopPropagation() {}, currentTarget: fakeTrigger });
   tree = render();
   const deleteItem2 = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('danger'))[0];
@@ -274,7 +322,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   assert.equal(fakeTrigger.focused, true, 'Focus should be restored to trigger on Escape');
 
   // 7. Test successful delete execution
-  const dotsBtn3 = find(tree, (n) => n.type === 'button' && n.props?.className === 'toll-action-dots-btn')[0];
+  const dotsBtn3 = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('toll-action-dots-btn'))[0];
   dotsBtn3.props.onClick({ stopPropagation() {}, currentTarget: fakeTrigger });
   tree = render();
   const deleteItem3 = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('danger'))[0];
@@ -299,7 +347,7 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   deleteTollGateImpl = async () => {
     throw new Error('Database connection failed');
   };
-  const dotsBtn4 = find(tree, (n) => n.type === 'button' && n.props?.className === 'toll-action-dots-btn')[0];
+  const dotsBtn4 = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('toll-action-dots-btn'))[0];
   dotsBtn4.props.onClick({ stopPropagation() {}, currentTarget: fakeTrigger });
   tree = render();
   const deleteItem4 = find(tree, (n) => n.type === 'button' && n.props?.className?.includes('danger'))[0];
@@ -316,4 +364,21 @@ test('TollGateManager 3-dots action menu and delete dialog lifecycle: open dropd
   const alert = find(dialog, (n) => n.props?.['role'] === 'alert')[0];
   assert.ok(alert, 'Error alert should be rendered');
   assert.equal(alert.children.includes('Database connection failed'), true);
+
+  // 9. Verify Add modal renders VisualRoutePinPicker for entry_exit and hides it for flat
+  const addBtn = find(tree, (n) => n.type === 'button' && n.children?.some(c => typeof c === 'object' && c.children?.includes?.('Add Toll Gate')))[0];
+  assert.ok(addBtn, 'Add Toll Gate button should be present');
+  addBtn.props.onClick({ currentTarget: fakeTrigger });
+  tree = render();
+
+  let addDialog = find(tree, (n) => n.props?.['role'] === 'dialog' && n.props?.['aria-labelledby'] === 'toll-dialog-title')[0];
+  assert.ok(addDialog, 'Add Toll Gate modal should open');
+  assert.equal(find(addDialog, (n) => n.type === 'VisualRoutePinPicker').length, 1, 'VisualRoutePinPicker should render for entry_exit scope');
+  assert.equal(find(addDialog, (n) => n.type === 'input' && n.props?.id?.includes('lat')).length, 0, 'No raw lat inputs should render');
+
+  const scopeSelect = find(addDialog, (n) => n.type === 'select' && n.props?.id === 'toll-pricing-scope-select')[0];
+  scopeSelect.props.onChange({ target: { value: 'flat' } });
+  tree = render();
+  addDialog = find(tree, (n) => n.props?.['role'] === 'dialog' && n.props?.['aria-labelledby'] === 'toll-dialog-title')[0];
+  assert.equal(find(addDialog, (n) => n.type === 'VisualRoutePinPicker').length, 0, 'VisualRoutePinPicker should hide for flat tariff scope');
 });

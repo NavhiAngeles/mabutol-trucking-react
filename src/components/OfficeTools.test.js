@@ -307,4 +307,40 @@ test('Notifications bell and Driver Messages dropdown panels are mutually exclus
   assert.equal(find(tree, n => n.props.id === 'office-notifications-panel').length, 0);
 });
 
+test('clicking Verify payment notification redirects to the Review tab for that shipment', async () => {
+  const source = await readFile(new URL('./OfficeTools.jsx', import.meta.url), 'utf8');
+  const { code } = await transformWithOxc(source, 'OfficeTools.jsx', { jsx: { runtime: 'classic' } });
+  const states = [], refs = [], routes = [];
+  let si = 0, ri = 0;
+  const paymentNotice = {
+    id: 'payment-1',
+    synthetic: true,
+    type: 'payment',
+    title: 'Payment verification required',
+    body: 'Driver submitted receipt.',
+    shipment_id: 'shipment-pay-1',
+    created_at: '2026-11-21T10:00:00Z',
+  };
+  const context = vm.createContext({
+    React: { createElement: (type, props, ...children) => ({ type, props: props || {}, children }) },
+    useState(value) { const i = si++; if (!(i in states)) states[i] = value; return [states[i], next => { states[i] = next; }]; },
+    useRef(value) { return refs[ri++] ||= { current: value }; },
+    useEffect() {},
+    document: { addEventListener() {}, removeEventListener() {} },
+    useNavigate: () => path => routes.push(path),
+    useAuth: () => ({ user: { id: 'own' } }),
+    DeliveryConversationInbox: () => null,
+    SkeletonListRows: () => null,
+    useLiveData: () => ({ data: { name: 'Office', notifications: [paymentNotice] }, error: '', refresh: () => {} }),
+    supabase: { from: () => ({}) },
+  });
+  vm.runInContext(code.replace(/^import .*;$/gm, '').replace('export default function', 'function') + '\nthis.renderComponent = OfficeTools;', context);
+  const render = () => { si = ri = 0; return context.renderComponent(); };
+  find(render(), n => n.type === 'button' && n.props.className === 'icon-btn')[0].props.onClick();
+  const verifyBtn = find(render(), n => n.type === 'button' && n.children.includes('Verify payment'))[0];
+  assert.ok(verifyBtn, 'Verify payment button should render for payment notifications');
+  await verifyBtn.props.onClick();
+  assert.deepEqual(routes, ['/shipment?tab=review&record=shipment-pay-1']);
+});
+
 

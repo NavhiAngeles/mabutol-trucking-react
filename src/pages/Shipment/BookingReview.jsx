@@ -403,7 +403,7 @@ export default function BookingReview({ shipment, onClose, onReviewed }) {
               <p>
                 {isPastDeparture
                   ? 'The scheduled departure for this booking is in the past. Deliveries cannot be quoted or approved for past departures. Click "Update departure date & time" above to set a future date first.'
-                  : 'This booking has no saved distance or quotation yet. Confirm the coordinates, click "Calculate provider route", select a ranked truck, and click "Submit official quote" above. Once saved, the "Approve request" button will become active.'}
+                  : 'This booking has no saved distance or quotation yet. Confirm the pickup and destination pins, click "Calculate provider route", select a ranked truck, and click "Submit official quote" above. Once saved, the "Approve request" button will become active.'}
               </p>
             </div>
           </div>

@@ -102,6 +102,7 @@ export default function Shipment() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [reviewShipment, setReviewShipment] = useState(null);
   const [detailsShipment, setDetailsShipment] = useState(null);
+  const [detailsFocusSection, setDetailsFocusSection] = useState(null);
   const [editShipment, setEditShipment] = useState(null);
   const [cancelShipment, setCancelShipment] = useState(null);
   const [noShowDialogTarget, setNoShowDialogTarget] = useState(null);
@@ -303,6 +304,64 @@ export default function Shipment() {
           {assigningId === shipment.dbId ? "Assigning…" : "Assign"}
         </button>
       )}
+      {shipment.pendingPaymentReview && (
+        <button
+          type="button"
+          className="action-pill-btn review-pill-btn"
+          aria-label={`Review payment for ${shipment.id}`}
+          onClick={event => {
+            reviewLauncher.current = event?.currentTarget;
+            setDetailsFocusSection('payment');
+            setDetailsShipment(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          Review payment
+        </button>
+      )}
+      {shipment.rawStatus === "pending" && (
+        <button
+          type="button"
+          className="action-pill-btn review-pill-btn"
+          aria-label={`Review booking request ${shipment.id}`}
+          onClick={event => {
+            reviewLauncher.current = event?.currentTarget;
+            setReviewShipment(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          Review booking
+        </button>
+      )}
+      {shipment.rawStatus === "quoted" && (
+        <button
+          type="button"
+          className="action-pill-btn review-pill-btn"
+          aria-label={`Review quote for ${shipment.id}`}
+          onClick={event => {
+            reviewLauncher.current = event?.currentTarget;
+            setReviewShipment(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          Quote &amp; Review
+        </button>
+      )}
+      {shipment.status === "review" && !shipment.pendingPaymentReview && (
+        <button
+          type="button"
+          className="action-pill-btn review-pill-btn"
+          aria-label={`Review delivery proof for ${shipment.id}`}
+          onClick={event => {
+            reviewLauncher.current = event?.currentTarget;
+            setDetailsFocusSection('delivery');
+            setDetailsShipment(shipment);
+            setOpenMenuId(null);
+          }}
+        >
+          Review proof
+        </button>
+      )}
 
       <button
         type="button"
@@ -342,6 +401,34 @@ export default function Shipment() {
               : undefined
           }
         >
+          {shipment.pendingPaymentReview && (
+            <button type="button" role="menuitem" onClick={event => {
+              reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
+              setDetailsFocusSection('payment');
+              setDetailsShipment(shipment);
+              setOpenMenuId(null);
+            }}>
+              <svg {...svgProps}>
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <line x1="2" y1="10" x2="22" y2="10" />
+              </svg>
+              {' Review payment'}
+            </button>
+          )}
+          {shipment.status === "review" && !shipment.pendingPaymentReview && (
+            <button type="button" role="menuitem" onClick={event => {
+              reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
+              setDetailsFocusSection('delivery');
+              setDetailsShipment(shipment);
+              setOpenMenuId(null);
+            }}>
+              <svg {...svgProps}>
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+              {' Review delivery proof'}
+            </button>
+          )}
           {['pending', 'quoted'].includes(shipment.rawStatus) && (
             <button type="button" role="menuitem" onClick={event => {
               reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
@@ -365,6 +452,7 @@ export default function Shipment() {
             role="menuitem"
             onClick={event => {
               reviewLauncher.current = event?.currentTarget?.closest?.('.action-menu-wrapper')?.querySelector?.('.action-btn');
+              setDetailsFocusSection(null);
               setDetailsShipment(shipment);
               setOpenMenuId(null);
             }}
@@ -1038,11 +1126,14 @@ export default function Shipment() {
                                 const overlayDelivery = waitOverlays.waitByShipmentId.get(s.dbId);
                                 const cancellationType = waitOverlays.cancellationTypeByShipmentId.get(s.dbId);
                                 const waitState = overlayDelivery ? getPickupWaitState(overlayDelivery, nowTick) : null;
-                                if (!waitState?.active && !(s.status === "cancelled" && cancellationType === "no_show")) {
+                                if (!s.pendingPaymentReview && !waitState?.active && !(s.status === "cancelled" && cancellationType === "no_show")) {
                                   return null;
                                 }
                                 return (
                                   <div className="shipment-wait-badges">
+                                    {s.pendingPaymentReview && (
+                                      <span className="pickup-wait-badge is-warning">Payment Review</span>
+                                    )}
                                     {s.status === "cancelled" && cancellationType === "no_show" && (
                                       <span className="pickup-wait-badge is-danger">No-Show Cancelled</span>
                                     )}
@@ -1157,7 +1248,8 @@ export default function Shipment() {
           />
         )}
         {detailsShipment && <ShipmentDetails key={detailsShipment.dbId} shipment={detailsShipment}
-          onClose={() => { setDetailsShipment(null); reviewLauncher.current?.focus(); }} />}
+          focusSection={detailsFocusSection}
+          onClose={() => { setDetailsShipment(null); setDetailsFocusSection(null); reviewLauncher.current?.focus(); }} />}
         {editShipment && <ShipmentEditDialog key={editShipment.dbId} shipment={editShipment}
           onClose={() => { setEditShipment(null); reviewLauncher.current?.focus(); }}
           onSaved={async () => { await refresh(); }} />}

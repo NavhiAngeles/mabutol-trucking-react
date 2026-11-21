@@ -1,13 +1,30 @@
 
 import { supabase } from "./supabaseClient";
-import { fetchOperationalRows } from './dashboardService';
+import { clearOperationalCache, fetchOperationalRows } from './dashboardService';
 import { pendingDeparture } from './operationalStats';
 import { sanitizePlateNumber } from './officialVehicleModels.js';
 
 const ASSIGNMENT_COLUMNS = 'id,shipment_id,truck_id,driver_id,status,departed_at,driver:drivers(full_name),truck:trucks(plate_number)';
 export const SHIPMENT_LIST_COLUMNS = 'id,tracking_number,customer_id,billing_customer_id,status,booking_source,cargo_category_id,cargo_description,weight_kg,special_handling,requested_vehicle_type_id,pickup_address,dropoff_address,distance_km,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name)';
+const ACTIVE_PAYMENT_REVIEW_STATUSES = ['assigned', 'loading', 'in_transit'];
 
 export const fetchShipmentAssignments = () => fetchOperationalRows('deliveries', ASSIGNMENT_COLUMNS);
+
+export async function fetchPendingDriverPayments() {
+  if (typeof supabase === 'undefined' || typeof supabase?.from !== 'function') return [];
+  try {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('id,shipment_id,amount,method,status,proof_path,created_at,updated_at')
+      .eq('status', 'pending')
+      .not('proof_path', 'is', null)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
 
 export async function fetchShipmentDetails(id) {
   const baseShipmentSelect = 'id,tracking_number,status,booking_source,cargo_description,weight_kg,special_handling,pickup_address,dropoff_address,distance_km,route_source,route_duration_minutes,route_geometry,driver_allowance,linehaul_amount,toll_amount,mobilization_fee,deadhead_km,quote_expires_at,created_by,scheduled_departure,estimated_arrival,actual_delivery_at,quoted_amount,override_amount,override_reason,final_amount,driver_notes,cancelled_reason,cancelled_at,created_at,updated_at,customer:customers!customer_id(name),vehicle:vehicle_types(name)';
@@ -342,9 +359,18 @@ export function mapShipmentRow(row) {
       )
       : 0;
 
+  const pendingPaymentReview =
+    Boolean(row.pendingPayment) && ACTIVE_PAYMENT_REVIEW_STATUSES.includes(rawStatus);
+
+  const paymentFlaggedAt = pendingPaymentReview
+    ? toDate(row.pendingPayment?.updated_at ?? row.pendingPayment?.created_at) ?? updatedAt
+    : updatedAt;
+
   const baseShipment = {
     rawStatus,
     pendingDispatch: row.pendingDispatch ?? false,
+    pendingPaymentReview,
+    pendingPaymentAmount: row.pendingPayment?.amount ?? null,
     dbId: row.id,
 
     id:
@@ -397,7 +423,7 @@ export function mapShipmentRow(row) {
 
     actualAt,
 
-    flaggedAt: updatedAt,
+    flaggedAt: paymentFlaggedAt,
 
     delayMinutes,
   };
@@ -476,6 +502,12 @@ export function mapShipmentRow(row) {
     etaNoteClass = "text-quoted-blue";
   }
 
+  if (pendingPaymentReview) {
+    eta = formatDayTime(paymentFlaggedAt);
+    etaNote = "Payment verification required";
+    etaNoteClass = "text-warning-amber";
+  }
+
   return {
     ...baseShipment,
     eta,
@@ -494,8 +526,10 @@ export async function fetchShipments() {
       "Fetching shipments from Supabase..."
     );
 
-    const [data, deliveries] = await Promise.all([
-      fetchOperationalRows('shipments', SHIPMENT_LIST_COLUMNS), fetchShipmentAssignments(),
+    const [data, deliveries, pendingPayments] = await Promise.all([
+      fetchOperationalRows('shipments', SHIPMENT_LIST_COLUMNS),
+      fetchShipmentAssignments(),
+      fetchPendingDriverPayments(),
     ]);
     const error = null;
 
@@ -510,12 +544,20 @@ export async function fetchShipments() {
 
     console.log("Fetched shipments count:", (data ?? []).length);
 
+    const pendingPaymentByShipment = new Map();
+    for (const payment of pendingPayments) {
+      if (payment?.shipment_id && !pendingPaymentByShipment.has(payment.shipment_id)) {
+        pendingPaymentByShipment.set(payment.shipment_id, payment);
+      }
+    }
+
     const mappedShipments = (
       (data ?? []).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
     ).map(row => mapShipmentRow({
       ...row,
       assignment: deliveries.find(d => d.shipment_id === row.id && d.status !== 'cancelled'),
-      pendingDispatch: pendingDeparture(row, deliveries)
+      pendingDispatch: pendingDeparture(row, deliveries),
+      pendingPayment: pendingPaymentByShipment.get(row.id) ?? null,
     }));
 
     console.log("Mapped shipments count:", mappedShipments.length);
@@ -588,6 +630,15 @@ export async function fetchWeeklyTripCount() {
 // ============================================
 
 export function subscribeToShipments(onChange) {
+  const notifyChange = () => {
+    if (typeof clearOperationalCache === "function") {
+      clearOperationalCache();
+    }
+    if (typeof onChange === "function") {
+      onChange();
+    }
+  };
+
   const channel = supabase
     .channel("shipments-changes")
     .on(
@@ -602,12 +653,11 @@ export function subscribeToShipments(onChange) {
           "Shipment database changed."
         );
 
-        if (typeof onChange === "function") {
-          onChange();
-        }
+        notifyChange();
       }
     )
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'deliveries' }, notifyChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, notifyChange)
     .subscribe();
 
   // Cleanup when the component unmounts

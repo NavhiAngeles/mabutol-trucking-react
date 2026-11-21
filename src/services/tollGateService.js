@@ -63,7 +63,7 @@ function validateTollGate(toll) {
   const provided = coordinateKeys.filter(key => toll[key] != null && String(toll[key]).trim() !== '');
   if (provided.length && (provided.length !== 4 || coordinateKeys.some(key =>
     !Number.isFinite(Number(toll[key])) || Math.abs(Number(toll[key])) > (key.endsWith('lat') ? 90 : 180)))) {
-    throw new Error('Enter valid latitude and longitude for both toll entry and exit, or leave all four blank.');
+    throw new Error('Pin both the entry and exit plazas on the map, or clear both pins.');
   }
   return { gate_name, highway, vehicle_class, fee, pricing_scope,
     ...Object.fromEntries(coordinateKeys.map(key => [key, provided.length ? Number(toll[key]) : null])),

@@ -9,12 +9,19 @@ import {
   LUZON_MIN_ZOOM,
   LUZON_MAX_ZOOM,
 } from "../../config/mapBound";
+import { getMapTilerKey, reverseGeocodeLuzon } from "../../services/geocodingService";
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl);
 
 const ROUTE_SOURCE = "shipment-driving-route";
 const ROUTE_LAYER = "shipment-driving-route-line";
-const MAPTILER_API_KEY = import.meta.env.VITE_MAPTILER_API_KEY;
+const MAP_STYLES = {
+  streets: "streets-v2",
+  satellite: "hybrid",
+};
+const getStyleUrl = (style, key) =>
+  `https://api.maptiler.com/maps/${MAP_STYLES[style] || "streets-v2"}/style.json?key=${encodeURIComponent(key)}`;
+const MAPTILER_API_KEY = getMapTilerKey();
 
 export default function TruckTrackingMap({
   pickerMode = null,
@@ -36,7 +43,11 @@ export default function TruckTrackingMap({
 
   const [error, setError] = useState(() => (!MAPTILER_API_KEY ? "Missing MapTiler API key in .env" : ""));
   const [mapReady, setMapReady] = useState(false);
+  const [mapStyle, setMapStyle] = useState("streets");
+  const [styleVersion, setStyleVersion] = useState(0);
   const [centerCoordinates, setCenterCoordinates] = useState(null);
+  const [centerPlace, setCenterPlace] = useState({ status: "idle", label: "" });
+  const activeStyleRef = useRef("streets");
 
   // INITIALIZE MAP
   useEffect(() => {
@@ -53,9 +64,7 @@ export default function TruckTrackingMap({
     try {
       map = new maplibregl.Map({
         container,
-        style:
-          "https://api.maptiler.com/maps/streets-v2/style.json" +
-          `?key=${encodeURIComponent(MAPTILER_API_KEY)}`,
+        style: getStyleUrl(activeStyleRef.current, MAPTILER_API_KEY),
         center: LUZON_CENTER,
         zoom: 8,
         minZoom: LUZON_MIN_ZOOM,
@@ -85,6 +94,10 @@ export default function TruckTrackingMap({
         setMapReady(true);
         map.resize();
         updateCenter();
+      });
+
+      map.on("style.load", () => {
+        setStyleVersion((v) => v + 1);
       });
 
       map.on("moveend", updateCenter);
@@ -126,6 +139,57 @@ export default function TruckTrackingMap({
       mapRef.current = null;
     };
   }, []);
+
+  // SWITCH STREETS / SATELLITE STYLE
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !MAPTILER_API_KEY) return;
+    if (activeStyleRef.current === mapStyle) return;
+    activeStyleRef.current = mapStyle;
+    map.setStyle(getStyleUrl(mapStyle, MAPTILER_API_KEY));
+  }, [mapStyle, mapReady]);
+
+  // DEBOUNCED PLACE PREVIEW WHILE PANNING IN PICKER MODE
+  const centerLat = centerCoordinates?.lat ?? null;
+  const centerLng = centerCoordinates?.lng ?? null;
+
+  useEffect(() => {
+    if (!pickerMode || centerLat == null || centerLng == null || !MAPTILER_API_KEY) return;
+    setCenterPlace({ status: "loading", label: "Locating address…" });
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      reverseGeocodeLuzon(centerLat, centerLng, {
+        signal: controller.signal,
+        apiKey: MAPTILER_API_KEY,
+      })
+        .then((place) => {
+          if (controller.signal.aborted) return;
+          if (place) {
+            setCenterPlace({
+              status: "ready",
+              label: place.shortLabel || place.fullAddress,
+            });
+          } else {
+            setCenterPlace({
+              status: "empty",
+              label: "No street name here. The pin will still be saved.",
+            });
+          }
+        })
+        .catch((err) => {
+          if (err?.name === "AbortError" || controller.signal.aborted) return;
+          setCenterPlace({
+            status: "empty",
+            label: "No street name here. The pin will still be saved.",
+          });
+        });
+    }, 350);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [pickerMode, centerLat, centerLng]);
 
   // CONFIRMED PICKUP MARKER
   useEffect(() => {
@@ -256,7 +320,7 @@ export default function TruckTrackingMap({
         removeRoute();
       }
     };
-  }, [routeGeoJSON, mapReady, pickerMode]);
+  }, [routeGeoJSON, mapReady, pickerMode, styleVersion]);
 
   // Refit the existing route on every button click, without requesting a new route.
   useEffect(() => {
@@ -328,6 +392,51 @@ export default function TruckTrackingMap({
           height: "100%",
         }}
       />
+
+      {/* STREETS / SATELLITE TOGGLE */}
+      {!error && (
+        <div
+          role="group"
+          aria-label="Map layer"
+          style={{
+            position: "absolute",
+            top: "12px",
+            left: "12px",
+            zIndex: 7,
+            display: "inline-flex",
+            padding: "2px",
+            background: "#FFFFFF",
+            border: "1px solid #CBD5E1",
+            borderRadius: "8px",
+            boxShadow: "0 2px 6px rgba(15, 23, 42, 0.06)",
+          }}
+        >
+          {["streets", "satellite"].map((styleKey) => {
+            const isActive = mapStyle === styleKey;
+            return (
+              <button
+                key={styleKey}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => setMapStyle(styleKey)}
+                style={{
+                  minHeight: "36px",
+                  padding: "6px 12px",
+                  border: "none",
+                  borderRadius: "6px",
+                  background: isActive ? "#0F2A52" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#475569",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {styleKey === "streets" ? "Streets" : "Satellite"}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* CAMERA-STYLE PICKER */}
       {pickerMode && !error && (
@@ -402,25 +511,25 @@ export default function TruckTrackingMap({
                 margin: "6px 0 10px",
               }}
             >
-              Drag or zoom the map under the pin to set exact coordinates.
+              Drag or zoom the map so the pin sits on the exact entrance.
             </p>
 
             {centerCoordinates && (
               <div
-                className="tabular-nums"
+                role="status"
                 style={{
                   background: "#F8FAFC",
                   border: "1px solid #E2E8F0",
                   padding: "8px 10px",
                   borderRadius: "6px",
-                  fontSize: "12px",
-                  color: "#475569",
+                  fontSize: "12.5px",
+                  fontWeight: 500,
+                  color: "#0F172A",
                   marginBottom: "12px",
+                  overflowWrap: "anywhere",
                 }}
               >
-                <div>
-                  Lat: {centerCoordinates.lat.toFixed(6)} · Lng: {centerCoordinates.lng.toFixed(6)}
-                </div>
+                {centerPlace.label || "Locating address…"}
               </div>
             )}
 
@@ -485,8 +594,8 @@ export default function TruckTrackingMap({
           role={routeError ? "alert" : "status"}
           style={{
             position: "absolute",
-            top: "16px",
-            left: "16px",
+            top: "58px",
+            left: "12px",
             maxWidth: "calc(100% - 76px)",
             padding: "8px 12px",
             background: routeError ? "#FEF2F2" : "#FFFFFF",

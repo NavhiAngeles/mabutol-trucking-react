@@ -15,7 +15,7 @@ test('unmapped reference fares remain explicitly unmapped; complete gate points 
 test('invalid or partial gate configuration cannot be saved as an automatically matched fare', () => {
   for (const values of [{ entry_lat: 14.8 }, { entry_lat: 91, entry_lng: 120.9, exit_lat: 14.7, exit_lng: 121 },
   { entry_lat: 14.8, entry_lng: 'bad', exit_lat: 14.7, exit_lng: 121 }]) {
-    assert.throws(() => scope.validate({ ...rate, ...values }), /both toll entry and exit/);
+    assert.throws(() => scope.validate({ ...rate, ...values }), /both the entry and exit plazas/);
   }
 });
 
