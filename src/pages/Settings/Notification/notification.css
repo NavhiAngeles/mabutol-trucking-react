@@ -9,6 +9,13 @@
   align-items: start;
 }
 
+.settings-page .notification-settings .notification-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
 .settings-page .notification-settings .toggle-row {
   display: flex;
   justify-content: space-between;

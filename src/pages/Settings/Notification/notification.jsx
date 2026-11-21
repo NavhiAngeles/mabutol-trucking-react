@@ -87,6 +87,44 @@ function NotificationPreferences() {
     } finally { operation.current = false; if (mounted.current) setSaving(null); }
   }
 
+  function renderGroupCard([title, items]) {
+    return (
+      <Card className="settings-card bg-white ring-border" key={title}>
+        <CardHeader className="border-b border-border/60 pb-4">
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-2">
+          {items.map(([type, label, description]) => (
+            <div className="toggle-row" key={type}>
+              <div>
+                <strong className="text-sm font-semibold text-foreground">{label}</strong>
+                <p className="text-xs text-muted-foreground">{description}</p>
+                {saving === type && (
+                  <span role="status" className="mt-1 inline-block text-xs font-medium text-muted-foreground">
+                    Saving…
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-label={label}
+                aria-checked={snapshot.preferences[type]}
+                disabled={!!saving}
+                className={`toggle ${snapshot.preferences[type] ? 'active' : 'inactive'}`}
+                onClick={() => save(type, !snapshot.preferences[type])}
+              >
+                <span className="toggle-circle" />
+              </button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const [shipmentAlerts, fleetCompliance, otherNotifications] = GROUPS;
+
   return (
     <section className="content notification-settings space-y-6">
       <div className="page-header flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -178,96 +216,75 @@ function NotificationPreferences() {
             Loading notification preferences…
           </p>
           <div className="notification-grid" aria-hidden="true">
-            {['Delivery Channels', 'Shipment Alerts', 'Fleet & Compliance', 'Other Notifications'].map((title) => (
-              <Card className="settings-card bg-white ring-border" key={title}>
-                <CardHeader className="border-b border-border/60 pb-4">
-                  <CardTitle>{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-4">
-                  {[0, 1, 2].map((rowIdx) => (
-                    <div className="tanaw-skeleton-toggle-row" key={`${title}-${rowIdx}`}>
-                      <div className="tanaw-skeleton-stack">
-                        <Skeleton className="h-3.5 w-2/5" />
-                        <Skeleton className="h-3 w-4/5" />
-                      </div>
-                      <Skeleton className="h-6 w-12 rounded-full" />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            {[['Delivery Channels', 'Fleet & Compliance'], ['Shipment Alerts', 'Other Notifications']].map((columnTitles, colIdx) => (
+              <div className="notification-column" key={colIdx}>
+                {columnTitles.map((title) => (
+                  <Card className="settings-card bg-white ring-border" key={title}>
+                    <CardHeader className="border-b border-border/60 pb-4">
+                      <CardTitle>{title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-4">
+                      {[0, 1, 2].map((rowIdx) => (
+                        <div className="tanaw-skeleton-toggle-row" key={`${title}-${rowIdx}`}>
+                          <div className="tanaw-skeleton-stack">
+                            <Skeleton className="h-3.5 w-2/5" />
+                            <Skeleton className="h-3 w-4/5" />
+                          </div>
+                          <Skeleton className="h-6 w-12 rounded-full" />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ))}
           </div>
         </>
       ) : (
         <div className="notification-grid">
-          <Card className="settings-card bg-white ring-border">
-            <CardHeader className="border-b border-border/60 pb-4">
-              <div className="flex items-center gap-2">
-                <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
-                <CardTitle>Delivery Channels</CardTitle>
-              </div>
-              <CardDescription>Active notification channel for this account.</CardDescription>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="toggle-row">
-                <div>
-                  <strong className="text-sm font-semibold text-foreground">In-app Notifications</strong>
-                  <p className="text-xs text-muted-foreground">Available through the notification bell. Choose categories below.</p>
-                </div>
-                <Badge variant="secondary" className="rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Available
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {GROUPS.map(([title, items]) => (
-            <Card className="settings-card bg-white ring-border" key={title}>
+          <div className="notification-column">
+            <Card className="settings-card bg-white ring-border">
               <CardHeader className="border-b border-border/60 pb-4">
-                <CardTitle>{title}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
+                  <CardTitle>Delivery Channels</CardTitle>
+                </div>
+                <CardDescription>Active notification channel for this account.</CardDescription>
               </CardHeader>
               <CardContent className="pt-2">
-                {items.map(([type, label, description]) => (
-                  <div className="toggle-row" key={type}>
-                    <div>
-                      <strong className="text-sm font-semibold text-foreground">{label}</strong>
-                      <p className="text-xs text-muted-foreground">{description}</p>
-                      {saving === type && (
-                        <span role="status" className="mt-1 inline-block text-xs font-medium text-muted-foreground">
-                          Saving…
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-label={label}
-                      aria-checked={snapshot.preferences[type]}
-                      disabled={!!saving}
-                      className={`toggle ${snapshot.preferences[type] ? 'active' : 'inactive'}`}
-                      onClick={() => save(type, !snapshot.preferences[type])}
-                    >
-                      <span className="toggle-circle" />
-                    </button>
+                <div className="toggle-row">
+                  <div>
+                    <strong className="text-sm font-semibold text-foreground">In-app Notifications</strong>
+                    <p className="text-xs text-muted-foreground">Available through the notification bell. Choose categories below.</p>
                   </div>
-                ))}
+                  <Badge variant="secondary" className="rounded-sm bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Available
+                  </Badge>
+                </div>
               </CardContent>
             </Card>
-          ))}
 
-          <Card className="settings-card bg-white ring-border">
-            <CardHeader className="border-b border-border/60 pb-4">
-              <div className="flex items-center gap-2">
-                <Info className="size-4 text-muted-foreground" aria-hidden="true" />
-                <CardTitle>Additional Alerts</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Off-route, cold-chain temperature and live tracking alerts are not connected to notification delivery. Maintenance and compliance notices are managed under Fleet &amp; Compliance. Their separate controls are unavailable.
-              </p>
-            </CardContent>
-          </Card>
+            {renderGroupCard(fleetCompliance)}
+
+            <Card className="settings-card bg-white ring-border">
+              <CardHeader className="border-b border-border/60 pb-4">
+                <div className="flex items-center gap-2">
+                  <Info className="size-4 text-muted-foreground" aria-hidden="true" />
+                  <CardTitle>Additional Alerts</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Off-route, cold-chain temperature and live tracking alerts are not connected to notification delivery. Maintenance and compliance notices are managed under Fleet &amp; Compliance. Their separate controls are unavailable.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="notification-column">
+            {renderGroupCard(shipmentAlerts)}
+            {renderGroupCard(otherNotifications)}
+          </div>
         </div>
       )}
     </section>
